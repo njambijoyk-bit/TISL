@@ -3,8 +3,8 @@ import { ClipboardCheck } from 'lucide-react';
 import toast from 'react-hot-toast';
 import { vendorPortalAPI } from '../../../_shared/api/index';
 import { card, colors } from '../../../_shared/theme/tokens';
-import { Page, Heading, Loading, Empty, Tabs, StatusBadge } from '../../components/vendor/ui';
-import { mono, fmtDate } from '../../components/vendor/format';
+import { Page, Heading, Loading, Empty, Tabs, StatusBadge } from '../../components/procurement/ui';
+import { mono, fmtDate } from '../../components/procurement/format';
 
 export default function VendorPq() {
   const [pqs, setPqs] = useState([]);

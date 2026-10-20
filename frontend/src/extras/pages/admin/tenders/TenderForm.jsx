@@ -5,7 +5,7 @@ import toast from 'react-hot-toast';
 import { tendersAPI } from '../../../../_shared/api/index';
 import { btnPrimary, btnGhost, card } from '../../../../_shared/theme/tokens';
 import { Field, TextInput, NumberInput, SelectInput, TextArea } from '../../../../core/components/admin/ui/Form';
-import { AdminPage, Heading, Loading } from '../../../components/vendor/ui';
+import { AdminPage, Heading, Loading } from '../../../components/procurement/ui';
 
 const BLANK = { title: '', description: '', category: 'goods', budget_min: '', budget_max: '', submission_deadline: '', visibility: 'all_vendors', requirements: '', evaluation_criteria: '' };
 

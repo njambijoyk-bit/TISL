@@ -4,7 +4,7 @@ import { FileText, Gavel, ClipboardCheck, Package, Building, ArrowRight } from '
 import toast from 'react-hot-toast';
 import { vendorPortalAPI } from '../../../_shared/api/index';
 import { card, colors } from '../../../_shared/theme/tokens';
-import { Page, Heading, Loading, StatusBadge } from '../../components/vendor/ui';
+import { Page, Heading, Loading, StatusBadge } from '../../components/procurement/ui';
 
 function StatCard({ icon: Icon, label, value, to }) {
   return (

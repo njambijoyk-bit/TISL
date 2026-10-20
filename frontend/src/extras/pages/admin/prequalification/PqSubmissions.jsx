@@ -3,8 +3,8 @@ import { ClipboardCheck } from 'lucide-react';
 import toast from 'react-hot-toast';
 import { prequalificationAPI } from '../../../../_shared/api/index';
 import { SelectInput } from '../../../../core/components/admin/ui/Form';
-import { AdminPage, Heading, Loading, Empty, Table, StatusBadge } from '../../../components/vendor/ui';
-import { td, mono, fmtDate } from '../../../components/vendor/format';
+import { AdminPage, Heading, Loading, Empty, Table, StatusBadge } from '../../../components/procurement/ui';
+import { td, mono, fmtDate } from '../../../components/procurement/format';
 
 export default function PqSubmissions() {
   const [submissions, setSubmissions] = useState([]);

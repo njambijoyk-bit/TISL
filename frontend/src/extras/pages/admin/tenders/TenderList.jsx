@@ -5,8 +5,8 @@ import toast from 'react-hot-toast';
 import { tendersAPI } from '../../../../_shared/api/index';
 import { btnPrimary } from '../../../../_shared/theme/tokens';
 import { TextInput, SelectInput } from '../../../../core/components/admin/ui/Form';
-import { AdminPage, Heading, Loading, Empty, Table, StatusBadge } from '../../../components/vendor/ui';
-import { td, mono, linkStyle, fmtDate } from '../../../components/vendor/format';
+import { AdminPage, Heading, Loading, Empty, Table, StatusBadge } from '../../../components/procurement/ui';
+import { td, mono, linkStyle, fmtDate } from '../../../components/procurement/format';
 
 export default function TenderList() {
   const [tenders, setTenders] = useState([]);

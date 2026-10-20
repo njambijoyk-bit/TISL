@@ -4,8 +4,8 @@ import { ArrowLeft, FileText, Send, X } from 'lucide-react';
 import toast from 'react-hot-toast';
 import { tendersAPI } from '../../../../_shared/api/index';
 import { btnPrimary, btnGhost, card, colors } from '../../../../_shared/theme/tokens';
-import { AdminPage, Loading, Empty, Tabs, Table, StatusBadge } from '../../../components/vendor/ui';
-import { td, mono, kes, fmtDate } from '../../../components/vendor/format';
+import { AdminPage, Loading, Empty, Tabs, Table, StatusBadge } from '../../../components/procurement/ui';
+import { td, mono, kes, fmtDate } from '../../../components/procurement/format';
 
 export default function TenderDetail() {
   const { id } = useParams();

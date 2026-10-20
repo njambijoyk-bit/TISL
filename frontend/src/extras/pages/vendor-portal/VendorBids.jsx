@@ -3,8 +3,8 @@ import { Link } from 'react-router-dom';
 import { FileText } from 'lucide-react';
 import toast from 'react-hot-toast';
 import { vendorPortalAPI } from '../../../_shared/api/index';
-import { Page, Heading, Loading, Empty, Table, StatusBadge } from '../../components/vendor/ui';
-import { td, mono, linkStyle, kes, fmtDate } from '../../components/vendor/format';
+import { Page, Heading, Loading, Empty, Table, StatusBadge } from '../../components/procurement/ui';
+import { td, mono, linkStyle, kes, fmtDate } from '../../components/procurement/format';
 
 export default function VendorBids() {
   const [bids, setBids] = useState([]);

@@ -4,8 +4,8 @@ import toast from 'react-hot-toast';
 import { vendorPortalAPI } from '../../../_shared/api/index';
 import { card, colors } from '../../../_shared/theme/tokens';
 import { TextInput } from '../../../core/components/admin/ui/Form';
-import { Page, Heading, Loading, Empty, StatusBadge } from '../../components/vendor/ui';
-import { mono, fmtDate, kes } from '../../components/vendor/format';
+import { Page, Heading, Loading, Empty, StatusBadge } from '../../components/procurement/ui';
+import { mono, fmtDate, kes } from '../../components/procurement/format';
 
 export default function VendorTenders() {
   const [tenders, setTenders] = useState([]);

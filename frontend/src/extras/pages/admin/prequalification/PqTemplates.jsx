@@ -2,8 +2,8 @@ import { useState, useEffect } from 'react';
 import { ClipboardCheck } from 'lucide-react';
 import toast from 'react-hot-toast';
 import { prequalificationAPI } from '../../../../_shared/api/index';
-import { AdminPage, Heading, Loading, Empty, Table, StatusBadge } from '../../../components/vendor/ui';
-import { td, fmtDate } from '../../../components/vendor/format';
+import { AdminPage, Heading, Loading, Empty, Table, StatusBadge } from '../../../components/procurement/ui';
+import { td, fmtDate } from '../../../components/procurement/format';
 
 export default function PqTemplates() {
   const [templates, setTemplates] = useState([]);

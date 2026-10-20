@@ -4,7 +4,7 @@ import toast from 'react-hot-toast';
 import { vendorPortalAPI } from '../../../_shared/api/index';
 import { btnPrimary, card } from '../../../_shared/theme/tokens';
 import { Field, TextInput } from '../../../core/components/admin/ui/Form';
-import { Page, Heading, Loading } from '../../components/vendor/ui';
+import { Page, Heading, Loading } from '../../components/procurement/ui';
 
 const KEYS = ['company_name', 'contact_name', 'email', 'phone', 'tax_id', 'address', 'city', 'country'];
 
