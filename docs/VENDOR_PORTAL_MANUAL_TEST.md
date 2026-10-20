@@ -69,7 +69,7 @@ Set the people category in Admin > Vendors > Edit (it only shows when Extras is 
 | T1 | Supply of 200 ergonomic office chairs | Goods | **Public** | none | none |
 | T2 | Supply of 50 standing desks | Goods | **Pre-qualified** | none | none |
 | T3 | Monthly office cleaning, 12 months | Services | **Invited** | none | none |
-| T4 | Catering supplies | Goods | **Vendors** | none | A Cups (Youth), B Plates (Women), C Spoons (open) |
+| T4 | Office supplies | Goods | **Vendors** | none | A Stationery (Youth), B Furniture (Women), C Cleaning supplies (open) |
 | T5 | Youth uniforms | Goods | **Public** | **Youth** (whole tender) | none |
 
 Give each a close date a few days ahead. Upload a PDF as the **Tender document** on T1, and an HTML file as an **Advertisement**.

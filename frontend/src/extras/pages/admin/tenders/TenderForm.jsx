@@ -133,13 +133,13 @@ export default function TenderForm() {
         <div style={{ borderTop: `1px solid ${colors.tint(0.1)}`, paddingTop: 14, display: 'grid', gap: 10 }}>
           <div>
             <strong style={{ fontSize: '0.85rem', color: colors.text }}>Lots</strong>
-            <p style={{ margin: '2px 0 0', fontSize: '0.74rem', color: colors.textMuted }}>Optional. List the lots (A, B, C...) and, for a lot meant for one group of people, choose it. Leave the group blank for open lots.</p>
+            <p style={{ margin: '2px 0 0', fontSize: '0.74rem', color: colors.textMuted }}>Optional. Use lots when one tender covers several separate parts that can be awarded separately, for example Lot A: stationery, Lot B: office furniture. A lot can be reserved for one group of people (youth, women...); leave it blank for open lots.</p>
           </div>
           {err('lots') && <p role="alert" style={{ margin: 0, fontSize: '0.75rem', color: colors.danger }}>{err('lots')}</p>}
           {form.lots.map((l, i) => (
             <div key={i} style={{ display: 'grid', gridTemplateColumns: '70px minmax(160px, 2fr) minmax(150px, 1fr) auto', gap: 8, alignItems: 'start' }}>
               <TextInput value={l.code} onChange={e => setLot(i, 'code', e.target.value)} aria-label="Lot code" placeholder="A" />
-              <TextInput value={l.title} onChange={e => setLot(i, 'title', e.target.value)} aria-label="Lot title" placeholder="Cups" />
+              <TextInput value={l.title} onChange={e => setLot(i, 'title', e.target.value)} aria-label="Lot title" placeholder="Lot title" />
               <SelectInput value={l.reservation_group} onChange={e => setLot(i, 'reservation_group', e.target.value)} aria-label="Reserved for">
                 <option value="">Open to all</option>
                 {Object.entries(GROUP_LABELS).map(([k, v]) => <option key={k} value={k}>{v}</option>)}

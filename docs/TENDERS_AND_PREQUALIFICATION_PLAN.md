@@ -24,7 +24,7 @@ The public list shows **only Public** tenders. Vendors see the other three in th
 
 **Status:** Draft, Published, **Closed** (automatic once the close time passes), **Awarded**, **Terminated** (cancelled).
 
-**Lots** (the cups, plates and spoons case): a tender can list its lots (A cups, B plates, C spoons) as rows in the notice. Bidding is offline, so lots only matter for describing the tender and **recording who won what**.
+**Lots** (one tender covering several parts that can be awarded separately): a tender can list its lots (A stationery, B furniture, C cleaning supplies) as rows in the notice. Bidding is offline, so lots only matter for describing the tender and **recording who won what**.
 
 **People category** (built): a tender, or each lot, can be reserved for one group: Youth, Women, Persons with disabilities or SMEs. Blank means open to everyone and nothing is shown. A vendor can be put in one group (with a certificate number and expiry) on the vendor page. A reserved tender or lot is emailed only to vendors in that group, and a whole group can be invited to an invited tender in one click. One group per tender or lot, as the standard document allows.
 
