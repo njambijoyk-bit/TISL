@@ -6,6 +6,9 @@ use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\SoftDeletes;
 use App\Models\Ecommerce\Product;
+use App\Models\Extras\TenderBid;
+use App\Models\Extras\TenderInvitation;
+use App\Models\Extras\Prequalification;
 
 class Vendor extends Model
 {
@@ -29,7 +32,7 @@ class Vendor extends Model
         'commission_rate',
         'currency',
         'bank_details',
-        'total_purchase_orders',
+        'total_vendor_orders',
         'total_purchased',
         'average_po_value',
         'first_po_date',
@@ -55,7 +58,7 @@ class Vendor extends Model
         'total_purchased'        => 'decimal:2',
         'average_po_value'       => 'decimal:2',
         'average_lead_time_days' => 'decimal:2',
-        'total_purchase_orders'  => 'integer',
+        'total_vendor_orders'    => 'integer',
         'payment_terms_days'     => 'integer',
         'verified_at'            => 'datetime',
         'first_po_date'          => 'datetime',
@@ -77,19 +80,19 @@ class Vendor extends Model
     }
 
     /**
-     * All purchase orders raised against this vendor.
+     * All vendor orders raised against this vendor.
      */
-    public function purchaseOrders()
+    public function vendorOrders()
     {
-        return $this->hasMany(PurchaseOrder::class);
+        return $this->hasMany(VendorOrder::class);
     }
 
     /**
-     * Open (non-cancelled, non-received) purchase orders.
+     * Open (non-cancelled, non-received) vendor orders.
      */
-    public function openPurchaseOrders()
+    public function openVendorOrders()
     {
-        return $this->hasMany(PurchaseOrder::class)
+        return $this->hasMany(VendorOrder::class)
             ->whereNotIn('status', ['received', 'cancelled']);
     }
 
@@ -136,6 +139,30 @@ class Vendor extends Model
     public function approver()
     {
         return $this->belongsTo(User::class, 'approved_by');
+    }
+
+    /**
+     * Tender bids this vendor has submitted.
+     */
+    public function tenderBids()
+    {
+        return $this->hasMany(TenderBid::class);
+    }
+
+    /**
+     * Tender invitations sent to this vendor.
+     */
+    public function tenderInvitations()
+    {
+        return $this->hasMany(TenderInvitation::class);
+    }
+
+    /**
+     * Pre-qualification submissions by this vendor.
+     */
+    public function prequalifications()
+    {
+        return $this->hasMany(Prequalification::class);
     }
 
     // =========================================================================
@@ -192,13 +219,13 @@ class Vendor extends Model
     // =========================================================================
 
     /**
-     * Recalculate and persist purchase order statistics.
-     * Call this after a PO is received or cancelled.
+     * Recalculate and persist vendor order statistics.
+     * Call this after a vendor order is received or cancelled.
      * Mirrors Customer::recalculateStats() pattern.
      */
     public function recalculateStats(): void
     {
-        $received = $this->purchaseOrders()
+        $received = $this->vendorOrders()
             ->where('status', 'received');
 
         $total        = $received->count();
@@ -207,8 +234,7 @@ class Vendor extends Model
         $firstDate    = $received->min('received_at');
         $lastDate     = $received->max('received_at');
 
-        // Rolling average lead time: days between sent_at and received_at
-        $avgLead = $this->purchaseOrders()
+        $avgLead = $this->vendorOrders()
             ->where('status', 'received')
             ->whereNotNull('shipped_at')
             ->whereNotNull('received_at')
@@ -216,7 +242,7 @@ class Vendor extends Model
             ->value('avg_lead');
 
         $this->update([
-            'total_purchase_orders'  => $total,
+            'total_vendor_orders'    => $total,
             'total_purchased'        => $totalSpent,
             'average_po_value'       => round($avgValue, 2),
             'first_po_date'          => $firstDate,

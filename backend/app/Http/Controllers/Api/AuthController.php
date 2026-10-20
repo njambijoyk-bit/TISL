@@ -181,6 +181,99 @@ class AuthController extends Controller
     }
 
     /**
+     * REGISTER VENDOR — self-registration for the vendor portal (Extras module).
+     * Creates a User (role=vendor, status=pending_verification) and a Vendor record.
+     */
+    public function registerVendor(Request $request)
+    {
+        $validator = Validator::make($request->all(), [
+            'company_name'  => 'required|string|max:255',
+            'contact_name'  => 'required|string|max:255',
+            'email'         => 'required|string|email|max:255|unique:users',
+            'phone'         => 'required|string|unique:users',
+            'password'      => ['required', 'string', new StrongPassword, 'confirmed'],
+            'tax_id'        => 'nullable|string|max:50',
+            'address'       => 'nullable|string',
+            'city'          => 'nullable|string|max:100',
+            'country'       => 'nullable|string|max:100',
+            'policy_acceptances'            => 'required|array',
+            'policy_acceptances.*.key'      => 'required|string',
+            'policy_acceptances.*.response' => 'required|in:accepted,disagreed',
+        ], [
+            'company_name.required' => 'Company name is required',
+            'contact_name.required' => 'Contact name is required',
+            'email.required'        => 'Email address is required',
+            'email.unique'          => 'This email is already registered',
+            'phone.required'        => 'Phone number is required',
+            'phone.unique'          => 'This phone number is already registered',
+            'password.confirmed'    => 'Passwords do not match',
+        ]);
+
+        if ($validator->fails()) {
+            return response()->json(['errors' => $validator->errors()], 422);
+        }
+
+        DB::beginTransaction();
+        try {
+            $user = User::create([
+                'name'           => $request->contact_name,
+                'email'          => $request->email,
+                'phone'          => $request->phone,
+                'company_name'   => $request->company_name,
+                'password'       => Hash::make($request->password),
+                'role'           => 'vendor',
+                'status'         => 'pending_verification',
+                'oauth_provider' => 'email',
+            ]);
+
+            $vendor = \App\Models\Vendor::create([
+                'user_id'            => $user->id,
+                'vendor_number'      => \App\Models\Vendor::generateVendorNumber(),
+                'company_name'       => $request->company_name,
+                'contact_name'       => $request->contact_name,
+                'email'              => $request->email,
+                'phone'              => $request->phone,
+                'tax_id'             => $request->input('tax_id'),
+                'address'            => $request->input('address'),
+                'city'               => $request->input('city'),
+                'country'            => $request->input('country'),
+                'status'             => 'pending_approval',
+                'created_by'         => null,
+            ]);
+
+            foreach ($request->policy_acceptances ?? [] as $pa) {
+                $this->logPolicyAcceptance(
+                    policyKey:      $pa['key'],
+                    actionContext:  'vendor_register',
+                    response:       $pa['response'],
+                    customer:       null,
+                    user:           $user,
+                    disagreeReason: $pa['reason'] ?? null,
+                    wasSuccessful:  true,
+                    request:        $request
+                );
+            }
+
+            Auth::guard('web')->login($user);
+            $token = app(Sessions::class)->issue($user, $request, 'auth-token', 'vendor-register');
+
+            DB::commit();
+
+            return SessionCookie::respond($request, [
+                'message' => 'Vendor registration successful. Your account is pending approval.',
+                'user'    => $user,
+                'vendor'  => $vendor,
+            ], 201, $token, $user);
+
+        } catch (\Exception $e) {
+            DB::rollBack();
+            Log::error('Vendor registration failed', ['error' => $e->getMessage(), 'trace' => $e->getTraceAsString()]);
+
+            return response()->json(['message' => 'Registration failed', 'error' => $e->getMessage()], 500);
+        }
+    }
+
+    /**
      * LOGIN - Authenticate user
      * UPDATED: Return customer data with referral code
      */

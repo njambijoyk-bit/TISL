@@ -7,6 +7,12 @@ const authAPI = {
     return response.data;
   },
 
+  // Register vendor (Extras module)
+  registerVendor: async (data) => {
+    const response = await api.post('/auth/vendor-register', data);
+    return response.data;
+  },
+
   // Login
   login: async (credentials) => {
     const response = await api.post('/auth/login', credentials);

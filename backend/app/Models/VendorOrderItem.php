@@ -6,12 +6,14 @@ use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use App\Models\Ecommerce\Product;
 
-class PurchaseOrderItem extends Model
+class VendorOrderItem extends Model
 {
     use HasFactory;
 
+    protected $table = 'vendor_order_items';
+
     protected $fillable = [
-        'purchase_order_id',
+        'vendor_order_id',
         'product_id',
         'vendor_sku',
         'product_name',
@@ -40,9 +42,9 @@ class PurchaseOrderItem extends Model
     // RELATIONSHIPS
     // =========================================================================
 
-    public function purchaseOrder()
+    public function vendorOrder()
     {
-        return $this->belongsTo(PurchaseOrder::class);
+        return $this->belongsTo(VendorOrder::class);
     }
 
     public function product()
@@ -52,7 +54,6 @@ class PurchaseOrderItem extends Model
 
     // =========================================================================
     // BOOT — auto-calculate line totals on save
-    // Mirrors the OrderItem boot() pattern exactly.
     // =========================================================================
 
     protected static function boot()
@@ -83,7 +84,7 @@ class PurchaseOrderItem extends Model
         }
 
         if ($this->product_id) {
-            $this->product->increaseStock($qty); // already on Product model
+            $this->product->increaseStock($qty);
         }
 
         $newReceived = $this->quantity_received + $qty;

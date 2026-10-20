@@ -119,7 +119,10 @@ final class ModuleTables
         ],
 
         'extras' => [
-            'purchase_orders', 'purchase_order_items',
+            'vendor_orders', 'vendor_order_items',
+            'tenders', 'tender_documents', 'tender_invitations',
+            'tender_bids', 'tender_bid_items', 'tender_bid_documents',
+            'prequalification_templates', 'prequalifications', 'prequalification_documents',
             // Delivery + drivers (drivers are users, backed up under Core)
             'delivery_manifests', 'delivery_items', 'delivery_item_vouchers', 'delivery_costs', 'delivery_incidents', 'delivery_ratings',
             'delivery_activity_logs', 'driver_location_pings', 'driver_rating_adjustments',

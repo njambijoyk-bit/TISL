@@ -40,3 +40,8 @@ export { default as inventoryAPI } from './inventory';
 export { default as notificationsAPI } from './notifications';
 
 export { publicApi, applicantAuth, portalApi, adminCareersApi } from './careersApi';
+
+export { default as vendorsAPI } from './vendors';
+export { default as vendorPortalAPI } from './vendorPortal';
+export { default as tendersAPI } from './tenders';
+export { default as prequalificationAPI } from './prequalification';

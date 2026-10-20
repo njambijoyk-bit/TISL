@@ -3302,6 +3302,95 @@ Route::middleware(['auth:sanctum', 'permission:appearance.manage'])->group(funct
 });
 
 // ============================================
+// VENDOR PORTAL, TENDERING & PRE-QUALIFICATION (Extras module)
+// ============================================
+
+// Vendor self-registration (public, gated by module:extras)
+Route::post('/auth/vendor-register', [AuthController::class, 'registerVendor'])->middleware(['module:extras', 'throttle:sign-up']);
+
+// Vendor portal — logged-in vendor, Extras on
+Route::middleware(['auth:sanctum', 'module:extras'])->prefix('vendor-portal')->group(function () {
+    $vp = \App\Http\Controllers\Api\VendorPortalController::class;
+
+    Route::get('/dashboard', [$vp, 'dashboard']);
+    Route::get('/profile',   [$vp, 'profile']);
+    Route::put('/profile',   [$vp, 'updateProfile']);
+
+    // Tenders visible to this vendor
+    Route::get('/tenders',            [$vp, 'tenders']);
+    Route::get('/tenders/{id}',       [$vp, 'showTender'])->whereNumber('id');
+
+    // Bids
+    Route::get('/bids',               [$vp, 'myBids']);
+    Route::post('/tenders/{id}/bid',  [$vp, 'storeBid'])->whereNumber('id');
+    Route::post('/bids/{id}/submit',  [$vp, 'submitBid'])->whereNumber('id');
+    Route::post('/bids/{id}/withdraw', [$vp, 'withdrawBid'])->whereNumber('id');
+    Route::post('/bids/{id}/documents', [$vp, 'uploadBidDocument'])->whereNumber('id');
+
+    // Pre-qualification
+    Route::get('/pq/templates',             [$vp, 'pqTemplates']);
+    Route::get('/pq/templates/{id}',        [$vp, 'showPqTemplate'])->whereNumber('id');
+    Route::get('/pq/submissions',           [$vp, 'myPqs']);
+    Route::post('/pq/templates/{id}/apply', [$vp, 'storePq'])->whereNumber('id');
+    Route::put('/pq/{id}',                  [$vp, 'updatePq'])->whereNumber('id');
+    Route::post('/pq/{id}/submit',          [$vp, 'submitPq'])->whereNumber('id');
+    Route::post('/pq/{id}/documents',       [$vp, 'uploadPqDocument'])->whereNumber('id');
+
+    // Vendor orders (read-only for the vendor)
+    Route::get('/orders',       [$vp, 'orders']);
+    Route::get('/orders/{id}',  [$vp, 'showOrder'])->whereNumber('id');
+});
+
+// Admin: Tenders (Extras module)
+Route::middleware(['auth:sanctum', 'module:extras'])->prefix('admin/tenders')->group(function () {
+    $tc = \App\Http\Controllers\Admin\TenderController::class;
+
+    Route::middleware('permission:tenders.view')->group(function () use ($tc) {
+        Route::get('/',          [$tc, 'index']);
+        Route::get('/{id}',      [$tc, 'show'])->whereNumber('id');
+        Route::get('/{id}/bids', [$tc, 'bids'])->whereNumber('id');
+    });
+
+    Route::middleware('permission:tenders.manage')->group(function () use ($tc) {
+        Route::post('/',                    [$tc, 'store']);
+        Route::put('/{id}',                 [$tc, 'update'])->whereNumber('id');
+        Route::post('/{id}/publish',        [$tc, 'publish'])->whereNumber('id');
+        Route::post('/{id}/close',          [$tc, 'close'])->whereNumber('id');
+        Route::post('/{id}/cancel',         [$tc, 'cancel'])->whereNumber('id');
+        Route::post('/{id}/documents',      [$tc, 'uploadDocument'])->whereNumber('id');
+        Route::delete('/{id}/documents/{docId}', [$tc, 'deleteDocument'])->whereNumber('id')->whereNumber('docId');
+        Route::post('/{id}/invite',         [$tc, 'invite'])->whereNumber('id');
+    });
+
+    Route::middleware('permission:tenders.evaluate')->group(function () use ($tc) {
+        Route::put('/{id}/bids/{bidId}/evaluate', [$tc, 'evaluateBid'])->whereNumber('id')->whereNumber('bidId');
+        Route::post('/{id}/bids/{bidId}/award',   [$tc, 'awardBid'])->whereNumber('id')->whereNumber('bidId');
+    });
+});
+
+// Admin: Pre-qualification (Extras module)
+Route::middleware(['auth:sanctum', 'module:extras'])->prefix('admin/prequalification')->group(function () {
+    $pq = \App\Http\Controllers\Admin\PrequalificationController::class;
+
+    Route::middleware('permission:prequalification.templates')->group(function () use ($pq) {
+        Route::get('/templates',       [$pq, 'templates']);
+        Route::get('/templates/{id}',  [$pq, 'showTemplate'])->whereNumber('id');
+        Route::post('/templates',      [$pq, 'storeTemplate']);
+        Route::put('/templates/{id}',  [$pq, 'updateTemplate'])->whereNumber('id');
+    });
+
+    Route::middleware('permission:prequalification.view')->group(function () use ($pq) {
+        Route::get('/submissions',      [$pq, 'submissions']);
+        Route::get('/submissions/{id}', [$pq, 'showSubmission'])->whereNumber('id');
+    });
+
+    Route::middleware('permission:prequalification.manage')->group(function () use ($pq) {
+        Route::post('/submissions/{id}/review', [$pq, 'review'])->whereNumber('id');
+        Route::post('/submissions/{pqId}/documents/{docId}/verify', [$pq, 'verifyDocument'])->whereNumber('pqId')->whereNumber('docId');
+    });
+});
+
+// ============================================
 // CATCH-ALL FOR 404
 // ============================================
 Route::fallback(function () {

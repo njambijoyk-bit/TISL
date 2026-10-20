@@ -6,10 +6,13 @@ use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\SoftDeletes;
 use App\Models\Ecommerce\Product;
+use App\Models\Extras\TenderBid;
 
-class PurchaseOrder extends Model
+class VendorOrder extends Model
 {
     use HasFactory, SoftDeletes;
+
+    protected $table = 'vendor_orders';
 
     protected $fillable = [
         'po_number',
@@ -39,6 +42,7 @@ class PurchaseOrder extends Model
         'notes',
         'admin_notes',
         'metadata',
+        'tender_bid_id',
     ];
 
     protected $casts = [
@@ -78,7 +82,12 @@ class PurchaseOrder extends Model
 
     public function items()
     {
-        return $this->hasMany(PurchaseOrderItem::class);
+        return $this->hasMany(VendorOrderItem::class);
+    }
+
+    public function tenderBid()
+    {
+        return $this->belongsTo(TenderBid::class);
     }
 
     // =========================================================================
@@ -123,12 +132,12 @@ class PurchaseOrder extends Model
     }
 
     /**
-     * Generate the next PO number.
+     * Generate the next vendor order number.
      */
-    public static function generatePoNumber(): string
+    public static function generateVoNumber(): string
     {
         $nextId = (static::withTrashed()->max('id') ?? 0) + 1;
-        return 'PO-' . date('Y') . '-' . str_pad($nextId, 4, '0', STR_PAD_LEFT);
+        return 'VO-' . date('Y') . '-' . str_pad($nextId, 4, '0', STR_PAD_LEFT);
     }
 
     /**
@@ -152,10 +161,10 @@ class PurchaseOrder extends Model
      */
     public function receiveAllItems(): void
     {
-        $this->items->each(function (PurchaseOrderItem $item) {
+        $this->items->each(function (VendorOrderItem $item) {
             $remaining = $item->quantity - $item->quantity_received;
             if ($remaining > 0 && $item->product_id) {
-                $item->product->increaseStock($remaining); // method already on Product model
+                $item->product->increaseStock($remaining);
             }
             $item->update([
                 'quantity_received'   => $item->quantity,

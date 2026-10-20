@@ -312,6 +312,20 @@ const DriverRatingsPage        = lazy(() => import('./extras/pages/admin/driver/
 const DriverIncidentsPage      = lazy(() => import('./extras/pages/admin/driver/DriverIncidentsPage'));
 const DeliveryInsightsPage     = lazy(() => import('./extras/pages/admin/delivery/DeliveryInsightsPage'));
 
+// ── Vendor Portal & Tendering (Extras) ───────────────────────────────────────
+const VendorRegister     = lazy(() => import('./extras/pages/auth/VendorRegister'));
+const VendorDashboard    = lazy(() => import('./extras/pages/vendor-portal/VendorDashboard'));
+const VendorTenders      = lazy(() => import('./extras/pages/vendor-portal/VendorTenders'));
+const VendorBids         = lazy(() => import('./extras/pages/vendor-portal/VendorBids'));
+const VendorPq           = lazy(() => import('./extras/pages/vendor-portal/VendorPq'));
+const VendorOrders       = lazy(() => import('./extras/pages/vendor-portal/VendorOrders'));
+const VendorProfile      = lazy(() => import('./extras/pages/vendor-portal/VendorProfile'));
+const TenderList         = lazy(() => import('./extras/pages/admin/tenders/TenderList'));
+const TenderDetail       = lazy(() => import('./extras/pages/admin/tenders/TenderDetail'));
+const TenderForm         = lazy(() => import('./extras/pages/admin/tenders/TenderForm'));
+const PqTemplates        = lazy(() => import('./extras/pages/admin/prequalification/PqTemplates'));
+const PqSubmissions      = lazy(() => import('./extras/pages/admin/prequalification/PqSubmissions'));
+
 const AdminBugReportsPage = lazy(() => import('./core/pages/admin/AdminBugReportsPage'));
 const AdminDevNotesPage   = lazy(() => import('./core/pages/admin/AdminDevNotesPage'));
 const AdminDevKeysPage    = lazy(() => import('./core/pages/admin/AdminDevKeysPage'));
@@ -623,6 +637,16 @@ function App() {
             <Route path="/stock-alerts/stop/:token" element={<StockAlertStop />} />
             <Route path="/reminders/stop/:token" element={<ReminderStop />} />
             <Route path="/reset-password" element={<ResetPassword />} />
+            <Route path="/vendor-register" element={<ModuleRoute module="extras"><VendorRegister /></ModuleRoute>} />
+
+            {/* ── Vendor Portal (Extras) ───────────────────────────────────── */}
+            <Route path="/vendor-portal" element={<ProtectedRoute><ModuleRoute module="extras"><VendorDashboard /></ModuleRoute></ProtectedRoute>} />
+            <Route path="/vendor-portal/tenders" element={<ProtectedRoute><ModuleRoute module="extras"><VendorTenders /></ModuleRoute></ProtectedRoute>} />
+            <Route path="/vendor-portal/tenders/:id" element={<ProtectedRoute><ModuleRoute module="extras"><VendorTenders /></ModuleRoute></ProtectedRoute>} />
+            <Route path="/vendor-portal/bids" element={<ProtectedRoute><ModuleRoute module="extras"><VendorBids /></ModuleRoute></ProtectedRoute>} />
+            <Route path="/vendor-portal/pq" element={<ProtectedRoute><ModuleRoute module="extras"><VendorPq /></ModuleRoute></ProtectedRoute>} />
+            <Route path="/vendor-portal/orders" element={<ProtectedRoute><ModuleRoute module="extras"><VendorOrders /></ModuleRoute></ProtectedRoute>} />
+            <Route path="/vendor-portal/profile" element={<ProtectedRoute><ModuleRoute module="extras"><VendorProfile /></ModuleRoute></ProtectedRoute>} />
 
             <Route element={<CareersLayout />}>
                 <Route path="/careers/about"          element={<AboutCareersPage />} />
@@ -890,6 +914,15 @@ function App() {
               <Route path="/admin/stock/expiry" element={<ProtectedRoute requireAdmin permission="stock.view"><ExpiringStock /></ProtectedRoute>} />
               <Route path="/admin/stock/held" element={<ProtectedRoute requireAdmin permission="stock.view"><HeldStock /></ProtectedRoute>} />
               <Route path="/admin/vendors" element={<ProtectedRoute requireAdmin permission="vendors.view"><Vendors /></ProtectedRoute>} />
+
+              {/* ── Admin Tenders & Pre-Qualification (Extras) ─────────────── */}
+              <Route path="/admin/tenders" element={<ProtectedRoute requireAdmin permission="tenders.view"><ModuleRoute module="extras" redirectTo="/admin"><TenderList /></ModuleRoute></ProtectedRoute>} />
+              <Route path="/admin/tenders/new" element={<ProtectedRoute requireAdmin permission="tenders.manage"><ModuleRoute module="extras" redirectTo="/admin"><TenderForm /></ModuleRoute></ProtectedRoute>} />
+              <Route path="/admin/tenders/:id" element={<ProtectedRoute requireAdmin permission="tenders.view"><ModuleRoute module="extras" redirectTo="/admin"><TenderDetail /></ModuleRoute></ProtectedRoute>} />
+              <Route path="/admin/tenders/:id/edit" element={<ProtectedRoute requireAdmin permission="tenders.manage"><ModuleRoute module="extras" redirectTo="/admin"><TenderForm /></ModuleRoute></ProtectedRoute>} />
+              <Route path="/admin/prequalification/templates" element={<ProtectedRoute requireAdmin permission="prequalification.templates"><ModuleRoute module="extras" redirectTo="/admin"><PqTemplates /></ModuleRoute></ProtectedRoute>} />
+              <Route path="/admin/prequalification/submissions" element={<ProtectedRoute requireAdmin permission="prequalification.view"><ModuleRoute module="extras" redirectTo="/admin"><PqSubmissions /></ModuleRoute></ProtectedRoute>} />
+
               <Route path="/admin/stock/transfers" element={<ProtectedRoute requireAdmin permission="stock.view"><StockTransfers /></ProtectedRoute>} />
               <Route path="/admin/stock/counts" element={<ProtectedRoute requireAdmin permission="stock.view"><StockCounts /></ProtectedRoute>} />
               <Route path="/admin/courses" element={<ProtectedRoute requireAdmin permission="courses.view"><CoursesOfferings /></ProtectedRoute>} />

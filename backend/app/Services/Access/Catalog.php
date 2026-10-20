@@ -11,13 +11,14 @@ namespace App\Services\Access;
  */
 class Catalog
 {
-    public const VERSION = 17;
+    public const VERSION = 18;
 
     /** The key of the owner role: the one role that holds every permission, including ones added later. It cannot be changed or deleted. */
     public const OWNER = 'super_admin';
 
     /** Permissions added after version 1, by the version that added them. The seeder gives a new permission to the built-in roles that hold it by default once, and never again (an admin may take it back). */
     public const ADDED = [
+        18 => ['tenders.view', 'tenders.manage', 'tenders.evaluate', 'prequalification.view', 'prequalification.manage', 'prequalification.templates', 'vendors.portal'],
         17 => ['menus.configure', 'menus.tips.view', 'menus.tips.issue', 'menus.tips.issue_self', 'menus.tips.reverse', 'menus.packaging.waive'],
         16 => ['units.view', 'units.manage'],
         15 => ['menus.till'],
@@ -47,6 +48,7 @@ class Catalog
      * upgrades from an older version, and never takes it back. (The sales rep manages milestones and posts messages, so it needs to open projects.)
      */
     public const GRANTED = [
+        18 => ['manager' => ['tenders.view', 'prequalification.view'], 'senior_accountant' => ['tenders.view', 'tenders.manage', 'prequalification.view']],
         4 => ['sales_rep' => ['projects.use']],
     ];
 
@@ -213,6 +215,13 @@ class Catalog
         'verification.manage' => [null, 'Stock', 'Hand out verification work and check anyone\'s', true],
         'verification.override' => [null, 'Stock', 'Verify any item assigned to you, whatever its rules', true],
         'vendors.approve'   => [null, 'Purchases', 'Make and approve vendor accounts', true],
+        'vendors.portal'    => ['extras', 'Purchases', 'Manage the vendor portal: registrations, portal access and vendor approvals', true],
+        'tenders.view'      => ['extras', 'Purchases', 'See tenders and the bids they received', false],
+        'tenders.manage'    => ['extras', 'Purchases', 'Create, publish and close tenders', true],
+        'tenders.evaluate'  => ['extras', 'Purchases', 'Score bids and award a tender', true],
+        'prequalification.view'      => ['extras', 'Purchases', 'See pre-qualification submissions', false],
+        'prequalification.manage'    => ['extras', 'Purchases', 'Review and approve pre-qualification submissions', true],
+        'prequalification.templates' => ['extras', 'Purchases', 'Create and change pre-qualification templates', true],
         'calendar.team'     => [null, 'People', 'See the team calendar and other people\'s calendars', false],
         'attendance.manage' => [null, 'People', 'Mark and verify attendance and set the attendance rules', true],
         'attendance.arbitrate' => [null, 'People', 'Settle attendance disputes, see who reported, mark your own day', true],
