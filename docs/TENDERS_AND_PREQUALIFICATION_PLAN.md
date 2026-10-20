@@ -102,7 +102,7 @@ Page fetching was blocked here, so this is from search summaries.
 - **Kenya's e-GP system** (egpkenya.go.ke) is where suppliers register and bid on government tenders; we are the company's own tendering, not that system.
 - **Other e-tender systems** (GePNIC, Bids & Tenders): templates and clause libraries; clarification Q&A to everyone; addenda to registered bidders with audit trail and document versions; single or multi-cover bids (technical envelope first, financial sealed until it passes); evaluator templates with conflict-of-interest declarations.
 
-## 3. Decisions to confirm (my recommendation in bold)
+## 3. Decisions (all 12 agreed: "I agree with your choices")
 
 | # | Question | Recommendation |
 |---|---|---|
@@ -195,19 +195,69 @@ Public list: Addendum and deadline-extended badges, "closing soon", reservation 
 ### 4.11 Permissions and numbering
 
 - New catalog permissions: `tenders.library` (standard texts, blocks, requirements, forms, templates), `tenders.addenda`, `tenders.open`, `tenders.evaluate` (exists), `tenders.award`. Vendors need `vendors.portal`.
-- Database scripts from 221, one concern each, safe to re-run, with the guards used so far: 221 standard documents, clauses, parameters; 222 blocks, requirements, bidder forms, templates; 223 tender parameters, adverts, commencement and security columns; 224 followers, clarifications, addenda, document versions; 225 bid parts, receipts, security records; 226 opening records; 227 evaluation sheets and criteria; 228 award chain; 229 vendor business profile; 230 PQ forms and criteria.
+- Database scripts from 221, one concern each, safe to re-run, with the guards used so far: 221 standard documents, clauses, parameters; 222 blocks, requirements, bidder forms, templates; 223 tender parameters, adverts, commencement and security columns; 224 followers, clarifications, addenda, document versions; 225 bid parts, receipts, security records; 226 opening records; 227 evaluation sheets and criteria; 228 award chain; 229 vendor business profile; 230 PQ forms and criteria; plus lots (`tender_lots`, `tender_bid_lots`, `tender_awards`, `lot_id` columns) with 223, and `form_answers` and `review_items` with 225.
+
+### 4.12 Lots: one tender, several contracts (cups, plates, spoons)
+
+One tender document and one tender number, with **Lot A cups, Lot B plates, Lot C spoons**; each lot ends in its own contract. (Not the same as the Mosop advert, which was four **separate tenders**, each with its own number and document, grouped in one notice. Both are supported.)
+
+- **One code path.** Every tender has at least one lot; a plain tender has a single hidden lot. `tender_lots` (`tender_id`, `code`, `title`, `description`, `status` = open | evaluating | awarded | no_award | cancelled, internal estimate, optional security amount, `sort`). The schedule of goods and delivery, the technical specification rows, the price schedule and requirements that apply only to one lot (say a food-grade certificate for cups) carry a `lot_id`; null means the whole tender.
+- **A bidder chooses the lots:** A only, A and C, or all three. One bid per vendor per tender, with a **lot bid** inside it for each lot chosen (`tender_bid_lots`: price, answers, scores). Tender-wide forms and documents are given once; lot-specific ones per lot. The Form of Tender states the price **per lot and the total of the lots bid** (the standard's "multiple lots" option); the tender security is one per bid, sized on the total quoted.
+- **Evaluation is per lot.** The mandatory checklist (tender-wide items plus that lot's), technical scoring and price comparison run lot by lot, so a bidder can be responsive for Lot A and non-responsive for Lot B. The evaluation screen is a **matrix: bidders across, lots down**, each cell showing price, technical score, rank and flags.
+- **Award is per lot** (`tender_awards`: `tender_id`, `lot_id`, `bid_id`, `vendor_id`, `amount`, status, `vendor_order_id`). This replaces the single `awarded_vendor_id` on the tender; existing awards are migrated as the one hidden lot.
+
+| Outcome | What happens |
+|---|---|
+| Vendor A wins all of A, B, C | Three lot awards and contracts; A's qualification is checked against the **sum** of the minimum requirements of the three lots (the standard adds lot minimums together). |
+| Vendor A wins A and C, vendor B wins B | Two vendors, three awards; each gets contracts only for the lots they won; A's qualification is checked for A + C together. |
+| A vendor wins none | Receives the notice of intention with the reason **per lot** bid. |
+| No responsive bid for one lot | That lot is `no_award` and can be re-advertised as its own tender while the other lots proceed. |
+| Combination pricing ("cheaper if I get A and C") | Listed combinations with their total evaluated price, so the lowest combined price can be chosen (the standard has two award options for multiple contracts: award each lot to its lowest evaluated bidder, or pick the combination with the lowest total). Whether conditional discounts are allowed is set in the tender data sheet. |
+
+- **Award chain per lot:** one notification of intention lists the recipient's result for each lot they bid, one standstill for the tender, then a letter of award, contract, performance security and vendor order **per lot won**. The tender is "awarded" when every lot has concluded (awarded, no award or cancelled).
+- **Opening** reads out the price per lot. **Addenda** can name the lot they change; everyone who acquired the document is still notified. **Withdrawing one lot** before the deadline is a modification of the bid.
+
+### 4.13 Answers as data, review screens and the machine check
+
+**Principle: everything a vendor enters is stored as an individual answer**, not only inside a form or a PDF, so it can be filtered, compared and checked on its own.
+
+- `form_answers` (`subject_type` = bid | pq | vendor_profile, `subject_id`, `lot_id`, `form_code`, `field_key`, `question` (the label as it was when asked), `required_value` (what the tender required, copied), `value`, `unit`, `file_id`, `source` = typed | prefilled | uploaded, who and when, `version`): one row per field, one per cell of a table. A printable PDF of the bid is still made from the answers for the paper record.
+- **The Q&A views** (in the approval and evaluation screens, so nobody opens the whole document):
+  - **By bidder:** all questions and answers of one bid, grouped like the form, each with a status chip and file preview. Filters: blank, failed, mandatory only, changed since an addendum, by form, by lot, by reviewer; search.
+  - **By question (compare):** one question across all bidders side by side with the required value, sortable and filterable (offered delivery date, turnover, country of origin, a measurement against its range, pass or fail).
+  - **Documents:** uploaded files by requirement with expiry, verification and the rule they were checked against.
+  - Saved filters and CSV export.
+- **One review engine** for every approval: `review_items` (`subject_type`, `subject_id`, `stage`, `item_key`, `lot_id`, `verdict` = pass | fail | clarify | not_applicable, `decided_by` = machine | human, `user_id`, `rule_key`, `reason`, `decided_at`, `supersedes_id`). It is **append-only**: the latest verdict counts and earlier ones stay in the history. The same engine serves **bid evaluation stages, pre-qualification review, vendor approval** (pending to active) and **tender publishing approval**.
+- **Machine checks** run at three moments: while the vendor prepares (advice only, so they can fix gaps before the deadline), at submission (the advice is saved with the bid), and when evaluation starts after opening (these create **machine verdicts**). A machine verdict reads, for example: **"Disapproved by machine: CR12 certificate dated 3 Mar 2026 is older than 6 months before the submission date (limit 14 Apr 2026)."** Each rule has a severity set when the tender is authored, with defaults: `disapprove`, `flag` (needs a human), `info`.
+- **What a machine can prove from the data:** a required answer or document is missing; a document is expired or outside its date rule; a declaration is not ticked, or signed by someone with no power of attorney attached; tender security missing, below the required percentage of the total, or expiring before validity plus 30 days; offered validity shorter than required; price schedule arithmetic (line totals, PPRA levy 0.03%, VAT 16%, grand total), zero or negative prices, quantities different from the schedule; offered delivery date outside the earliest and latest dates; a mandatory specification row answered "no" or blank, or a number outside the required range; a conflict-of-interest "yes" with no details; the same legal representative or director appearing in two competing bids (flag only).
+- **What it cannot do** (not promised): read a scanned document to tell whether a certificate is genuine, judge a signature or stamp, or query the KRA checker. Those stay human, with the verification note and link beside the item.
+- **The machine never approves a bid or an award on its own.** A bid whose items all pass shows "Passed automatic checks" and a human still decides each stage. A machine disapproval **stands** (the item shows as failed) until a human overrides it with a reason, and the machine verdict stays in the history.
+- **A human approval or disapproval always requires a reason** (text, minimum length), saved with name and time; an override is a human decision and needs one too. Reasons feed the notification of intention (the reasons an unsuccessful bidder is told). Optional: a second person confirms each stage outcome.
+- **Confidentiality:** bidders see machine advice only about their own bid while preparing it; evaluation verdicts are not shown to bidders until the notification of intention, as the standard requires.
 
 ## 5. Build order
 
-1. **Phase 1, the engine and the notice**: standard documents with the PPRA Goods text and parameter sheet (TDS first), the consistency check, content blocks, requirement library, tender document PDF and notice, register interest, clarifications and addenda with the public timeline.
-2. **Phase 2, bidding**: vendor business profile, bidder forms with tick-and-sign, vendor bid screen with the original/copies parts, requirement checks, price schedule with levy and VAT, technical compliance matrix, tender security, physical bid receipts, sealed opening and the opening record.
-3. **Phase 3, evaluation and award**: the three stages with bands and suggestions, post-qualification, evaluation report, notification of intention, standstill, letter of award, performance security tracking, contract publication.
+1. **Phase 1, the engine and the notice** (tender lots exist from the start, a plain tender having one hidden lot): standard documents with the PPRA Goods text and parameter sheet (TDS first), the consistency check, content blocks, requirement library, tender document PDF and notice, register interest, clarifications and addenda with the public timeline.
+2. **Phase 2, bidding** (answers stored per field, the Q&A views, machine advice while preparing a bid, bids per lot): vendor business profile, bidder forms with tick-and-sign, vendor bid screen with the original/copies parts, requirement checks, price schedule with levy and VAT, technical compliance matrix, tender security, physical bid receipts, sealed opening and the opening record.
+3. **Phase 3, evaluation and award** (the review engine with machine verdicts and human reasons, the bidders-by-lots matrix, award per lot): the three stages with bands and suggestions, post-qualification, evaluation report, notification of intention, standstill, letter of award, performance security tracking, contract publication.
 4. **Phase 4, pre-qualification forms and criteria**, tender templates, works and services standards, OCDS export, e-signatures, request-for-review workflow, supplier document wallet with expiry reminders.
 
 ## 6. Not decided, to check
+
+- Whether conditional (combination) discounts across lots are allowed, and how a tender security is forfeited when a winner signs one lot but not another.
 
 - The Act's exact rules on addenda timing, minimum tender periods and the standstill (we use the standard's numbers as editable defaults).
 - Whether to offer the **Works**, **Non-consultancy services** and **Request for Quotation** standards next (they use the same engine; you would send those documents).
 - The official **Standard Tender Evaluation Report** layout (referenced, not provided).
 - Whether the 2007 prequalification forms still match the current PPRA standard.
 - Tender security details for your own private procurement (percentage, accepted forms): confirm with whoever runs procurement.
+
+## Words used in this plan
+
+- **Mosop**: a constituency in Kenya (the addresses in your documents are around Kabiyet). "Mosop NG-CDF" is the constituency office that issued the bus tender in your `adv.pdf` and `tender.txt`; it is only the name of your **sample**, not a system or a product.
+- **NG-CDF**: National Government Constituencies Development Fund, the public fund that issued both of your notices (Tharaka and Mosop constituencies).
+- **PPRA**: Public Procurement Regulatory Authority, which publishes the standard tender documents. **PPOA** was its older name (the 2007 document).
+- **ITT** (Instructions to Tenderers), **TDS** (Tender Data Sheet), **GCC** and **SCC** (General and Special Conditions of Contract): the standard text and its per-tender parameter sheets (section 1.1).
+- **PE**: procuring entity, the organisation buying. **Tenderer, bidder**: the vendor responding.
+- **AGPO**: the reservation scheme for Youth, Women and persons with disabilities. **OCDS** and **OCID**: the open contracting data standard and its identifier.
+- **Lot**: one part of a tender that is awarded on its own (cups, plates, spoons).
