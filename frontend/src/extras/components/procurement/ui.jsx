@@ -1,4 +1,6 @@
 import AdminLayout from '../../../_shared/components/layout/AdminLayout';
+import Header from '../../../_shared/components/layout/Header';
+import Footer from '../../../_shared/components/layout/Footer';
 import { colors, card, radius } from '../../../_shared/theme/tokens';
 import { th, linkStyle, fmtLongDate, fmtDateTime, fmtFee, fmtSize, METHOD_LABELS, SUBMISSION_LABELS, CATEGORY_LABELS, DOC_TYPE_LABELS, GROUP_LABELS, NOTICE_TYPE_LABELS } from './format';
 
@@ -29,6 +31,17 @@ export function StatusBadge({ status, label }) {
 
 export function Page({ width = 1100, children }) {
   return <div style={{ padding: '32px 24px', maxWidth: width, margin: '0 auto' }}>{children}</div>;
+}
+
+/** A page on the customer-facing site: the site header with its navigation, the content, and the footer. */
+export function SitePage({ width, children }) {
+  return (
+    <div className="min-h-screen">
+      <Header />
+      <Page width={width}>{children}</Page>
+      <Footer />
+    </div>
+  );
 }
 
 export function AdminPage({ width, children }) {

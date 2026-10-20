@@ -2,7 +2,7 @@ import { useState, useEffect } from 'react';
 import { ClipboardCheck } from 'lucide-react';
 import { vendorPortalAPI } from '../../../_shared/api/index';
 import { errMsg } from '../../../_shared/store/helpers/apiState';
-import { Page, Heading, Loading, Empty, Table, StatusBadge, ErrorBanner } from '../../components/procurement/ui';
+import { SitePage, Heading, Loading, Empty, Table, StatusBadge, ErrorBanner } from '../../components/procurement/ui';
 import { td, fmtLongDate, CATEGORY_LABELS } from '../../components/procurement/format';
 
 const today = () => new Date().toISOString().slice(0, 10);
@@ -13,10 +13,10 @@ export default function VendorPrequalification() {
 
   useEffect(() => { vendorPortalAPI.prequalifications().then(r => setRows(r.rows || [])).catch(e => { setRows([]); setError(errMsg(e, 'Could not load your pre-qualification')); }); }, []);
 
-  if (rows === null) return <Page width={900}><Loading /></Page>;
+  if (rows === null) return <SitePage width={900}><Loading /></SitePage>;
 
   return (
-    <Page width={900}>
+    <SitePage width={900}>
       <Heading title="Pre-qualification" description="Pre-qualification is done offline. When we call for it, download the form from the tender notice, fill it, scan it and send it to our procurement office. Our decision appears here." />
       <ErrorBanner message={error} />
       {rows.length === 0 && error ? null : rows.length === 0 ? <Empty icon={ClipboardCheck}>No decision has been recorded for you yet</Empty> : (
@@ -35,6 +35,6 @@ export default function VendorPrequalification() {
           })}
         </Table>
       )}
-    </Page>
+    </SitePage>
   );
 }

@@ -4,7 +4,7 @@ import toast from 'react-hot-toast';
 import { vendorPortalAPI } from '../../../_shared/api/index';
 import { btnPrimary, card } from '../../../_shared/theme/tokens';
 import { Field, TextInput } from '../../../core/components/admin/ui/Form';
-import { Page, Heading, Loading } from '../../components/procurement/ui';
+import { SitePage, Heading, Loading } from '../../components/procurement/ui';
 
 const KEYS = ['company_name', 'contact_name', 'email', 'phone', 'tax_id', 'address', 'city', 'country'];
 
@@ -35,10 +35,10 @@ export default function VendorProfile() {
     } finally { setSaving(false); }
   };
 
-  if (loading) return <Page width={640}><Loading /></Page>;
+  if (loading) return <SitePage width={640}><Loading /></SitePage>;
 
   return (
-    <Page width={640}>
+    <SitePage width={640}>
       <Heading title="Company profile" description="Your company details as the buyer sees them." />
       <form onSubmit={submit} style={{ ...card, padding: 22, display: 'grid', gap: 14 }}>
         {f('company_name', 'Company name')}
@@ -50,6 +50,6 @@ export default function VendorProfile() {
         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(180px, 1fr))', gap: 12 }}>{f('city', 'City')}{f('country', 'Country')}</div>
         <div><button type="submit" disabled={saving} style={btnPrimary}><Save size={14} /> {saving ? 'Saving…' : 'Save profile'}</button></div>
       </form>
-    </Page>
+    </SitePage>
   );
 }

@@ -3314,8 +3314,8 @@ Route::middleware(['module:extras', 'throttle:60,1'])->prefix('public/tenders')-
 
     Route::get('/',                            [$pt, 'index']);
     Route::get('/export',                      [$pt, 'export']);
-    Route::get('/{id}',                        [$pt, 'show'])->whereNumber('id');
-    Route::get('/{id}/documents/{docId}',      [$pt, 'download'])->whereNumber('id')->whereNumber('docId');
+    Route::get('/{ref}',                       [$pt, 'show']);
+    Route::get('/{ref}/documents/{docId}',     [$pt, 'download'])->whereNumber('docId');
 });
 
 // Signed link that opens a tender file (the link itself carries the permission)
@@ -3332,8 +3332,8 @@ Route::middleware(['auth:sanctum', 'module:extras'])->prefix('vendor-portal')->g
 
     // Tenders visible to this vendor
     Route::get('/tenders',            [$vp, 'tenders']);
-    Route::get('/tenders/{id}',       [$vp, 'showTender'])->whereNumber('id');
-    Route::get('/tenders/{id}/documents/{docId}/link', [$vp, 'documentLink'])->whereNumber('id')->whereNumber('docId');
+    Route::get('/tenders/{ref}',      [$vp, 'showTender']);
+    Route::get('/tenders/{ref}/documents/{docId}/link', [$vp, 'documentLink'])->whereNumber('docId');
 
     // Pre-qualification status (recorded by staff)
     Route::get('/prequalifications', [$vp, 'prequalifications']);

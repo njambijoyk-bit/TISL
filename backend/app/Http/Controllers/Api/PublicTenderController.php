@@ -79,17 +79,17 @@ class PublicTenderController extends Controller
         return Excel::download($export, 'tenders.xlsx');
     }
 
-    public function show(int $id): JsonResponse
+    public function show(string $ref): JsonResponse
     {
-        $t = $this->listing->withRowData($this->base())->findOrFail($id);
+        $t = $this->listing->withRowData($this->base()->bySlug($ref))->firstOrFail();
 
         return response()->json($this->listing->detail($t));
     }
 
     /** Open (inline=1) or download one of a public tender's files. */
-    public function download(Request $request, int $id, int $docId): StreamedResponse
+    public function download(Request $request, string $ref, int $docId): StreamedResponse
     {
-        $t = $this->base()->findOrFail($id);
+        $t = $this->base()->bySlug($ref)->firstOrFail();
         $doc = TenderDocument::where('tender_id', $t->id)->findOrFail($docId);
 
         return TenderFile::response($doc, $request->boolean('inline'));

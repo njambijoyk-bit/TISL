@@ -52,7 +52,7 @@ class TenderNotices
         $title = ($isAddendum ? 'Addendum to tender: ' : 'New tender: ') . $tender->title;
         $closes = $tender->submission_deadline ? $tender->submission_deadline->format('j M Y, H:i') : null;
         $message = trim(($tender->tender_number ? $tender->tender_number . '. ' : '') . ($closes ? "Closes {$closes}. " : '') . ($note ? $note : ''));
-        $path = $tender->visibility === 'public' ? "/tenders/{$tender->id}" : "/vendor-portal/tenders/{$tender->id}";
+        $path = $tender->visibility === 'public' ? "/tenders/{$tender->slug}" : "/vendor-portal/tenders/{$tender->slug}";
 
         $users = User::whereIn('id', $this->eligibleVendors($tender)->pluck('user_id'))->get();
         foreach ($users as $user) {

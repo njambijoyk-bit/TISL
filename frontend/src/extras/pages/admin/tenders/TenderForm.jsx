@@ -60,7 +60,7 @@ export default function TenderForm() {
       lots: form.lots.map(l => ({ ...l, description: l.description || null, reservation_group: l.reservation_group || null })),
       ...Object.fromEntries(BLANK_TO_NULL.map(k => [k, form[k] === '' ? null : form[k]])),
     };
-    if (isEdit || !form.tender_number) delete payload.tender_number;
+    if (isEdit) delete payload.tender_number;
     try {
       if (isEdit) { await tendersAPI.update(id, payload); toast.success('Tender updated'); navigate(`/admin/tenders/${id}`); }
       else { const r = await tendersAPI.create(payload); toast.success('Tender created. Add its files next.'); navigate(`/admin/tenders/${r.id}`); }
@@ -101,7 +101,7 @@ export default function TenderForm() {
         </Field>
         <div style={row2}>
           <Field label="Procuring entity" hint="Blank = our company" error={err('procuring_entity')}><TextInput value={form.procuring_entity} onChange={set('procuring_entity')} error={err('procuring_entity')} /></Field>
-          {!isEdit && <Field label="Tender number" hint="Leave blank to number it automatically" error={err('tender_number')}><TextInput value={form.tender_number} onChange={set('tender_number')} placeholder="e.g. KEFRI/1074/0003/2026-27" error={err('tender_number')} /></Field>}
+          <Field label="Tender number" hint={isEdit ? 'The number cannot be changed: it is the tender\'s web address' : 'Required. Letters, numbers, / . _ - only. It becomes the tender\'s web address'} error={err('tender_number')}><TextInput required disabled={isEdit} value={form.tender_number} onChange={set('tender_number')} placeholder="e.g. KEFRI/1074/0003/2026-27" error={err('tender_number')} /></Field>
         </div>
         <Field label="OCID" error={err('ocid')}><TextInput value={form.ocid} onChange={set('ocid')} error={err('ocid')} /></Field>
         <div style={row2}>

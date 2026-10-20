@@ -4,7 +4,7 @@ import { Gavel, Lock, ClipboardCheck, Package, Building, ArrowRight } from 'luci
 import { vendorPortalAPI } from '../../../_shared/api/index';
 import { card, colors } from '../../../_shared/theme/tokens';
 import { errMsg } from '../../../_shared/store/helpers/apiState';
-import { Page, Heading, Loading, StatusBadge, ErrorBanner } from '../../components/procurement/ui';
+import { SitePage, Heading, Loading, StatusBadge, ErrorBanner } from '../../components/procurement/ui';
 
 function StatCard({ icon: Icon, label, value, to }) {
   return (
@@ -30,12 +30,12 @@ export default function VendorDashboard() {
     vendorPortalAPI.dashboard().then(setData).catch(e => setError(errMsg(e, 'Failed to load dashboard'))).finally(() => setLoading(false));
   }, []);
 
-  if (loading) return <Page width={900}><Loading /></Page>;
-  if (!data) return <Page width={900}><ErrorBanner message={error} /></Page>;
+  if (loading) return <SitePage width={900}><Loading /></SitePage>;
+  if (!data) return <SitePage width={900}><ErrorBanner message={error} /></SitePage>;
   const v = data.vendor;
 
   return (
-    <Page width={900}>
+    <SitePage width={900}>
       <Heading title="Vendor portal"
         description={<span style={{ display: 'inline-flex', alignItems: 'center', gap: 8 }}><Building size={14} />{v.company_name} <StatusBadge status={v.status} /></span>} />
       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(230px, 1fr))', gap: 12, marginBottom: 24 }}>
@@ -49,6 +49,6 @@ export default function VendorDashboard() {
           <strong>Account pending approval.</strong> An administrator will review your registration.
         </div>
       )}
-    </Page>
+    </SitePage>
   );
 }

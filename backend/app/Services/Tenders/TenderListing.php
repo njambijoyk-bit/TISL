@@ -113,6 +113,7 @@ class TenderListing
 
         return [
             'id'                  => $t->id,
+            'slug'                => $t->slug,
             'tender_number'       => $t->tender_number,
             'title'               => $t->title,
             'notice_type'         => $t->notice_type,

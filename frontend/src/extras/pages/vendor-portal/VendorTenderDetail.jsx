@@ -4,7 +4,7 @@ import { ArrowLeft } from 'lucide-react';
 import { vendorPortalAPI } from '../../../_shared/api/index';
 import { card, colors, btnGhost } from '../../../_shared/theme/tokens';
 import { errMsg } from '../../../_shared/store/helpers/apiState';
-import { Page, Loading, Empty, StatusBadge, NoticeDetails, ErrorBanner } from '../../components/procurement/ui';
+import { SitePage, Loading, Empty, StatusBadge, NoticeDetails, ErrorBanner } from '../../components/procurement/ui';
 import { VISIBILITY_LABELS } from '../../components/procurement/format';
 import { goToFile } from '../../components/procurement/openDocument';
 
@@ -24,11 +24,11 @@ export default function VendorTenderDetail() {
     try { goToFile((await vendorPortalAPI.documentLink(id, d.id, inline)).url, inline); } catch { /* the link failed; nothing to open */ }
   };
 
-  if (loading) return <Page width={900}><Loading /></Page>;
-  if (missing || !tender) return <Page width={900}><ErrorBanner message={error} /><Empty>This tender is not available to you.</Empty></Page>;
+  if (loading) return <SitePage width={900}><Loading /></SitePage>;
+  if (missing || !tender) return <SitePage width={900}><ErrorBanner message={error} /><Empty>This tender is not available to you.</Empty></SitePage>;
 
   return (
-    <Page width={900}>
+    <SitePage width={900}>
       <Link to="/vendor-portal/tenders" style={{ ...btnGhost, textDecoration: 'none', marginBottom: 16, padding: '5px 12px', fontSize: '0.75rem' }}><ArrowLeft size={13} /> All tenders</Link>
       <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', gap: 12, flexWrap: 'wrap', marginBottom: 16 }}>
         <div style={{ flex: '1 1 400px', minWidth: 0 }}>
@@ -43,6 +43,6 @@ export default function VendorTenderDetail() {
           <p style={{ margin: 0, fontSize: '0.85rem', lineHeight: 1.6, whiteSpace: 'pre-wrap', color: colors.textBody }}>{tender.description}</p>
         </div>
       )}
-    </Page>
+    </SitePage>
   );
 }

@@ -101,14 +101,17 @@ class TenderController extends Controller
             'visibility'          => 'required|in:' . implode(',', Tender::VISIBILITIES),
             'submission_deadline' => 'required|date',
             'opening_date'        => 'nullable|date',
-            'tender_number'       => 'nullable|string|max:60|unique:tenders,tender_number',
+            'tender_number'       => ['required', 'string', 'max:60', 'regex:/^[A-Za-z0-9][A-Za-z0-9\/._-]*$/', 'unique:tenders,tender_number'],
         ] + $this->noticeRules());
 
         $this->guardLots($d['lots'] ?? []);
+        if (Tender::withTrashed()->bySlug(Tender::slugFor($d['tender_number']))->exists()) {
+            throw ValidationException::withMessages(['tender_number' => 'Another tender already has this number (slashes and dashes count as the same).']);
+        }
 
         $tender = DB::transaction(function () use ($d, $request) {
             $tender = Tender::create([
-                'tender_number'       => $d['tender_number'] ?? Tender::generateTenderNumber(),
+                'tender_number'       => $d['tender_number'],
                 'title'               => $d['title'],
                 'description'         => $d['description'] ?? null,
                 'category'            => $d['category'],

@@ -72,7 +72,7 @@ Set the people category in Admin > Vendors > Edit (it only shows when Extras is 
 | T4 | Office supplies | Goods | **Vendors** | none | A Stationery (Youth), B Furniture (Women), C Cleaning supplies (open) |
 | T5 | Youth uniforms | Goods | **Public** | **Youth** (whole tender) | none |
 
-Give each a close date a few days ahead. Upload a PDF as the **Tender document** on T1, and an HTML file as an **Advertisement**.
+Give each a close date a few days ahead. The **tender number is required** and becomes the web address: `KEFRI/1074/0003/2026-27` opens at `/tenders/KEFRI-1074-0003-2026-27`. A second tender whose number matches once slashes become dashes is refused. Upload a PDF as the **Tender document** on T1, and an HTML file as an **Advertisement**.
 
 ---
 
@@ -119,7 +119,7 @@ SELECT id, email, role, status FROM users WHERE role='vendor';
 6. On T1 add a third file of type **Addendum** with "Tell eligible vendors" ticked and a note. **Expect:** the tenders list will now show an Addendum count of 1.
 
 ### 4.4 Public tender notices (no login)
-1. Private window (not signed in), `/tenders`. **Expect:** the storefront menu shows **Tenders**. Only **T1 and T5** are listed (the Public ones). T2, T3 and T4 are not listed anywhere, not even by searching.
+1. Private window (not signed in), `/tenders`. The site header with its menu and the footer show on every tender page, public and vendor portal. **Expect:** the storefront menu shows **Tenders**. Only **T1 and T5** are listed (the Public ones). T2, T3 and T4 are not listed anywhere, not even by searching.
 2. Tabs: **Active** (2), **AGPO** (T5 only), Closed, Terminated, All. Counts show on the tabs.
 3. Table columns: Description, Method, Category, Close date, Time to close, Publish date, Addendum, Actions. The description wraps and is not cut off. Type in a column search box. **Expect:** the list narrows. Procuring entity shows only if some tender has one.
 4. **Actions** menu on a row: **Share** (copy link, WhatsApp, email) and **More details**. Copy the link and open it in the private window. **Expect:** the details page.

@@ -70,11 +70,11 @@ function ActionsMenu({ tender, basePath }) {
       {open && (
         <div role="menu" style={{ ...card, position: 'absolute', right: 0, top: '100%', zIndex: 20, minWidth: 170, padding: 4, marginTop: 4 }}>
           {sharing
-            ? <ShareMenu url={`${window.location.origin}${basePath}/${tender.id}`} title={tender.title} onDone={close} />
+            ? <ShareMenu url={`${window.location.origin}${basePath}/${tender.slug}`} title={tender.title} onDone={close} />
             : (
               <>
                 <button type="button" style={item} onClick={() => setSharing(true)}><Share2 size={14} /> Share</button>
-                <button type="button" style={item} onClick={() => { close(); navigate(`${basePath}/${tender.id}`); }}><Eye size={14} /> More details</button>
+                <button type="button" style={item} onClick={() => { close(); navigate(`${basePath}/${tender.slug}`); }}><Eye size={14} /> More details</button>
               </>
             )}
         </div>
@@ -176,7 +176,7 @@ export default function TenderBoard({ fetchList, exportList, basePath, tabs = AL
               {rows.map(t => (
                 <div key={t.id} style={{ ...card, padding: '14px 16px' }}>
                   <div style={{ display: 'flex', justifyContent: 'space-between', gap: 8, alignItems: 'flex-start' }}>
-                    <Link to={`${basePath}/${t.id}`} style={{ ...linkStyle, color: colors.text, fontSize: '0.92rem', overflowWrap: 'anywhere', minWidth: 0 }}>{t.title}</Link>
+                    <Link to={`${basePath}/${t.slug}`} style={{ ...linkStyle, color: colors.text, fontSize: '0.92rem', overflowWrap: 'anywhere', minWidth: 0 }}>{t.title}</Link>
                     <ActionsMenu tender={t} basePath={basePath} />
                   </div>
                   <div style={{ fontSize: '0.74rem', color: colors.textMuted, marginTop: 6, display: 'flex', gap: '3px 12px', flexWrap: 'wrap' }}>
@@ -232,7 +232,7 @@ export default function TenderBoard({ fetchList, exportList, basePath, tabs = AL
                 {rows.map(t => (
                   <tr key={t.id}>
                     <td style={{ ...td, minWidth: 320, overflowWrap: 'anywhere', whiteSpace: 'normal' }}>
-                      <Link to={`${basePath}/${t.id}`} style={{ ...linkStyle, color: colors.text }}>{t.title}</Link>
+                      <Link to={`${basePath}/${t.slug}`} style={{ ...linkStyle, color: colors.text }}>{t.title}</Link>
                       <div style={{ fontSize: '0.72rem', color: colors.textMuted, marginTop: 3, display: 'flex', gap: 8, flexWrap: 'wrap', alignItems: 'center' }}>
                         <span>{t.tender_number}</span>
                         <ReservedBadges groups={t.reserved_groups} />

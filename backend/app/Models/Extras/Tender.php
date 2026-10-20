@@ -130,6 +130,22 @@ class Tender extends Model
     // SCOPES
     // =========================================================================
 
+    /** The tender number as it appears in a web address: slashes and spaces become dashes (KEFRI/1074/0003/2026-27 is KEFRI-1074-0003-2026-27). */
+    public static function slugFor(string $number): string
+    {
+        return trim(preg_replace('/[\/\s]+/', '-', $number), '-');
+    }
+
+    public function getSlugAttribute(): string
+    {
+        return self::slugFor((string) $this->tender_number);
+    }
+
+    public function scopeBySlug($query, string $slug)
+    {
+        return $query->whereRaw("REPLACE(REPLACE(tender_number, '/', '-'), ' ', '-') = ?", [$slug]);
+    }
+
     /** What the public website may list: published, closed, awarded and terminated notices that are marked Public. Never drafts, never restricted ones. */
     public function scopePublicNotice($query)
     {

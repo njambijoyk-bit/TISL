@@ -59,19 +59,19 @@ class VendorPortalController extends Controller
         ]);
     }
 
-    public function showTender(Request $request, int $id): JsonResponse
+    public function showTender(Request $request, string $ref): JsonResponse
     {
         $vendor = $this->vendor($request);
-        $t = $this->listing->withRowData(Tender::visibleTo($vendor))->findOrFail($id);
+        $t = $this->listing->withRowData(Tender::visibleTo($vendor)->bySlug($ref))->firstOrFail();
 
         return response()->json($this->listing->detail($t));
     }
 
     /** A ten-minute link that opens or downloads one file of a tender this vendor may see (a browser tab cannot send the sign-in header). */
-    public function documentLink(Request $request, int $id, int $docId): JsonResponse
+    public function documentLink(Request $request, string $ref, int $docId): JsonResponse
     {
         $vendor = $this->vendor($request);
-        $t = Tender::visibleTo($vendor)->findOrFail($id);
+        $t = Tender::visibleTo($vendor)->bySlug($ref)->firstOrFail();
         $doc = TenderDocument::where('tender_id', $t->id)->findOrFail($docId);
 
         return response()->json(['url' => URL::temporarySignedRoute('tender-files.show', now()->addMinutes(10), ['doc' => $doc->id, 'inline' => $request->boolean('inline') ? 1 : 0])]);
