@@ -26,6 +26,26 @@ Extras module. Builds on what exists (vendor portal, tenders, bids, PQ templates
 - Guidance notes in italics ("delete before issue") and **alternative clauses** to keep or discard.
 - It is dated 2007 and cites the older procurement law. **Have it checked against the current PPRA standard documents** before we seed it.
 
+## A third sample: the Mosop NG-CDF advert (four tenders in one notice)
+
+One advert, dated October 06, 2026, invites sealed tenders for four school-bus supplies (51-seaters for four schools), each with its **own tender number**, in one table (tender number, description, commencement date, closing date). What it adds:
+
+| Finding | What it means for the design |
+|---|---|
+| **One advert, several tenders.** The notice is not the tender. | A `tender_notices` record (advert) groups tenders: `advert_date`, `financial_year`, header text, and the tenders in it. The generated notice prints the table; each tender is still bid on, evaluated and awarded separately. The public list can group by advert. |
+| **The advert contradicts itself.** The table says closing **October 21, 2026, 10:00 AM** for all four; the paragraph below says received on or before **Wednesday, October 14th, 2026, 10.000 a.m.** | Dates are typed once and printed everywhere from that one value, so a notice cannot disagree with itself. A check before publishing compares the advert's dates against its tenders. Real notices like this are exactly why addenda exist. |
+| **Tender security** ("Tender Security Form from a Financial Institution recognized by the Central Bank of Kenya"). | Answers an open question: security is needed in v1. A tender gets `security_required`, amount or percentage, validity days and accepted forms (bank guarantee, insurance bond, securing declaration); a bid attaches the document and staff verify it, and it is returned or released after award. |
+| **Conditional requirement:** "CR12 not older than 6 months from the date of submission **or** certified copies of IDs for sole proprietors." | A requirement can have **alternatives** by business type (company, partnership, sole proprietor), so each bidder sees only the one that applies. Vendors need a business type on their profile. |
+| **Verified elsewhere:** the tax compliance certificate "will be verified on the KRA TCC Checker". | A requirement carries a verification note and link; staff tick "verified" with how and when. No integration promised (we cannot see an API for it). |
+| **Declaration and standard forms:** Form of Quotation on the tenderer's letterhead, schedule of requirements, Certificate of Independent Tender Determination, SD1, SD2, Confidential Business Questionnaire, Disclosure of Interest, power of attorney (sworn). | A **bidder forms library**: a template to download, fill, sign and upload, with a status per form. Later they become fillable in the portal. These are the same kind of thing as the PQ standard forms. |
+| **Product certification** ("KEBS certification for body building"). | A requirement added to one tender only, outside the default library. |
+| **Standard wording to reuse:** "Prices quoted must be inclusive of all taxes", "valid for 90 days from the date of tender opening", "does not bind itself to the lowest bidder", "Bidders to take note of technical requirements as per the bid documents", "serialised and numbered on each page including all attachments". | New blocks: `price_basis`, `no_lowest_bidder`, `technical_requirements_note`, and the serialisation rule. |
+| **Documents come from the portal and go back in a sealed envelope.** "Downloaded from the tender portal, filled and enclosed in a plain sealed envelope." | The tender has a **tender document package** (the downloadable set) and the physical-submission rules already planned. |
+| **Commencement date** (when the documents become available) is separate from the advert date and the closing date. | Add `commencement_date` (the start of the tender period). |
+| **Tender numbers have a structure** (entity, school, item, method code `ONT`, sequence, financial year). | A tender-number format setting with tokens (`{entity}/{item}/{method}/{seq}/{financial_year}`) that proposes a number, and still allows a typed one. |
+
+*The `tender.zip` you sent contained one empty `tender.pdf` (0 bytes), so nothing from it is reflected here.*
+
 ## What the research found (and what it could not)
 
 Fetching pages directly was blocked here, so this comes from search summaries only.
@@ -45,6 +65,8 @@ Fetching pages directly was blocked here, so this comes from search summaries on
 | 5 | Does publishing need a second person's approval? | **Optional switch** (the tenders table already has `approved_by`). |
 | 6 | Do vendors get email, in-app, or both for addenda? | **In-app plus email when mail is set up**, using the existing notifications. |
 | 7 | Public bidders without an account: may they leave an email to receive addenda? | **Yes**: "Register interest" with name, email, company; logged-in vendors are followed automatically. |
+| 8 | Tender security in v1? | **Yes** (the Mosop advert requires it). |
+| 9 | One advert for several tenders? | **Yes**: an advert groups tenders; each tender stays separate for bids and award. |
 
 ## 1. Reusable content ("the intros")
 
@@ -57,6 +79,7 @@ Bodies carry merge fields, filled from the tender and company profile when the n
 - *how_to_obtain:* "Interested bidders may obtain tender documents from {office_address} before {office_closing_time} on normal working days, or free of charge by downloading them from {portal_url}."
 - *submission_sealed:* "Tenders in plain sealed envelopes, marked with the tender number on the right-hand corner and bearing no indication of the tenderer, should be addressed to {addressee} and dropped in the tender box at {tender_box_location} to reach them not later than {closing_datetime}."
 - *public_opening:* "Submitted bids shall be opened publicly at {opening_venue} soon after the above date and time in the presence of the tenderers or their representatives who choose to attend. Late bids will be returned or remain unopened."
+- *price_basis:* "Prices quoted must be inclusive of all taxes." *no_lowest_bidder:* "{entity_name} does not bind itself to the lowest bidder." *technical_requirements_note:* "Bidders are to take note of the technical requirements as per the bid documents."
 - *price_validity:* "Prices quoted must remain valid for a minimum period of {validity_days} days from the opening date of the tender."
 - Merge fields: `{entity_name} {tender_number} {tender_title} {closing_datetime} {opening_venue} {validity_days} {tender_fee} {addressee} {office_address} {portal_url} {contact_phone}`.
 
@@ -110,6 +133,8 @@ Today a PQ template is a flat list of questions and document types. The standard
 (Needed for all of the above to be real; today these steps are API-only.)
 - **Vendor bid screen**: the mandatory-requirements checklist (upload each document, see expiry), price schedule lines, delivery or validity, tender security if required, declaration, review, submit. Addenda shown above it, with the acknowledgement.
 - **Sealed until opening**: before the opening time staff see only the count of bids, not content. An **Open bids** action records who opened and when and shows the register. Physical bids are entered by staff into the same register.
+- **Tender security**: the bid attaches the security document; staff verify it and it is released or returned after award.
+- **Bidder forms**: each required form (quotation, schedule of requirements, independent tender determination, declarations, questionnaire) shows as downloaded, uploaded or signed.
 - **Two-envelope option** (technical first, financial opened only for those who pass).
 - **Evaluation sheet** with scores per criterion and a conflict-of-interest declaration per evaluator.
 - **Award**: the existing award creates the vendor order; add the Letter of Notification of Award and the optional standstill and contract-signing dates as warnings.
@@ -122,7 +147,7 @@ Today a PQ template is a flat list of questions and document types. The standard
 ## 7. Permissions and numbering
 
 - Bump the catalog: `tenders.library` (blocks, requirements, templates), `tenders.addenda` (issue addenda), `tenders.open` (open bids), keeping `tenders.manage` and `tenders.evaluate`. Public pages stay open; vendor actions need `vendors.portal`.
-- Database scripts continue from 221, one concern each, safe to re-run, with the guards used so far (nothing breaks before a script has run): 221 content blocks and requirements, 222 templates, 223 addenda, clarifications, followers and document versions, 224 form schema and criteria, 225 bid register and opening.
+- Database scripts continue from 221, one concern each, safe to re-run, with the guards used so far (nothing breaks before a script has run): 221 content blocks, requirements and bidder forms, 221b tender adverts (notices grouping tenders) and the commencement and security columns, 222 templates, 223 addenda, clarifications, followers and document versions, 224 form schema and criteria, 225 bid register and opening.
 
 ## Build order
 
@@ -135,4 +160,4 @@ Today a PQ template is a flat list of questions and document types. The standard
 
 - The Act's exact rules on addenda timing, minimum tender periods and the award standstill (we use the PDF's numbers as placeholders and make them settings).
 - Whether the 2007 forms still match the current PPRA standard documents.
-- Whether tender security (bid bond or securing declaration) is needed in v1.
+- The wording and limits for tender security (amount or percentage, accepted forms): confirm with whoever runs your procurement.
