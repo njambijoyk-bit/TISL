@@ -29,6 +29,7 @@ database/sql/216_vendor_portal.sql
 database/sql/217_tender_notice_fields.sql   # the notice columns (OCID, method, fee, ...)
 database/sql/218_tenders_nav_link.sql        # the public "Tenders" menu link
 database/sql/219_vendors_status_column.sql   # lets vendors.status hold 'suspended'
+database/sql/220_policy_acceptance_vendor.sql # vendor_id / vendor_number on policy acceptances
 
 php artisan access:seed
 ```
@@ -132,13 +133,22 @@ Vendor B on T1: same, `unit_price` 5200 and `delivery_timeline_days` 14. Total 1
 2. Register B and C the same way.
 3. Duplicate check: register A again with the same email. **Expect:** "This email is already registered" error.
 4. Weak password / mismatched confirm. **Expect:** field errors, no account created.
-5. Admin: `/admin/vendors`, find the 3 vendors (status `pending_approval`). Set each to **active** (`PUT /api/admin/vendors/{id}` with `{"status":"active"}` if there is no button).
+5. Settings > Policies > Acceptances (Terms of Use): the registration shows as context `vendor register`, with the vendor's company and number and a **Vendor** tag; the new filter "Vendors only" lists just these.
+6. Admin: `/admin/vendors`, find the 3 vendors (status `pending_approval`). Set each to **active** (`PUT /api/admin/vendors/{id}` with `{"status":"active"}` if there is no button).
 
 DB check:
 ```sql
 SELECT id, vendor_number, company_name, status FROM vendors ORDER BY id DESC LIMIT 3;
 SELECT id, email, role, status FROM users WHERE role='vendor';
 ```
+
+### 4.1b A portal login for a vendor we created ourselves
+1. Admin > Vendors, with Extras on and `vendors.portal` held (super_admin has it). Each vendor shows **Has login** / **No login** in a Portal column.
+2. On a vendor with **No login** (e.g. Bravo) click **Create login**. The email is the vendor's own (change it if you like). Type an initial password, press **Generate**, or leave it blank. **Expect:** a screen with the email and password; a generated one is shown once, with a Copy button.
+3. Sign in as that vendor at `/login` in a private window with that password. **Expect:** you are sent to choose a new password, then to `/vendor-portal`.
+4. Try a weak password such as `password1`. **Expect:** it is refused with the password-rules message. Try the email of an existing login. **Expect:** "A login with this email already exists."
+5. Back on the vendor click **Reset password**. **Expect:** a new password; the vendor's open sessions end; they must choose their own again at next sign-in.
+6. **Suspend** that vendor. **Expect:** their login is refused (see 4.9b). **Activate** lifts it.
 
 ### 4.2 Portal
 1. Log in as vendor A, open `/vendor-portal`. **Expect:** dashboard with vendor number, counts at 0.

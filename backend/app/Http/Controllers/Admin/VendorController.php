@@ -8,10 +8,17 @@ use App\Services\Books\LedgerService;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Hash;
+use Illuminate\Support\Str;
+use Illuminate\Validation\ValidationException;
+use App\Models\User;
+use App\Services\Security\PasswordPolicy;
+use App\Services\Security\SecurityLog;
+use App\Services\Security\Sessions;
 
 /**
  * Vendors: the people we buy from. Each one is a Sundry Creditors ledger (so purchases and payments post to it).
- * There is no vendor login or portal: what a vendor invoices us is entered by us as a Purchase.
+ * A vendor may also have a login to the vendor portal (Extras): they register themselves, or an admin makes the login (see createPortalLogin).
  */
 class VendorController extends Controller
 {
@@ -26,8 +33,9 @@ class VendorController extends Controller
                 ->orWhere('email', 'like', "%{$d['search']}%")->orWhere('phone', 'like', "%{$d['search']}%")->orWhere('vendor_number', 'like', "%{$d['search']}%")))
             ->orderBy('company_name')->limit(300)->get();
         $ledgerIds = DB::table('ledgers')->whereIn('supplier_id', $rows->pluck('id'))->pluck('id', 'supplier_id');
+        $loginEmails = User::whereIn('id', $rows->pluck('user_id')->filter())->pluck('email', 'id');
 
-        return response()->json(['rows' => $rows->map(fn (Vendor $v) => $this->row($v, $ledgerIds[$v->id] ?? null))->values()]);
+        return response()->json(['rows' => $rows->map(fn (Vendor $v) => $this->row($v, $ledgerIds[$v->id] ?? null) + ['has_login' => $v->user_id !== null, 'login_email' => $loginEmails[$v->user_id] ?? null])->values()]);
     }
 
     public function show(int $id): JsonResponse
@@ -97,6 +105,88 @@ class VendorController extends Controller
 
             return response()->json(['message' => 'Vendor updated.']);
         });
+    }
+
+    /**
+     * Give a vendor we created ourselves a login to the vendor portal (Extras).
+     * Body: email? (blank = the vendor's own), password? (blank = one is made and returned once). They must choose their own password at first sign-in.
+     */
+    public function createPortalLogin(Request $request, int $id): JsonResponse
+    {
+        $v = Vendor::findOrFail($id);
+        if ($v->user_id) {
+            return response()->json(['message' => 'This vendor already has a portal login. Use "Reset password" instead.'], 422);
+        }
+        $d = $request->validate(['email' => 'nullable|email|max:255', 'password' => 'nullable|string|max:200']);
+
+        $email = trim((string) ($d['email'] ?? '')) ?: (string) $v->email;
+        if ($email === '') {
+            throw ValidationException::withMessages(['email' => 'Enter the vendor\'s email: it is their username.']);
+        }
+        if (User::where('email', $email)->exists()) {
+            throw ValidationException::withMessages(['email' => 'A login with this email already exists.']);
+        }
+        $name = trim((string) $v->contact_name) ?: (string) $v->company_name;
+        $phone = $v->phone ?: null;
+        if ($phone && User::where('phone', $phone)->exists()) {
+            $phone = null;   // a phone number belongs to one login: leave it off rather than refuse
+        }
+
+        [$password, $generated] = $this->initialPassword($d['password'] ?? null, [$name, $email, $phone], 'password');
+
+        $user = DB::transaction(function () use ($v, $name, $email, $phone, $password) {
+            $user = new User();
+            $user->forceFill([
+                'name' => $name, 'email' => $email, 'phone' => $phone, 'company_name' => $v->company_name, 'role' => 'vendor', 'oauth_provider' => 'email',
+                'status' => $v->status === 'suspended' ? 'suspended' : 'active', 'password' => Hash::make($password),
+                'force_password_change' => true, 'password_changed_at' => now(), 'email_verified_at' => now(),
+            ])->save();
+            $v->update(['user_id' => $user->id, 'email' => $v->email ?: $email]);
+
+            return $user;
+        });
+        SecurityLog::record('vendor_login_made', $user, $request, ['vendor_id' => $v->id, 'by' => $request->user()?->id, 'password_generated' => $generated]);
+
+        return response()->json([
+            'message' => "Portal login made for {$v->company_name}. They must choose their own password when they first sign in.",
+            'email' => $email, 'password' => $generated ? $password : null, 'generated' => $generated,
+        ], 201);
+    }
+
+    /** Body: password? (blank = one is made and returned once). Ends their open sessions; they must choose their own password at next sign-in. */
+    public function resetPortalPassword(Request $request, int $id): JsonResponse
+    {
+        $v = Vendor::findOrFail($id);
+        $user = $v->user_id ? User::find($v->user_id) : null;
+        if (! $user) {
+            return response()->json(['message' => 'This vendor has no portal login yet. Use "Create login" first.'], 422);
+        }
+        $d = $request->validate(['password' => 'nullable|string|max:200']);
+
+        [$password, $generated] = $this->initialPassword($d['password'] ?? null, [$user->name, $user->email, $user->phone], 'password');
+
+        DB::transaction(fn () => $user->forceFill(['password' => Hash::make($password), 'force_password_change' => true, 'password_changed_at' => now()])->save());
+        $ended = app(Sessions::class)->revokeAll($user, null, 'vendor_password_reset');
+        SecurityLog::record('vendor_password_reset', $user, $request, ['vendor_id' => $v->id, 'by' => $request->user()?->id, 'sessions_ended' => $ended, 'password_generated' => $generated]);
+
+        return response()->json([
+            'message' => "New password set for {$v->company_name}. They must choose their own when they next sign in.",
+            'email' => $user->email, 'password' => $generated ? $password : null, 'generated' => $generated,
+        ]);
+    }
+
+    /** @return array{0: string, 1: bool} the password to use and whether we made it (a typed one must pass the password rules) */
+    private function initialPassword(?string $typed, array $personal, string $field): array
+    {
+        $typed = trim((string) $typed);
+        if ($typed === '') {
+            return [Str::password(16, true, true, false, false), true];
+        }
+        if ($problem = PasswordPolicy::problem($typed, $personal)) {
+            throw ValidationException::withMessages([$field => $problem]);
+        }
+
+        return [$typed, false];
     }
 
     private function row(Vendor $v, $ledgerId): array

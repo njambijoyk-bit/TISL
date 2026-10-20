@@ -65,6 +65,7 @@ function ResponseBadge({ response }) {
 const CONTEXT_COLORS = {
   login:               { bg: 'rgba(59,130,246,0.08)',  color: '#1d4ed8' },
   register:            { bg: 'rgba(16,185,129,0.08)',  color: '#059669' },
+  vendor_register:     { bg: 'rgba(16,185,129,0.08)',  color: '#059669' },
   cookie_consent:      { bg: 'color-mix(in srgb, var(--color-primary-500) 8%, transparent)',  color: 'var(--color-primary-600)' },
   website_policy:      { bg: 'rgba(107,114,128,0.08)', color: 'var(--text-secondary)' },
   standard_checkout:   { bg: 'rgba(245,158,11,0.08)',  color: '#b45309' },
@@ -127,9 +128,12 @@ function SnapshotModal({ acceptance, onClose }) {
           fontSize: '0.75rem',
         }}>
           {[
-            ['Customer',  acceptance.customer?.first_name
-              ? `${acceptance.customer.first_name} ${acceptance.customer.last_name} (${acceptance.customer.customer_number})`
-              : acceptance.customer_number ?? '—'],
+            [acceptance.vendor || acceptance.vendor_number ? 'Vendor' : 'Customer',
+              acceptance.vendor
+                ? `${acceptance.vendor.company_name} (${acceptance.vendor.vendor_number})`
+                : acceptance.customer?.first_name
+                  ? `${acceptance.customer.first_name} ${acceptance.customer.last_name} (${acceptance.customer.customer_number})`
+                  : acceptance.vendor_number ?? acceptance.customer_number ?? '—'],
             ['Response',  acceptance.response],
             ['Version',   `v${acceptance.policy_version}`],
             ['Context',   acceptance.action_context?.replace(/_/g, ' ')],
@@ -181,7 +185,7 @@ function SnapshotModal({ acceptance, onClose }) {
 // ── Main component ────────────────────────────────────────────────────────────
 
 const ACTION_CONTEXTS = [
-  'login', 'register', 'hamper_checkout', 'standard_checkout',
+  'login', 'register', 'vendor_register', 'hamper_checkout', 'standard_checkout',
   'booking_checkout', 'cookie_consent', 'website_policy',
 ];
 
@@ -193,6 +197,7 @@ export default function PolicyAcceptances({ policies = [] }) {
   const [filterResp,  setFilterResp]  = useState('');   // '' | 'accepted' | 'disagreed'
   const [filterCtx,   setFilterCtx]   = useState('');
   const [filterFlag,  setFilterFlag]  = useState('');   // '' | '1' | '0'
+  const [filterParty, setFilterParty] = useState('');   // '' | 'customer' | 'vendor'
   const [snapshot,    setSnapshot]    = useState(null); // acceptance to preview
 
   // Default to first policy
@@ -206,6 +211,7 @@ export default function PolicyAcceptances({ policies = [] }) {
       if (filterResp) params.response       = filterResp;
       if (filterCtx)  params.action_context = filterCtx;
       if (filterFlag) params.flagged        = filterFlag;
+      if (filterParty) params.party         = filterParty;
       const res = await policyAPI.getAcceptances(activePolicyId, params);
       setData(res);
     } catch {
@@ -213,12 +219,12 @@ export default function PolicyAcceptances({ policies = [] }) {
     } finally {
       setLoading(false);
     }
-  }, [activePolicyId, page, filterResp, filterCtx, filterFlag]);
+  }, [activePolicyId, page, filterResp, filterCtx, filterFlag, filterParty]);
 
   useEffect(() => { load(); }, [load]);
 
   // Reset page when filters or policy change
-  useEffect(() => { setPage(1); }, [activePolicyId, filterResp, filterCtx, filterFlag]);
+  useEffect(() => { setPage(1); }, [activePolicyId, filterResp, filterCtx, filterFlag, filterParty]);
 
   const rows = data?.data ?? [];
   const meta = {
@@ -233,12 +239,13 @@ export default function PolicyAcceptances({ policies = [] }) {
   const disagreed   = rows.filter(r => r.response === 'disagreed').length;
   const flaggedRows = rows.filter(r => r.flagged).length;
 
-  const hasFilters = filterResp || filterCtx || filterFlag;
+  const hasFilters = filterResp || filterCtx || filterFlag || filterParty;
 
   const clearFilters = () => {
     setFilterResp('');
     setFilterCtx('');
     setFilterFlag('');
+    setFilterParty('');
     setPage(1);
   };
 
@@ -312,6 +319,17 @@ export default function PolicyAcceptances({ policies = [] }) {
         </select>
 
         <select
+          value={filterParty}
+          onChange={e => setFilterParty(e.target.value)}
+          style={{ ...inputStyle, minWidth: 130 }}
+          onFocus={inputFocus} onBlur={inputBlur}
+        >
+          <option value="">Customers and vendors</option>
+          <option value="customer">Customers only</option>
+          <option value="vendor">Vendors only</option>
+        </select>
+
+        <select
           value={filterFlag}
           onChange={e => setFilterFlag(e.target.value)}
           style={{ ...inputStyle, minWidth: 120 }}
@@ -347,7 +365,7 @@ export default function PolicyAcceptances({ policies = [] }) {
             <thead>
               <tr style={{ background: 'var(--surface-card, #fff)', borderBottom: '1px solid var(--line)' }}>
                 {[
-                  'Customer', 'Customer #', 'Response', 'Context',
+                  'Customer / vendor', 'Number', 'Response', 'Context',
                   'Version', 'Flagged', 'IP Address', 'Date', 'Snapshot',
                 ].map((h, i) => (
                   <th key={h} style={{
@@ -386,10 +404,12 @@ export default function PolicyAcceptances({ policies = [] }) {
                     </tr>
                   )
                   : rows.map((row, i) => {
-                      const name = row.customer
-                        ? `${row.customer.first_name} ${row.customer.last_name}`
-                        : '—';
-                      const email = row.customer?.email ?? '';
+                      const name = row.vendor
+                        ? row.vendor.company_name
+                        : row.customer
+                          ? `${row.customer.first_name} ${row.customer.last_name}`
+                          : '—';
+                      const email = row.vendor?.email ?? row.customer?.email ?? '';
 
                       return (
                         <tr
@@ -404,7 +424,10 @@ export default function PolicyAcceptances({ policies = [] }) {
                         >
                           {/* Customer name + email */}
                           <td style={{ padding: '11px 14px', minWidth: 160 }}>
-                            <p style={{ margin: 0, fontWeight: 600, color: 'var(--text-primary)', fontSize: '0.8rem' }}>{name}</p>
+                            <p style={{ margin: 0, fontWeight: 600, color: 'var(--text-primary)', fontSize: '0.8rem' }}>
+                              {name}
+                              {row.vendor && <span style={{ marginLeft: 6, fontSize: '0.6rem', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.05em', padding: '1px 6px', borderRadius: 5, background: 'rgba(16,185,129,0.1)', color: '#065f46', verticalAlign: 'middle' }}>Vendor</span>}
+                            </p>
                             {email && <p style={{ margin: 0, fontSize: '0.68rem', color: 'var(--text-tertiary)' }}>{email}</p>}
                           </td>
 
@@ -414,7 +437,7 @@ export default function PolicyAcceptances({ policies = [] }) {
                               fontSize: '0.72rem', background: 'var(--surface-card, #fff)',
                               color: 'var(--color-primary-600)', padding: '2px 6px', borderRadius: 4,
                             }}>
-                              {row.customer_number ?? '—'}
+                              {row.vendor_number ?? row.customer_number ?? '—'}
                             </code>
                           </td>
 

@@ -3350,6 +3350,14 @@ Route::middleware(['auth:sanctum', 'module:extras'])->prefix('vendor-portal')->g
     Route::get('/orders/{id}',  [$vp, 'showOrder'])->whereNumber('id');
 });
 
+// Admin: a portal login for a vendor we created ourselves (Extras module)
+Route::middleware(['auth:sanctum', 'module:extras', 'permission:vendors.portal'])->prefix('admin/vendors')->group(function () {
+    $c = \App\Http\Controllers\Admin\VendorController::class;
+
+    Route::post('/{id}/portal-login',    [$c, 'createPortalLogin'])->whereNumber('id');
+    Route::post('/{id}/portal-password', [$c, 'resetPortalPassword'])->whereNumber('id');
+});
+
 // Admin: Tenders (Extras module)
 Route::middleware(['auth:sanctum', 'module:extras'])->prefix('admin/tenders')->group(function () {
     $tc = \App\Http\Controllers\Admin\TenderController::class;

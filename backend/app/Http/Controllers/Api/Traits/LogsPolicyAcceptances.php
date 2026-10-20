@@ -20,13 +20,16 @@ trait LogsPolicyAcceptances
         ?string  $referenceType = null,
         ?int     $referenceId = null,
         bool     $wasSuccessful = false,
-        ?Request $request = null
+        ?Request $request = null,
+        ?\App\Models\Vendor $vendor = null
     ): PolicyAcceptance {
         $policy = Policy::where('key', $policyKey)
             ->where('is_active', true)
             ->first();
 
-        return PolicyAcceptance::create([
+        $vendorColumns = $vendor && PolicyAcceptance::vendorReady() ? ['vendor_id' => $vendor->id, 'vendor_number' => $vendor->vendor_number] : [];
+
+        return PolicyAcceptance::create($vendorColumns + [
             'policy_id'       => $policy?->id,
             'policy_key'      => $policyKey,
             'policy_version'  => $policy?->version ?? 'unknown',

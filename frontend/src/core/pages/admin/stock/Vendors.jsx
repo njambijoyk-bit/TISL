@@ -9,7 +9,8 @@ import { Field, NumberInput, SelectInput, TextInput, FormStack, ModalActions, Fo
 import { money } from '../../../components/admin/books/booksFmt';
 import vendorsAPI from '../../../../_shared/api/vendors';
 import useAuthStore from '../../../../_shared/store/authStore';
-import { canReadFinance, canWriteFinance } from '../../../../_shared/lib/roles';
+import { canReadFinance, canWriteFinance, hasPermission } from '../../../../_shared/lib/roles';
+import { isModuleActive, MODULES } from '../../../../_shared/navigation/modules';
 import { errMsg } from '../../../../_shared/store/helpers/apiState';
 import { btnGhost, btnPrimary, card, colors } from '../../../../_shared/theme/tokens';
 
@@ -58,6 +59,71 @@ function VendorModal({ vendor, onClose, onDone }) {
   );
 }
 
+function newPassword() {
+  const sets = ['abcdefghjkmnpqrstuvwxyz', 'ABCDEFGHJKMNPQRSTUVWXYZ', '23456789'];
+  const all = sets.join('');
+  const pick = (chars) => chars[crypto.getRandomValues(new Uint32Array(1))[0] % chars.length];
+  const out = [...sets.map(pick), ...Array.from({ length: 11 }, () => pick(all))];
+  for (let i = out.length - 1; i > 0; i--) { const j = crypto.getRandomValues(new Uint32Array(1))[0] % (i + 1); [out[i], out[j]] = [out[j], out[i]]; }
+  return out.join('');
+}
+
+/** A login to the vendor portal for a vendor we created: the first time it is made, or a new password for one that exists. */
+function PortalLoginModal({ vendor, onClose, onDone }) {
+  const reset = Boolean(vendor.has_login);
+  const [email, setEmail] = useState(vendor.email ?? '');
+  const [password, setPassword] = useState('');
+  const [show, setShow] = useState(false);
+  const [busy, setBusy] = useState(false);
+  const [err, setErr] = useState(null);
+  const [result, setResult] = useState(null);
+
+  const go = async (e) => {
+    e.preventDefault(); setBusy(true); setErr(null);
+    try {
+      const res = reset ? await vendorsAPI.portalPassword(vendor.id, { password: password || undefined }) : await vendorsAPI.portalLogin(vendor.id, { email: email || undefined, password: password || undefined });
+      setResult({ message: res.message, email: res.email, password: res.password ?? password, generated: res.generated });
+    } catch (x) { setErr(errMsg(x, 'Could not save')); } finally { setBusy(false); }
+  };
+  const copy = (text) => { try { navigator.clipboard.writeText(text).then(() => toast.success('Copied'), () => toast.error('Could not copy: select it instead')); } catch { toast.error('Could not copy: select it instead'); } };
+  const mono = { fontFamily: 'monospace', fontSize: '0.9rem', padding: '8px 10px', borderRadius: 8, background: colors.tint(0.06), wordBreak: 'break-all', userSelect: 'all' };
+
+  return (
+    <Modal title={reset ? 'Reset portal password' : 'Create portal login'} subtitle={vendor.company_name} onClose={result ? onDone : onClose} width={520}>
+      {result ? (
+        <FormStack>
+          <p style={{ margin: 0, fontSize: '0.85rem', color: colors.text }}>{result.message}</p>
+          <Field label="Sign in with"><div style={mono}>{result.email}</div></Field>
+          <Field label="Initial password" hint={result.generated ? 'Shown this once: copy it now and pass it on safely.' : 'The password you entered.'}>
+            <div style={{ display: 'flex', gap: 8 }}><div style={{ ...mono, flex: 1 }}>{result.password}</div><button type="button" style={btnGhost} onClick={() => copy(result.password)}>Copy</button></div>
+          </Field>
+          <ModalActions onCancel={onDone} submitLabel="Done" onSubmit={onDone} />
+        </FormStack>
+      ) : (
+        <form onSubmit={go}>
+          <FormStack>
+            <FormError message={err} />
+            {!reset && (
+              <Field label="Email (their username)" hint={vendor.email ? 'Leave as the vendor\'s email, or change it.' : 'This vendor has no email yet: enter one.'}>
+                <TextInput type="email" required value={email} onChange={(e) => setEmail(e.target.value)} />
+              </Field>
+            )}
+            <Field label="Initial password" hint="Leave blank and one is made for you and shown once. Either way they must choose their own password when they first sign in.">
+              <div style={{ display: 'flex', gap: 8 }}>
+                <TextInput type={show ? 'text' : 'password'} autoComplete="new-password" value={password} onChange={(e) => setPassword(e.target.value)} placeholder="Blank = make one for me" />
+                <button type="button" style={btnGhost} onClick={() => setShow((s) => !s)}>{show ? 'Hide' : 'Show'}</button>
+                <button type="button" style={btnGhost} onClick={() => { setPassword(newPassword()); setShow(true); }}>Generate</button>
+              </div>
+            </Field>
+            {reset && <p style={{ margin: 0, fontSize: '0.78rem', color: colors.textMuted }}>Their open sessions end, so they sign in again with the new password.</p>}
+            <ModalActions onCancel={onClose} submitLabel={reset ? 'Set password' : 'Create login'} busy={busy} />
+          </FormStack>
+        </form>
+      )}
+    </Modal>
+  );
+}
+
 function DetailModal({ id, onClose }) {
   const [v, setV] = useState(null);
   useEffect(() => { vendorsAPI.show(id).then(setV).catch((e) => toast.error(errMsg(e, 'Could not load the vendor'))); }, [id]);
@@ -85,6 +151,8 @@ function DetailModal({ id, onClose }) {
 export default function Vendors() {
   const user = useAuthStore((s) => s.user);
   const canWrite = canWriteFinance(user);
+  const portalOn = isModuleActive(MODULES.EXTRAS);
+  const canPortal = portalOn && hasPermission(user, 'vendors.portal');
   const [rows, setRows] = useState([]);
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState('');
@@ -117,7 +185,7 @@ export default function Vendors() {
             <p style={{ padding: 20, margin: 0, color: colors.textMuted, fontSize: '0.85rem' }}>{search ? 'No vendors match.' : 'No vendors yet.'}</p>
           ) : (
             <table style={{ width: '100%', borderCollapse: 'collapse' }}>
-              <thead><tr><th style={th}>Vendor</th><th style={th}>Contact</th><th style={th}>Status</th><th style={{ ...th, textAlign: 'right' }}>We owe</th><th style={th} /></tr></thead>
+              <thead><tr><th style={th}>Vendor</th><th style={th}>Contact</th><th style={th}>Status</th>{portalOn && <th style={th}>Portal</th>}<th style={{ ...th, textAlign: 'right' }}>We owe</th><th style={th} /></tr></thead>
               <tbody>{rows.map((r) => (
                 <tr key={r.id}>
                   <td style={td}><strong>{r.company_name}</strong><div style={{ fontSize: '0.7rem', color: colors.textFaint }}>{r.vendor_number}</div></td>
@@ -130,11 +198,20 @@ export default function Vendors() {
                       </span>
                     )}
                   </td>
+                  {portalOn && (
+                    <td style={td}>
+                      <span style={{ fontSize: '0.68rem', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.04em', padding: '2px 8px', borderRadius: 6, whiteSpace: 'nowrap',
+                        background: r.has_login ? colors.successBg : colors.neutralBg, color: r.has_login ? colors.successText : colors.neutralText }}>
+                        {r.has_login ? 'Has login' : 'No login'}
+                      </span>
+                    </td>
+                  )}
                   <td style={{ ...td, textAlign: 'right' }}>{money(r.owed)}</td>
                   <td style={{ ...td, whiteSpace: 'nowrap' }}>
                     <button type="button" style={small} onClick={() => setModal({ kind: 'detail', id: r.id })}>View</button>
                     {canWrite && <button type="button" style={small} onClick={() => edit(r)}>Edit</button>}
                     {canWrite && <button type="button" style={small} onClick={() => toggle(r)}>{r.status === 'active' ? 'Suspend' : 'Activate'}</button>}
+                    {canPortal && <button type="button" style={small} onClick={() => setModal({ kind: 'portal', vendor: r })}>{r.has_login ? 'Reset password' : 'Create login'}</button>}
                   </td>
                 </tr>
               ))}</tbody>
@@ -145,6 +222,7 @@ export default function Vendors() {
       {modal?.kind === 'add' && <VendorModal onClose={() => setModal(null)} onDone={done} />}
       {modal?.kind === 'edit' && <VendorModal vendor={modal.vendor} onClose={() => setModal(null)} onDone={done} />}
       {modal?.kind === 'detail' && <DetailModal id={modal.id} onClose={() => setModal(null)} />}
+      {modal?.kind === 'portal' && <PortalLoginModal vendor={modal.vendor} onClose={() => setModal(null)} onDone={done} />}
     </AdminLayout>
   );
 }

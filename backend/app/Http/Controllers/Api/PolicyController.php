@@ -302,7 +302,9 @@ class PolicyController extends Controller
             ->when($request->filled('response'),       fn($q) => $q->where('response', $request->response))
             ->when($request->filled('action_context'), fn($q) => $q->where('action_context', $request->action_context))
             ->when($request->filled('flagged'),        fn($q) => $q->where('flagged', $request->boolean('flagged')))
-            ->with(['customer:id,first_name,last_name,customer_number,email'])
+            ->when($request->get('party') === 'customer', fn($q) => $q->whereNotNull('customer_id'))
+            ->when($request->get('party') === 'vendor' && PolicyAcceptance::vendorReady(), fn($q) => $q->whereNotNull('vendor_id'))
+            ->with(['customer:id,first_name,last_name,customer_number,email'] + (PolicyAcceptance::vendorReady() ? [1 => 'vendor:id,company_name,vendor_number,email'] : []))
             ->orderByDesc('accepted_at')
             ->paginate($request->integer('per_page', 50));
 

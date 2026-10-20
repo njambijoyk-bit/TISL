@@ -250,7 +250,8 @@ class AuthController extends Controller
                     user:           $user,
                     disagreeReason: $pa['reason'] ?? null,
                     wasSuccessful:  true,
-                    request:        $request
+                    request:        $request,
+                    vendor:         $vendor
                 );
             }
 
