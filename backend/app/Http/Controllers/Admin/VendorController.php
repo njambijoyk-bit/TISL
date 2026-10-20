@@ -78,6 +78,10 @@ class VendorController extends Controller
 
         return DB::transaction(function () use ($v, $d) {
             $v->update($d);
+            // an active vendor is someone we can buy from, so it needs its Sundry Creditors ledger (self-registered vendors get theirs here, once approved)
+            if ($v->status === 'active') {
+                $this->ledgers->vendorLedger($v);
+            }
             $ledger = array_filter(['name' => $d['company_name'] ?? null, 'address' => array_key_exists('address', $d) ? $d['address'] : null], fn ($x) => $x !== null);
             if ($ledger) {
                 DB::table('ledgers')->where('supplier_id', $v->id)->update($ledger);
@@ -89,7 +93,7 @@ class VendorController extends Controller
 
     private function row(Vendor $v, $ledgerId): array
     {
-        $owed = $ledgerId ? round(-$this->ledgers->balance((int) $ledgerId), 2) : 0.0;   // credit balance = what we owe
+        $owed = $ledgerId ? (round(-$this->ledgers->balance((int) $ledgerId), 2) ?: 0.0) : 0.0;   // credit balance = what we owe; ?: stops a -0.00
 
         return [
             'id' => $v->id, 'vendor_number' => $v->vendor_number, 'company_name' => $v->company_name, 'contact_name' => $v->contact_name, 'email' => $v->email, 'phone' => $v->phone,
