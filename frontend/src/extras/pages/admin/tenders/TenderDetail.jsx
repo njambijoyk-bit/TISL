@@ -1,181 +1,108 @@
-import { useState, useEffect, Fragment } from 'react';
-import { useParams, useNavigate, Link } from 'react-router-dom';
-import { ArrowLeft, FileText, Upload, Trash2, Send, X, Award, Users } from 'lucide-react';
-import { tendersAPI } from '../../../../_shared/api/index';
+import { useState, useEffect, useCallback } from 'react';
+import { useParams, Link } from 'react-router-dom';
+import { ArrowLeft, FileText, Send, X } from 'lucide-react';
 import toast from 'react-hot-toast';
-
-const STATUS_COLORS = {
-  draft:     { bg: '#f3f4f6', text: '#374151' },
-  published: { bg: '#dbeafe', text: '#1e40af' },
-  closed:    { bg: '#fef3c7', text: '#92400e' },
-  awarded:   { bg: '#dcfce7', text: '#166534' },
-  cancelled: { bg: '#fee2e2', text: '#991b1b' },
-};
+import { tendersAPI } from '../../../../_shared/api/index';
+import { btnPrimary, btnGhost, card, colors } from '../../../../_shared/theme/tokens';
+import { AdminPage, Loading, Empty, Tabs, Table, StatusBadge } from '../../../components/vendor/ui';
+import { td, mono, kes, fmtDate } from '../../../components/vendor/format';
 
 export default function TenderDetail() {
   const { id } = useParams();
-  const navigate = useNavigate();
   const [tender, setTender] = useState(null);
   const [bids, setBids] = useState([]);
   const [loading, setLoading] = useState(true);
   const [tab, setTab] = useState('details');
 
-  const load = async () => {
+  const load = useCallback(async () => {
     try {
       const t = await tendersAPI.show(id);
       setTender(t);
-      if (t.status !== 'draft') {
-        const b = await tendersAPI.bids(id);
-        setBids(b.rows || []);
-      }
+      if (t.status !== 'draft') setBids((await tendersAPI.bids(id)).rows || []);
     } catch { toast.error('Failed to load tender'); }
     finally { setLoading(false); }
+  }, [id]);
+
+  useEffect(() => { load(); }, [load]);
+
+  const act = (fn, ok) => async () => {
+    try { await fn(id); toast.success(ok); load(); }
+    catch (e) { toast.error(e.response?.data?.message || 'Could not do that'); }
   };
 
-  useEffect(() => { load(); }, [id]);
+  if (loading) return <AdminPage><Loading /></AdminPage>;
+  if (!tender) return <AdminPage><Empty>Tender not found</Empty></AdminPage>;
 
-  const handlePublish = async () => {
-    try { await tendersAPI.publish(id); toast.success('Tender published'); load(); }
-    catch (e) { toast.error(e.response?.data?.message || 'Failed to publish'); }
-  };
-  const handleClose = async () => {
-    try { await tendersAPI.close(id); toast.success('Tender closed'); load(); }
-    catch (e) { toast.error(e.response?.data?.message || 'Failed to close'); }
-  };
-  const handleCancel = async () => {
-    try { await tendersAPI.cancel(id); toast.success('Tender cancelled'); load(); }
-    catch (e) { toast.error(e.response?.data?.message || 'Failed to cancel'); }
-  };
-
-  if (loading) return <div style={{ padding: 40, textAlign: 'center' }} className="text-gray-400">Loading…</div>;
-  if (!tender) return <div style={{ padding: 40, textAlign: 'center' }} className="text-gray-500">Tender not found</div>;
-
-  const sc = STATUS_COLORS[tender.status] || STATUS_COLORS.draft;
+  const facts = [
+    ['Category', tender.category],
+    ['Visibility', tender.visibility?.replace(/_/g, ' ')],
+    ['Budget', tender.budget_min || tender.budget_max ? `${kes(tender.budget_min)} – ${kes(tender.budget_max)}` : '—'],
+    ['Published', fmtDate(tender.published_at)],
+    ['Deadline', tender.submission_deadline ? new Date(tender.submission_deadline).toLocaleString() : '—'],
+  ];
+  const lbl = { fontSize: '0.65rem', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.08em', color: colors.primaryDeep, marginBottom: 3 };
 
   return (
-    <div style={{ maxWidth: 1000, margin: '0 auto', padding: '32px 20px' }}>
-      <button onClick={() => navigate('/admin/tenders')} style={{ display: 'inline-flex', alignItems: 'center', gap: 6, background: 'none', border: 'none', cursor: 'pointer', fontSize: '0.82rem', fontWeight: 600, marginBottom: 20 }} className="text-gray-500 dark:text-gray-400">
-        <ArrowLeft size={15} /> Back to tenders
-      </button>
+    <AdminPage width={1000}>
+      <Link to="/admin/tenders" style={{ ...btnGhost, textDecoration: 'none', marginBottom: 16, padding: '5px 12px', fontSize: '0.75rem' }}><ArrowLeft size={13} /> Tenders</Link>
 
-      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', gap: 16, flexWrap: 'wrap', marginBottom: 24 }}>
+      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', gap: 16, flexWrap: 'wrap', marginBottom: 20 }}>
         <div>
-          <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 4 }}>
-            <h1 style={{ fontSize: '1.3rem', fontWeight: 800 }} className="text-gray-900 dark:text-white">{tender.title}</h1>
-            <span style={{ fontSize: '0.7rem', fontWeight: 600, padding: '2px 8px', borderRadius: 6, textTransform: 'uppercase', letterSpacing: '0.04em', background: sc.bg, color: sc.text }}>
-              {tender.status?.replace(/_/g, ' ')}
-            </span>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 10, flexWrap: 'wrap' }}>
+            <h1 style={{ fontSize: '1.4rem', fontWeight: 800, color: colors.primary, margin: 0 }}>{tender.title}</h1>
+            <StatusBadge status={tender.status} />
           </div>
-          <p style={{ fontSize: '0.82rem', fontFamily: 'monospace' }} className="text-gray-500 dark:text-gray-400">{tender.tender_number}</p>
+          <p style={{ ...mono, color: colors.textMuted, margin: '4px 0 0' }}>{tender.tender_number}</p>
         </div>
         <div style={{ display: 'flex', gap: 8 }}>
-          {tender.status === 'draft' && (
-            <button onClick={handlePublish} style={{ display: 'inline-flex', alignItems: 'center', gap: 6, padding: '8px 16px', borderRadius: 8, background: '#2563eb', color: '#fff', border: 'none', fontWeight: 700, fontSize: '0.8rem', cursor: 'pointer' }}>
-              <Send size={14} /> Publish
-            </button>
-          )}
-          {tender.status === 'published' && (
-            <button onClick={handleClose} style={{ display: 'inline-flex', alignItems: 'center', gap: 6, padding: '8px 16px', borderRadius: 8, background: '#f59e0b', color: '#fff', border: 'none', fontWeight: 700, fontSize: '0.8rem', cursor: 'pointer' }}>
-              Close Bidding
-            </button>
-          )}
-          {['draft', 'published'].includes(tender.status) && (
-            <button onClick={handleCancel} style={{ padding: '8px 16px', borderRadius: 8, border: '1.5px solid #ef4444', color: '#ef4444', background: 'none', fontWeight: 700, fontSize: '0.8rem', cursor: 'pointer' }}>
-              <X size={14} style={{ display: 'inline', verticalAlign: '-2px', marginRight: 4 }} />Cancel
-            </button>
-          )}
+          {tender.status === 'draft' && <button type="button" style={btnPrimary} onClick={act(tendersAPI.publish, 'Tender published')}><Send size={14} /> Publish</button>}
+          {tender.status === 'published' && <button type="button" style={btnPrimary} onClick={act(tendersAPI.close, 'Tender closed')}>Close bidding</button>}
+          {['draft', 'published'].includes(tender.status) && <button type="button" style={{ ...btnGhost, color: colors.danger }} onClick={act(tendersAPI.cancel, 'Tender cancelled')}><X size={14} /> Cancel</button>}
         </div>
       </div>
 
-      <div style={{ display: 'flex', gap: 4, marginBottom: 24, borderBottom: '2px solid #e5e7eb' }}>
-        {['details', 'bids', 'documents'].map(t => (
-          <button key={t} onClick={() => setTab(t)}
-            style={{ padding: '10px 18px', background: 'none', border: 'none', fontWeight: tab === t ? 700 : 500, fontSize: '0.82rem', cursor: 'pointer', borderBottom: tab === t ? '2px solid var(--color-primary-500)' : '2px solid transparent', marginBottom: -2, textTransform: 'capitalize' }}
-            className={tab === t ? 'text-gray-900 dark:text-white' : 'text-gray-500 dark:text-gray-400'}>
-            {t}
-          </button>
-        ))}
-      </div>
+      <Tabs value={tab} onChange={setTab} tabs={[['details', 'Details'], ['bids', `Bids (${bids.length})`], ['documents', 'Documents']]} />
 
       {tab === 'details' && (
-        <div className="bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700" style={{ borderRadius: 12, padding: 24 }}>
-          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(220px, 1fr))', gap: 20, marginBottom: 20 }}>
-            {[
-              ['Category', tender.category],
-              ['Visibility', tender.visibility?.replace(/_/g, ' ')],
-              ['Budget', tender.budget_min || tender.budget_max ? `KES ${Number(tender.budget_min || 0).toLocaleString()} – ${Number(tender.budget_max || 0).toLocaleString()}` : '—'],
-              ['Published', tender.published_at ? new Date(tender.published_at).toLocaleDateString() : '—'],
-              ['Deadline', tender.submission_deadline ? new Date(tender.submission_deadline).toLocaleString() : '—'],
-            ].map(([l, v]) => (
-              <div key={l}>
-                <div style={{ fontSize: '0.7rem', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.05em', marginBottom: 3 }} className="text-gray-400">{l}</div>
-                <div style={{ fontSize: '0.88rem', fontWeight: 600 }} className="text-gray-800 dark:text-gray-200">{v || '—'}</div>
-              </div>
+        <div style={{ ...card, padding: 22 }}>
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(200px, 1fr))', gap: 18 }}>
+            {facts.map(([l, v]) => (
+              <div key={l}><div style={lbl}>{l}</div><div style={{ fontSize: '0.88rem', fontWeight: 600, color: colors.text, textTransform: l === 'Category' ? 'capitalize' : undefined }}>{v || '—'}</div></div>
             ))}
           </div>
-          {tender.description && (
-            <div>
-              <div style={{ fontSize: '0.7rem', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.05em', marginBottom: 6 }} className="text-gray-400">Description</div>
-              <p style={{ fontSize: '0.85rem', lineHeight: 1.6, whiteSpace: 'pre-wrap' }} className="text-gray-700 dark:text-gray-300">{tender.description}</p>
-            </div>
-          )}
+          {tender.description && <div style={{ marginTop: 18 }}><div style={lbl}>Description</div><p style={{ fontSize: '0.85rem', lineHeight: 1.6, whiteSpace: 'pre-wrap', color: colors.textBody, margin: 0 }}>{tender.description}</p></div>}
+          {(tender.requirements || []).length > 0 && <div style={{ marginTop: 18 }}><div style={lbl}>Requirements</div><ul style={{ margin: 0, paddingLeft: 18, fontSize: '0.85rem', color: colors.textBody }}>{tender.requirements.map((r, i) => <li key={i}>{r.label || r}</li>)}</ul></div>}
+          {(tender.evaluation_criteria || []).length > 0 && <div style={{ marginTop: 18 }}><div style={lbl}>Evaluation criteria</div><ul style={{ margin: 0, paddingLeft: 18, fontSize: '0.85rem', color: colors.textBody }}>{tender.evaluation_criteria.map((c, i) => <li key={i}>{c.criterion || c}</li>)}</ul></div>}
         </div>
       )}
 
-      {tab === 'bids' && (
-        <div>
-          {bids.length === 0 ? (
-            <div style={{ padding: 40, textAlign: 'center' }} className="text-gray-400">No bids received yet</div>
-          ) : (
-            <div className="bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700" style={{ borderRadius: 12, overflow: 'hidden' }}>
-              <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '0.82rem' }}>
-                <thead>
-                  <tr className="bg-gray-50 dark:bg-gray-700/50">
-                    {['Bid #', 'Vendor', 'Amount', 'Status', 'Submitted'].map(h => (
-                      <th key={h} style={{ padding: '10px 14px', textAlign: 'left', fontWeight: 600, fontSize: '0.72rem', textTransform: 'uppercase', letterSpacing: '0.04em' }} className="text-gray-500 dark:text-gray-400">{h}</th>
-                    ))}
-                  </tr>
-                </thead>
-                <tbody>
-                  {bids.map(b => (
-                    <tr key={b.id} className="border-t border-gray-100 dark:border-gray-700">
-                      <td style={{ padding: '12px 14px', fontFamily: 'monospace', fontSize: '0.78rem' }} className="text-gray-700 dark:text-gray-300">{b.bid_number}</td>
-                      <td style={{ padding: '12px 14px', fontWeight: 600 }} className="text-gray-800 dark:text-gray-200">{b.vendor?.company_name || '—'}</td>
-                      <td style={{ padding: '12px 14px' }} className="text-gray-700 dark:text-gray-300">KES {Number(b.total_amount || 0).toLocaleString()}</td>
-                      <td style={{ padding: '12px 14px' }}>
-                        <span style={{ fontSize: '0.7rem', fontWeight: 600, padding: '2px 8px', borderRadius: 6, textTransform: 'uppercase', background: b.status === 'awarded' ? '#dcfce7' : b.status === 'rejected' ? '#fee2e2' : '#f3f4f6', color: b.status === 'awarded' ? '#166534' : b.status === 'rejected' ? '#991b1b' : '#374151' }}>
-                          {b.status?.replace(/_/g, ' ')}
-                        </span>
-                      </td>
-                      <td style={{ padding: '12px 14px', fontSize: '0.78rem' }} className="text-gray-500 dark:text-gray-400">{b.submitted_at ? new Date(b.submitted_at).toLocaleDateString() : '—'}</td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-            </div>
-          )}
-        </div>
-      )}
+      {tab === 'bids' && (bids.length === 0 ? <Empty>No bids received yet</Empty> : (
+        <Table head={['Bid', 'Vendor', 'Amount', 'Status', 'Submitted']}>
+          {bids.map(b => (
+            <tr key={b.id}>
+              <td style={{ ...td, ...mono }}>{b.bid_number}</td>
+              <td style={{ ...td, fontWeight: 600 }}>{b.vendor?.company_name || '—'}</td>
+              <td style={td}>{kes(b.total_amount)}</td>
+              <td style={td}><StatusBadge status={b.status} /></td>
+              <td style={td}>{fmtDate(b.submitted_at)}</td>
+            </tr>
+          ))}
+        </Table>
+      ))}
 
-      {tab === 'documents' && (
-        <div>
-          {(tender.documents || []).length === 0 ? (
-            <div style={{ padding: 40, textAlign: 'center' }} className="text-gray-400">No documents uploaded</div>
-          ) : (
-            <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
-              {tender.documents.map(d => (
-                <div key={d.id} className="bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700" style={{ padding: '12px 16px', borderRadius: 10, display: 'flex', alignItems: 'center', gap: 12 }}>
-                  <FileText size={18} className="text-gray-400" />
-                  <div style={{ flex: 1 }}>
-                    <div style={{ fontSize: '0.85rem', fontWeight: 600 }} className="text-gray-800 dark:text-gray-200">{d.name || d.original_name}</div>
-                    <div style={{ fontSize: '0.72rem' }} className="text-gray-400">{d.type}</div>
-                  </div>
-                </div>
-              ))}
+      {tab === 'documents' && ((tender.documents || []).length === 0 ? <Empty>No documents uploaded</Empty> : (
+        <div style={{ display: 'grid', gap: 8 }}>
+          {tender.documents.map(d => (
+            <div key={d.id} style={{ ...card, padding: '12px 16px', display: 'flex', alignItems: 'center', gap: 12 }}>
+              <FileText size={18} style={{ color: colors.primary }} />
+              <div>
+                <div style={{ fontSize: '0.85rem', fontWeight: 600, color: colors.text }}>{d.name || d.original_name}</div>
+                <div style={{ fontSize: '0.72rem', color: colors.textFaint }}>{d.document_type || d.type}</div>
+              </div>
             </div>
-          )}
+          ))}
         </div>
-      )}
-    </div>
+      ))}
+    </AdminPage>
   );
 }

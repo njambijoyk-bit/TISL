@@ -1,16 +1,10 @@
 import { useState, useEffect } from 'react';
-import { Link } from 'react-router-dom';
-import { ClipboardCheck, Plus, ArrowRight } from 'lucide-react';
-import { vendorPortalAPI } from '../../../_shared/api/index';
+import { ClipboardCheck } from 'lucide-react';
 import toast from 'react-hot-toast';
-
-const STATUS_COLORS = {
-  draft:        { bg: '#f3f4f6', text: '#374151' },
-  submitted:    { bg: '#dbeafe', text: '#1e40af' },
-  under_review: { bg: '#fef3c7', text: '#92400e' },
-  qualified:    { bg: '#dcfce7', text: '#166534' },
-  rejected:     { bg: '#fee2e2', text: '#991b1b' },
-};
+import { vendorPortalAPI } from '../../../_shared/api/index';
+import { card, colors } from '../../../_shared/theme/tokens';
+import { Page, Heading, Loading, Empty, Tabs, StatusBadge } from '../../components/vendor/ui';
+import { mono, fmtDate } from '../../components/vendor/format';
 
 export default function VendorPq() {
   const [pqs, setPqs] = useState([]);
@@ -27,70 +21,38 @@ export default function VendorPq() {
       .finally(() => setLoading(false));
   }, []);
 
+  const row = { ...card, padding: '14px 18px', display: 'flex', alignItems: 'center', gap: 12 };
+
   return (
-    <div style={{ maxWidth: 900, margin: '0 auto', padding: '32px 20px' }}>
-      <h1 style={{ fontSize: '1.4rem', fontWeight: 800, marginBottom: 4 }} className="text-gray-900 dark:text-white">Pre-Qualification</h1>
-      <p style={{ fontSize: '0.82rem', marginBottom: 20 }} className="text-gray-500 dark:text-gray-400">Apply for pre-qualification to access restricted tenders</p>
-
-      <div style={{ display: 'flex', gap: 4, marginBottom: 20, borderBottom: '2px solid #e5e7eb' }}>
-        {[['my', 'My Applications'], ['templates', 'Available Templates']].map(([key, label]) => (
-          <button key={key} onClick={() => setTab(key)}
-            style={{ padding: '10px 18px', background: 'none', border: 'none', fontWeight: tab === key ? 700 : 500, fontSize: '0.82rem', cursor: 'pointer', borderBottom: tab === key ? '2px solid var(--color-primary-500)' : '2px solid transparent', marginBottom: -2 }}
-            className={tab === key ? 'text-gray-900 dark:text-white' : 'text-gray-500 dark:text-gray-400'}>
-            {label}
-          </button>
-        ))}
-      </div>
-
-      {loading ? (
-        <div style={{ padding: 40, textAlign: 'center' }} className="text-gray-400">Loading…</div>
-      ) : tab === 'my' ? (
-        pqs.length === 0 ? (
-          <div style={{ padding: 60, textAlign: 'center' }}>
-            <ClipboardCheck size={36} className="text-gray-300 dark:text-gray-600" style={{ margin: '0 auto 12px' }} />
-            <p style={{ fontSize: '0.9rem', fontWeight: 600 }} className="text-gray-500 dark:text-gray-400">No pre-qualification applications yet</p>
-          </div>
-        ) : (
-          <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
-            {pqs.map(p => {
-              const sc = STATUS_COLORS[p.status] || STATUS_COLORS.draft;
-              return (
-                <div key={p.id} className="bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700"
-                  style={{ padding: '14px 18px', borderRadius: 10, display: 'flex', alignItems: 'center', gap: 12 }}>
-                  <ClipboardCheck size={18} style={{ color: '#10b981', flexShrink: 0 }} />
-                  <div style={{ flex: 1, minWidth: 0 }}>
-                    <div style={{ fontSize: '0.88rem', fontWeight: 600 }} className="text-gray-900 dark:text-white">{p.template?.name || 'PQ Application'}</div>
-                    <div style={{ fontSize: '0.75rem', marginTop: 2 }} className="text-gray-500 dark:text-gray-400">{p.pq_number} · {p.submitted_at ? new Date(p.submitted_at).toLocaleDateString() : 'Draft'}</div>
-                  </div>
-                  <span style={{ fontSize: '0.7rem', fontWeight: 600, padding: '2px 8px', borderRadius: 6, textTransform: 'uppercase', background: sc.bg, color: sc.text }}>
-                    {p.status?.replace(/_/g, ' ')}
-                  </span>
-                </div>
-              );
-            })}
-          </div>
-        )
-      ) : (
-        templates.length === 0 ? (
-          <div style={{ padding: 60, textAlign: 'center' }} className="text-gray-400">No PQ templates available</div>
-        ) : (
-          <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
-            {templates.map(t => (
-              <div key={t.id} className="bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700"
-                style={{ padding: '18px 20px', borderRadius: 12, display: 'flex', alignItems: 'center', gap: 14 }}>
+    <Page width={900}>
+      <Heading title="Pre-qualification" description="Get pre-qualified to see tenders that are restricted to approved suppliers." />
+      <Tabs value={tab} onChange={setTab} tabs={[['my', 'My applications'], ['templates', 'Available templates']]} />
+      {loading ? <Loading /> : tab === 'my' ? (
+        pqs.length === 0 ? <Empty icon={ClipboardCheck}>No pre-qualification applications yet</Empty> : (
+          <div style={{ display: 'grid', gap: 8 }}>
+            {pqs.map(p => (
+              <div key={p.id} style={row}>
+                <ClipboardCheck size={18} style={{ color: colors.primary, flexShrink: 0 }} />
                 <div style={{ flex: 1, minWidth: 0 }}>
-                  <div style={{ fontSize: '0.92rem', fontWeight: 700 }} className="text-gray-900 dark:text-white">{t.name}</div>
-                  <div style={{ fontSize: '0.78rem', marginTop: 3 }} className="text-gray-500 dark:text-gray-400">
-                    {t.category || 'General'} · Validity: {t.validity_months || '—'} months
-                  </div>
-                  {t.description && <p style={{ fontSize: '0.82rem', marginTop: 6, lineHeight: 1.5 }} className="text-gray-600 dark:text-gray-400">{t.description}</p>}
+                  <div style={{ fontSize: '0.88rem', fontWeight: 600, color: colors.text }}>{p.template?.name || 'PQ application'}</div>
+                  <div style={{ fontSize: '0.74rem', color: colors.textMuted }}><span style={mono}>{p.pq_number}</span> · {p.submitted_at ? fmtDate(p.submitted_at) : 'Draft'}</div>
                 </div>
-                <ArrowRight size={16} className="text-gray-300 dark:text-gray-600" style={{ flexShrink: 0 }} />
+                <StatusBadge status={p.status} />
               </div>
             ))}
           </div>
         )
+      ) : templates.length === 0 ? <Empty>No PQ templates available</Empty> : (
+        <div style={{ display: 'grid', gap: 10 }}>
+          {templates.map(t => (
+            <div key={t.id} style={{ ...card, padding: '16px 20px' }}>
+              <div style={{ fontSize: '0.92rem', fontWeight: 700, color: colors.text }}>{t.name}</div>
+              <div style={{ fontSize: '0.76rem', marginTop: 3, color: colors.textMuted, textTransform: 'capitalize' }}>{t.category || 'General'} · valid {t.validity_months || '—'} months</div>
+              {t.description && <p style={{ fontSize: '0.82rem', margin: '6px 0 0', lineHeight: 1.5, color: colors.textBody }}>{t.description}</p>}
+            </div>
+          ))}
+        </div>
       )}
-    </div>
+    </Page>
   );
 }

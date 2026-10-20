@@ -1,21 +1,22 @@
 import { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import { FileText, Gavel, ClipboardCheck, Package, Building, ArrowRight } from 'lucide-react';
-import { vendorPortalAPI } from '../../../_shared/api/index';
 import toast from 'react-hot-toast';
+import { vendorPortalAPI } from '../../../_shared/api/index';
+import { card, colors } from '../../../_shared/theme/tokens';
+import { Page, Heading, Loading, StatusBadge } from '../../components/vendor/ui';
 
-function StatCard({ icon: Icon, label, value, to, color }) {
+function StatCard({ icon: Icon, label, value, to }) {
   return (
-    <Link to={to} className="bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 hover:border-gray-300 dark:hover:border-gray-600"
-      style={{ display: 'flex', alignItems: 'center', gap: 16, padding: 20, borderRadius: 12, textDecoration: 'none', transition: 'border-color 150ms' }}>
-      <div style={{ width: 44, height: 44, borderRadius: 10, display: 'flex', alignItems: 'center', justifyContent: 'center', background: `${color}18` }}>
-        <Icon size={20} style={{ color }} />
+    <Link to={to} style={{ ...card, display: 'flex', alignItems: 'center', gap: 14, padding: 18, textDecoration: 'none' }}>
+      <div style={{ width: 42, height: 42, borderRadius: 10, display: 'flex', alignItems: 'center', justifyContent: 'center', background: colors.tint(0.1) }}>
+        <Icon size={19} style={{ color: colors.primary }} />
       </div>
       <div style={{ flex: 1 }}>
-        <div style={{ fontSize: '1.5rem', fontWeight: 800, lineHeight: 1.1 }} className="text-gray-900 dark:text-white">{value}</div>
-        <div style={{ fontSize: '0.78rem', marginTop: 2 }} className="text-gray-500 dark:text-gray-400">{label}</div>
+        <div style={{ fontSize: '1.5rem', fontWeight: 800, lineHeight: 1.1, color: colors.text }}>{value}</div>
+        <div style={{ fontSize: '0.76rem', marginTop: 2, color: colors.textMuted }}>{label}</div>
       </div>
-      <ArrowRight size={16} className="text-gray-300 dark:text-gray-600" />
+      <ArrowRight size={15} style={{ color: colors.textFaint }} />
     </Link>
   );
 }
@@ -28,39 +29,25 @@ export default function VendorDashboard() {
     vendorPortalAPI.dashboard().then(setData).catch(() => toast.error('Failed to load dashboard')).finally(() => setLoading(false));
   }, []);
 
-  if (loading) return <div style={{ padding: 40, textAlign: 'center' }} className="text-gray-400">Loading…</div>;
+  if (loading) return <Page width={900}><Loading /></Page>;
   if (!data) return null;
-
   const v = data.vendor;
 
   return (
-    <div style={{ maxWidth: 900, margin: '0 auto', padding: '32px 20px' }}>
-      <div style={{ marginBottom: 28 }}>
-        <h1 style={{ fontSize: '1.4rem', fontWeight: 800, marginBottom: 4 }} className="text-gray-900 dark:text-white">Vendor Portal</h1>
-        <div style={{ display: 'flex', alignItems: 'center', gap: 10, flexWrap: 'wrap' }}>
-          <span style={{ fontSize: '0.85rem' }} className="text-gray-500 dark:text-gray-400">
-            <Building size={14} style={{ display: 'inline', verticalAlign: '-2px', marginRight: 4 }} />{v.company_name}
-          </span>
-          <span style={{ fontSize: '0.7rem', fontWeight: 600, padding: '2px 8px', borderRadius: 6, textTransform: 'uppercase', letterSpacing: '0.04em',
-            background: v.status === 'active' ? '#dcfce7' : v.status === 'pending_approval' ? '#fef3c7' : '#fee2e2',
-            color: v.status === 'active' ? '#166534' : v.status === 'pending_approval' ? '#92400e' : '#991b1b' }}>
-            {v.status?.replace(/_/g, ' ')}
-          </span>
-        </div>
+    <Page width={900}>
+      <Heading title="Vendor portal"
+        description={<span style={{ display: 'inline-flex', alignItems: 'center', gap: 8 }}><Building size={14} />{v.company_name} <StatusBadge status={v.status} /></span>} />
+      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(230px, 1fr))', gap: 12, marginBottom: 24 }}>
+        <StatCard icon={Gavel} label="Open tenders" value={data.open_tenders} to="/vendor-portal/tenders" />
+        <StatCard icon={FileText} label="My bids" value={data.my_bids} to="/vendor-portal/bids" />
+        <StatCard icon={ClipboardCheck} label="Active PQs" value={data.active_pqs} to="/vendor-portal/pq" />
+        <StatCard icon={Package} label="Vendor orders" value={data.vendor_orders} to="/vendor-portal/orders" />
       </div>
-
-      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(240px, 1fr))', gap: 14, marginBottom: 32 }}>
-        <StatCard icon={Gavel}          label="Open tenders"       value={data.open_tenders}  to="/vendor-portal/tenders"  color="#6366f1" />
-        <StatCard icon={FileText}       label="My bids"            value={data.my_bids}       to="/vendor-portal/bids"     color="#0ea5e9" />
-        <StatCard icon={ClipboardCheck} label="Active PQs"         value={data.active_pqs}    to="/vendor-portal/pq"       color="#10b981" />
-        <StatCard icon={Package}        label="Vendor orders"      value={data.vendor_orders} to="/vendor-portal/orders"   color="#f59e0b" />
-      </div>
-
       {v.status === 'pending_approval' && (
-        <div className="bg-amber-50 dark:bg-amber-900/20 border border-amber-200 dark:border-amber-800" style={{ padding: 16, borderRadius: 10, fontSize: '0.85rem' }}>
-          <strong>Account pending approval.</strong> An administrator will review your registration. Once approved you can browse tenders and submit bids.
+        <div style={{ padding: 16, borderRadius: 10, fontSize: '0.85rem', background: colors.warningBg, color: colors.warningText, border: `1px solid ${colors.warning}` }}>
+          <strong>Account pending approval.</strong> An administrator will review your registration.
         </div>
       )}
-    </div>
+    </Page>
   );
 }

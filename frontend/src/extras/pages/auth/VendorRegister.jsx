@@ -7,13 +7,12 @@ import toast from 'react-hot-toast';
 import PolicyConsentCheckbox from '../../../_shared/components/legal/shared/PolicyConsentCheckbox';
 import { AuthBrandBar, AuthBrandPanel } from '../../../core/pages/auth/AuthBrand';
 import { useAuthBrand } from '../../../core/pages/auth/useAuthBrand';
+import { colors, input, label as labelStyle, btnPrimary } from '../../../_shared/theme/tokens';
 
 function Field({ name, label, type = 'text', placeholder, icon: Icon, value, error, focused, setFocused, onChange, rightEl }) {
   return (
     <div>
-      <label style={{ display: 'block', fontSize: '0.72rem', fontWeight: 700, marginBottom: 5, textTransform: 'uppercase', letterSpacing: '0.06em' }} className="text-gray-500 dark:text-gray-400">
-        {label}
-      </label>
+      <label style={labelStyle}>{label}</label>
       <div style={{ position: 'relative' }}>
         {Icon && <Icon size={14} style={{ position: 'absolute', left: 13, top: '50%', transform: 'translateY(-50%)', color: focused === name ? 'var(--color-primary-500)' : 'var(--text-tertiary)', transition: 'color 150ms', flexShrink: 0 }} />}
         <input
@@ -21,16 +20,14 @@ function Field({ name, label, type = 'text', placeholder, icon: Icon, value, err
           onFocus={() => setFocused(name)} onBlur={() => setFocused('')}
           placeholder={placeholder}
           style={{
-            width: '100%', padding: `10px ${rightEl ? '44px' : '13px'} 10px ${Icon ? '36px' : '13px'}`,
-            borderRadius: 10, fontSize: '0.85rem', outline: 'none', transition: 'border-color 150ms',
-            border: `1.5px solid ${error ? '#ef4444' : focused === name ? 'var(--color-primary-500)' : '#e5e7eb'}`,
-            boxSizing: 'border-box',
+            ...input, padding: `9px ${rightEl ? '44px' : '13px'} 9px ${Icon ? '36px' : '13px'}`,
+            borderColor: error ? colors.danger : focused === name ? colors.primary : colors.tint(0.18),
+            boxShadow: focused === name ? `0 0 0 3px ${colors.tint(0.1)}` : 'none',
           }}
-          className="bg-white dark:bg-gray-700 dark:border-gray-600 dark:text-white dark:placeholder-gray-400"
         />
         {rightEl}
       </div>
-      {error && <p style={{ color: '#ef4444', fontSize: '0.72rem', marginTop: 3 }}>{error}</p>}
+      {error && <p style={{ color: colors.danger, fontSize: '0.72rem', marginTop: 3 }}>{error}</p>}
     </div>
   );
 }
@@ -80,7 +77,7 @@ export default function VendorRegister() {
 
   const EyeBtn = ({ show, toggle }) => (
     <button type="button" onClick={toggle}
-      style={{ position: 'absolute', right: 12, top: '50%', transform: 'translateY(-50%)', background: 'none', border: 'none', cursor: 'pointer', color: '#9ca3af', padding: 2 }}>
+      style={{ position: 'absolute', right: 12, top: '50%', transform: 'translateY(-50%)', background: 'none', border: 'none', cursor: 'pointer', color: colors.textFaint, padding: 2 }}>
       {show ? <EyeOff size={15} /> : <Eye size={15} />}
     </button>
   );
@@ -94,8 +91,8 @@ export default function VendorRegister() {
 
         <div style={{ flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '40px 20px' }}>
           <div style={{ width: '100%', maxWidth: 440 }}>
-            <h1 style={{ fontSize: '1.5rem', fontWeight: 800, marginBottom: 4 }} className="text-gray-900 dark:text-white">Vendor Registration</h1>
-            <p style={{ fontSize: '0.85rem', marginBottom: 24 }} className="text-gray-500 dark:text-gray-400">
+            <h1 style={{ fontSize: '1.5rem', fontWeight: 800, marginBottom: 4, color: colors.primary }}>Vendor Registration</h1>
+            <p style={{ fontSize: '0.85rem', marginBottom: 24, color: colors.textMuted }}>
               Register as a vendor to access tenders, submit bids and manage pre-qualifications.
             </p>
 
@@ -120,16 +117,12 @@ export default function VendorRegister() {
               <PolicyConsentCheckbox context="vendor_register" onAcceptedChange={setPolicyAccepted} onAcceptancesChange={setPolicyAcceptances} />
 
               <button type="submit" disabled={loading || !policyAccepted}
-                style={{
-                  width: '100%', padding: '12px 0', borderRadius: 10, border: 'none', fontWeight: 700, fontSize: '0.85rem', cursor: 'pointer',
-                  background: policyAccepted ? 'var(--color-primary-500)' : '#d1d5db', color: '#fff',
-                  display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8, transition: 'background 150ms',
-                }}>
+                style={{ ...btnPrimary, width: '100%', padding: '12px 0', opacity: loading || !policyAccepted ? 0.5 : 1, cursor: loading || !policyAccepted ? 'not-allowed' : 'pointer' }}>
                 {loading ? 'Creating account…' : <>Register as vendor <ArrowRight size={15} /></>}
               </button>
             </form>
 
-            <p style={{ textAlign: 'center', fontSize: '0.8rem', marginTop: 20 }} className="text-gray-500 dark:text-gray-400">
+            <p style={{ textAlign: 'center', fontSize: '0.8rem', marginTop: 20, color: colors.textMuted }}>
               Already have an account? <Link to="/login" style={{ color: 'var(--color-primary-500)', fontWeight: 600, textDecoration: 'none' }}>Sign in</Link>
             </p>
           </div>
