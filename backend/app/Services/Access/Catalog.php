@@ -18,7 +18,7 @@ class Catalog
 
     /** Permissions added after version 1, by the version that added them. The seeder gives a new permission to the built-in roles that hold it by default once, and never again (an admin may take it back). */
     public const ADDED = [
-        18 => ['tenders.view', 'tenders.manage', 'tenders.evaluate', 'prequalification.view', 'prequalification.manage', 'prequalification.templates', 'vendors.portal'],
+        18 => ['tenders.view', 'tenders.manage', 'prequalification.view', 'prequalification.manage', 'vendors.portal'],
         17 => ['menus.configure', 'menus.tips.view', 'menus.tips.issue', 'menus.tips.issue_self', 'menus.tips.reverse', 'menus.packaging.waive'],
         16 => ['units.view', 'units.manage'],
         15 => ['menus.till'],
@@ -216,12 +216,10 @@ class Catalog
         'verification.override' => [null, 'Stock', 'Verify any item assigned to you, whatever its rules', true],
         'vendors.approve'   => [null, 'Purchases', 'Make and approve vendor accounts', true],
         'vendors.portal'    => ['extras', 'Purchases', 'Manage the vendor portal: registrations, portal access and vendor approvals', true],
-        'tenders.view'      => ['extras', 'Purchases', 'See tenders and the bids they received', false],
-        'tenders.manage'    => ['extras', 'Purchases', 'Create, publish and close tenders', true],
-        'tenders.evaluate'  => ['extras', 'Purchases', 'Score bids and award a tender', true],
-        'prequalification.view'      => ['extras', 'Purchases', 'See pre-qualification submissions', false],
-        'prequalification.manage'    => ['extras', 'Purchases', 'Review and approve pre-qualification submissions', true],
-        'prequalification.templates' => ['extras', 'Purchases', 'Create and change pre-qualification templates', true],
+        'tenders.view'      => ['extras', 'Purchases', 'See tenders and who they were sent to', false],
+        'tenders.manage'    => ['extras', 'Purchases', 'Post, change, close and email tender notices and their files', true],
+        'prequalification.view'      => ['extras', 'Purchases', 'See which vendors are pre-qualified', false],
+        'prequalification.manage'    => ['extras', 'Purchases', 'Record who is pre-qualified, with the reason', true],
         'calendar.team'     => [null, 'People', 'See the team calendar and other people\'s calendars', false],
         'attendance.manage' => [null, 'People', 'Mark and verify attendance and set the attendance rules', true],
         'attendance.arbitrate' => [null, 'People', 'Settle attendance disputes, see who reported, mark your own day', true],

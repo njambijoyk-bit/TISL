@@ -6,7 +6,6 @@ use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\SoftDeletes;
 use App\Models\Ecommerce\Product;
-use App\Models\Extras\TenderBid;
 
 class VendorOrder extends Model
 {
@@ -42,7 +41,6 @@ class VendorOrder extends Model
         'notes',
         'admin_notes',
         'metadata',
-        'tender_bid_id',
     ];
 
     protected $casts = [
@@ -85,10 +83,6 @@ class VendorOrder extends Model
         return $this->hasMany(VendorOrderItem::class);
     }
 
-    public function tenderBid()
-    {
-        return $this->belongsTo(TenderBid::class);
-    }
 
     // =========================================================================
     // SCOPES

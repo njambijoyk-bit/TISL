@@ -1,6 +1,6 @@
 import AdminLayout from '../../../_shared/components/layout/AdminLayout';
 import { colors, card, radius } from '../../../_shared/theme/tokens';
-import { th, linkStyle, fmtLongDate, fmtDateTime, fmtFee, METHOD_LABELS, SUBMISSION_LABELS, CATEGORY_LABELS, DOC_TYPE_LABELS } from './format';
+import { th, linkStyle, fmtLongDate, fmtDateTime, fmtFee, fmtSize, METHOD_LABELS, SUBMISSION_LABELS, CATEGORY_LABELS, DOC_TYPE_LABELS, GROUP_LABELS, NOTICE_TYPE_LABELS } from './format';
 
 const TONES = {
   neutral: { bg: colors.neutralBg, text: colors.neutralText },
@@ -12,7 +12,7 @@ const TONES = {
 
 const STATUS_TONE = {
   draft: 'neutral', withdrawn: 'neutral', pending: 'neutral',
-  published: 'info', submitted: 'info', sent: 'info',
+  published: 'info', open: 'info', terminated: 'danger', submitted: 'info', sent: 'info',
   closed: 'warning', under_review: 'warning', shortlisted: 'warning', pending_approval: 'warning', evaluating: 'warning',
   awarded: 'success', qualified: 'success', active: 'success', delivered: 'success', approved: 'success',
   rejected: 'danger', cancelled: 'danger', inactive: 'danger', suspended: 'danger',
@@ -86,19 +86,46 @@ export function Table({ head, children }) {
   );
 }
 
+export function GroupBadge({ group }) {
+  if (!group) return null;
+  return <span style={{ fontSize: '0.66rem', fontWeight: 700, padding: '2px 8px', borderRadius: radius.sm, background: colors.infoBg, color: colors.infoText, whiteSpace: 'nowrap' }}>{GROUP_LABELS[group] || group}</span>;
+}
+
+const rowLabel = { flex: '0 0 220px', maxWidth: '100%', fontSize: '0.7rem', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.07em', color: colors.primaryDeep, paddingTop: 2 };
+const rowBox = (first) => ({ display: 'flex', flexWrap: 'wrap', gap: '4px 16px', padding: '11px 18px', borderTop: first ? 'none' : `1px solid ${colors.tint(0.08)}` });
+const miniBtn = { background: 'none', border: 'none', padding: 0, fontFamily: 'inherit', fontSize: '0.8rem', cursor: 'pointer', ...linkStyle };
+
+/** One attachment: its type, name, upload date and time, and Open (PDF and HTML) / Download. `onOpen(doc, inline)` fetches the file. */
+export function AttachmentRow({ doc: d, onOpen, extra }) {
+  return (
+    <div style={{ display: 'flex', flexWrap: 'wrap', alignItems: 'baseline', gap: '2px 14px', fontSize: '0.82rem', color: colors.text }}>
+      <span style={{ fontWeight: 700, minWidth: 120 }}>{DOC_TYPE_LABELS[d.type || d.document_type] || 'Other'}</span>
+      <span style={{ overflowWrap: 'anywhere', flex: '1 1 200px' }}>{d.name}</span>
+      <span style={{ color: colors.textMuted }}>{fmtDateTime(d.uploaded_at || d.created_at)}{d.size || d.file_size ? ` · ${fmtSize(d.size || d.file_size)}` : ''}</span>
+      <span style={{ display: 'inline-flex', gap: 12 }}>
+        {d.viewable !== false && ['pdf', 'html', 'htm'].includes(String(d.extension || '').toLowerCase()) && <button type="button" style={miniBtn} onClick={() => onOpen(d, true)}>Open</button>}
+        <button type="button" style={miniBtn} onClick={() => onOpen(d, false)}>Download</button>
+        {extra}
+      </span>
+    </div>
+  );
+}
+
 /**
- * The notice details of a tender, as a procurement notice lays them out.
- * `extra` adds rows ([label, value]) after the standard ones; `documentUrl(doc)` makes the attachments downloadable.
+ * The notice details of a tender, as a procurement notice lays them out, then its lots and attachments.
+ * `extra` adds rows ([label, value]); `onOpen(doc, inline)` opens or downloads an attachment.
  */
-export function NoticeDetails({ tender: t, extra = [], documentUrl }) {
+export function NoticeDetails({ tender: t, extra = [], onOpen }) {
   const rows = [
     ['OCID', t.ocid],
     ['Tender number', t.tender_number],
+    ['Notice type', t.notice_type && t.notice_type !== 'tender' ? NOTICE_TYPE_LABELS[t.notice_type] : null],
     ['Title', t.title],
+    ['Procuring entity', t.procuring_entity],
     ['Procurement method', METHOD_LABELS[t.procurement_method] || t.procurement_method],
     ['Procurement category', CATEGORY_LABELS[t.category] || t.category],
     ['Submission methods', SUBMISSION_LABELS[t.submission_method] || t.submission_method],
-    ['Reservation scheme', t.reservation_scheme],
+    ['Reservation scheme', t.reservation_scheme && (GROUP_LABELS[t.reservation_scheme] || t.reservation_scheme)],
     ['Opening venue', t.opening_venue],
     ['Published date', fmtLongDate(t.published_at)],
     ['Close date and time', fmtDateTime(t.submission_deadline)],
@@ -111,32 +138,36 @@ export function NoticeDetails({ tender: t, extra = [], documentUrl }) {
   ].filter(([, v]) => v !== undefined && v !== null && v !== '' && v !== false);
 
   const docs = t.documents || [];
+  const lots = t.lots || [];
 
   return (
     <div style={{ ...card, padding: 0, overflow: 'hidden' }}>
       {rows.map(([label, value], i) => (
-        <div key={label} style={{ display: 'flex', flexWrap: 'wrap', gap: '4px 16px', padding: '11px 18px', borderTop: i ? `1px solid ${colors.tint(0.08)}` : 'none' }}>
-          <div style={{ flex: '0 0 220px', maxWidth: '100%', fontSize: '0.7rem', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.07em', color: colors.primaryDeep, paddingTop: 2 }}>{label}</div>
+        <div key={label} style={rowBox(i === 0)}>
+          <div style={rowLabel}>{label}</div>
           <div style={{ flex: '1 1 260px', minWidth: 0, fontSize: '0.85rem', color: colors.text, overflowWrap: 'anywhere' }}>{value}</div>
         </div>
       ))}
-      <div style={{ display: 'flex', flexWrap: 'wrap', gap: '4px 16px', padding: '11px 18px', borderTop: `1px solid ${colors.tint(0.08)}` }}>
-        <div style={{ flex: '0 0 220px', maxWidth: '100%', fontSize: '0.7rem', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.07em', color: colors.primaryDeep, paddingTop: 2 }}>Attachments</div>
-        <div style={{ flex: '1 1 260px', minWidth: 0, display: 'grid', gap: 8 }}>
-          {docs.length === 0 && <span style={{ fontSize: '0.85rem', color: colors.textMuted }}>None</span>}
-          {docs.map(d => {
-            const url = documentUrl?.(d);
-            const when = d.uploaded_at || d.created_at;
-            return (
-              <div key={d.id} style={{ display: 'flex', flexWrap: 'wrap', gap: '2px 14px', fontSize: '0.82rem', color: colors.text }}>
-                <span style={{ fontWeight: 600 }}>{DOC_TYPE_LABELS[d.document_type] || 'Tender document'}</span>
-                {url
-                  ? <a href={url} style={{ ...linkStyle, overflowWrap: 'anywhere' }}>{d.name}</a>
-                  : <span style={{ overflowWrap: 'anywhere' }}>{d.name}</span>}
-                <span style={{ color: colors.textMuted }}>{fmtDateTime(when)}</span>
+      {lots.length > 0 && (
+        <div style={rowBox(false)}>
+          <div style={rowLabel}>Lots</div>
+          <div style={{ flex: '1 1 260px', minWidth: 0, display: 'grid', gap: 8 }}>
+            {lots.map(l => (
+              <div key={l.code} style={{ display: 'flex', flexWrap: 'wrap', alignItems: 'baseline', gap: '2px 10px', fontSize: '0.85rem', color: colors.text }}>
+                <strong>Lot {l.code}</strong>
+                <span style={{ overflowWrap: 'anywhere' }}>{l.title}</span>
+                <GroupBadge group={l.reservation_group} />
+                {l.description && <span style={{ flexBasis: '100%', color: colors.textMuted, fontSize: '0.8rem' }}>{l.description}</span>}
               </div>
-            );
-          })}
+            ))}
+          </div>
+        </div>
+      )}
+      <div style={rowBox(false)}>
+        <div style={rowLabel}>Attachments</div>
+        <div style={{ flex: '1 1 260px', minWidth: 0, display: 'grid', gap: 10 }}>
+          {docs.length === 0 && <span style={{ fontSize: '0.85rem', color: colors.textMuted }}>None</span>}
+          {docs.map(d => <AttachmentRow key={d.id} doc={d} onOpen={onOpen} />)}
         </div>
       </div>
     </div>

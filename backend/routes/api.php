@@ -3313,9 +3313,14 @@ Route::middleware(['module:extras', 'throttle:60,1'])->prefix('public/tenders')-
     $pt = \App\Http\Controllers\Api\PublicTenderController::class;
 
     Route::get('/',                            [$pt, 'index']);
+    Route::get('/export',                      [$pt, 'export']);
     Route::get('/{id}',                        [$pt, 'show'])->whereNumber('id');
     Route::get('/{id}/documents/{docId}',      [$pt, 'download'])->whereNumber('id')->whereNumber('docId');
 });
+
+// Signed link that opens a tender file (the link itself carries the permission)
+Route::get('/tender-files/{doc}', [\App\Http\Controllers\Api\TenderFileController::class, 'show'])
+    ->whereNumber('doc')->middleware('signed')->name('tender-files.show');
 
 // Vendor portal — logged-in vendor, Extras on
 Route::middleware(['auth:sanctum', 'module:extras'])->prefix('vendor-portal')->group(function () {
@@ -3328,22 +3333,10 @@ Route::middleware(['auth:sanctum', 'module:extras'])->prefix('vendor-portal')->g
     // Tenders visible to this vendor
     Route::get('/tenders',            [$vp, 'tenders']);
     Route::get('/tenders/{id}',       [$vp, 'showTender'])->whereNumber('id');
+    Route::get('/tenders/{id}/documents/{docId}/link', [$vp, 'documentLink'])->whereNumber('id')->whereNumber('docId');
 
-    // Bids
-    Route::get('/bids',               [$vp, 'myBids']);
-    Route::post('/tenders/{id}/bid',  [$vp, 'storeBid'])->whereNumber('id');
-    Route::post('/bids/{id}/submit',  [$vp, 'submitBid'])->whereNumber('id');
-    Route::post('/bids/{id}/withdraw', [$vp, 'withdrawBid'])->whereNumber('id');
-    Route::post('/bids/{id}/documents', [$vp, 'uploadBidDocument'])->whereNumber('id');
-
-    // Pre-qualification
-    Route::get('/pq/templates',             [$vp, 'pqTemplates']);
-    Route::get('/pq/templates/{id}',        [$vp, 'showPqTemplate'])->whereNumber('id');
-    Route::get('/pq/submissions',           [$vp, 'myPqs']);
-    Route::post('/pq/templates/{id}/apply', [$vp, 'storePq'])->whereNumber('id');
-    Route::put('/pq/{id}',                  [$vp, 'updatePq'])->whereNumber('id');
-    Route::post('/pq/{id}/submit',          [$vp, 'submitPq'])->whereNumber('id');
-    Route::post('/pq/{id}/documents',       [$vp, 'uploadPqDocument'])->whereNumber('id');
+    // Pre-qualification status (recorded by staff)
+    Route::get('/prequalifications', [$vp, 'prequalifications']);
 
     // Vendor orders (read-only for the vendor)
     Route::get('/orders',       [$vp, 'orders']);
@@ -3365,45 +3358,38 @@ Route::middleware(['auth:sanctum', 'module:extras'])->prefix('admin/tenders')->g
     Route::middleware('permission:tenders.view')->group(function () use ($tc) {
         Route::get('/',          [$tc, 'index']);
         Route::get('/{id}',      [$tc, 'show'])->whereNumber('id');
-        Route::get('/{id}/bids', [$tc, 'bids'])->whereNumber('id');
+        Route::get('/{id}/eligible', [$tc, 'eligible'])->whereNumber('id');
+        Route::get('/{id}/documents/{docId}/link', [$tc, 'documentLink'])->whereNumber('id')->whereNumber('docId');
     });
 
     Route::middleware('permission:tenders.manage')->group(function () use ($tc) {
         Route::post('/',                    [$tc, 'store']);
         Route::put('/{id}',                 [$tc, 'update'])->whereNumber('id');
         Route::post('/{id}/publish',        [$tc, 'publish'])->whereNumber('id');
+        Route::post('/{id}/reopen',         [$tc, 'reopen'])->whereNumber('id');
         Route::post('/{id}/close',          [$tc, 'close'])->whereNumber('id');
         Route::post('/{id}/cancel',         [$tc, 'cancel'])->whereNumber('id');
         Route::post('/{id}/documents',      [$tc, 'uploadDocument'])->whereNumber('id');
+        Route::put('/{id}/documents/{docId}',    [$tc, 'updateDocument'])->whereNumber('id')->whereNumber('docId');
         Route::delete('/{id}/documents/{docId}', [$tc, 'deleteDocument'])->whereNumber('id')->whereNumber('docId');
         Route::post('/{id}/invite',         [$tc, 'invite'])->whereNumber('id');
-    });
-
-    Route::middleware('permission:tenders.evaluate')->group(function () use ($tc) {
-        Route::put('/{id}/bids/{bidId}/evaluate', [$tc, 'evaluateBid'])->whereNumber('id')->whereNumber('bidId');
-        Route::post('/{id}/bids/{bidId}/award',   [$tc, 'awardBid'])->whereNumber('id')->whereNumber('bidId');
+        Route::delete('/{id}/invite/{vendorId}', [$tc, 'uninvite'])->whereNumber('id')->whereNumber('vendorId');
+        Route::post('/{id}/email',          [$tc, 'email'])->whereNumber('id');
     });
 });
 
-// Admin: Pre-qualification (Extras module)
-Route::middleware(['auth:sanctum', 'module:extras'])->prefix('admin/prequalification')->group(function () {
-    $pq = \App\Http\Controllers\Admin\PrequalificationController::class;
-
-    Route::middleware('permission:prequalification.templates')->group(function () use ($pq) {
-        Route::get('/templates',       [$pq, 'templates']);
-        Route::get('/templates/{id}',  [$pq, 'showTemplate'])->whereNumber('id');
-        Route::post('/templates',      [$pq, 'storeTemplate']);
-        Route::put('/templates/{id}',  [$pq, 'updateTemplate'])->whereNumber('id');
-    });
+// Admin: pre-qualification recorded on the vendor after the offline review (Extras module)
+Route::middleware(['auth:sanctum', 'module:extras'])->prefix('admin/vendor-prequalifications')->group(function () {
+    $pq = \App\Http\Controllers\Admin\VendorPrequalificationController::class;
 
     Route::middleware('permission:prequalification.view')->group(function () use ($pq) {
-        Route::get('/submissions',      [$pq, 'submissions']);
-        Route::get('/submissions/{id}', [$pq, 'showSubmission'])->whereNumber('id');
+        Route::get('/',                  [$pq, 'index']);
+        Route::get('/vendor/{vendorId}', [$pq, 'forVendor'])->whereNumber('vendorId');
     });
 
     Route::middleware('permission:prequalification.manage')->group(function () use ($pq) {
-        Route::post('/submissions/{id}/review', [$pq, 'review'])->whereNumber('id');
-        Route::post('/submissions/{pqId}/documents/{docId}/verify', [$pq, 'verifyDocument'])->whereNumber('pqId')->whereNumber('docId');
+        Route::post('/vendor/{vendorId}', [$pq, 'store'])->whereNumber('vendorId');
+        Route::put('/{id}',               [$pq, 'update'])->whereNumber('id');
     });
 });
 

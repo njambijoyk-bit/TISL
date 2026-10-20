@@ -5,82 +5,93 @@ namespace App\Http\Controllers\Api;
 use App\Http\Controllers\Controller;
 use App\Models\Extras\Tender;
 use App\Models\Extras\TenderDocument;
+use App\Services\Tenders\TenderFile;
+use App\Services\Tenders\TenderListing;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
-use Illuminate\Support\Facades\Storage;
+use Maatwebsite\Excel\Concerns\FromArray;
+use Maatwebsite\Excel\Concerns\ShouldAutoSize;
+use Maatwebsite\Excel\Concerns\WithHeadings;
+use Maatwebsite\Excel\Facades\Excel;
+use Symfony\Component\HttpFoundation\BinaryFileResponse;
 use Symfony\Component\HttpFoundation\StreamedResponse;
 
 /**
- * Public tender notices (Extras module, no login): what a procuring entity publishes for anyone to read.
- * Budgets, invitations, bids and who created the tender are never shown here.
+ * Public tender notices (Extras module, no sign-in): only tenders marked Public. Vendors-only, pre-qualified and invited tenders are never listed here.
+ * Budgets, invitations and who created a tender are never shown.
  */
 class PublicTenderController extends Controller
 {
-    private const LIST_COLUMNS = [
-        'id', 'tender_number', 'title', 'category', 'procurement_method', 'status',
-        'published_at', 'submission_deadline', 'reservation_scheme', 'tender_fee',
-    ];
+    public function __construct(private TenderListing $listing) {}
+
+    private function base()
+    {
+        return Tender::publicNotice();
+    }
 
     public function index(Request $request): JsonResponse
     {
-        $d = $request->validate([
-            'search'   => 'nullable|string|max:80',
-            'category' => 'nullable|in:goods,services,works',
-            'method'   => 'nullable|in:' . implode(',', Tender::PROCUREMENT_METHODS),
-            'state'    => 'nullable|in:open,closed',
+        $d = $request->validate(TenderListing::rules());
+        $d['tab'] = $d['tab'] ?? 'active';
+        if ($d['tab'] === 'restricted') {
+            $d['tab'] = 'all';   // restricted tenders are for signed-in vendors only
+        }
+
+        $q = $this->listing->withRowData($this->listing->sort($this->listing->filter($this->base(), $d), $d));
+        $page = $q->paginate((int) ($d['per_page'] ?? 25));
+
+        return response()->json([
+            'rows'   => $page->getCollection()->map(fn (Tender $t) => $this->listing->row($t))->values(),
+            'meta'   => ['total' => $page->total(), 'page' => $page->currentPage(), 'per_page' => $page->perPage(), 'last_page' => $page->lastPage()],
+            'counts' => collect($this->listing->counts(fn () => $this->base()))->except('restricted'),
+            'show_entity' => $this->base()->whereNotNull('procuring_entity')->exists(),
         ]);
+    }
 
-        $rows = Tender::publicNotice()
-            ->when(! empty($d['category']), fn ($q) => $q->where('category', $d['category']))
-            ->when(! empty($d['method']), fn ($q) => $q->where('procurement_method', $d['method']))
-            ->when(($d['state'] ?? null) === 'open', fn ($q) => $q->open())
-            ->when(($d['state'] ?? null) === 'closed', fn ($q) => $q->where(fn ($w) => $w->where('status', '!=', 'published')->orWhere('submission_deadline', '<=', now())))
-            ->when(! empty($d['search']), fn ($q) => $q->where(fn ($w) => $w
-                ->where('title', 'like', "%{$d['search']}%")
-                ->orWhere('tender_number', 'like', "%{$d['search']}%")))
-            ->orderByDesc('published_at')
-            ->limit(200)
-            ->get(self::LIST_COLUMNS)
-            ->map(fn (Tender $t) => $t->toArray() + ['is_open' => $this->isOpen($t)]);
+    /** The filtered list as a spreadsheet. */
+    public function export(Request $request): BinaryFileResponse
+    {
+        $d = $request->validate(TenderListing::rules());
+        $d['tab'] = ($d['tab'] ?? 'active') === 'restricted' ? 'all' : ($d['tab'] ?? 'active');
 
-        return response()->json(['rows' => $rows]);
+        $rows = $this->listing->withRowData($this->listing->sort($this->listing->filter($this->base(), $d), $d))->limit(2000)->get()
+            ->map(fn (Tender $t) => $this->listing->row($t))
+            ->map(fn ($r) => [
+                $r['tender_number'], $r['title'], $r['procuring_entity'], TenderListing::METHOD_LABELS[$r['procurement_method']] ?? $r['procurement_method'], ucfirst((string) $r['category']),
+                $r['published_at']?->format('Y-m-d'), $r['submission_deadline']?->format('Y-m-d H:i'), ucfirst($r['status']),
+                collect($r['reserved_groups'])->map(fn ($g) => TenderListing::GROUP_LABELS[$g] ?? $g)->implode(', '), $r['addendum_count'] ?: 'None',
+            ])->all();
+
+        $export = new class($rows) implements FromArray, WithHeadings, ShouldAutoSize {
+            public function __construct(private array $rows) {}
+
+            public function array(): array
+            {
+                return $this->rows;
+            }
+
+            public function headings(): array
+            {
+                return ['Tender number', 'Description', 'Procuring entity', 'Method', 'Category', 'Published', 'Closes', 'Status', 'Reserved for', 'Addenda'];
+            }
+        };
+
+        return Excel::download($export, 'tenders.xlsx');
     }
 
     public function show(int $id): JsonResponse
     {
-        $t = Tender::publicNotice()->with('documents')->findOrFail($id);
+        $t = $this->listing->withRowData($this->base())->findOrFail($id);
 
-        return response()->json([
-            ...$t->only([
-                'id', 'ocid', 'tender_number', 'title', 'description', 'category', 'procurement_method', 'submission_method',
-                'reservation_scheme', 'has_preference_scheme', 'opening_venue', 'published_at', 'submission_deadline',
-                'tender_fee', 'validity_days', 'financial_year', 'public_link', 'status', 'currency',
-                'requirements', 'evaluation_criteria',
-            ]),
-            'is_open'   => $this->isOpen($t),
-            'documents' => $t->documents->map(fn (TenderDocument $doc) => [
-                'id'            => $doc->id,
-                'name'          => $doc->name,
-                'filename'      => $doc->original_filename,
-                'document_type' => $doc->document_type,
-                'size'          => $doc->file_size,
-                'uploaded_at'   => $doc->created_at,
-            ])->values(),
-        ]);
+        return response()->json($this->listing->detail($t));
     }
 
-    public function download(int $id, int $docId): StreamedResponse
+    /** Open (inline=1) or download one of a public tender's files. */
+    public function download(Request $request, int $id, int $docId): StreamedResponse
     {
-        $t = Tender::publicNotice()->findOrFail($id);
+        $t = $this->base()->findOrFail($id);
         $doc = TenderDocument::where('tender_id', $t->id)->findOrFail($docId);
 
-        abort_unless(Storage::disk('local')->exists($doc->file_path), 404);
-
-        return Storage::disk('local')->download($doc->file_path, $doc->original_filename);
-    }
-
-    private function isOpen(Tender $t): bool
-    {
-        return $t->status === 'published' && $t->submission_deadline && $t->submission_deadline->isFuture();
+        return TenderFile::response($doc, $request->boolean('inline'));
     }
 }

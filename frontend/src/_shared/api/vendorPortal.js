@@ -1,34 +1,18 @@
 import api from './axios';
 
 const vendorPortalAPI = {
-  // Dashboard
   dashboard: async () => (await api.get('/vendor-portal/dashboard')).data,
 
-  // Profile
   profile: async () => (await api.get('/vendor-portal/profile')).data,
   updateProfile: async (data) => (await api.put('/vendor-portal/profile', data)).data,
 
-  // Tenders
+  // Tenders this vendor may see (public ones and the restricted ones they are eligible for)
   tenders: async (params) => (await api.get('/vendor-portal/tenders', { params })).data,
   showTender: async (id) => (await api.get(`/vendor-portal/tenders/${id}`)).data,
+  documentLink: async (id, docId, inline) => (await api.get(`/vendor-portal/tenders/${id}/documents/${docId}/link`, { params: { inline: inline ? 1 : 0 } })).data,
 
-  // Bids
-  myBids: async () => (await api.get('/vendor-portal/bids')).data,
-  createBid: async (tenderId, data) => (await api.post(`/vendor-portal/tenders/${tenderId}/bid`, data)).data,
-  submitBid: async (bidId) => (await api.post(`/vendor-portal/bids/${bidId}/submit`)).data,
-  withdrawBid: async (bidId) => (await api.post(`/vendor-portal/bids/${bidId}/withdraw`)).data,
-  uploadBidDocument: async (bidId, formData) =>
-    (await api.post(`/vendor-portal/bids/${bidId}/documents`, formData, { headers: { 'Content-Type': 'multipart/form-data' } })).data,
-
-  // Pre-qualification
-  pqTemplates: async () => (await api.get('/vendor-portal/pq/templates')).data,
-  showPqTemplate: async (id) => (await api.get(`/vendor-portal/pq/templates/${id}`)).data,
-  myPqs: async () => (await api.get('/vendor-portal/pq/submissions')).data,
-  applyPq: async (templateId, data) => (await api.post(`/vendor-portal/pq/templates/${templateId}/apply`, data)).data,
-  updatePq: async (id, data) => (await api.put(`/vendor-portal/pq/${id}`, data)).data,
-  submitPq: async (id) => (await api.post(`/vendor-portal/pq/${id}/submit`)).data,
-  uploadPqDocument: async (pqId, formData) =>
-    (await api.post(`/vendor-portal/pq/${pqId}/documents`, formData, { headers: { 'Content-Type': 'multipart/form-data' } })).data,
+  // Pre-qualification, as staff recorded it
+  prequalifications: async () => (await api.get('/vendor-portal/prequalifications')).data,
 
   // Orders (read-only)
   orders: async () => (await api.get('/vendor-portal/orders')).data,

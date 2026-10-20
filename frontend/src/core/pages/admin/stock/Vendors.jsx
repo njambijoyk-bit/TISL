@@ -13,6 +13,7 @@ import { canReadFinance, canWriteFinance, hasPermission } from '../../../../_sha
 import { isModuleActive, MODULES } from '../../../../_shared/navigation/modules';
 import { errMsg } from '../../../../_shared/store/helpers/apiState';
 import { btnGhost, btnPrimary, card, colors } from '../../../../_shared/theme/tokens';
+import VendorPqModal from '../../../../extras/components/procurement/VendorPqModal';
 
 /**
  * Vendors: everyone we buy from. Each is a Sundry Creditors ledger, so purchases, payments and what we owe them
@@ -23,14 +24,15 @@ const th = { textAlign: 'left', padding: '8px 10px', fontSize: '0.68rem', textTr
 const td = { padding: '9px 10px', fontSize: '0.8rem', borderTop: `1px solid ${colors.tint(0.06)}`, verticalAlign: 'top' };
 const small = { ...btnGhost, padding: '4px 10px', fontSize: '0.72rem', marginRight: 6 };
 
-function VendorModal({ vendor, onClose, onDone }) {
-  const [f, setF] = useState({ company_name: vendor?.company_name ?? '', contact_name: vendor?.contact_name ?? '', email: vendor?.email ?? '', phone: vendor?.phone ?? '', tax_id: vendor?.tax_id ?? '', address: vendor?.address ?? '', payment_terms_days: vendor?.payment_terms_days ?? 30, notes: vendor?.notes ?? '' });
+function VendorModal({ vendor, onClose, onDone, groups }) {
+  const [f, setF] = useState({ company_name: vendor?.company_name ?? '', contact_name: vendor?.contact_name ?? '', email: vendor?.email ?? '', phone: vendor?.phone ?? '', tax_id: vendor?.tax_id ?? '', address: vendor?.address ?? '', payment_terms_days: vendor?.payment_terms_days ?? 30, notes: vendor?.notes ?? '', special_group: vendor?.special_group ?? '', special_group_certificate: vendor?.special_group_certificate ?? '', special_group_valid_until: vendor?.special_group_valid_until ?? '' });
   const [busy, setBusy] = useState(false);
   const [err, setErr] = useState(null);
   const set = (k) => (e) => setF((x) => ({ ...x, [k]: e.target.value }));
   const go = async (e) => {
     e.preventDefault(); setBusy(true); setErr(null);
-    const body = { ...f, payment_terms_days: Number(f.payment_terms_days) || 0 };
+    const body = { ...f, payment_terms_days: Number(f.payment_terms_days) || 0, special_group: f.special_group || null, special_group_certificate: f.special_group_certificate || null, special_group_valid_until: f.special_group_valid_until || null };
+    if (!groups) { delete body.special_group; delete body.special_group_certificate; delete body.special_group_valid_until; }
     try {
       const res = vendor ? await vendorsAPI.update(vendor.id, body) : await vendorsAPI.create(body);
       toast.success(res.message); onDone();
@@ -51,6 +53,17 @@ function VendorModal({ vendor, onClose, onDone }) {
             <Field label="Address"><TextInput value={f.address} onChange={set('address')} placeholder="Street, town" /></Field>
           </div>
           <Field label="Notes"><TextInput value={f.notes} onChange={set('notes')} /></Field>
+          {groups && (
+            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(170px, 1fr))', gap: 10 }}>
+              <Field label="People category" hint="Blank = none. For youth, women, disability or SME tenders">
+                <SelectInput value={f.special_group} onChange={set('special_group')}>
+                  <option value="">None</option><option value="youth">Youth</option><option value="women">Women</option><option value="pwd">Persons with disabilities</option><option value="sme">SMEs</option>
+                </SelectInput>
+              </Field>
+              {f.special_group && <Field label="Certificate no."><TextInput value={f.special_group_certificate} onChange={set('special_group_certificate')} /></Field>}
+              {f.special_group && <Field label="Certificate valid until"><TextInput type="date" value={f.special_group_valid_until} onChange={set('special_group_valid_until')} /></Field>}
+            </div>
+          )}
           <p style={{ margin: 0, fontSize: '0.78rem', color: colors.textMuted }}>A Sundry Creditors ledger is created for the vendor, so purchases and payments post to it.</p>
           <ModalActions onCancel={onClose} submitLabel={vendor ? 'Save' : 'Add vendor'} busy={busy} />
         </FormStack>
@@ -153,6 +166,8 @@ export default function Vendors() {
   const canWrite = canWriteFinance(user);
   const portalOn = isModuleActive(MODULES.EXTRAS);
   const canPortal = portalOn && hasPermission(user, 'vendors.portal');
+  const canSeePq = portalOn && hasPermission(user, 'prequalification.view');
+  const canManagePq = portalOn && hasPermission(user, 'prequalification.manage');
   const [rows, setRows] = useState([]);
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState('');
@@ -211,6 +226,7 @@ export default function Vendors() {
                     <button type="button" style={small} onClick={() => setModal({ kind: 'detail', id: r.id })}>View</button>
                     {canWrite && <button type="button" style={small} onClick={() => edit(r)}>Edit</button>}
                     {canWrite && <button type="button" style={small} onClick={() => toggle(r)}>{r.status === 'active' ? 'Suspend' : 'Activate'}</button>}
+                    {canSeePq && <button type="button" style={small} onClick={() => setModal({ kind: 'pq', vendor: r })}>Pre-qualification</button>}
                     {canPortal && <button type="button" style={small} onClick={() => setModal({ kind: 'portal', vendor: r })}>{r.has_login ? 'Reset password' : 'Create login'}</button>}
                   </td>
                 </tr>
@@ -219,9 +235,10 @@ export default function Vendors() {
           )}
         </div>
       </div>
-      {modal?.kind === 'add' && <VendorModal onClose={() => setModal(null)} onDone={done} />}
-      {modal?.kind === 'edit' && <VendorModal vendor={modal.vendor} onClose={() => setModal(null)} onDone={done} />}
+      {modal?.kind === 'add' && <VendorModal groups={portalOn} onClose={() => setModal(null)} onDone={done} />}
+      {modal?.kind === 'edit' && <VendorModal groups={portalOn} vendor={modal.vendor} onClose={() => setModal(null)} onDone={done} />}
       {modal?.kind === 'detail' && <DetailModal id={modal.id} onClose={() => setModal(null)} />}
+      {modal?.kind === 'pq' && <VendorPqModal vendor={modal.vendor} canManage={canManagePq} onClose={() => setModal(null)} />}
       {modal?.kind === 'portal' && <PortalLoginModal vendor={modal.vendor} onClose={() => setModal(null)} onDone={done} />}
     </AdminLayout>
   );

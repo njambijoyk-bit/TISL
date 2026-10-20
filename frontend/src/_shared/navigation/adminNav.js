@@ -99,13 +99,12 @@ export const ADMIN_NAV = [
       },
       {
         id: 'purchases', title: 'Purchases', icon: PackagePlus, color: '#0ea5e9', path: '/admin/purchases',
-        keywords: 'buy stock supplier vendor creditor receive batch expiry expired opening stock write off recall quarantine transfer branch count journal job work in progress wip tender tenders bid bids rfq procurement award prequalification pre-qualification pq supplier approval', also: ['/admin/vendors', '/admin/tenders', '/admin/prequalification', '/admin/stock/opening', '/admin/stock/expiry', '/admin/stock/held', '/admin/stock/transfers', '/admin/stock/counts', '/admin/stock/journal', '/admin/stock/reports', '/admin/stock/jobs'],
+        keywords: 'buy stock supplier vendor creditor receive batch expiry expired opening stock write off recall quarantine transfer branch count journal job work in progress wip tender tenders notice rfq procurement prequalification pre-qualification pq supplier approval', also: ['/admin/vendors', '/admin/tenders', '/admin/prequalification', '/admin/stock/opening', '/admin/stock/expiry', '/admin/stock/held', '/admin/stock/transfers', '/admin/stock/counts', '/admin/stock/journal', '/admin/stock/reports', '/admin/stock/jobs'],
         tabs: [
           { title: 'Purchases', path: '/admin/purchases', exact: true, perm: 'books.view' },
           { title: 'Vendors', path: '/admin/vendors', perm: 'vendors.view' },
           { title: 'Tenders', path: '/admin/tenders', perm: 'tenders.view', module: MODULES.EXTRAS },
           { title: 'Pre-qualification', path: '/admin/prequalification/submissions', perm: 'prequalification.view', module: MODULES.EXTRAS },
-          { title: 'PQ templates', path: '/admin/prequalification/templates', perm: 'prequalification.templates', module: MODULES.EXTRAS },
           { title: 'Opening stock', path: '/admin/stock/opening', perm: 'books.view' },
           { title: 'Expiring stock', path: '/admin/stock/expiry', perm: 'stock.view' },
           { title: 'Held stock', path: '/admin/stock/held', perm: 'stock.view', module: MODULES.ECOMMERCE },

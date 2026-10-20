@@ -70,6 +70,9 @@ class NotificationTypes
         'event_refund' => ['Event ticket refund', true, 'customer'],
         'event_refund_requested' => ['A ticket refund was asked for', false, 'staff'],
         'engagement_taken_down' => ['Post taken down', false, 'customer'],
+        // tenders posted on the website (Services/Tenders/TenderNotices): a business message to the vendors a tender is meant for, sent only when staff choose to
+        'tender_notice' => ['A new tender for vendors', true, 'customer'],
+        'tender_addendum' => ['An addendum to a tender', true, 'customer'],
     ];
 
     /**

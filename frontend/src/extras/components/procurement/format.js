@@ -50,6 +50,35 @@ export const SUBMISSION_LABELS = {
 
 export const CATEGORY_LABELS = { goods: 'Goods', services: 'Services', works: 'Works' };
 
-export const DOC_TYPE_LABELS = { specification: 'Specification', terms: 'Terms', boq: 'Bill of quantities', drawing: 'Drawing', other: 'Tender document' };
+export const DOC_TYPE_LABELS = {
+  tender_document: 'Tender document', tender_notice: 'Tender notice', advertisement: 'Advertisement', addendum: 'Addendum',
+  clarification: 'Clarification', award_notice: 'Notice of award', other: 'Other',
+};
+
+export const GROUP_LABELS = { youth: 'Youth', women: 'Women', pwd: 'Persons with disabilities', sme: 'SMEs' };
+
+export const VISIBILITY_LABELS = {
+  public: 'Public: everyone, including customers',
+  all_vendors: 'Vendors: any signed-in vendor',
+  prequalified: 'Pre-qualified vendors only',
+  invited: 'Invited vendors only',
+};
+
+export const NOTICE_TYPE_LABELS = { tender: 'Tender', prequalification: 'Pre-qualification', expression_of_interest: 'Expression of interest' };
+
+export const fmtSize = (b) => (!b ? '' : b < 1024 * 1024 ? `${Math.max(1, Math.round(b / 1024))} KB` : `${(b / 1024 / 1024).toFixed(1)} MB`);
+
+/** "5 days 3 hours", "2 hours 10 minutes", or "Closed". */
+export const timeToClose = (deadline, now = Date.now()) => {
+  if (!deadline) return '—';
+  const ms = new Date(deadline).getTime() - now;
+  if (ms <= 0) return 'Closed';
+  const mins = Math.floor(ms / 60000);
+  const days = Math.floor(mins / 1440);
+  const hours = Math.floor((mins % 1440) / 60);
+  if (days > 0) return `${days} day${days === 1 ? '' : 's'} ${hours} hr${hours === 1 ? '' : 's'}`;
+  if (hours > 0) return `${hours} hr${hours === 1 ? '' : 's'} ${mins % 60} min`;
+  return `${Math.max(mins, 1)} min`;
+};
 
 export const fmtFee = (n, currency = 'KES') => (Number(n) > 0 ? `${currency} ${Number(n).toLocaleString()}` : '0');

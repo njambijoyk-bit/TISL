@@ -1,4 +1,4 @@
-# Tenders and pre-qualification as a notice board (DRAFT v3: planned, nothing new built yet)
+# Tenders and pre-qualification as a notice board (v4: Phase 1 built)
 
 **The decision:** the website is a way to **communicate**, not a tool to create or run tenders. Procurement writes the tender document elsewhere (Word, PDF), uploads it, and the website shows it to the right people. Vendors bid, and winners are chosen and told, **offline**. This replaces the earlier full e-procurement design (kept in `TENDERS_FULL_EPROCUREMENT_SHELVED.md`).
 
@@ -25,6 +25,10 @@ The public list shows **only Public** tenders. Vendors see the other three in th
 **Status:** Draft, Published, **Closed** (automatic once the close time passes), **Awarded**, **Terminated** (cancelled).
 
 **Lots** (the cups, plates and spoons case): a tender can list its lots (A cups, B plates, C spoons) as rows in the notice. Bidding is offline, so lots only matter for describing the tender and **recording who won what**.
+
+**People category** (built): a tender, or each lot, can be reserved for one group: Youth, Women, Persons with disabilities or SMEs. Blank means open to everyone and nothing is shown. A vendor can be put in one group (with a certificate number and expiry) on the vendor page. A reserved tender or lot is emailed only to vendors in that group, and a whole group can be invited to an invited tender in one click. One group per tender or lot, as the standard document allows.
+
+**Uploading and emailing** (built): files are uploaded on the website. When a tender is published, or a file such as an addendum is added, a tick tells eligible vendors through the existing notification system (bell, plus email where their company email is on). "Email eligible vendors" can also be pressed at any time, and shows first how many will get it. Each send is logged.
 
 **Addenda:** an admin adds *Addendum 1, 2...* to a tender: a title, a note, the date, one or more files, and optionally a **new closing date**, which updates the tender and is shown as "Closing date changed from X to Y (Addendum 1)". The list shows an **Addendum** column.
 
@@ -61,8 +65,8 @@ The earlier idea of a **machine pre-check with a reason** still fits here, on a 
 | Public sees tenders that are all-vendors or pre-qualified | **Stop:** only Public tenders are public; vendor portal shows the rest |
 | Attachments: admin upload exists as an API only, public download only | **Admin attachments panel**, new types, upload date shown, inline PDF and sandboxed HTML, a **download for signed-in vendors** on restricted tenders |
 | Addenda: none | **Add** (section 1) |
-| Vendor bids (API), bid evaluation, award that creates a vendor order | **Hide** from the screens (kept in the database, unused). The award record in section 1 replaces it |
-| Vendor-filled pre-qualification templates and submissions (API) | **Hide**; replaced by the admin-recorded pre-qualification on the vendor (section 3). The existing pre-qualification table can hold the record |
+| Vendor bids (API), bid evaluation, award that creates a vendor order | **Removed** (code and tables; script 222). The award record in section 1 replaces it |
+| Vendor-filled pre-qualification templates and submissions (API) | **Removed** (code and tables; script 222); replaced by the admin-recorded pre-qualification on the vendor (section 3), in the new `vendor_prequalifications` table |
 | Vendor portal: dashboard, tenders, bids, PQ, orders, profile | Keep **dashboard, tenders, profile, PQ status**; remove **My bids** and the PQ application pages from the menu |
 
 ## 5. Build order
@@ -77,4 +81,8 @@ The earlier idea of a **machine pre-check with a reason** still fits here, on a 
 2. For a pre-qualified-only tender, is a vendor pre-qualified for the tender's **category** (goods, services, works)? **Yes.**
 3. Do you want an **email to eligible vendors** when you publish a restricted tender or add an addendum? **Yes, as a tick you control each time.**
 4. Should the award record (winner and amount) be **shown publicly**? **Yes, once the tender is Awarded, and you can leave it off for a tender.**
-5. Keep the old bid and pre-qualification-application code in the database, only hidden? **Yes.**
+5. Keep the old bid and pre-qualification-application code? **No: removed, as you decided.**
+
+## 7. Status
+
+**Phase 1 is built:** Public level, attachments with types and sandboxed HTML, the public list (tabs, per-column search, time to close, share, Excel, phone cards), the details page, the vendor portal list and details with signed file links, people categories and lots, emailing through notifications, recorded pre-qualification with reasons, removal of the online bidding code. SQL scripts 221 and 222. Test steps are in `VENDOR_PORTAL_MANUAL_TEST.md`. Phases 2 and 3 are still to do.

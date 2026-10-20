@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
-import { FileText, Gavel, ClipboardCheck, Package, Building, ArrowRight } from 'lucide-react';
+import { Gavel, Lock, ClipboardCheck, Package, Building, ArrowRight } from 'lucide-react';
 import toast from 'react-hot-toast';
 import { vendorPortalAPI } from '../../../_shared/api/index';
 import { card, colors } from '../../../_shared/theme/tokens';
@@ -39,8 +39,8 @@ export default function VendorDashboard() {
         description={<span style={{ display: 'inline-flex', alignItems: 'center', gap: 8 }}><Building size={14} />{v.company_name} <StatusBadge status={v.status} /></span>} />
       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(230px, 1fr))', gap: 12, marginBottom: 24 }}>
         <StatCard icon={Gavel} label="Open tenders" value={data.open_tenders} to="/vendor-portal/tenders" />
-        <StatCard icon={FileText} label="My bids" value={data.my_bids} to="/vendor-portal/bids" />
-        <StatCard icon={ClipboardCheck} label="Active PQs" value={data.active_pqs} to="/vendor-portal/pq" />
+        <StatCard icon={Lock} label="Restricted tenders for you" value={data.restricted_tenders} to="/vendor-portal/tenders" />
+        <StatCard icon={ClipboardCheck} label="Pre-qualified categories" value={(data.prequalifications || []).length} to="/vendor-portal/pq" />
         <StatCard icon={Package} label="Vendor orders" value={data.vendor_orders} to="/vendor-portal/orders" />
       </div>
       {v.status === 'pending_approval' && (

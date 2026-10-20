@@ -6,9 +6,7 @@ use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\SoftDeletes;
 use App\Models\Ecommerce\Product;
-use App\Models\Extras\TenderBid;
 use App\Models\Extras\TenderInvitation;
-use App\Models\Extras\Prequalification;
 
 class Vendor extends Model
 {
@@ -48,12 +46,16 @@ class Vendor extends Model
         'approved_by',
         'last_login_at',
         'last_login_ip',
+        'special_group',
+        'special_group_certificate',
+        'special_group_valid_until',
     ];
 
     protected $casts = [
         'bank_details'           => 'array',
         'tags'                   => 'array',
         'is_verified'            => 'boolean',
+        'special_group_valid_until' => 'date',
         'commission_rate'        => 'decimal:2',
         'total_purchased'        => 'decimal:2',
         'average_po_value'       => 'decimal:2',
@@ -141,28 +143,17 @@ class Vendor extends Model
         return $this->belongsTo(User::class, 'approved_by');
     }
 
-    /**
-     * Tender bids this vendor has submitted.
-     */
-    public function tenderBids()
-    {
-        return $this->hasMany(TenderBid::class);
-    }
-
-    /**
-     * Tender invitations sent to this vendor.
-     */
     public function tenderInvitations()
     {
         return $this->hasMany(TenderInvitation::class);
     }
 
     /**
-     * Pre-qualification submissions by this vendor.
+     * Pre-qualifications staff have recorded for this vendor.
      */
     public function prequalifications()
     {
-        return $this->hasMany(Prequalification::class);
+        return $this->hasMany(\App\Models\Extras\VendorPrequalification::class);
     }
 
     // =========================================================================

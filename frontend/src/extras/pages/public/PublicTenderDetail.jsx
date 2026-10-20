@@ -5,6 +5,7 @@ import { publicTendersAPI } from '../../../_shared/api/index';
 import { useAuthStore } from '../../../_shared/store/index';
 import { card, colors, btnGhost, btnPrimary } from '../../../_shared/theme/tokens';
 import { Page, Loading, Empty, StatusBadge, NoticeDetails } from '../../components/procurement/ui';
+import { goToFile } from '../../components/procurement/openDocument';
 
 const sectionLabel = { fontSize: '0.7rem', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.07em', color: colors.primaryDeep, marginBottom: 6 };
 
@@ -34,39 +35,36 @@ export default function PublicTenderDetail() {
           <div style={{ fontSize: '0.7rem', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.08em', color: colors.textMuted }}>Tender notice details</div>
           <h1 style={{ fontSize: '1.3rem', fontWeight: 800, color: colors.primary, margin: '4px 0 0', lineHeight: 1.3, overflowWrap: 'anywhere' }}>{tender.title}</h1>
         </div>
-        <StatusBadge status={tender.is_open ? 'active' : 'closed'} label={tender.is_open ? 'Open for bids' : 'Closed'} />
+        <StatusBadge status={tender.status} />
       </div>
 
-      <NoticeDetails tender={tender} documentUrl={(d) => publicTendersAPI.documentUrl(tender.id, d.id)} />
+      <NoticeDetails tender={tender} onOpen={(d, inline) => goToFile(publicTendersAPI.documentUrl(tender.id, d.id, inline), inline)} />
 
-      {(tender.description || (tender.requirements || []).length > 0 || (tender.evaluation_criteria || []).length > 0) && (
-        <div style={{ ...card, padding: 20, marginTop: 14, display: 'grid', gap: 16 }}>
-          {tender.description && <div><div style={sectionLabel}>Description</div><p style={{ margin: 0, fontSize: '0.85rem', lineHeight: 1.6, whiteSpace: 'pre-wrap', color: colors.textBody }}>{tender.description}</p></div>}
-          {(tender.requirements || []).length > 0 && <div><div style={sectionLabel}>Requirements</div><ul style={{ margin: 0, paddingLeft: 18, fontSize: '0.85rem', color: colors.textBody }}>{tender.requirements.map((r, i) => <li key={i}>{r.label || r}</li>)}</ul></div>}
-          {(tender.evaluation_criteria || []).length > 0 && <div><div style={sectionLabel}>Evaluation criteria</div><ul style={{ margin: 0, paddingLeft: 18, fontSize: '0.85rem', color: colors.textBody }}>{tender.evaluation_criteria.map((c, i) => <li key={i}>{c.criterion || c}</li>)}</ul></div>}
+      {tender.description && (
+        <div style={{ ...card, padding: 20, marginTop: 14 }}>
+          <div style={sectionLabel}>Description</div>
+          <p style={{ margin: 0, fontSize: '0.85rem', lineHeight: 1.6, whiteSpace: 'pre-wrap', color: colors.textBody }}>{tender.description}</p>
         </div>
       )}
 
-      {tender.is_open && <BidCallout />}
+      {tender.status === 'open' && <HowToBid />}
     </Page>
   );
 }
 
-function BidCallout() {
+function HowToBid() {
   const isAuthenticated = useAuthStore((s) => s.isAuthenticated);
   return (
     <div style={{ ...card, padding: 20, marginTop: 14, display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 14, flexWrap: 'wrap' }}>
       <div style={{ fontSize: '0.85rem', color: colors.textBody, flex: '1 1 260px' }}>
-        {isAuthenticated ? 'Bids are placed from your vendor portal.' : 'To bid on this tender you need a vendor account.'}
+        Read the tender document above and submit as it directs. Registered vendors also see tenders meant only for vendors.
       </div>
-      <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
-        {isAuthenticated
-          ? <Link to="/vendor-portal/tenders" style={{ ...btnPrimary, textDecoration: 'none' }}>Open vendor portal</Link>
-          : <>
-              <Link to="/login" style={{ ...btnGhost, textDecoration: 'none' }}>Sign in</Link>
-              <Link to="/vendor-register" style={{ ...btnPrimary, textDecoration: 'none' }}>Register as a vendor</Link>
-            </>}
-      </div>
+      {!isAuthenticated && (
+        <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
+          <Link to="/login" style={{ ...btnGhost, textDecoration: 'none' }}>Sign in</Link>
+          <Link to="/vendor-register" style={{ ...btnPrimary, textDecoration: 'none' }}>Register as a vendor</Link>
+        </div>
+      )}
     </div>
   );
 }

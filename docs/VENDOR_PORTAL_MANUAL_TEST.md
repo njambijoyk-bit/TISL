@@ -1,21 +1,8 @@
-# Vendor portal, tendering and pre-qualification: manual test
+# Vendor portal, tenders and pre-qualification: manual test
 
-Extras module. Vendors register, log in, apply for pre-qualification (PQ), bid on tenders and see the vendor orders they win. Admin posts tenders, reviews PQ and awards bids.
+Extras module. **The website is a notice board.** Procurement writes the tender elsewhere and uploads it (PDF, HTML...). The website shows it to the right people. Bidding, evaluation, awards and pre-qualification review happen **offline**. Vendors still register, log in, see the tenders meant for them and their orders.
 
-**What has a screen and what does not (today)**
-
-| Area | Screen | API only |
-|---|---|---|
-| Vendor register / dashboard / profile | yes | |
-| Vendor: browse tenders, my bids, my PQs, my orders | yes (read) | |
-| Vendor: place / submit / withdraw a bid, upload bid files | | yes |
-| Vendor: apply for / submit PQ, upload PQ files | | yes |
-| Admin: tender list, detail (bids, documents tabs), create / edit, publish / close / cancel | yes | |
-| Admin: invite vendors, evaluate bid, award bid | | yes |
-| Admin: PQ templates list, PQ submissions list | yes (read) | |
-| Admin: create PQ template, review PQ, verify PQ document | | yes |
-
-Steps marked **[API]** are done with curl or Postman (setup in section 2).
+Steps marked **[API]** are done with curl or Postman (setup in section 2). Everything else has a screen.
 
 ---
 
@@ -23,30 +10,28 @@ Steps marked **[API]** are done with curl or Postman (setup in section 2).
 
 ```
 # from backend/
-# run in order, on your MySQL database
+# run in order, on your MySQL database (each part on its own in Workbench)
 database/sql/215_vendor_orders_rename.sql
 database/sql/216_vendor_portal.sql
 database/sql/217_tender_notice_fields.sql   # the notice columns (OCID, method, fee, ...)
 database/sql/218_tenders_nav_link.sql        # the public "Tenders" menu link
 database/sql/219_vendors_status_column.sql   # lets vendors.status hold 'suspended'
 database/sql/220_policy_acceptance_vendor.sql # vendor_id / vendor_number on policy acceptances
+database/sql/221_tender_notice_board.sql     # notice type, lots, people categories, recorded pre-qualification, mailings
+database/sql/222_remove_online_bidding.sql   # DESTRUCTIVE: drops the old bid and PQ-application tables. Read Part A first.
 
 php artisan access:seed
 ```
 
+**222 deletes data** (every bid and every vendor-filled PQ application). Its Part A counts them first; skip it if you want to keep them for now. Nothing in the app reads those tables any more.
+
 Then:
 
-1. Log in as an admin with the **super_admin** role (it holds every permission, including the 7 new ones).
+1. Log in as an admin with the **super_admin** role.
 2. Module Center: make sure **Extras** is licensed and switched **on**.
 3. Hard refresh the browser so the module list reloads.
 
-Check the permissions loaded:
-
-```sql
-SELECT `key`, is_write FROM permissions
-WHERE module_key = 'extras' AND (`key` LIKE 'tender%' OR `key` LIKE 'prequal%' OR `key` = 'vendors.portal');
--- expect 7 rows
-```
+Permissions (extras): `tenders.view`, `tenders.manage`, `prequalification.view`, `prequalification.manage`, `vendors.portal`. The old `tenders.evaluate` and `prequalification.templates` are gone from the catalogue.
 
 Default grants: `manager` gets `tenders.view`, `prequalification.view`. `senior_accountant` gets `tenders.view`, `tenders.manage`, `prequalification.view`. Everything else is a manual grant.
 
@@ -57,10 +42,9 @@ The app uses cookie sessions, so for curl/Postman make a bearer token in tinker:
 ```
 php artisan tinker
 >>> \App\Models\User::where('email','admin@tisl.test')->first()->createToken('t')->plainTextToken
->>> \App\Models\User::where('email','chairs@acme.test')->first()->createToken('t')->plainTextToken
 ```
 
-Use `Authorization: Bearer <token>`, `Accept: application/json`. Base URL: your backend `/api`. Keep one admin token and one token per vendor.
+Use `Authorization: Bearer <token>`, `Accept: application/json`. Base URL: your backend `/api`.
 
 ---
 
@@ -68,61 +52,27 @@ Use `Authorization: Bearer <token>`, `Accept: application/json`. Base URL: your 
 
 ### Vendors (register at `/vendor-register`)
 
-Password for all: `Vendor#2026pass` (must pass the strong-password rule). Phones and emails must be unique.
+Password for all: `Vendor#2026pass`. Phones and emails must be unique. Activate them in Admin > Vendors.
 
-| | Company | Contact | Email | Phone | Tax ID | City |
+| | Company | Contact | Email | Phone | Tax ID | People category |
 |---|---|---|---|---|---|---|
-| A | Acme Office Supplies Ltd | Wanjiru Kamau | chairs@acme.test | 0711000001 | P051000001A | Nairobi |
-| B | Bravo Furniture Co | Otieno Odhiambo | sales@bravo.test | 0711000002 | P051000002B | Mombasa |
-| C | Citrus Cleaning Services | Amina Hassan | info@citrus.test | 0711000003 | P051000003C | Kisumu |
+| A | Acme Office Supplies Ltd | Wanjiru Kamau | chairs@acme.test | 0711000001 | P051000001A | none |
+| B | Bravo Furniture Co | Otieno Odhiambo | sales@bravo.test | 0711000002 | P051000002B | Youth |
+| C | Citrus Cleaning Services | Amina Hassan | info@citrus.test | 0711000003 | P051000003C | Women |
 
-### PQ template [API] `POST /api/admin/prequalification/templates`
-
-```json
-{
-  "name": "Goods Supplier Pre-qualification",
-  "category": "goods",
-  "description": "Basic compliance check for goods suppliers.",
-  "validity_months": 12,
-  "sections": [
-    { "title": "Company", "questions": [
-      { "key": "years_trading", "label": "Years in business", "type": "number" },
-      { "key": "annual_turnover", "label": "Annual turnover (KES)", "type": "number" } ] },
-    { "title": "Experience", "questions": [
-      { "key": "similar_work", "label": "Describe 2 similar supplies in the last 3 years", "type": "text" } ] }
-  ],
-  "required_documents": [
-    { "type": "tax_compliance", "label": "KRA tax compliance certificate" },
-    { "type": "registration", "label": "Certificate of incorporation" }
-  ]
-}
-```
+Set the people category in Admin > Vendors > Edit (it only shows when Extras is on).
 
 ### Tenders (admin UI: `/admin/tenders/new`)
 
-Set the deadline to a future date (a few days out). It cannot be in the past when creating.
+| # | Title | Category | Who can see it | Reserved for | Lots |
+|---|---|---|---|---|---|
+| T1 | Supply of 200 ergonomic office chairs | Goods | **Public** | none | none |
+| T2 | Supply of 50 standing desks | Goods | **Pre-qualified** | none | none |
+| T3 | Monthly office cleaning, 12 months | Services | **Invited** | none | none |
+| T4 | Catering supplies | Goods | **Vendors** | none | A Cups (Youth), B Plates (Women), C Spoons (open) |
+| T5 | Youth uniforms | Goods | **Public** | **Youth** (whole tender) | none |
 
-| # | Title | Category | Budget (KES) | Visibility | Requirements | Criteria |
-|---|---|---|---|---|---|---|
-| T1 | Supply of 200 ergonomic office chairs | Goods | 800,000 to 1,200,000 | All vendors | 12-month warranty; Delivery to Nairobi | Price; Delivery time; Warranty |
-| T2 | Supply of 50 standing desks | Goods | 600,000 to 900,000 | Pre-qualified only | ISO-certified supplier | Price; Quality |
-| T3 | Monthly office cleaning, 12 months | Services | 300,000 to 480,000 | Invited only | Own equipment | Price; Experience |
-
-### Bids [API] `POST /api/vendor-portal/tenders/{id}/bid`
-
-Vendor A on T1:
-
-```json
-{
-  "cover_letter": "Acme is pleased to submit our offer.",
-  "technical_proposal": "Ergonomic mesh chairs, 12-month warranty.",
-  "delivery_timeline_days": 21,
-  "items": [ { "description": "Ergonomic office chair", "quantity": 200, "unit_price": 4800 } ]
-}
-```
-Total 960,000.
-
-Vendor B on T1: same, `unit_price` 5200 and `delivery_timeline_days` 14. Total 1,040,000.
+Give each a close date a few days ahead. Upload a PDF as the **Tender document** on T1, and an HTML file as an **Advertisement**.
 
 ---
 
@@ -160,68 +110,58 @@ SELECT id, email, role, status FROM users WHERE role='vendor';
 1. Log in as vendor A, open `/vendor-portal`. **Expect:** dashboard with vendor number, counts at 0.
 2. `/vendor-portal/profile`: change phone, add website `https://acme.test`, save. **Expect:** saved toast, values persist after refresh.
 
-### 4.3 PQ
-1. [API] Admin creates the PQ template above. **Expect:** it shows in `/admin/prequalification/templates` and, for vendors, in `/vendor-portal/pq` under Available Templates.
-2. [API] Vendor A: `POST /vendor-portal/pq/templates/{id}/apply` with `{"responses":{"years_trading":8,"annual_turnover":25000000,"similar_work":"Supplied 150 chairs to X in 2024."}}` then upload both documents via `POST /vendor-portal/pq/{pqId}/documents` (multipart: `file`, `document_type=tax_compliance` / `registration`), then `POST /vendor-portal/pq/{pqId}/submit`.
-3. **Expect:** `/vendor-portal/pq` shows the application as submitted; admin `/admin/prequalification/submissions` lists it.
-4. [API] Admin verifies each document: `POST /admin/prequalification/submissions/{pqId}/documents/{docId}/verify`.
-5. [API] Admin reviews: `POST /admin/prequalification/submissions/{id}/review`
-   ```json
-   { "status": "qualified", "score": 85, "review_notes": "All documents valid.", "categories_qualified": ["goods"] }
-   ```
-   **Expect:** status `qualified`; vendor A dashboard "active PQs" = 1.
-6. Rejection rule: review another submission with `"status":"rejected"` and no `rejection_reason`. **Expect:** 422.
+### 4.3 Tenders (admin)
+1. Create T1 to T5. **Expect:** each opens its page as a draft with a tender number. T4 shows its three lots, with the Youth and Women badges.
+2. Open T1 > **Files**. Upload a PDF (type Tender document) and an HTML page (type Advertisement). **Expect:** each listed with its type, name, upload date and time. **Open** shows the PDF in a new tab; the HTML page shows with no scripts running (put `<script>alert(1)</script>` in it to check: nothing happens). **Download** saves it.
+3. Publish T1 with "Tell eligible vendors now" ticked. **Expect:** status Published; a message saying how many vendors were told. Publishing a tender with no close date is refused.
+4. Publish T2 to T5 (untick the box for T2).
+5. T3 (Invited): open **Vendors and email**, search "Citrus", tick it, **Invite**. **Expect:** Citrus appears as an invited chip. Invite the whole **Women** group on T3. **Expect:** every active vendor in that group is added.
+6. On T1 add a third file of type **Addendum** with "Tell eligible vendors" ticked and a note. **Expect:** the tenders list will now show an Addendum count of 1.
 
-### 4.4 Tenders (admin)
-1. Create T1, T2, T3 at `/admin/tenders/new`. **Expect:** each opens its detail page as `draft` with a tender number.
-2. Publish T1 and T2. **Expect:** status `published`. Publishing a tender with no deadline is refused.
-3. [API] T3 is invited only: `POST /admin/tenders/{T3}/invite` `{"vendor_ids":[<C id>]}`, then publish T3.
+### 4.4 Public tender notices (no login)
+1. Private window (not signed in), `/tenders`. **Expect:** the storefront menu shows **Tenders**. Only **T1 and T5** are listed (the Public ones). T2, T3 and T4 are not listed anywhere, not even by searching.
+2. Tabs: **Active** (2), **AGPO** (T5 only), Closed, Terminated, All. Counts show on the tabs.
+3. Table columns: Description, Method, Category, Close date, Time to close, Publish date, Addendum, Actions. The description wraps and is not cut off. Type in a column search box. **Expect:** the list narrows. Procuring entity shows only if some tender has one.
+4. **Actions** menu on a row: **Share** (copy link, WhatsApp, email) and **More details**. Copy the link and open it in the private window. **Expect:** the details page.
+5. Details page "Tender notice details": OCID, tender number, title, procuring entity, method, category, submission methods, reservation scheme, opening venue, published date, close date and time, fee, validity, financial year, preference scheme, public link, then the **Attachments** with type and upload date/time and Open/Download.
+6. **Download Excel**. **Expect:** a spreadsheet of the filtered list.
+7. Narrow the window to phone width. **Expect:** cards, not a table.
+8. Close T1 (admin). **Expect:** it moves to the Closed tab; Time to close shows a dash.
+9. Switch Extras off. **Expect:** `/tenders` and `/api/public/tenders` stop working and the menu link disappears.
 
-### 4.4b Public tender notices (no login)
-1. Create a tender with the notice fields filled (admin form): number `KEFRI/1074/0003/2026-27`, OCID `ocds-5whusi-308866-KEFRI/1074/0003/2026-27`, category Works, method Open Tender, submission Electronic, reservation scheme `AGPO - Youth`, preference scheme ticked, opening venue `KEFRI HQ - SCM OFFICE`, fee 0, validity 154, financial year `2026/2027`, public link `https://tenders.go.ke/tenders/308866`, deadline a few days ahead. Upload a file as an attachment [API], then publish.
-2. Open a private window (not signed in) and go to `/tenders`. **Expect:** the notice is listed as Open; the storefront menu shows **Tenders**.
-3. Open it. **Expect:** OCID, tender number, title, procurement method/category, submission methods, reservation scheme, opening venue, published date, close date and time, tender fee, validity, financial year, preference scheme YES, public link, and the attachment (click it to download).
-4. **Expect not to see:** an `invited` tender, a `draft` or `cancelled` tender, or any budget figures.
-5. Close the tender. **Expect:** it moves to the Closed filter on `/tenders`.
-6. Switch Extras off. **Expect:** `/tenders` and `/api/public/tenders` stop working and the menu link disappears.
+### 4.5 Who sees what (vendor side, `/vendor-portal/tenders`)
 
-### 4.5 Visibility (vendor side, `/vendor-portal/tenders`)
+Record pre-qualification first (4.6). Then:
 
-| Vendor | Should see |
-|---|---|
-| A (qualified in goods) | T1, T2 |
-| B (not PQ'd) | T1 only |
-| C (invited to T3) | T1, T3 |
+| Who | Active tab | Restricted tab |
+|---|---|---|
+| Customer (signed in) | the Public ones only; `/api/vendor-portal/*` is 404 | not available |
+| Vendor A (qualified in goods) | T1, T5 | T2, T4 |
+| Vendor B (Youth, not qualified) | T1, T5 | T4 |
+| Vendor C (Women, invited to T3) | T1, T5 | T3, T4 |
 
-### 4.6 Bidding [API]
-1. Vendor A and vendor B create the bids above on T1. **Expect:** status `draft`.
-2. Both submit: `POST /vendor-portal/bids/{id}/submit`. **Expect:** `submitted`; visible at `/vendor-portal/bids`.
-3. Vendor A bids on T1 again. **Expect:** 422 "already submitted a bid".
-4. Vendor B on T2 (not PQ'd). **Expect:** 404 (not visible to them).
-5. Withdraw test: vendor C bids on T3, submits, then `POST /vendor-portal/bids/{id}/withdraw`. **Expect:** `withdrawn`.
+Also check: opening a vendor-only file link from the portal works for those vendors, and the same link copied to a private window after ten minutes stops working.
 
-### 4.7 Evaluate and award
-1. Admin `/admin/tenders/{T1}` → Bids tab. **Expect:** both bids, with totals 960,000 and 1,040,000.
-2. Close T1 (button). **Expect:** `closed`; vendors can no longer bid.
-3. [API] Evaluate: `PUT /admin/tenders/{T1}/bids/{bidA}/evaluate` `{"status":"shortlisted","evaluation_score":88,"evaluation_notes":"Best price"}`; bid B `{"status":"under_review","evaluation_score":74}`.
-4. [API] Award: `POST /admin/tenders/{T1}/bids/{bidA}/award`.
-   **Expect:**
-   - T1 `awarded`, awarded vendor = A.
-   - bid A `awarded`, bid B `rejected`.
-   - a **vendor order** created in `draft`, total 960,000, linked to the bid, with one line (200 x 4,800).
-5. Vendor A `/vendor-portal/orders` shows the new order (read-only).
+### 4.6 Pre-qualification (offline, recorded by staff)
+1. Admin > Purchases > Vendors, vendor A > **Pre-qualification**. Record **Goods, Qualified, valid until** a year ahead, with a written reason. Try saving with no reason. **Expect:** refused.
+2. Try **Refused** for services with a reason. **Expect:** it is listed as refused.
+3. **Expect:** the vendor's `/vendor-portal/pq` lists both with the reasons and dates; the dashboard shows "Pre-qualified categories: 1".
+4. **Extend** the goods one with a reason; **Revoke** it with a reason. **Expect:** the earlier reason is kept in the notes; after revoking, vendor A no longer sees T2.
+5. `/admin/prequalification/submissions` lists everyone's records; the filters for category and "expiring in 30 days" work.
 
-```sql
-SELECT id, po_number, vendor_id, status, total, tender_bid_id FROM vendor_orders ORDER BY id DESC LIMIT 1;
-```
+### 4.7 Emailing vendors
+1. T2 > **Vendors and email**. **Expect:** "This reaches N vendors" matches who can see it (pre-qualified for the category). Send with a note. **Expect:** each gets a bell notification, and an email where their company email is on. A "Sent so far" line records it.
+2. On a draft tender the send button is disabled with "Publish first".
+3. T5 (reserved for Youth): **Expect:** only Youth vendors are counted.
+4. T4 with lots A (Youth) and B (Women) and C (open): **Expect:** everyone who can see it is counted, because lot C is open.
 
 ### 4.8 Module gating (the key licensing test)
 1. Switch **Extras off** in Module Center and refresh.
-2. **Expect:** `/vendor-register`, `/vendor-portal/*`, `/admin/tenders*`, `/admin/prequalification/*` redirect away; the API routes return 404.
+2. **Expect:** `/vendor-register`, `/vendor-portal/*`, `/admin/tenders*`, `/admin/prequalification/*`, `/tenders*` redirect away; the API routes return 404.
 3. Switch it back on. Everything returns, data intact.
 
 ### 4.9 Permissions
-1. Create an admin with the **manager** role. **Expect:** can open `/admin/tenders` and `/admin/prequalification/submissions`; cannot create a tender or open PQ templates.
+1. Create an admin with the **manager** role. **Expect:** can open `/admin/tenders` and `/admin/prequalification/submissions`; cannot create a tender, upload a file, or record a pre-qualification.
 2. A plain **customer** account hitting `/api/vendor-portal/dashboard`. **Expect:** 404 (no vendor record).
 
 ### 4.9b Suspend and activate a vendor
@@ -235,18 +175,17 @@ Admin `/admin/vendors` still creates a vendor and its Sundry Creditor ledger exa
 
 ---
 
-## 5. Known gaps (found while writing this)
+## 5. Known gaps
 
-- **Approval is not enforced in the portal.** A vendor in `pending_approval` can already log in, browse and bid. Approval is recorded but nothing blocks the unapproved.
-- **No screens** for the API-only steps in the table at the top.
-- `access:seed` and the SQL scripts were never run against a real database before this test; report any SQL error with the line number.
+- **Approval is not enforced in the portal.** A vendor in `pending_approval` can already log in and browse. Approval is recorded but nothing blocks the unapproved.
+- Not built yet (Phase 2 and 3 of `TENDERS_AND_PREQUALIFICATION_PLAN.md`): addendum records with a new closing date, awarded lots and winners, the Awarded state from the screens, expiry reminders, machine flags.
+- Pre-qualified visibility reads the new `vendor_prequalifications` table, so old PQ data is not carried over.
 
 ## 6. Reset test data
 
 ```sql
-DELETE FROM vendor_orders WHERE tender_bid_id IS NOT NULL;
-DELETE FROM tender_bid_documents; DELETE FROM tender_bid_items; DELETE FROM tender_bids;
+DELETE FROM tender_mailings; DELETE FROM tender_lots;
 DELETE FROM tender_invitations; DELETE FROM tender_documents; DELETE FROM tenders;
-DELETE FROM prequalification_documents; DELETE FROM prequalifications; DELETE FROM prequalification_templates;
+DELETE FROM vendor_prequalifications;
 ```
-(Delete `vendor_order_items` for those orders first if foreign keys complain.)
+(Uploaded files stay in `storage/app/private/tenders/` until you delete them.)

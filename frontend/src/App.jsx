@@ -318,15 +318,14 @@ const PublicTenders      = lazy(() => import('./extras/pages/public/PublicTender
 const PublicTenderDetail = lazy(() => import('./extras/pages/public/PublicTenderDetail'));
 const VendorDashboard    = lazy(() => import('./extras/pages/vendor-portal/VendorDashboard'));
 const VendorTenders      = lazy(() => import('./extras/pages/vendor-portal/VendorTenders'));
-const VendorBids         = lazy(() => import('./extras/pages/vendor-portal/VendorBids'));
-const VendorPq           = lazy(() => import('./extras/pages/vendor-portal/VendorPq'));
+const VendorTenderDetail = lazy(() => import('./extras/pages/vendor-portal/VendorTenderDetail'));
+const VendorPq           = lazy(() => import('./extras/pages/vendor-portal/VendorPrequalification'));
 const VendorOrders       = lazy(() => import('./extras/pages/vendor-portal/VendorOrders'));
 const VendorProfile      = lazy(() => import('./extras/pages/vendor-portal/VendorProfile'));
 const TenderList         = lazy(() => import('./extras/pages/admin/tenders/TenderList'));
 const TenderDetail       = lazy(() => import('./extras/pages/admin/tenders/TenderDetail'));
 const TenderForm         = lazy(() => import('./extras/pages/admin/tenders/TenderForm'));
-const PqTemplates        = lazy(() => import('./extras/pages/admin/prequalification/PqTemplates'));
-const PqSubmissions      = lazy(() => import('./extras/pages/admin/prequalification/PqSubmissions'));
+const VendorPqAdmin      = lazy(() => import('./extras/pages/admin/prequalification/VendorPqList'));
 
 const AdminBugReportsPage = lazy(() => import('./core/pages/admin/AdminBugReportsPage'));
 const AdminDevNotesPage   = lazy(() => import('./core/pages/admin/AdminDevNotesPage'));
@@ -646,8 +645,7 @@ function App() {
             {/* ── Vendor Portal (Extras) ───────────────────────────────────── */}
             <Route path="/vendor-portal" element={<ProtectedRoute><ModuleRoute module="extras"><VendorDashboard /></ModuleRoute></ProtectedRoute>} />
             <Route path="/vendor-portal/tenders" element={<ProtectedRoute><ModuleRoute module="extras"><VendorTenders /></ModuleRoute></ProtectedRoute>} />
-            <Route path="/vendor-portal/tenders/:id" element={<ProtectedRoute><ModuleRoute module="extras"><VendorTenders /></ModuleRoute></ProtectedRoute>} />
-            <Route path="/vendor-portal/bids" element={<ProtectedRoute><ModuleRoute module="extras"><VendorBids /></ModuleRoute></ProtectedRoute>} />
+            <Route path="/vendor-portal/tenders/:id" element={<ProtectedRoute><ModuleRoute module="extras"><VendorTenderDetail /></ModuleRoute></ProtectedRoute>} />
             <Route path="/vendor-portal/pq" element={<ProtectedRoute><ModuleRoute module="extras"><VendorPq /></ModuleRoute></ProtectedRoute>} />
             <Route path="/vendor-portal/orders" element={<ProtectedRoute><ModuleRoute module="extras"><VendorOrders /></ModuleRoute></ProtectedRoute>} />
             <Route path="/vendor-portal/profile" element={<ProtectedRoute><ModuleRoute module="extras"><VendorProfile /></ModuleRoute></ProtectedRoute>} />
@@ -924,8 +922,7 @@ function App() {
               <Route path="/admin/tenders/new" element={<ProtectedRoute requireAdmin permission="tenders.manage"><ModuleRoute module="extras" redirectTo="/admin"><TenderForm /></ModuleRoute></ProtectedRoute>} />
               <Route path="/admin/tenders/:id" element={<ProtectedRoute requireAdmin permission="tenders.view"><ModuleRoute module="extras" redirectTo="/admin"><TenderDetail /></ModuleRoute></ProtectedRoute>} />
               <Route path="/admin/tenders/:id/edit" element={<ProtectedRoute requireAdmin permission="tenders.manage"><ModuleRoute module="extras" redirectTo="/admin"><TenderForm /></ModuleRoute></ProtectedRoute>} />
-              <Route path="/admin/prequalification/templates" element={<ProtectedRoute requireAdmin permission="prequalification.templates"><ModuleRoute module="extras" redirectTo="/admin"><PqTemplates /></ModuleRoute></ProtectedRoute>} />
-              <Route path="/admin/prequalification/submissions" element={<ProtectedRoute requireAdmin permission="prequalification.view"><ModuleRoute module="extras" redirectTo="/admin"><PqSubmissions /></ModuleRoute></ProtectedRoute>} />
+              <Route path="/admin/prequalification/submissions" element={<ProtectedRoute requireAdmin permission="prequalification.view"><ModuleRoute module="extras" redirectTo="/admin"><VendorPqAdmin /></ModuleRoute></ProtectedRoute>} />
 
               <Route path="/admin/stock/transfers" element={<ProtectedRoute requireAdmin permission="stock.view"><StockTransfers /></ProtectedRoute>} />
               <Route path="/admin/stock/counts" element={<ProtectedRoute requireAdmin permission="stock.view"><StockCounts /></ProtectedRoute>} />

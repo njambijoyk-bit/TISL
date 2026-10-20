@@ -58,13 +58,15 @@ class VendorController extends Controller
         $d = $request->validate([
             'company_name' => 'required|string|max:255', 'contact_name' => 'nullable|string|max:255', 'email' => 'nullable|email|max:255', 'phone' => 'nullable|string|max:50',
             'tax_id' => 'nullable|string|max:50', 'address' => 'nullable|string', 'payment_terms_days' => 'nullable|integer|min:0|max:365', 'notes' => 'nullable|string',
+            'special_group' => 'nullable|in:youth,women,pwd,sme', 'special_group_certificate' => 'nullable|string|max:120', 'special_group_valid_until' => 'nullable|date',
         ]);
 
         return DB::transaction(function () use ($d, $request) {
             $v = Vendor::create([
                 'vendor_number' => Vendor::generateVendorNumber(), 'company_name' => $d['company_name'], 'contact_name' => $d['contact_name'] ?? null,
                 'email' => $d['email'] ?? null, 'phone' => $d['phone'] ?? '', 'tax_id' => $d['tax_id'] ?? null, 'address' => $d['address'] ?? null,
-                'payment_terms_days' => $d['payment_terms_days'] ?? 30, 'notes' => $d['notes'] ?? null, 'status' => 'active', 'created_by' => $request->user()?->id,
+                'payment_terms_days' => $d['payment_terms_days'] ?? 30, 'notes' => $d['notes'] ?? null, 'status' => 'active',
+                'special_group' => $d['special_group'] ?? null, 'special_group_certificate' => $d['special_group_certificate'] ?? null, 'special_group_valid_until' => $d['special_group_valid_until'] ?? null, 'created_by' => $request->user()?->id,
             ]);
             $ledger = $this->ledgers->vendorLedger($v);
             if (! empty($d['address'])) {
@@ -82,6 +84,7 @@ class VendorController extends Controller
             'company_name' => 'sometimes|required|string|max:255', 'contact_name' => 'nullable|string|max:255', 'email' => 'nullable|email|max:255', 'phone' => 'nullable|string|max:50',
             'tax_id' => 'nullable|string|max:50', 'address' => 'nullable|string', 'payment_terms_days' => 'nullable|integer|min:0|max:365', 'notes' => 'nullable|string',
             'status' => 'sometimes|in:active,suspended',
+            'special_group' => 'nullable|in:youth,women,pwd,sme', 'special_group_certificate' => 'nullable|string|max:120', 'special_group_valid_until' => 'nullable|date',
         ]);
 
         return DB::transaction(function () use ($v, $d) {
@@ -196,6 +199,7 @@ class VendorController extends Controller
         return [
             'id' => $v->id, 'vendor_number' => $v->vendor_number, 'company_name' => $v->company_name, 'contact_name' => $v->contact_name, 'email' => $v->email, 'phone' => $v->phone,
             'status' => $v->status, 'ledger_id' => $ledgerId ? (int) $ledgerId : null, 'owed' => $owed,
+            'special_group' => $v->special_group, 'special_group_certificate' => $v->special_group_certificate, 'special_group_valid_until' => $v->special_group_valid_until?->toDateString(),
         ];
     }
 }
