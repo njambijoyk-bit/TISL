@@ -627,7 +627,7 @@ export default function EmployeeList() {
               Page {pagination.current_page} of {pagination.last_page} — {pagination.total?.toLocaleString()} employees
             </p>
             <div style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
-              <PaginationBtn onClick={() => fetchEmployees(pagination.current_page - 1)} disabled={pagination.current_page <= 1}><ChevronLeft size={14} /></PaginationBtn>
+              <PaginationBtn label="Previous page" onClick={() => fetchEmployees(pagination.current_page - 1)} disabled={pagination.current_page <= 1}><ChevronLeft size={14} /></PaginationBtn>
               {Array.from({ length: Math.min(5, pagination.last_page) }, (_, i) => {
                 const p = pagination.current_page <= 3 ? i + 1 : pagination.current_page >= pagination.last_page - 2 ? pagination.last_page - 4 + i : pagination.current_page - 2 + i;
                 if (p < 1 || p > pagination.last_page) return null;
@@ -646,7 +646,7 @@ export default function EmployeeList() {
                   >{p}</button>
                 );
               })}
-              <PaginationBtn onClick={() => fetchEmployees(pagination.current_page + 1)} disabled={pagination.current_page >= pagination.last_page}><ChevronRight size={14} /></PaginationBtn>
+              <PaginationBtn label="Next page" onClick={() => fetchEmployees(pagination.current_page + 1)} disabled={pagination.current_page >= pagination.last_page}><ChevronRight size={14} /></PaginationBtn>
             </div>
           </div>
         )}
@@ -1022,9 +1022,9 @@ function Modal({ onClose, title, subtitle, icon, iconBg, children }) {
   );
 }
 
-function PaginationBtn({ onClick, disabled, children }) {
+function PaginationBtn({ onClick, disabled, children, label }) {
   return (
-    <button onClick={onClick} disabled={disabled} style={{ width: 30, height: 30, display: 'flex', alignItems: 'center', justifyContent: 'center', borderRadius: 8, cursor: disabled ? 'not-allowed' : 'pointer', border: '1.5px solid var(--line)', background: 'none', color: 'var(--color-primary-500)', opacity: disabled ? 0.3 : 1, transition: 'background 120ms' }}
+    <button type="button" aria-label={label} title={label} onClick={onClick} disabled={disabled} style={{ width: 30, height: 30, display: 'flex', alignItems: 'center', justifyContent: 'center', borderRadius: 8, cursor: disabled ? 'not-allowed' : 'pointer', border: '1.5px solid var(--line)', background: 'none', color: 'var(--color-primary-500)', opacity: disabled ? 0.3 : 1, transition: 'background 120ms' }}
       onMouseEnter={e => { if (!disabled) e.currentTarget.style.background = 'color-mix(in srgb, var(--color-primary-500) 6%, transparent)'; }}
       onMouseLeave={e => e.currentTarget.style.background = 'none'}
     >{children}</button>
