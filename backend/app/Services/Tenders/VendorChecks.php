@@ -31,6 +31,12 @@ class VendorChecks
             $add('suspended', 'The vendor is suspended.');
         }
         if ($v->special_group) {
+            if ($v->special_group_status !== 'confirmed') {
+                $add('group_unconfirmed', 'The people category has not been confirmed by staff yet.');
+            }
+            if (empty($v->special_group_scans)) {
+                $add('no_group_scan', 'No scan of the people-category certificate has been uploaded.');
+            }
             if (! trim((string) $v->special_group_certificate)) {
                 $add('no_group_certificate', 'A people category is set but no certificate number is recorded.');
             }

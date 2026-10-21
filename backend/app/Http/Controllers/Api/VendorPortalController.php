@@ -7,6 +7,7 @@ use App\Models\Extras\Tender;
 use App\Models\Extras\TenderDocument;
 use App\Models\Vendor;
 use App\Models\VendorOrder;
+use App\Services\Tenders\SafeScan;
 use App\Services\Tenders\TenderListing;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
@@ -131,7 +132,9 @@ class VendorPortalController extends Controller
 
     public function profile(Request $request): JsonResponse
     {
-        return response()->json($this->vendor($request));
+        $v = $this->vendor($request);
+
+        return response()->json($v->toArray() + ['scan_urls' => $v->scanUrls()]);
     }
 
     public function updateProfile(Request $request): JsonResponse
@@ -147,11 +150,57 @@ class VendorPortalController extends Controller
             'city'            => 'nullable|string|max:100',
             'country'         => 'nullable|string|max:100',
             'bank_details'    => 'nullable|array',
+            'tax_id'          => 'nullable|string|max:50',
+            'registration_number' => 'nullable|string|max:100',
+            'special_group'   => 'nullable|in:youth,women,pwd,sme',
+            'special_group_certificate' => 'nullable|string|max:100',
+            'special_group_valid_until' => 'nullable|date',
         ]);
 
-        $vendor->update($d);
+        $vendor->fill($d);
+        // naming a people category (or changing its certificate) is a claim: staff confirm it again after looking at the scan
+        if ($vendor->isDirty(['special_group', 'special_group_certificate', 'special_group_valid_until'])) {
+            if (! $vendor->special_group) {
+                $this->dropScans($vendor);
+                $vendor->fill(['special_group_certificate' => null, 'special_group_valid_until' => null]);
+            }
+            $vendor->fill(['special_group_status' => 'unconfirmed', 'special_group_confirmed_by' => null, 'special_group_confirmed_at' => null]);
+        }
+        $vendor->save();
 
-        return response()->json(['message' => 'Profile updated.']);
+        return response()->json(['message' => 'Profile updated.' . ($vendor->special_group && $vendor->special_group_status !== 'confirmed' ? ' Your people category will be confirmed by our staff once they have checked your certificate.' : '')]);
+    }
+
+    /** Body: files[] (a PDF or pictures of the certificate). Replaces any earlier scan; staff must confirm the category again. */
+    public function uploadCertificate(Request $request, SafeScan $scan): JsonResponse
+    {
+        $vendor = $this->vendor($request);
+        if (! $vendor->special_group) {
+            return response()->json(['message' => 'Choose your people category first, then upload its certificate.'], 422);
+        }
+        $request->validate(['files' => 'required|array|min:1|max:' . SafeScan::MAX_FILES, 'files.*' => 'file|max:10240']);
+
+        $paths = $scan->render($request->file('files'), "vendor-scans/{$vendor->id}");
+        $this->dropScans($vendor);
+        $vendor->forceFill(['special_group_scans' => $paths, 'special_group_status' => 'unconfirmed', 'special_group_confirmed_by' => null, 'special_group_confirmed_at' => null])->save();
+
+        return response()->json(['message' => 'Certificate uploaded. Our staff will check it and confirm your category.', 'scan_urls' => $vendor->scanUrls()], 201);
+    }
+
+    public function deleteCertificate(Request $request): JsonResponse
+    {
+        $vendor = $this->vendor($request);
+        $this->dropScans($vendor);
+        $vendor->forceFill(['special_group_scans' => null, 'special_group_status' => 'unconfirmed', 'special_group_confirmed_by' => null, 'special_group_confirmed_at' => null])->save();
+
+        return response()->json(['message' => 'Certificate removed.']);
+    }
+
+    private function dropScans(Vendor $vendor): void
+    {
+        foreach ($vendor->special_group_scans ?? [] as $path) {
+            \Illuminate\Support\Facades\Storage::disk('local')->delete($path);
+        }
     }
 
     // =========================================================================

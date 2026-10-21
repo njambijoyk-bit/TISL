@@ -3322,6 +3322,10 @@ Route::middleware(['module:extras', 'throttle:60,1'])->prefix('public/tenders')-
 Route::get('/tender-files/{doc}', [\App\Http\Controllers\Api\TenderFileController::class, 'show'])
     ->whereNumber('doc')->middleware('signed')->name('tender-files.show');
 
+// One page of a vendor's people-category certificate (signed link, re-drawn JPEG only)
+Route::get('/vendor-scans/{vendor}/{n}', [\App\Http\Controllers\Api\VendorScanController::class, 'show'])
+    ->whereNumber('vendor')->whereNumber('n')->middleware('signed')->name('vendor-scans.show');
+
 // Vendor portal — logged-in vendor, Extras on
 Route::middleware(['auth:sanctum', 'module:extras'])->prefix('vendor-portal')->group(function () {
     $vp = \App\Http\Controllers\Api\VendorPortalController::class;
@@ -3329,6 +3333,8 @@ Route::middleware(['auth:sanctum', 'module:extras'])->prefix('vendor-portal')->g
     Route::get('/dashboard', [$vp, 'dashboard']);
     Route::get('/profile',   [$vp, 'profile']);
     Route::put('/profile',   [$vp, 'updateProfile']);
+    Route::post('/profile/certificate',   [$vp, 'uploadCertificate']);
+    Route::delete('/profile/certificate', [$vp, 'deleteCertificate']);
 
     // Tenders visible to this vendor
     Route::get('/tenders',            [$vp, 'tenders']);
@@ -3350,6 +3356,7 @@ Route::middleware(['auth:sanctum', 'module:extras', 'permission:vendors.portal']
 
     Route::post('/{id}/portal-login',    [$c, 'createPortalLogin'])->whereNumber('id');
     Route::post('/{id}/portal-password', [$c, 'resetPortalPassword'])->whereNumber('id');
+    Route::post('/{id}/people-category',  [$c, 'confirmPeopleCategory'])->whereNumber('id');
 });
 
 // Admin: Tenders (Extras module)

@@ -24,14 +24,17 @@ const th = { textAlign: 'left', padding: '8px 10px', fontSize: '0.68rem', textTr
 const td = { padding: '9px 10px', fontSize: '0.8rem', borderTop: `1px solid ${colors.tint(0.06)}`, verticalAlign: 'top' };
 const small = { ...btnGhost, padding: '4px 10px', fontSize: '0.72rem', marginRight: 6 };
 
-function VendorModal({ vendor, onClose, onDone, groups }) {
-  const [f, setF] = useState({ company_name: vendor?.company_name ?? '', contact_name: vendor?.contact_name ?? '', email: vendor?.email ?? '', phone: vendor?.phone ?? '', tax_id: vendor?.tax_id ?? '', address: vendor?.address ?? '', payment_terms_days: vendor?.payment_terms_days ?? 30, notes: vendor?.notes ?? '', special_group: vendor?.special_group ?? '', special_group_certificate: vendor?.special_group_certificate ?? '', special_group_valid_until: vendor?.special_group_valid_until ?? '' });
+function VendorModal({ vendor, onClose, onDone, groups, canConfirm }) {
+  const [f, setF] = useState({ company_name: vendor?.company_name ?? '', contact_name: vendor?.contact_name ?? '', email: vendor?.email ?? '', phone: vendor?.phone ?? '', tax_id: vendor?.tax_id ?? '', registration_number: vendor?.registration_number ?? '', address: vendor?.address ?? '', payment_terms_days: vendor?.payment_terms_days ?? 30, notes: vendor?.notes ?? '', special_group: vendor?.special_group ?? '', special_group_certificate: vendor?.special_group_certificate ?? '', special_group_valid_until: vendor?.special_group_valid_until ?? '' });
   const [busy, setBusy] = useState(false);
   const [err, setErr] = useState(null);
   const set = (k) => (e) => setF((x) => ({ ...x, [k]: e.target.value }));
+  const confirmGroup = async () => {
+    try { const res = await vendorsAPI.confirmPeopleCategory(vendor.id, vendor.special_group_status !== 'confirmed'); toast.success(res.message); onDone(); } catch (x) { setErr(errMsg(x, 'Could not change it')); }
+  };
   const go = async (e) => {
     e.preventDefault(); setBusy(true); setErr(null);
-    const body = { ...f, payment_terms_days: Number(f.payment_terms_days) || 0, special_group: f.special_group || null, special_group_certificate: f.special_group_certificate || null, special_group_valid_until: f.special_group_valid_until || null };
+    const body = { ...f, registration_number: f.registration_number || null, payment_terms_days: Number(f.payment_terms_days) || 0, special_group: f.special_group || null, special_group_certificate: f.special_group_certificate || null, special_group_valid_until: f.special_group_valid_until || null };
     if (!groups) { delete body.special_group; delete body.special_group_certificate; delete body.special_group_valid_until; }
     try {
       const res = vendor ? await vendorsAPI.update(vendor.id, body) : await vendorsAPI.create(body);
@@ -49,10 +52,22 @@ function VendorModal({ vendor, onClose, onDone, groups }) {
             <Field label="Phone"><TextInput value={f.phone} onChange={set('phone')} /></Field>
             <Field label="Email"><TextInput type="email" value={f.email} onChange={set('email')} /></Field>
             <Field label="Tax ID / PIN"><TextInput value={f.tax_id} onChange={set('tax_id')} /></Field>
+            <Field label="Company registration no."><TextInput value={f.registration_number} onChange={set('registration_number')} /></Field>
             <Field label="Payment terms (days)"><NumberInput min="0" value={f.payment_terms_days} onChange={set('payment_terms_days')} /></Field>
             <Field label="Address"><TextInput value={f.address} onChange={set('address')} placeholder="Street, town" /></Field>
           </div>
           <Field label="Notes"><TextInput value={f.notes} onChange={set('notes')} /></Field>
+          {groups && vendor?.special_group && (
+            <div style={{ fontSize: '0.78rem', color: colors.textBody, display: 'grid', gap: 6 }}>
+              <div>People category: <strong>{vendor.special_group}</strong> ({vendor.special_group_status === 'confirmed' ? 'confirmed' : 'not confirmed yet'}). {(vendor.scan_urls || []).length === 0 ? 'No certificate scan uploaded.' : 'Certificate scan:'}</div>
+              {(vendor.scan_urls || []).length > 0 && (
+                <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
+                  {vendor.scan_urls.map((u, i) => <a key={u} href={u} target="_blank" rel="noopener noreferrer"><img src={u} alt={`Certificate page ${i + 1}`} style={{ width: 80, height: 100, objectFit: 'cover', objectPosition: 'top', borderRadius: 6, border: `1px solid ${colors.tint(0.2)}` }} /></a>)}
+                </div>
+              )}
+              {canConfirm && <div><button type="button" style={small} onClick={confirmGroup}>{vendor.special_group_status === 'confirmed' ? 'Take back confirmation' : 'Confirm people category'}</button></div>}
+            </div>
+          )}
           {groups && (
             <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(170px, 1fr))', gap: 10 }}>
               <Field label="People category" hint="Blank = none. For youth, women, disability or SME tenders">
@@ -203,7 +218,7 @@ export default function Vendors() {
               <thead><tr><th style={th}>Vendor</th><th style={th}>Contact</th><th style={th}>Status</th>{portalOn && <th style={th}>Portal</th>}<th style={{ ...th, textAlign: 'right' }}>We owe</th><th style={th} /></tr></thead>
               <tbody>{rows.map((r) => (
                 <tr key={r.id}>
-                  <td style={td}><strong>{r.company_name}</strong><div style={{ fontSize: '0.7rem', color: colors.textFaint }}>{r.vendor_number}</div></td>
+                  <td style={td}><strong>{r.company_name}</strong><div style={{ fontSize: '0.7rem', color: colors.textFaint }}>{r.vendor_number}</div>{r.special_group && <div style={{ fontSize: '0.68rem', color: r.special_group_status === 'confirmed' ? colors.successText : colors.warningText }}>{r.special_group} ({r.special_group_status === 'confirmed' ? 'confirmed' : 'to confirm'})</div>}</td>
                   <td style={td}>{r.contact_name}<div style={{ fontSize: '0.7rem', color: colors.textFaint }}>{[r.phone, r.email].filter(Boolean).join(' · ')}</div></td>
                   <td style={td}>
                     {(r.flags || []).length > 0 && (
@@ -241,7 +256,7 @@ export default function Vendors() {
         </div>
       </div>
       {modal?.kind === 'add' && <VendorModal groups={portalOn} onClose={() => setModal(null)} onDone={done} />}
-      {modal?.kind === 'edit' && <VendorModal groups={portalOn} vendor={modal.vendor} onClose={() => setModal(null)} onDone={done} />}
+      {modal?.kind === 'edit' && <VendorModal groups={portalOn} canConfirm={canPortal} vendor={modal.vendor} onClose={() => setModal(null)} onDone={done} />}
       {modal?.kind === 'detail' && <DetailModal id={modal.id} onClose={() => setModal(null)} />}
       {modal?.kind === 'pq' && <VendorPqModal vendor={modal.vendor} canManage={canManagePq} onClose={() => setModal(null)} />}
       {modal?.kind === 'portal' && <PortalLoginModal vendor={modal.vendor} onClose={() => setModal(null)} onDone={done} />}

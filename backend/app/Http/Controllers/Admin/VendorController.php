@@ -49,7 +49,7 @@ class VendorController extends Controller
             ->map(fn ($x) => ['id' => (int) $x->id, 'voucher_number' => $x->voucher_number, 'date' => (string) $x->date, 'type' => $x->type, 'reference_no' => $x->reference_no,
                 'supplier_invoice_no' => $x->supplier_invoice_no, 'total' => (float) $x->total_amount])->values() : [];
 
-        return response()->json($this->row($v, $ledger) + ['purchases' => $purchases, 'address' => $v->address, 'tax_id' => $v->tax_id, 'notes' => $v->notes, 'payment_terms_days' => $v->payment_terms_days]);
+        return response()->json($this->row($v, $ledger) + ['scan_urls' => $v->scanUrls(), 'registration_number' => $v->registration_number, 'purchases' => $purchases, 'address' => $v->address, 'tax_id' => $v->tax_id, 'notes' => $v->notes, 'payment_terms_days' => $v->payment_terms_days]);
     }
 
     /** Body: company_name, contact_name?, email?, phone?, tax_id?, address?, payment_terms_days?, notes?. */
@@ -58,15 +58,15 @@ class VendorController extends Controller
         $d = $request->validate([
             'company_name' => 'required|string|max:255', 'contact_name' => 'nullable|string|max:255', 'email' => 'nullable|email|max:255', 'phone' => 'nullable|string|max:50',
             'tax_id' => 'nullable|string|max:50', 'address' => 'nullable|string', 'payment_terms_days' => 'nullable|integer|min:0|max:365', 'notes' => 'nullable|string',
-            'special_group' => 'nullable|in:youth,women,pwd,sme', 'special_group_certificate' => 'nullable|string|max:120', 'special_group_valid_until' => 'nullable|date',
+            'special_group' => 'nullable|in:youth,women,pwd,sme', 'special_group_certificate' => 'nullable|string|max:120', 'special_group_valid_until' => 'nullable|date', 'registration_number' => 'nullable|string|max:100',
         ]);
 
         return DB::transaction(function () use ($d, $request) {
             $v = Vendor::create([
                 'vendor_number' => Vendor::generateVendorNumber(), 'company_name' => $d['company_name'], 'contact_name' => $d['contact_name'] ?? null,
-                'email' => $d['email'] ?? null, 'phone' => $d['phone'] ?? '', 'tax_id' => $d['tax_id'] ?? null, 'address' => $d['address'] ?? null,
+                'email' => $d['email'] ?? null, 'phone' => $d['phone'] ?? '', 'tax_id' => $d['tax_id'] ?? null, 'registration_number' => $d['registration_number'] ?? null, 'address' => $d['address'] ?? null,
                 'payment_terms_days' => $d['payment_terms_days'] ?? 30, 'notes' => $d['notes'] ?? null, 'status' => 'active',
-                'special_group' => $d['special_group'] ?? null, 'special_group_certificate' => $d['special_group_certificate'] ?? null, 'special_group_valid_until' => $d['special_group_valid_until'] ?? null, 'created_by' => $request->user()?->id,
+                'special_group' => $d['special_group'] ?? null, 'special_group_status' => ! empty($d['special_group']) ? 'confirmed' : 'unconfirmed', 'special_group_certificate' => $d['special_group_certificate'] ?? null, 'special_group_valid_until' => $d['special_group_valid_until'] ?? null, 'created_by' => $request->user()?->id,
             ]);
             $ledger = $this->ledgers->vendorLedger($v);
             if (! empty($d['address'])) {
@@ -84,8 +84,15 @@ class VendorController extends Controller
             'company_name' => 'sometimes|required|string|max:255', 'contact_name' => 'nullable|string|max:255', 'email' => 'nullable|email|max:255', 'phone' => 'nullable|string|max:50',
             'tax_id' => 'nullable|string|max:50', 'address' => 'nullable|string', 'payment_terms_days' => 'nullable|integer|min:0|max:365', 'notes' => 'nullable|string',
             'status' => 'sometimes|in:active,suspended',
-            'special_group' => 'nullable|in:youth,women,pwd,sme', 'special_group_certificate' => 'nullable|string|max:120', 'special_group_valid_until' => 'nullable|date',
+            'special_group' => 'nullable|in:youth,women,pwd,sme', 'special_group_certificate' => 'nullable|string|max:120', 'special_group_valid_until' => 'nullable|date', 'registration_number' => 'nullable|string|max:100',
         ]);
+
+        // a people category staff type in themselves is confirmed by that; clearing it clears its certificate too
+        if (array_key_exists('special_group', $d) && ($d['special_group'] !== $v->special_group)) {
+            $d += $d['special_group']
+                ? ['special_group_status' => 'confirmed', 'special_group_confirmed_by' => request()->user()?->id, 'special_group_confirmed_at' => now()]
+                : ['special_group_status' => 'unconfirmed', 'special_group_confirmed_by' => null, 'special_group_confirmed_at' => null, 'special_group_certificate' => null, 'special_group_valid_until' => null];
+        }
 
         return DB::transaction(function () use ($v, $d) {
             $v->update($d);
@@ -108,6 +115,21 @@ class VendorController extends Controller
 
             return response()->json(['message' => 'Vendor updated.']);
         });
+    }
+
+    /** Body: confirmed (bool). Staff check the certificate scan, then confirm (or take back) the vendor's people category. */
+    public function confirmPeopleCategory(Request $request, int $id): JsonResponse
+    {
+        $v = Vendor::findOrFail($id);
+        $d = $request->validate(['confirmed' => 'required|boolean']);
+        if (! $v->special_group) {
+            return response()->json(['message' => 'This vendor has no people category.'], 422);
+        }
+        $v->forceFill($d['confirmed']
+            ? ['special_group_status' => 'confirmed', 'special_group_confirmed_by' => $request->user()->id, 'special_group_confirmed_at' => now()]
+            : ['special_group_status' => 'unconfirmed', 'special_group_confirmed_by' => null, 'special_group_confirmed_at' => null])->save();
+
+        return response()->json(['message' => $d['confirmed'] ? 'People category confirmed.' : 'People category set back to unconfirmed.']);
     }
 
     /**
@@ -200,7 +222,7 @@ class VendorController extends Controller
             'id' => $v->id, 'vendor_number' => $v->vendor_number, 'company_name' => $v->company_name, 'contact_name' => $v->contact_name, 'email' => $v->email, 'phone' => $v->phone,
             'status' => $v->status, 'ledger_id' => $ledgerId ? (int) $ledgerId : null, 'owed' => $owed,
             'flags' => $v->status === 'active' ? [] : app(\App\Services\Tenders\VendorChecks::class)->flags($v),
-            'special_group' => $v->special_group, 'special_group_certificate' => $v->special_group_certificate, 'special_group_valid_until' => $v->special_group_valid_until?->toDateString(),
+            'special_group' => $v->special_group, 'special_group_status' => $v->special_group_status, 'special_group_certificate' => $v->special_group_certificate, 'special_group_valid_until' => $v->special_group_valid_until?->toDateString(),
         ];
     }
 }

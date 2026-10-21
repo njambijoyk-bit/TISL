@@ -19,6 +19,7 @@ database/sql/219_vendors_status_column.sql   # lets vendors.status hold 'suspend
 database/sql/220_policy_acceptance_vendor.sql # vendor_id / vendor_number on policy acceptances
 database/sql/221_tender_notice_board.sql     # notice type, lots, people categories, recorded pre-qualification, mailings
 database/sql/223_tender_addenda_awards_pq_flags.sql # addenda, awards, pre-qualification checks and reminders
+database/sql/224_vendor_people_category_confirmation.sql # people category: staff confirmation and the certificate scan
 database/sql/222_remove_online_bidding.sql   # DESTRUCTIVE: drops the old bid and PQ-application tables. Read Part A first.
 
 php artisan access:seed
@@ -172,6 +173,14 @@ Also check: opening a vendor-only file link from the portal works for those vend
 2. Record a Qualified decision with a valid-until date already past. **Expect:** flagged "already in the past".
 3. In Admin > Vendors a vendor that is not active shows "Flagged by the system (n)" under its status.
 4. Reminders: record a Qualified decision valid until 10 days from now, then run `php artisan tenders:pq-reminders`. **Expect:** "1 reminder(s) sent"; the vendor gets a bell notification (and email) and the vendor portal dashboard shows an expiry warning; staff who can manage pre-qualification get a bell notification. Running it again sends nothing. **Extend** the record, then run it again with a date inside 30 days. **Expect:** a new reminder. The command runs daily at 07:30 when the scheduler is running.
+
+### 4.7e People category, certificate and the safe scan
+1. Sign in as a vendor > **Company profile**. Fill the registration number and tax PIN, choose **Youth**, add a certificate number and expiry, save. **Expect:** "Waiting for staff to confirm".
+2. Upload a PDF of the certificate (or JPG/PNG photos). **Expect:** page thumbnails appear. Open one: it is a plain JPEG. The file you sent is not stored or served.
+3. Safety checks. Rename a text or HTML file to `certificate.png` and upload it. **Expect:** refused ("Only PDF files and JPG, PNG or WebP pictures"). Upload an `.exe` or `.svg`. **Expect:** refused. A PDF that cannot be drawn is refused too. If the server has no PDF tool you get a message to upload photos instead.
+4. Admin > Vendors > Edit that vendor. **Expect:** "People category: youth (not confirmed yet)", the page thumbnails, and a **Confirm people category** button. Press it. **Expect:** confirmed; the Vendors list shows "youth (confirmed)".
+5. Tender reserved for Youth > Vendors and email. **Expect:** the vendor is counted only after step 4. A vendor who changes their category, certificate number or expiry, or re-uploads the scan, goes back to "waiting for staff to confirm".
+6. If staff type a people category in themselves (Vendors > Edit), it counts as confirmed.
 
 ### 4.8 Module gating (the key licensing test)
 1. Switch **Extras off** in Module Center and refresh.

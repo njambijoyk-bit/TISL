@@ -38,7 +38,7 @@ class TenderNotices
             $groups = $lots->pluck('reservation_group')->unique()->all();
         }
         if ($groups) {
-            $q->whereIn('special_group', $groups);
+            $q->inConfirmedGroup($groups);
         }
 
         return $q->orderBy('company_name')->get(['id', 'user_id', 'company_name', 'special_group']);

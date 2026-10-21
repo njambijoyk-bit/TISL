@@ -6,6 +6,7 @@ const vendorsAPI = {
   show: async (id) => (await api.get(`/admin/vendors/${id}`)).data,
   create: async (payload) => (await api.post('/admin/vendors', payload)).data,
   update: async (id, payload) => (await api.put(`/admin/vendors/${id}`, payload)).data,
+  confirmPeopleCategory: async (id, confirmed) => (await api.post(`/admin/vendors/${id}/people-category`, { confirmed })).data,
   portalLogin: async (id, payload) => (await api.post(`/admin/vendors/${id}/portal-login`, payload)).data,
   portalPassword: async (id, payload) => (await api.post(`/admin/vendors/${id}/portal-password`, payload)).data,
 };

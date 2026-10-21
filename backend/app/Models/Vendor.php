@@ -49,6 +49,10 @@ class Vendor extends Model
         'special_group',
         'special_group_certificate',
         'special_group_valid_until',
+        'special_group_status',
+        'special_group_confirmed_by',
+        'special_group_confirmed_at',
+        'special_group_scans',
     ];
 
     protected $casts = [
@@ -56,6 +60,8 @@ class Vendor extends Model
         'tags'                   => 'array',
         'is_verified'            => 'boolean',
         'special_group_valid_until' => 'date',
+        'special_group_scans'    => 'array',
+        'special_group_confirmed_at' => 'datetime',
         'commission_rate'        => 'decimal:2',
         'total_purchased'        => 'decimal:2',
         'average_po_value'       => 'decimal:2',
@@ -260,5 +266,17 @@ class Vendor extends Model
         return $this->user_id !== null
             && $this->user !== null
             && $this->user->status === 'active';
+    }
+
+    /** Ten-minute signed links to the certificate page images (a browser tab cannot send the sign-in header). */
+    public function scanUrls(): array
+    {
+        return collect($this->special_group_scans ?? [])->keys()->map(fn ($n) => \Illuminate\Support\Facades\URL::temporarySignedRoute('vendor-scans.show', now()->addMinutes(10), ['vendor' => $this->id, 'n' => $n]))->all();
+    }
+
+    /** Every active vendor in these people categories whose category staff have confirmed. */
+    public function scopeInConfirmedGroup($query, $groups)
+    {
+        return $query->whereIn('special_group', (array) $groups)->where('special_group_status', 'confirmed');
     }
 }

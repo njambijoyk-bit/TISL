@@ -6,6 +6,9 @@ const vendorPortalAPI = {
   profile: async () => (await api.get('/vendor-portal/profile')).data,
   updateProfile: async (data) => (await api.put('/vendor-portal/profile', data)).data,
 
+  uploadCertificate: async (formData) => (await api.post('/vendor-portal/profile/certificate', formData, { headers: { 'Content-Type': 'multipart/form-data' } })).data,
+  deleteCertificate: async () => (await api.delete('/vendor-portal/profile/certificate')).data,
+
   // Tenders this vendor may see (public ones and the restricted ones they are eligible for)
   tenders: async (params) => (await api.get('/vendor-portal/tenders', { params })).data,
   exportTenders: async (params) => (await api.get('/vendor-portal/tenders/export', { params, responseType: 'blob' })).data,

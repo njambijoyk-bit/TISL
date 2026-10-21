@@ -451,7 +451,7 @@ class TenderController extends Controller
 
         $ids = collect($d['vendor_ids'] ?? []);
         if (! empty($d['group'])) {
-            $ids = $ids->merge(Vendor::where('status', 'active')->where('special_group', $d['group'])->pluck('id'));
+            $ids = $ids->merge(Vendor::where('status', 'active')->inConfirmedGroup($d['group'])->pluck('id'));
         }
         if ($ids->isEmpty()) {
             throw ValidationException::withMessages(['vendor_ids' => 'Choose at least one vendor or a group that has vendors in it.']);
