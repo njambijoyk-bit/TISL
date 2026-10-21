@@ -14,14 +14,26 @@ class BackupMapCoversSqlScriptsTest extends TestCase
     public function test_every_table_created_by_the_sql_scripts_is_in_the_backup_map(): void
     {
         $claimed = array_merge(ModuleTables::allClaimed(), ModuleTables::EXCLUDE);
-        $missing = [];
-        foreach (glob(__DIR__ . '/../../database/sql/*.sql') as $file) {
-            if (preg_match_all('/CREATE TABLE IF NOT EXISTS\s+`?([a-z0-9_]+)`?/i', (string) file_get_contents($file), $m)) {
+        $made = [];   // table => the script that created it, minus the tables a later script drops
+        $files = glob(__DIR__ . '/../../database/sql/*.sql');
+        sort($files);
+        foreach ($files as $file) {
+            $sql = (string) file_get_contents($file);
+            if (preg_match_all('/CREATE TABLE IF NOT EXISTS\s+`?([a-z0-9_]+)`?/i', $sql, $m)) {
                 foreach ($m[1] as $table) {
-                    if (! in_array($table, $claimed, true)) {
-                        $missing[] = basename($file) . ': ' . $table;
-                    }
+                    $made[$table] = basename($file);
                 }
+            }
+            if (preg_match_all('/^\s*DROP TABLE IF EXISTS\s+`?([a-z0-9_]+)`?/im', $sql, $d)) {
+                foreach ($d[1] as $table) {
+                    unset($made[$table]);
+                }
+            }
+        }
+        $missing = [];
+        foreach ($made as $table => $script) {
+            if (! in_array($table, $claimed, true)) {
+                $missing[] = $script . ': ' . $table;
             }
         }
         $this->assertSame([], $missing, 'Tables missing from the backup map: ' . implode(', ', $missing));

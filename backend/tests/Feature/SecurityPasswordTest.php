@@ -234,7 +234,7 @@ class SecurityPasswordTest extends TestCase
     public function test_every_door_that_sets_a_password_asks_the_rule(): void
     {
         $uses = [
-            'app/Http/Controllers/Api/AuthController.php' => 4,                      // sign-up, reset by email, change, temporary-password door
+            'app/Http/Controllers/Api/AuthController.php' => 5,                      // sign-up, reset by email, change, temporary-password door, vendor portal sign-up
             'app/Http/Controllers/Api/Careers/ApplicantAuthController.php' => 3,     // applicant sign-up, change, reset
             'app/Http/Controllers/Api/Careers/ApplicantPortalController.php' => 1,
             'app/Http/Controllers/Api/Careers/AdminApplicantController.php' => 1,
