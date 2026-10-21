@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { useParams, Link } from 'react-router-dom';
+import { useParams } from 'react-router-dom';
 import { vendorPortalAPI } from '../../../_shared/api/index';
 import { card, colors } from '../../../_shared/theme/tokens';
 import { errMsg } from '../../../_shared/store/helpers/apiState';
