@@ -520,7 +520,7 @@ export default function LoyaltyLedger() {
       </div>
 
       {/* Layout switch (F3) */}
-      <div style={{ display: 'flex', justifyContent: 'flex-end', margin: '-8px 0 -8px' }}><ViewToggle view={view} setView={setView} /></div>
+      <div style={{ display: 'flex', justifyContent: 'flex-end', margin: '0 0 12px' }}><ViewToggle view={view} setView={setView} /></div>
 
       {/* Table or cards */}
       <div style={view === 'cards' ? undefined : { ...card, overflow: 'hidden' }}>

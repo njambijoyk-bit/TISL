@@ -154,7 +154,7 @@ export const ADMIN_NAV = [
         ],
       },
       {
-        id: 'codes', title: 'Promo & referral codes', icon: TicketPercent, color: 'var(--color-primary-600)', path: '/admin/promo-codes', also: ['/admin/referrals'], perm: 'promos.manage', keywords: 'discount coupon',
+        id: 'promo-codes', title: 'Promo & referral codes', icon: TicketPercent, color: 'var(--color-primary-600)', path: '/admin/promo-codes', also: ['/admin/referrals'], perm: 'promos.manage', keywords: 'discount coupon',
         tabs: [
           { title: 'Promo codes', path: '/admin/promo-codes' },
           { title: 'Referral codes', path: '/admin/referrals' },
