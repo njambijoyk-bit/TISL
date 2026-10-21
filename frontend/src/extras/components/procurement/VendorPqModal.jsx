@@ -14,7 +14,7 @@ const BLANK = { category: 'goods', status: 'qualified', qualified_from: '', vali
  * Pre-qualification is decided offline; this is where staff record the outcome on the vendor.
  * Every decision (and every change) needs a written reason, kept with who recorded it.
  */
-export function VendorPqPanel({ vendor, canManage, onClose }) {
+export function VendorPqPanel({ vendor, canManage, onClose, onChanged }) {
   const [rows, setRows] = useState(null);
   const [vendorFlags, setVendorFlags] = useState([]);
   const [f, setF] = useState(BLANK);
@@ -31,7 +31,7 @@ export function VendorPqPanel({ vendor, canManage, onClose }) {
     e.preventDefault(); setBusy(true); setErr(null);
     try {
       const res = await vendorPrequalificationsAPI.record(vendor.id, { ...f, qualified_from: f.qualified_from || undefined, valid_until: f.valid_until || undefined, notes: f.notes || undefined });
-      toast.success(res.message); setF(BLANK); load();
+      toast.success(res.message); setF(BLANK); load(); onChanged?.();
     } catch (x) { setErr(errMsg(x, 'Could not record it')); } finally { setBusy(false); }
   };
 
@@ -40,7 +40,7 @@ export function VendorPqPanel({ vendor, canManage, onClose }) {
     const body = change.action === 'revoke' ? { status: 'revoked', reason: change.reason } : { valid_until: change.valid_until, reason: change.reason };
     try {
       const res = await vendorPrequalificationsAPI.update(change.row.id, body);
-      toast.success(res.message); setChange(null); load();
+      toast.success(res.message); setChange(null); load(); onChanged?.();
     } catch (x) { setErr(errMsg(x, 'Could not change it')); } finally { setBusy(false); }
   };
 

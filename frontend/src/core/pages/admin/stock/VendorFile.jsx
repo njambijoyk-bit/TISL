@@ -56,12 +56,15 @@ export default function VendorFile() {
     if (canSeePq) vendorPrequalificationsAPI.forVendor(id).then((r) => setPqs(r.rows || [])).catch(() => setPqs([]));
   }, [id, canSeePq]);
   useEffect(() => { setV(null); load(); }, [load]);
+  const loadList = useCallback(() => vendorsAPI.list({ search: search || undefined }).then((d) => setList(d.rows)).catch(() => setList([])), [search]);
   useEffect(() => {
-    const t = setTimeout(() => vendorsAPI.list({ search: search || undefined }).then((d) => setList(d.rows)).catch(() => setList([])), search ? 250 : 0);
+    const t = setTimeout(loadList, search ? 250 : 0);
     return () => clearTimeout(t);
-  }, [search]);
+  }, [loadList, search]);
+  // after any change: this vendor and the list beside it (its status dot and check count), so nothing waits for a page refresh
+  const refresh = useCallback(() => { load(); loadList(); }, [load, loadList]);
 
-  const act = async (fn, ok) => { try { const r = await fn(); toast.success(r?.message || ok); load(); } catch (x) { toast.error(errMsg(x, 'Could not do that')); } };
+  const act = async (fn, ok) => { try { const r = await fn(); toast.success(r?.message || ok); refresh(); } catch (x) { toast.error(errMsg(x, 'Could not do that')); } };
 
   if (!canReadFinance(user)) return <AdminLayout><div style={{ padding: 32 }}><NoAccess what="vendors" /></div></AdminLayout>;
 
@@ -147,7 +150,7 @@ export default function VendorFile() {
                   </div>
                 )}
 
-                {tab === 'pq' && canSeePq && <div style={box}><VendorPqPanel vendor={v} canManage={canManagePq} onClose={load} /></div>}
+                {tab === 'pq' && canSeePq && <div style={box}><VendorPqPanel vendor={v} canManage={canManagePq} onClose={refresh} onChanged={refresh} /></div>}
 
                 {tab === 'group' && (
                   <div style={{ ...box, display: 'grid', gap: 14 }}>
@@ -199,8 +202,8 @@ export default function VendorFile() {
           </div>
         </div>
       </div>
-      {modal === 'edit' && v && <VendorModal groups={portalOn} canConfirm={canPortal} vendor={v} onClose={() => setModal(null)} onDone={() => { setModal(null); load(); }} />}
-      {modal === 'portal' && v && <PortalLoginModal vendor={v} onClose={() => setModal(null)} onDone={() => { setModal(null); load(); }} />}
+      {modal === 'edit' && v && <VendorModal groups={portalOn} canConfirm={canPortal} vendor={v} onClose={() => setModal(null)} onDone={() => { setModal(null); refresh(); }} />}
+      {modal === 'portal' && v && <PortalLoginModal vendor={v} onClose={() => setModal(null)} onDone={() => { setModal(null); refresh(); }} />}
     </AdminLayout>
   );
 }
