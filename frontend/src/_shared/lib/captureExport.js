@@ -35,7 +35,7 @@ export async function exportElement(el, { name, title, subtitle, format = 'pdf' 
   // the widest the content really is: a scrolling child (the map) can be wider than the box around it
   const box = el.getBoundingClientRect();
   const pad = 24;
-  const content = Math.ceil([el, ...el.querySelectorAll('*')].reduce((w, n) => Math.max(w, n.getBoundingClientRect().left - box.left + Math.max(n.scrollWidth, n.offsetWidth)), el.offsetWidth));
+  const content = Math.ceil([el, ...el.querySelectorAll('*')].reduce((w, n) => Math.max(w, n.getBoundingClientRect().left - box.left + (Math.max(n.scrollWidth || 0, n.offsetWidth || 0) || n.getBoundingClientRect().width)), el.offsetWidth));
   const total = content + pad * 2;
 
   const canvas = await html2canvas(el, {

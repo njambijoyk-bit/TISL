@@ -421,7 +421,7 @@ export default function AccountsTab({ canWrite }) {
         subtitle: `${sel ? sel.name : 'All groups'} · ${LAYOUTS.find((l) => l.key === layout)?.label} view · ${new Date().toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' })}`,
         format,
       });
-    } catch { toast.error('Could not make the file. Try the table view and export CSV.'); }
+    } catch (e) { console.error('Chart export failed', e); toast.error('Could not make the file. Try the table view and export CSV.'); }
     finally { setExporting(false); }
   };
   const pickGroup = (g) => { setSel(g); if (narrow) setShowGroups(false); };
