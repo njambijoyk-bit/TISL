@@ -148,7 +148,7 @@ export function NoticeDetails({ tender: t, extra = [], onOpen }) {
   const cards = [
     ['OCID', t.ocid],
     ['Tender number', t.tender_number],
-    ['Notice type', t.notice_type && t.notice_type !== 'tender' ? NOTICE_TYPE_LABELS[t.notice_type] : null],
+    ['Notice type', NOTICE_TYPE_LABELS[t.notice_type] || null],
     ['Title', t.title, true],
     ['Procuring entity', t.procuring_entity],
     ['Procurement method', METHOD_LABELS[t.procurement_method] || t.procurement_method],

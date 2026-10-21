@@ -7,7 +7,7 @@ import { card, colors, btnGhost, radius } from '../../../_shared/theme/tokens';
 import { TextInput, SelectInput } from '../../../core/components/admin/ui/Form';
 import { errMsg } from '../../../_shared/store/helpers/apiState';
 import { Loading, Empty, StatusBadge, GroupBadge, ErrorBanner } from './ui';
-import { th, td, linkStyle, fmtLongDate, fmtDateTime, timeToClose, METHOD_LABELS, CATEGORY_LABELS } from './format';
+import { th, td, linkStyle, fmtLongDate, fmtDateTime, timeToClose, METHOD_LABELS, CATEGORY_LABELS, NOTICE_TYPE_LABELS } from './format';
 
 const ALL_TABS = [['active', 'Active'], ['closed', 'Closed'], ['agpo', 'AGPO'], ['terminated', 'Terminated'], ['all', 'All']];
 
@@ -102,6 +102,12 @@ function ActionsMenu({ tender, basePath }) {
   );
 }
 
+/** Says what kind of notice this is when it is not a plain tender, so nobody mistakes a pre-qualification call for a tender. */
+function TypeBadge({ type }) {
+  if (!type || type === 'tender') return null;
+  return <span style={{ fontSize: '0.66rem', fontWeight: 700, padding: '2px 8px', borderRadius: radius.sm, background: colors.warningBg, color: colors.warningText, whiteSpace: 'nowrap', textTransform: 'uppercase', letterSpacing: '0.04em' }}>{NOTICE_TYPE_LABELS[type] || type}</span>;
+}
+
 function ReservedBadges({ groups }) {
   if (!groups?.length) return null;
   return <span style={{ display: 'inline-flex', gap: 4, flexWrap: 'wrap' }}>{groups.map(g => <GroupBadge key={g} group={g} />)}</span>;
@@ -114,10 +120,10 @@ const filterInput = { padding: '5px 8px', fontSize: '0.74rem', minWidth: 0, widt
  * an Actions menu (Share / More details), Download Excel, and cards on a phone.
  * `fetchList(params)` → { rows, meta, counts }; `basePath` is the details page's path prefix; `exportList(params)` → blob (optional).
  */
-export default function TenderBoard({ fetchList, exportList, basePath, tabs = ALL_TABS, showEntity = true, emptyText = 'No tenders match' }) {
+export default function TenderBoard({ fetchList, exportList, basePath, tabs = ALL_TABS, showEntity = true, emptyText = 'Nothing matches' }) {
   const narrow = useNarrow();
   const [tab, setTab] = useState('active');
-  const [filters, setFilters] = useState({ q: '', description: '', entity: '', method: '', category: '', close_date: '', publish_date: '', addendum: '' });
+  const [filters, setFilters] = useState({ q: '', description: '', entity: '', method: '', category: '', notice_type: '', close_date: '', publish_date: '', addendum: '' });
   const [page, setPage] = useState(1);
   const [data, setData] = useState({ rows: [], meta: null, counts: {}, show_entity: true });
   const [loading, setLoading] = useState(true);
@@ -173,7 +179,11 @@ export default function TenderBoard({ fetchList, exportList, basePath, tabs = AL
           ))}
         </div>
         <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
-          <TextInput value={filters.q} onChange={set('q')} placeholder="Search all" aria-label="Search all tenders" style={{ width: 200 }} />
+          <SelectInput value={filters.notice_type} onChange={set('notice_type')} aria-label="Type of notice" style={{ width: 'auto' }}>
+            <option value="">All notices</option>
+            {Object.keys(NOTICE_TYPE_LABELS).map((k) => <option key={k} value={k}>{k === 'tender' ? 'Tenders' : k === 'prequalification' ? 'Pre-qualification' : 'Expressions of interest'}</option>)}
+          </SelectInput>
+          <TextInput value={filters.q} onChange={set('q')} placeholder="Search all" aria-label="Search all notices" style={{ width: 200 }} />
           {exportList && <button type="button" onClick={download} style={btnGhost}><Download size={14} /> Download Excel</button>}
         </div>
       </div>
@@ -200,6 +210,7 @@ export default function TenderBoard({ fetchList, exportList, basePath, tabs = AL
                   </div>
                   <div style={{ fontSize: '0.74rem', color: colors.textMuted, marginTop: 6, display: 'flex', gap: '3px 12px', flexWrap: 'wrap' }}>
                     <span>{t.tender_number}</span>
+                    <TypeBadge type={t.notice_type} />
                     <span>{CATEGORY_LABELS[t.category] || t.category}</span>
                     <span>{METHOD_LABELS[t.procurement_method] || t.procurement_method}</span>
                   </div>
@@ -254,6 +265,7 @@ export default function TenderBoard({ fetchList, exportList, basePath, tabs = AL
                       <Link to={`${basePath}/${t.slug}`} style={{ ...linkStyle, color: colors.text }}>{t.title}</Link>
                       <div style={{ fontSize: '0.72rem', color: colors.textMuted, marginTop: 3, display: 'flex', gap: 8, flexWrap: 'wrap', alignItems: 'center' }}>
                         <span>{t.tender_number}</span>
+                        <TypeBadge type={t.notice_type} />
                         <ReservedBadges groups={t.reserved_groups} />
                         {t.status !== 'open' && <StatusBadge status={t.status} />}
                       </div>

@@ -5,6 +5,7 @@ import { vendorPortalAPI } from '../../../_shared/api/index';
 import { card, colors, btnGhost } from '../../../_shared/theme/tokens';
 import { errMsg } from '../../../_shared/store/helpers/apiState';
 import { SitePage, Loading, Empty, StatusBadge, NoticeDetails, ErrorBanner } from '../../components/procurement/ui';
+import { NOTICE_TYPE_LABELS } from '../../components/procurement/format';
 import { goToFile } from '../../components/procurement/openDocument';
 
 export default function VendorTenderDetail() {
@@ -31,7 +32,7 @@ export default function VendorTenderDetail() {
       <Link to="/vendor-portal/tenders" style={{ ...btnGhost, textDecoration: 'none', marginBottom: 16, padding: '5px 12px', fontSize: '0.75rem' }}><ArrowLeft size={13} /> All tenders</Link>
       <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', gap: 12, flexWrap: 'wrap', marginBottom: 16 }}>
         <div style={{ flex: '1 1 400px', minWidth: 0 }}>
-          <div style={{ fontSize: '0.7rem', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.08em', color: colors.textMuted }}>Tender notice details</div>
+          <div style={{ fontSize: '0.7rem', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.08em', color: colors.textMuted }}>{NOTICE_TYPE_LABELS[tender.notice_type] || 'Tender'} notice details</div>
           <h1 style={{ fontSize: '1.3rem', fontWeight: 800, color: colors.primary, margin: '4px 0 0', lineHeight: 1.3, overflowWrap: 'anywhere' }}>{tender.title}</h1>
         </div>
         <StatusBadge status={tender.status} />

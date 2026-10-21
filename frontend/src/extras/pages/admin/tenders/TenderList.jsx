@@ -48,14 +48,14 @@ export default function TenderList() {
 
       <ErrorBanner message={error} />
       {loading ? <Loading /> : error ? null : tenders.length === 0 ? <Empty icon={Gavel}>No tenders found</Empty> : (
-        <Table head={['Tender', 'Title', 'Who sees it', 'Status', 'Closes', 'Files', 'Lots']}>
+        <Table head={['Number', 'Title', 'Type', 'Who sees it', 'Status', 'Closes', 'Files', 'Lots']}>
           {tenders.map(t => (
             <tr key={t.id}>
               <td style={{ ...td, ...mono }}>{t.tender_number}</td>
               <td style={{ ...td, whiteSpace: 'normal', overflowWrap: 'anywhere', minWidth: 240 }}>
                 <Link to={`/admin/tenders/${t.id}`} style={linkStyle}>{t.title}</Link>
-                {t.notice_type && t.notice_type !== 'tender' && <div style={{ fontSize: '0.7rem' }}>{NOTICE_TYPE_LABELS[t.notice_type]}</div>}
               </td>
+              <td style={td}>{NOTICE_TYPE_LABELS[t.notice_type] || 'Tender'}</td>
               <td style={td}>{WHO[t.visibility] || t.visibility} {t.reservation_scheme && <GroupBadge group={t.reservation_scheme} />}</td>
               <td style={td}><StatusBadge status={t.display_status || t.status} /></td>
               <td style={{ ...td, whiteSpace: 'nowrap' }}>{fmtDateTime(t.submission_deadline)}</td>
