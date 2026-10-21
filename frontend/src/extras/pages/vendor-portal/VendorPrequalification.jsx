@@ -13,10 +13,10 @@ export default function VendorPrequalification() {
 
   useEffect(() => { vendorPortalAPI.prequalifications().then(r => setRows(r.rows || [])).catch(e => { setRows([]); setError(errMsg(e, 'Could not load your pre-qualification')); }); }, []);
 
-  if (rows === null) return <SitePage width={900}><Loading /></SitePage>;
+  if (rows === null) return <SitePage width={900} crumbs={[['Home', '/'], ['Vendor portal', '/vendor-portal'], ['Pre-qualification', null]]}><Loading /></SitePage>;
 
   return (
-    <SitePage width={900}>
+    <SitePage width={900} crumbs={[['Home', '/'], ['Vendor portal', '/vendor-portal'], ['Pre-qualification', null]]}>
       <Heading title="Pre-qualification" description="Pre-qualification is done offline. When we call for it, download the form from the tender notice, fill it, scan it and send it to our procurement office. Our decision appears here." />
       <ErrorBanner message={error} />
       {rows.length === 0 && error ? null : rows.length === 0 ? <Empty icon={ClipboardCheck}>No decision has been recorded for you yet</Empty> : (

@@ -1,6 +1,5 @@
 import { useState, useEffect } from 'react';
 import { useParams, Link } from 'react-router-dom';
-import { ArrowLeft } from 'lucide-react';
 import { publicTendersAPI } from '../../../_shared/api/index';
 import { useAuthStore } from '../../../_shared/store/index';
 import { card, colors, btnGhost, btnPrimary } from '../../../_shared/theme/tokens';
@@ -24,12 +23,11 @@ export default function PublicTenderDetail() {
       .finally(() => setLoading(false));
   }, [id]);
 
-  if (loading) return <SitePage width={900}><Loading /></SitePage>;
-  if (missing || !tender) return <SitePage width={900}><Empty>This tender is not available.</Empty></SitePage>;
+  if (loading) return <SitePage width={900} crumbs={[['Home', '/'], ['Tenders', '/tenders'], ['Tender', null]]}><Loading /></SitePage>;
+  if (missing || !tender) return <SitePage width={900} crumbs={[['Home', '/'], ['Tenders', '/tenders'], ['Tender', null]]}><Empty>This tender is not available.</Empty></SitePage>;
 
   return (
-    <SitePage width={900}>
-      <Link to="/tenders" style={{ ...btnGhost, textDecoration: 'none', marginBottom: 16, padding: '5px 12px', fontSize: '0.75rem' }}><ArrowLeft size={13} /> All tenders</Link>
+    <SitePage width={900} crumbs={[['Home', '/'], ['Tenders', '/tenders'], [tender.tender_number, null]]}>
 
       <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', gap: 12, flexWrap: 'wrap', marginBottom: 16 }}>
         <div style={{ flex: '1 1 400px', minWidth: 0 }}>

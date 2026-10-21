@@ -1,3 +1,4 @@
+import { Link } from 'react-router-dom';
 import AdminLayout from '../../../_shared/components/layout/AdminLayout';
 import Header from '../../../_shared/components/layout/Header';
 import Footer from '../../../_shared/components/layout/Footer';
@@ -33,12 +34,37 @@ export function Page({ width = 1100, children }) {
   return <div style={{ padding: '32px 24px', maxWidth: width, margin: '0 auto' }}>{children}</div>;
 }
 
+/** Home > Vendor portal > Tenders: every item but the last is a link back. Items are [label, path]; the last has no path. */
+export function Breadcrumbs({ items }) {
+  if (!items?.length) return null;
+  return (
+    <nav aria-label="Breadcrumb" style={{ margin: '-8px 0 16px', fontSize: '0.78rem' }}>
+      <ol style={{ listStyle: 'none', margin: 0, padding: 0, display: 'flex', flexWrap: 'wrap', alignItems: 'center', gap: '4px 8px', color: colors.textMuted }}>
+        {items.map(([label, path], i) => {
+          const last = i === items.length - 1;
+          return (
+            <li key={`${label}-${i}`} style={{ display: 'inline-flex', alignItems: 'center', gap: 8, minWidth: 0 }}>
+              {last || !path
+                ? <span aria-current={last ? 'page' : undefined} style={{ color: last ? colors.text : colors.textMuted, fontWeight: last ? 600 : 400, overflowWrap: 'anywhere' }}>{label}</span>
+                : <Link to={path} style={{ ...linkStyle, fontWeight: 500 }}>{label}</Link>}
+              {!last && <span aria-hidden="true">/</span>}
+            </li>
+          );
+        })}
+      </ol>
+    </nav>
+  );
+}
+
 /** A page on the customer-facing site: the site header with its navigation, the content, and the footer. */
-export function SitePage({ width, children }) {
+export function SitePage({ width, crumbs, children }) {
   return (
     <div className="min-h-screen">
       <Header />
-      <Page width={width}>{children}</Page>
+      <Page width={width}>
+        <Breadcrumbs items={crumbs} />
+        {children}
+      </Page>
       <Footer />
     </div>
   );

@@ -35,10 +35,10 @@ export default function VendorProfile() {
     } finally { setSaving(false); }
   };
 
-  if (loading) return <SitePage width={640}><Loading /></SitePage>;
+  if (loading) return <SitePage width={640} crumbs={[['Home', '/'], ['Vendor portal', '/vendor-portal'], ['Profile', null]]}><Loading /></SitePage>;
 
   return (
-    <SitePage width={640}>
+    <SitePage width={640} crumbs={[['Home', '/'], ['Vendor portal', '/vendor-portal'], ['Profile', null]]}>
       <Heading title="Company profile" description="Your company details as the buyer sees them." />
       <form onSubmit={submit} style={{ ...card, padding: 22, display: 'grid', gap: 14 }}>
         {f('company_name', 'Company name')}

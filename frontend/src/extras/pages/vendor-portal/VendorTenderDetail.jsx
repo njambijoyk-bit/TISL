@@ -1,8 +1,7 @@
 import { useState, useEffect } from 'react';
 import { useParams, Link } from 'react-router-dom';
-import { ArrowLeft } from 'lucide-react';
 import { vendorPortalAPI } from '../../../_shared/api/index';
-import { card, colors, btnGhost } from '../../../_shared/theme/tokens';
+import { card, colors } from '../../../_shared/theme/tokens';
 import { errMsg } from '../../../_shared/store/helpers/apiState';
 import { SitePage, Loading, Empty, StatusBadge, NoticeDetails, ErrorBanner } from '../../components/procurement/ui';
 import { NOTICE_TYPE_LABELS } from '../../components/procurement/format';
@@ -24,12 +23,11 @@ export default function VendorTenderDetail() {
     try { goToFile((await vendorPortalAPI.documentLink(id, d.id, inline)).url, inline); } catch { /* the link failed; nothing to open */ }
   };
 
-  if (loading) return <SitePage width={900}><Loading /></SitePage>;
-  if (missing || !tender) return <SitePage width={900}><ErrorBanner message={error} /><Empty>This tender is not available to you.</Empty></SitePage>;
+  if (loading) return <SitePage width={900} crumbs={[['Home', '/'], ['Vendor portal', '/vendor-portal'], ['Tenders', '/vendor-portal/tenders'], ['Tender', null]]}><Loading /></SitePage>;
+  if (missing || !tender) return <SitePage width={900} crumbs={[['Home', '/'], ['Vendor portal', '/vendor-portal'], ['Tenders', '/vendor-portal/tenders'], ['Tender', null]]}><ErrorBanner message={error} /><Empty>This tender is not available to you.</Empty></SitePage>;
 
   return (
-    <SitePage width={900}>
-      <Link to="/vendor-portal/tenders" style={{ ...btnGhost, textDecoration: 'none', marginBottom: 16, padding: '5px 12px', fontSize: '0.75rem' }}><ArrowLeft size={13} /> All tenders</Link>
+    <SitePage width={900} crumbs={[['Home', '/'], ['Vendor portal', '/vendor-portal'], ['Tenders', '/vendor-portal/tenders'], [tender.tender_number, null]]}>
       <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', gap: 12, flexWrap: 'wrap', marginBottom: 16 }}>
         <div style={{ flex: '1 1 400px', minWidth: 0 }}>
           <div style={{ fontSize: '0.7rem', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.08em', color: colors.textMuted }}>{NOTICE_TYPE_LABELS[tender.notice_type] || 'Tender'} notice details</div>

@@ -17,7 +17,7 @@ export default function VendorOrders() {
   }, []);
 
   return (
-    <SitePage width={900}>
+    <SitePage width={900} crumbs={[['Home', '/'], ['Vendor portal', '/vendor-portal'], ['Orders', null]]}>
       <Heading title="Vendor orders" description="Orders placed with your company." />
       {loading ? <Loading /> : orders.length === 0 ? <Empty icon={Package}>No orders yet</Empty> : (
         <Table head={['Order', 'Date', 'Total', 'Status']}>
