@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useMemo, useState } from 'react';
-import { useNavigate } from 'react-router-dom';
-import { Plus, Table2, LayoutGrid } from 'lucide-react';
+import { useNavigate, Link } from 'react-router-dom';
+import { Plus, Table2, LayoutGrid, FileText, BadgeCheck } from 'lucide-react';
 import toast from 'react-hot-toast';
 import AdminLayout from '../../../../_shared/components/layout/AdminLayout';
 import HubHeader, { NoAccess } from '../../../components/admin/ui/HubHeader';
@@ -35,6 +35,7 @@ export default function Vendors() {
   const portalOn = isModuleActive(MODULES.EXTRAS);
   const canPortal = portalOn && hasPermission(user, 'vendors.portal');
   const canSeePq = portalOn && hasPermission(user, 'prequalification.view');
+  const canSeeTenders = portalOn && hasPermission(user, 'tenders.view');
   const canVerify = hasPermission(user, 'vendors.approve');
   const narrow = useNarrow();
   const prefKey = narrow ? 'vendors.view.phone' : 'vendors.view.desktop';
@@ -114,6 +115,8 @@ export default function Vendors() {
         <div style={{ display: 'flex', gap: 10, alignItems: 'center', flexWrap: 'wrap', margin: '0 0 12px' }}>
           <input value={search} onChange={(e) => setSearch(e.target.value)} placeholder="Search vendors" aria-label="Search vendors" style={{ padding: '8px 12px', borderRadius: 8, border: `1.5px solid ${colors.tint(0.18)}`, fontSize: '0.82rem', fontFamily: 'inherit', minWidth: 220, flex: '0 1 280px', background: 'transparent', color: colors.text }} />
           <span style={{ flex: 1 }} />
+          {canSeeTenders && <Link to="/admin/tenders" style={{ ...btnGhost, textDecoration: 'none', display: 'inline-flex', alignItems: 'center', gap: 6 }}><FileText size={14} /> Tenders</Link>}
+          {canSeePq && <Link to="/admin/prequalification/submissions" style={{ ...btnGhost, textDecoration: 'none', display: 'inline-flex', alignItems: 'center', gap: 6 }}><BadgeCheck size={14} /> Pre-qualification</Link>}
           <div role="group" aria-label="Layout" style={{ display: 'inline-flex', overflow: 'hidden', borderRadius: 8, border: `1px solid ${colors.tint(0.22)}` }}>{seg('table', Table2, 'Table')}{seg('cards', LayoutGrid, 'Cards')}</div>
           {canWrite && <button type="button" style={btnPrimary} onClick={() => setModal({ kind: 'add' })}><Plus size={14} /> Add a vendor</button>}
         </div>

@@ -3,7 +3,7 @@ import { ClipboardCheck } from 'lucide-react';
 import { errMsg } from '../../../../_shared/store/helpers/apiState';
 import { vendorPrequalificationsAPI } from '../../../../_shared/api/index';
 import { TextInput, SelectInput } from '../../../../core/components/admin/ui/Form';
-import { AdminPage, Heading, Loading, Empty, Table, StatusBadge, ErrorBanner } from '../../../components/procurement/ui';
+import { AdminPage, Crumbs, Heading, Loading, Empty, Table, StatusBadge, ErrorBanner } from '../../../components/procurement/ui';
 import { td, fmtLongDate, CATEGORY_LABELS } from '../../../components/procurement/format';
 
 export default function VendorPqList() {
@@ -25,7 +25,8 @@ export default function VendorPqList() {
 
   return (
     <AdminPage>
-      <Heading title="Pre-qualification" description="Who is pre-qualified, for what, and until when. Decisions are made offline and recorded on the vendor (Purchases, Vendors, Pre-qualification)." />
+      <Crumbs items={[{ label: 'Vendors', to: '/admin/vendors' }, { label: 'Pre-qualification' }]} />
+      <Heading title="Pre-qualification" description="Who is pre-qualified, for what, and until when. Decisions are made offline and recorded on the vendor (Vendors, then the vendor's Pre-qualification tab)." />
       <div style={{ display: 'flex', gap: 10, marginBottom: 14, flexWrap: 'wrap' }}>
         <TextInput value={search} onChange={e => setSearch(e.target.value)} placeholder="Search vendor" aria-label="Search vendor" style={{ maxWidth: 240 }} />
         <SelectInput value={category} onChange={e => setCategory(e.target.value)} aria-label="Category" style={{ maxWidth: 170 }}>

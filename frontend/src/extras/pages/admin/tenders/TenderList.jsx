@@ -5,7 +5,7 @@ import { tendersAPI } from '../../../../_shared/api/index';
 import { btnPrimary } from '../../../../_shared/theme/tokens';
 import { TextInput, SelectInput } from '../../../../core/components/admin/ui/Form';
 import { errMsg } from '../../../../_shared/store/helpers/apiState';
-import { AdminPage, Heading, Loading, Empty, Table, StatusBadge, GroupBadge, ErrorBanner } from '../../../components/procurement/ui';
+import { AdminPage, Crumbs, Heading, Loading, Empty, Table, StatusBadge, GroupBadge, ErrorBanner } from '../../../components/procurement/ui';
 import { td, mono, linkStyle, fmtDateTime, NOTICE_TYPE_LABELS } from '../../../components/procurement/format';
 
 const WHO = { public: 'Public', all_vendors: 'Vendors', prequalified: 'Pre-qualified', invited: 'Invited' };
@@ -31,6 +31,7 @@ export default function TenderList() {
 
   return (
     <AdminPage>
+      <Crumbs items={[{ label: 'Vendors', to: '/admin/vendors' }, { label: 'Tenders' }]} />
       <Heading title="Tenders" description="Notices and documents shown to the public or to vendors. You write the tender elsewhere and upload it here; bidding and awards happen offline."
         action={<Link to="/admin/tenders/new" style={{ ...btnPrimary, textDecoration: 'none' }}><Plus size={14} /> New tender</Link>} />
 

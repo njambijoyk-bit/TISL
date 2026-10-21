@@ -103,8 +103,6 @@ export const ADMIN_NAV = [
         tabs: [
           { title: 'Purchases', path: '/admin/purchases', exact: true, perm: 'books.view' },
           { title: 'Vendors', path: '/admin/vendors', perm: 'vendors.view' },
-          { title: 'Tenders', path: '/admin/tenders', perm: 'tenders.view', module: MODULES.EXTRAS },
-          { title: 'Pre-qualification', path: '/admin/prequalification/submissions', perm: 'prequalification.view', module: MODULES.EXTRAS },
           { title: 'Opening stock', path: '/admin/stock/opening', perm: 'books.view' },
           { title: 'Expiring stock', path: '/admin/stock/expiry', perm: 'stock.view' },
           { title: 'Held stock', path: '/admin/stock/held', perm: 'stock.view', module: MODULES.ECOMMERCE },

@@ -6,7 +6,7 @@ import { tendersAPI, vendorsAPI } from '../../../../_shared/api/index';
 import { errMsg } from '../../../../_shared/store/helpers/apiState';
 import { btnPrimary, btnGhost, card, colors } from '../../../../_shared/theme/tokens';
 import { Field, TextInput, SelectInput, CheckboxRow } from '../../../../core/components/admin/ui/Form';
-import { AdminPage, Loading, Empty, Tabs, StatusBadge, NoticeDetails, AttachmentRow, GroupBadge, ErrorBanner } from '../../../components/procurement/ui';
+import { AdminPage, Crumbs, Loading, Empty, Tabs, StatusBadge, NoticeDetails, AttachmentRow, GroupBadge, ErrorBanner } from '../../../components/procurement/ui';
 import { mono, fmtDateTime, DOC_TYPE_LABELS, GROUP_LABELS, VISIBILITY_LABELS } from '../../../components/procurement/format';
 import { goToFile } from '../../../components/procurement/openDocument';
 import { AddendaPanel, AwardPanel } from './TenderAddendaAward';
@@ -208,7 +208,7 @@ export default function TenderDetail() {
 
   return (
     <AdminPage width={1000}>
-      <Link to="/admin/tenders" style={{ ...btnGhost, textDecoration: 'none', marginBottom: 16, padding: '5px 12px', fontSize: '0.75rem' }}><ArrowLeft size={13} /> Tenders</Link>
+      <Crumbs items={[{ label: 'Vendors', to: '/admin/vendors' }, { label: 'Tenders', to: '/admin/tenders' }, { label: tender.tender_number || tender.title }]} />
 
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', gap: 16, flexWrap: 'wrap', marginBottom: 20 }}>
         <div style={{ minWidth: 0, flex: '1 1 340px' }}>

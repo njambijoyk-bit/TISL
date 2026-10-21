@@ -6,7 +6,7 @@ import { tendersAPI } from '../../../../_shared/api/index';
 import { btnPrimary, btnGhost, card, colors } from '../../../../_shared/theme/tokens';
 import { Field, TextInput, NumberInput, SelectInput, TextArea, CheckboxRow } from '../../../../core/components/admin/ui/Form';
 import { errMsg } from '../../../../_shared/store/helpers/apiState';
-import { AdminPage, Heading, Loading, ErrorBanner } from '../../../components/procurement/ui';
+import { AdminPage, Crumbs, Heading, Loading, ErrorBanner } from '../../../components/procurement/ui';
 import { METHOD_LABELS, SUBMISSION_LABELS, GROUP_LABELS, VISIBILITY_LABELS, NOTICE_TYPE_LABELS } from '../../../components/procurement/format';
 
 const BLANK = {
@@ -75,7 +75,7 @@ export default function TenderForm() {
 
   return (
     <AdminPage width={760}>
-      <Link to={isEdit ? `/admin/tenders/${id}` : '/admin/tenders'} style={{ ...btnGhost, textDecoration: 'none', marginBottom: 16, padding: '5px 12px', fontSize: '0.75rem' }}><ArrowLeft size={13} /> Back</Link>
+      <Crumbs items={[{ label: 'Vendors', to: '/admin/vendors' }, { label: 'Tenders', to: '/admin/tenders' }, ...(isEdit ? [{ label: 'Tender', to: `/admin/tenders/${id}` }] : []), { label: isEdit ? 'Edit' : 'New tender' }]} />
       <Heading title={isEdit ? 'Edit tender' : 'New tender'} description="Fill in the notice. Upload the tender document and other files on the next page. It stays a draft until you publish it." />
 
       <ErrorBanner message={formError} />

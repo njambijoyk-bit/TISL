@@ -74,6 +74,21 @@ export function AdminPage({ width, children }) {
   return <AdminLayout><Page width={width}>{children}</Page></AdminLayout>;
 }
 
+/** Where you are, with a way back: items are [{ label, to? }], the last one is the current page. Used by the pages reached from Vendors. */
+export function Crumbs({ items }) {
+  return (
+    <nav aria-label="Breadcrumb" style={{ display: 'flex', alignItems: 'center', flexWrap: 'wrap', gap: 6, fontSize: '0.78rem', marginBottom: 14, color: colors.textFaint }}>
+      {items.map((it, i) => (
+        <span key={i} style={{ display: 'inline-flex', alignItems: 'center', gap: 6, minWidth: 0 }}>
+          {it.to ? <Link to={it.to} style={{ color: colors.primary, fontWeight: 600, textDecoration: 'none' }}>{it.label}</Link>
+            : <span aria-current="page" style={{ color: colors.text, fontWeight: 500, overflowWrap: 'anywhere' }}>{it.label}</span>}
+          {i < items.length - 1 && <span aria-hidden="true">/</span>}
+        </span>
+      ))}
+    </nav>
+  );
+}
+
 export function Heading({ title, description, action }) {
   return (
     <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', gap: 16, marginBottom: 20, flexWrap: 'wrap' }}>
