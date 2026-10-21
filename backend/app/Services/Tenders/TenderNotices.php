@@ -19,7 +19,7 @@ class TenderNotices
 
     /**
      * The vendors who should hear about this tender: active vendors with a login; for a pre-qualified-only tender those currently pre-qualified for its category;
-     * for an invited tender those invited; and when the tender (or every lot of it) is reserved to a people category, only vendors in one of those categories.
+     * for an invited tender those invited; and when the preference and reservation scheme is on and the tender (or every lot of it) is reserved to people groups, only vendors in one of those groups.
      */
     public function eligibleVendors(Tender $tender): Collection
     {
@@ -31,13 +31,8 @@ class TenderNotices
             $q->whereHas('prequalifications', fn ($p) => $p->current()->where('category', $tender->category));
         }
 
-        $lots = $tender->lots()->get();
-        $groups = $tender->reservation_groups;
-        // reserved only when nothing in it is open to everyone: the tender itself, or every one of its lots
-        if (! $groups && $lots->isNotEmpty() && $lots->every(fn ($l) => $l->reservation_group)) {
-            $groups = $lots->pluck('reservation_group')->unique()->all();
-        }
-        if ($groups) {
+        // with the preference and reservation scheme on, only vendors in one of the groups (confirmed by staff, certificate not expired) are told
+        if ($groups = $tender->restrictingGroups()) {
             $q->inConfirmedGroup($groups);
         }
 
@@ -52,7 +47,7 @@ class TenderNotices
         $title = ($isAddendum ? 'Addendum to tender: ' : 'New tender: ') . $tender->title;
         $closes = $tender->submission_deadline ? $tender->submission_deadline->format('j M Y, H:i') : null;
         $message = trim(($tender->tender_number ? $tender->tender_number . '. ' : '') . ($closes ? "Closes {$closes}. " : '') . ($note ? $note : ''));
-        $path = $tender->visibility === 'public' ? "/tenders/{$tender->slug}" : "/vendor-portal/tenders/{$tender->slug}";
+        $path = ($tender->visibility === 'public' && ! $tender->restrictingGroups()) ? "/tenders/{$tender->slug}" : "/vendor-portal/tenders/{$tender->slug}";
 
         $users = User::whereIn('id', $this->eligibleVendors($tender)->pluck('user_id'))->get();
         foreach ($users as $user) {

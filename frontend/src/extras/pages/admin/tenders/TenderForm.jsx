@@ -117,7 +117,7 @@ export default function TenderForm() {
           </Field>
         </div>
         <div style={row2}>
-          <Field label="Reserved for (the whole tender)" hint="Tick every group it is reserved for. A vendor in any one of them qualifies. None ticked = open to everyone. To reserve only some lots, use the lots below" error={err('reservation_groups')}>
+          <Field label="Reserved for (the whole tender)" hint="Tick every group it is reserved for; a vendor in any one of them qualifies. None ticked = no group. Whether it keeps others out depends on the scheme tick below. To reserve only some lots, use the lots below" error={err('reservation_groups')}>
             <div style={{ display: 'flex', gap: '6px 18px', flexWrap: 'wrap', paddingTop: 4 }}>
               {Object.entries(GROUP_LABELS).map(([k, v]) => (
                 <CheckboxRow key={k} label={v} checked={form.reservation_groups.includes(k)}
@@ -127,7 +127,7 @@ export default function TenderForm() {
           </Field>
           <Field label="Financial year" hint="e.g. 2026/2027" error={err('financial_year')}><TextInput value={form.financial_year} onChange={set('financial_year')} placeholder="2026/2027" error={err('financial_year')} /></Field>
         </div>
-        <CheckboxRow checked={form.has_preference_scheme} onChange={(v) => setForm(f => ({ ...f, has_preference_scheme: v }))} label="Preference and reservation scheme applies" />
+        <CheckboxRow checked={form.has_preference_scheme} onChange={(v) => setForm(f => ({ ...f, has_preference_scheme: v }))} label="Preference and reservation scheme applies" description="Ticked with a people group chosen: ONLY vendors in one of those groups (confirmed by staff, certificate valid) can see this tender, and it is hidden from the public site. Not ticked: everyone sees it and the groups are just shown." />
         <Field label="Opening venue" error={err('opening_venue')}><TextInput value={form.opening_venue} onChange={set('opening_venue')} error={err('opening_venue')} /></Field>
         <div style={row2}>
           <Field label="Tender fee (KES)" hint="0 = free" error={err('tender_fee')}><NumberInput value={form.tender_fee} onChange={set('tender_fee')} error={err('tender_fee')} /></Field>

@@ -165,11 +165,59 @@ class Tender extends Model
         return $query->whereRaw("REPLACE(REPLACE(tender_number, '/', '-'), ' ', '-') = ?", [$slug]);
     }
 
+    /**
+     * The people groups that LIMIT who may see this tender: only when "Preference and reservation scheme" is YES. They are the groups the whole tender is reserved for,
+     * or, when every lot is reserved, the groups of the lots. With the scheme set to NO the groups are only shown and nobody is kept out. Empty = open to everyone.
+     */
+    public function restrictingGroups(): array
+    {
+        if (! $this->has_preference_scheme) {
+            return [];
+        }
+        $groups = $this->reservation_groups;
+        if (! $groups) {
+            $lots = $this->relationLoaded('lots') ? $this->lots : $this->lots()->get();
+            if ($lots->isNotEmpty() && $lots->every(fn ($l) => $l->reservation_group)) {
+                $groups = $lots->pluck('reservation_group')->unique()->values()->all();
+            }
+        }
+
+        return $groups;
+    }
+
+    /** SQL side of restrictingGroups(): tenders the preference scheme limits to some group. */
+    private static function restrictedSql(): string
+    {
+        return "(has_preference_scheme = 1 AND ((reservation_scheme IS NOT NULL AND reservation_scheme <> '')
+                 OR (EXISTS (SELECT 1 FROM tender_lots l WHERE l.tender_id = tenders.id)
+                     AND NOT EXISTS (SELECT 1 FROM tender_lots l2 WHERE l2.tender_id = tenders.id AND (l2.reservation_group IS NULL OR l2.reservation_group = '')))))";
+    }
+
+    /** Tenders nobody is kept out of: no group limit applies. The public website sees only these (a customer belongs to no people group). */
+    public function scopeNotGroupRestricted($query)
+    {
+        return $query->whereRaw('NOT ' . self::restrictedSql());
+    }
+
+    /** Tenders this vendor is not kept out of by a group limit: unrestricted ones, and restricted ones where their confirmed, unexpired people category is among the groups. */
+    public function scopeGroupAllowedFor($query, Vendor $vendor)
+    {
+        $group = ($vendor->special_group_status === 'confirmed' && $vendor->special_group && (! $vendor->special_group_valid_until || ! $vendor->special_group_valid_until->isPast())) ? $vendor->special_group : null;
+
+        return $query->where(function ($q) use ($group) {
+            $q->whereRaw('NOT ' . self::restrictedSql());
+            if ($group) {
+                $q->orWhereRaw('(FIND_IN_SET(?, reservation_scheme) > 0 OR EXISTS (SELECT 1 FROM tender_lots l3 WHERE l3.tender_id = tenders.id AND l3.reservation_group = ?))', [$group, $group]);
+            }
+        });
+    }
+
     /** What the public website may list: published, closed, awarded and terminated notices that are marked Public. Never drafts, never restricted ones. */
     public function scopePublicNotice($query)
     {
         return $query->whereIn('status', ['published', 'closed', 'awarded', 'cancelled'])
-            ->where('visibility', 'public');
+            ->where('visibility', 'public')
+            ->notGroupRestricted();
     }
 
     /** The tabs of the tender list. 'restricted' is only used for a signed-in vendor (see scopeVisibleTo). */
@@ -207,6 +255,7 @@ class Tender extends Model
     public function scopeVisibleTo($query, Vendor $vendor)
     {
         return $query->whereIn('status', ['published', 'closed', 'awarded', 'cancelled'])
+            ->groupAllowedFor($vendor)
             ->where(function ($q) use ($vendor) {
                 $q->whereIn('visibility', ['public', 'all_vendors'])
                   ->orWhere(function ($q2) use ($vendor) {

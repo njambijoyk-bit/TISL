@@ -182,6 +182,12 @@ Also check: opening a vendor-only file link from the portal works for those vend
 5. Tender reserved for Youth > Vendors and email. **Expect:** the vendor is counted only after step 4. A vendor who changes their category, certificate number or expiry, or re-uploads the scan, goes back to "waiting for staff to confirm".
 6. If staff type a people category in themselves (Vendors > Edit), it counts as confirmed.
 
+### 4.7f Preference and reservation scheme as a filter
+1. Tender T5 reserved for Youth with **Preference and reservation scheme** ticked, published, visibility Public. **Expect:** it is **not** on the public `/tenders` list and its address gives "not available" to a customer. A confirmed youth vendor sees it in the vendor portal; other vendors do not. Only those youth vendors are counted for "Email eligible vendors".
+2. Untick the scheme and save. **Expect:** everyone sees it again, with the Youth label shown; emails follow the visibility rule only.
+3. A youth vendor whose certificate expiry has passed, or who is not yet confirmed, does not qualify for a ticked tender.
+4. With the scheme ticked and every lot reserved (no open lot), the lots' groups limit it the same way; one open lot lifts the limit.
+
 ### 4.8 Module gating (the key licensing test)
 1. Switch **Extras off** in Module Center and refresh.
 2. **Expect:** `/vendor-register`, `/vendor-portal/*`, `/admin/tenders*`, `/admin/prequalification/*`, `/tenders*` redirect away; the API routes return 404.

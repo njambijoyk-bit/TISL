@@ -277,6 +277,7 @@ class Vendor extends Model
     /** Every active vendor in these people categories whose category staff have confirmed. */
     public function scopeInConfirmedGroup($query, $groups)
     {
-        return $query->whereIn('special_group', (array) $groups)->where('special_group_status', 'confirmed');
+        return $query->whereIn('special_group', (array) $groups)->where('special_group_status', 'confirmed')
+            ->where(fn ($q) => $q->whereNull('special_group_valid_until')->orWhere('special_group_valid_until', '>=', now()->toDateString()));
     }
 }
