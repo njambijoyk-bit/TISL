@@ -10,6 +10,7 @@ import SettingsLayout from '../../../../_shared/components/layout/SettingsLayout
 import usePromoCodeStore from '../../../../_shared/store/promoCodeStore';
 import promoCodesAPI from '../../../../_shared/api/promoCodes';
 import toast from 'react-hot-toast';
+import { notifyRecordsChanged } from '../../../../_shared/components/common/recordEvents';
 import useCalculatorContext from '../../../../_shared/hooks/useCalculatorContext';
 import { format } from 'date-fns';
 
@@ -133,6 +134,7 @@ export default function PromoCodeDetail() {
   const [code,    setCode]    = useState(null);
   const [loading, setLoading] = useState(true);
   const [actLoading, setActLoading] = useState(null);
+  useEffect(() => { if (code) notifyRecordsChanged(); }, [code]);
 
   const [redemptions, setRedemptions] = useState([]);
   const [baseCur, setBaseCur] = useState('');   // the totals are in the base currency

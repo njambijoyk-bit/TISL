@@ -10,6 +10,7 @@ import useReferralsStore from '../../../../_shared/store/referralsStore';
 import referralsAPI from '../../../../_shared/api/referrals';
 import SettingsLayout from '../../../../_shared/components/layout/SettingsLayout';
 import toast from 'react-hot-toast';
+import { notifyRecordsChanged } from '../../../../_shared/components/common/recordEvents';
 
 // ── Constants ─────────────────────────────────────────────────────────────────
 
@@ -210,6 +211,7 @@ export default function ReferralDetail() {
   const [formData,  setFormData]  = useState({});
   const [usagePage, setUsagePage] = useState(1);
   const [usageData, setUsageData] = useState(null);
+  useEffect(() => { if (currentCode) notifyRecordsChanged(); }, [currentCode]);
 
   useEffect(() => {
     fetchCodeById(id);

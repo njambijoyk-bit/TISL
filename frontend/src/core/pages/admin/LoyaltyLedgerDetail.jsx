@@ -5,6 +5,7 @@ import {
   ChevronLeft, ChevronRight, Loader2, X, Check, AlertCircle,
 } from 'lucide-react';
 import loyaltyAPI from '../../../_shared/api/loyalty';
+import { notifyRecordsChanged } from '../../../_shared/components/common/recordEvents';
 import customerTiersAPI from '../../../_shared/api/customerTiers';
 import { useAuthStore } from '../../../_shared/store/index';
 
@@ -413,6 +414,7 @@ export default function LoyaltyLedgerDetail() {
   const [txLoading, setTxLoading] = useState(false);
   const [modal,     setModal]     = useState(null); // 'grant-points'|'deduct-points'|'grant-credit'|'deduct-credit'|'redeem'
   const [toast,     setToast]     = useState(null);
+  useEffect(() => { if (customer) notifyRecordsChanged(); }, [customer]);
 
   const [tierOptions, setTierOptions] = useState([]);
   useEffect(() => { customerTiersAPI.getActiveTiers().then(setTierOptions).catch(() => {}); }, []);

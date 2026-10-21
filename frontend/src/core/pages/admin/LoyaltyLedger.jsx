@@ -6,6 +6,8 @@ import {
 } from 'lucide-react';
 import SettingsLayout from '../../../_shared/components/layout/SettingsLayout';
 import loyaltyAPI from '../../../_shared/api/loyalty';
+import ViewToggle from '../../../_shared/components/common/ViewToggle';
+import { useViewMode } from '../../../_shared/components/common/viewMode';
 import customerTiersAPI from '../../../_shared/api/customerTiers';
 import { useAuthStore } from '../../../_shared/store/index';
 import { hasPermission } from '../../../_shared/lib/roles';
@@ -331,10 +333,43 @@ function LoyaltyDevNotesModal({ onClose }) {
   );
 }
 
+// ── Card view: everything the table shows, in one card ───────────────────────
+const cardLabel = { fontSize: '0.6rem', textTransform: 'uppercase', letterSpacing: '0.08em', color: 'var(--text-tertiary)', fontWeight: 700, margin: 0 };
+
+function LoyaltyCard({ c, tierOptions, navigate }) {
+  const initials = `${c.first_name?.[0] ?? ''}${c.last_name?.[0] ?? ''}`.toUpperCase();
+  const pts = Number(c.loyalty_points) > 0;
+  const cred = Number(c.store_credit) > 0;
+  return (
+    <div style={{ ...card, padding: '18px 18px 16px', display: 'flex', flexDirection: 'column', gap: 14, minWidth: 0 }}>
+      <div style={{ display: 'flex', gap: 12, alignItems: 'center', minWidth: 0 }}>
+        {c.profile_image_url
+          ? <img src={c.profile_image_url} alt="" style={{ width: 46, height: 46, borderRadius: '50%', objectFit: 'cover', flexShrink: 0 }} />
+          : <div style={{ width: 46, height: 46, borderRadius: '50%', flexShrink: 0, background: 'linear-gradient(135deg,var(--color-primary-500),var(--color-primary-600))', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '0.85rem', fontWeight: 700, color: 'white' }}>{initials || '?'}</div>}
+        <div style={{ flex: 1, minWidth: 0 }}>
+          <p style={{ fontSize: '0.95rem', fontWeight: 700, color: 'var(--text-primary)', margin: 0, overflowWrap: 'anywhere' }}>{c.first_name} {c.last_name}</p>
+          <p style={{ fontSize: '0.7rem', color: 'var(--text-tertiary)', margin: '2px 0 0', fontFamily: 'monospace' }}>{c.customer_number}</p>
+        </div>
+        <TierBadge tier={c.tier} tierOptions={tierOptions} />
+      </div>
+      <div style={{ borderTop: '1px solid var(--line)', paddingTop: 14, display: 'grid', gridTemplateColumns: 'repeat(2, minmax(0, 1fr))', rowGap: 14, columnGap: 12 }}>
+        <div><p style={cardLabel}>Loyalty points</p><p style={{ fontSize: '0.95rem', fontWeight: 700, margin: '3px 0 0', display: 'flex', alignItems: 'center', gap: 6, color: pts ? 'var(--text-primary)' : 'var(--text-tertiary)' }}><Coins size={14} style={{ color: pts ? 'var(--color-primary-500)' : 'var(--text-tertiary)' }} />{fmtPts(c.loyalty_points)}</p></div>
+        <div><p style={cardLabel}>Gift voucher</p><p style={{ fontSize: '0.95rem', fontWeight: 700, margin: '3px 0 0', color: cred ? '#059669' : 'var(--text-tertiary)' }}>{fmtKes(c.store_credit)}</p></div>
+        <div><p style={cardLabel}>Orders</p><p style={{ fontSize: '0.88rem', fontWeight: 600, margin: '3px 0 0', color: 'var(--text-primary)' }}>{c.total_orders ?? 0}</p></div>
+        <div><p style={cardLabel}>Last order</p><p style={{ fontSize: '0.82rem', margin: '3px 0 0', color: c.last_order_date ? 'var(--text-primary)' : 'var(--text-tertiary)' }}>{fmtDate(c.last_order_date)}</p></div>
+      </div>
+      <div style={{ borderTop: '1px solid var(--line)', paddingTop: 14, marginTop: 'auto' }}>
+        <button type="button" onClick={() => navigate(`/admin/loyalty/${c.id}`)} style={{ padding: '7px 16px', borderRadius: 8, cursor: 'pointer', fontFamily: 'inherit', fontSize: '0.8rem', fontWeight: 600, color: 'var(--text-primary)', background: 'var(--surface-input)', border: '1.5px solid var(--line)' }}>View</button>
+      </div>
+    </div>
+  );
+}
+
 // ── Main ──────────────────────────────────────────────────────────────────────
 
 export default function LoyaltyLedger() {
   const navigate   = useNavigate();
+  const [view, setView] = useViewMode('loyalty');
   const { user }   = useAuthStore();
 
   const [data,     setData]     = useState(null);
@@ -484,8 +519,20 @@ export default function LoyaltyLedger() {
         </button>
       </div>
 
-      {/* Table */}
-      <div style={{ ...card, overflow: 'hidden' }}>
+      {/* Layout switch (F3) */}
+      <div style={{ display: 'flex', justifyContent: 'flex-end', margin: '-8px 0 -8px' }}><ViewToggle view={view} setView={setView} /></div>
+
+      {/* Table or cards */}
+      <div style={view === 'cards' ? undefined : { ...card, overflow: 'hidden' }}>
+        {view === 'cards' ? (
+          loading ? <p style={{ padding: 24, color: 'var(--text-tertiary)', fontSize: '0.85rem' }}>Loading…</p> : customers.length === 0 ? (
+            <div style={{ ...card, padding: 48, textAlign: 'center', color: 'var(--text-tertiary)', fontSize: '0.85rem' }}>No customers found</div>
+          ) : (
+            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(min(100%, 320px), 1fr))', gap: 16, alignItems: 'stretch' }}>
+              {customers.map((c) => <LoyaltyCard key={c.id} c={c} tierOptions={tierOptions} navigate={navigate} />)}
+            </div>
+          )
+        ) : (
         <table style={{ width: '100%', borderCollapse: 'collapse' }}>
           <thead>
             <tr style={{ borderBottom: '1px solid var(--line)', background: 'var(--surface-card, #fff)' }}>
@@ -594,6 +641,7 @@ export default function LoyaltyLedger() {
             })}
           </tbody>
         </table>
+        )}
 
         {/* Pagination */}
         {!loading && customers.length > 0 && meta.last_page > 1 && (

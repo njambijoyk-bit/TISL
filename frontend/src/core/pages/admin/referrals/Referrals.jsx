@@ -1,4 +1,6 @@
 import ReferralSettingsModal from './ReferralSettingsModal';
+import ViewToggle from '../../../../_shared/components/common/ViewToggle';
+import { useViewMode } from '../../../../_shared/components/common/viewMode';
 import { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import {
@@ -556,8 +558,39 @@ function ReferralDevNotesModal({ onClose }) {
 
 // ── Main component ────────────────────────────────────────────────────────────
 
+// ── Card view: everything the table shows, in one card ───────────────────────
+const cardLabel = { fontSize: '0.6rem', textTransform: 'uppercase', letterSpacing: '0.08em', color: 'var(--text-tertiary)', fontWeight: 700, margin: 0 };
+
+function ReferralCard({ code, navigate, actions, baseCurrency, codeCur, rewardStr }) {
+  const tm = TYPE_META[code.type] ?? { label: code.type, color: 'var(--text-secondary)', bg: 'rgba(107,114,128,0.1)', ring: 'rgba(107,114,128,0.2)' };
+  const sm = STATUS_STYLES[code.status] ?? STATUS_STYLES.draft;
+  return (
+    <div style={{ ...card, padding: '18px 18px 16px', display: 'flex', flexDirection: 'column', gap: 14, minWidth: 0 }}>
+      <div style={{ display: 'flex', justifyContent: 'space-between', gap: 10, alignItems: 'flex-start' }}>
+        <div style={{ minWidth: 0 }}>
+          <p style={{ fontSize: '0.95rem', fontWeight: 600, color: 'var(--text-primary)', margin: '0 0 6px', overflowWrap: 'anywhere' }}>{code.name}</p>
+          <CopyCode code={code.code} />
+        </div>
+        <Badge bg={sm.bg} color={sm.color} ring={sm.ring}><span style={{ width: 5, height: 5, borderRadius: '50%', background: sm.dot, flexShrink: 0 }} />{code.status}</Badge>
+      </div>
+      <div><Badge bg={tm.bg} color={tm.color} ring={tm.ring}>{tm.label}</Badge></div>
+      <div style={{ borderTop: '1px solid var(--line)', paddingTop: 14, display: 'grid', gridTemplateColumns: 'repeat(2, minmax(0, 1fr))', rowGap: 14, columnGap: 12 }}>
+        <div><p style={cardLabel}>Reward</p><p style={{ fontSize: '0.88rem', fontWeight: 700, margin: '3px 0 0', color: 'var(--text-primary)' }}>{rewardStr(code)}</p>{code.min_order_value > 0 && <p style={{ fontSize: '0.68rem', color: 'var(--text-tertiary)', margin: '2px 0 0' }}>min. {fmt(code.min_order_value, codeCur(code))}</p>}</div>
+        <div><p style={cardLabel}>Expires</p><p style={{ fontSize: '0.82rem', margin: '3px 0 0', color: code.valid_until ? 'var(--text-primary)' : 'var(--text-tertiary)' }}>{fmtDate(code.valid_until)}</p></div>
+        <div><p style={cardLabel}>Uses</p><p style={{ fontSize: '0.88rem', fontWeight: 700, margin: '3px 0 0', color: 'var(--text-primary)' }}>{(code.times_used ?? 0).toLocaleString()}{code.max_uses ? <span style={{ fontSize: '0.75rem', fontWeight: 400, color: 'var(--text-tertiary)' }}> / {code.max_uses.toLocaleString()}</span> : null}</p></div>
+        <div><p style={cardLabel}>Revenue</p><p style={{ fontSize: '0.88rem', fontWeight: 700, margin: '3px 0 0', color: 'var(--text-primary)' }}>{fmt(code.total_revenue, baseCurrency)}</p></div>
+      </div>
+      <div style={{ borderTop: '1px solid var(--line)', paddingTop: 14, marginTop: 'auto', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+        <button type="button" onClick={() => navigate(`/admin/referrals/${code.id}`)} style={{ padding: '7px 16px', borderRadius: 8, cursor: 'pointer', fontFamily: 'inherit', fontSize: '0.8rem', fontWeight: 600, color: 'var(--text-primary)', background: 'var(--surface-input)', border: '1.5px solid var(--line)' }}>View</button>
+        {actions}
+      </div>
+    </div>
+  );
+}
+
 export default function Referrals() {
   const navigate = useNavigate();
+  const [view, setView] = useViewMode('referrals');
   const {
     codes, statistics, pagination, filters, loading,
     fetchCodes, fetchStatistics, setFilter, resetFilters,
@@ -839,8 +872,23 @@ export default function Referrals() {
         )}
       </div>
 
-      {/* ── Table ── */}
-      <div style={{ ...card, overflow: 'hidden' }}>
+      {/* ── Layout switch (F3) ── */}
+      <div style={{ display: 'flex', justifyContent: 'flex-end', margin: '-12px 0 -12px' }}><ViewToggle view={view} setView={setView} /></div>
+
+      {/* ── Table or cards ── */}
+      <div style={view === 'cards' ? undefined : { ...card, overflow: 'hidden' }}>
+        {view === 'cards' ? (
+          loading ? <p style={{ padding: 24, color: 'var(--text-tertiary)', fontSize: '0.85rem' }}>Loading…</p> : codes.length === 0 ? (
+            <div style={{ ...card, padding: 48, textAlign: 'center', color: 'var(--text-tertiary)', fontSize: '0.85rem' }}>No referral codes found</div>
+          ) : (
+            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(min(100%, 340px), 1fr))', gap: 16, alignItems: 'stretch' }}>
+              {codes.map((code) => (
+                <ReferralCard key={code.id} code={code} navigate={navigate} codeCur={codeCur} rewardStr={rewardStr} baseCurrency={statistics?.base_currency}
+                  actions={<ActionMenu code={code} onView={() => navigate(`/admin/referrals/${code.id}`)} onActivate={() => handleActivate(code.id)} onPause={() => handlePause(code.id)} onArchive={() => handleArchive(code.id)} onDelete={() => handleDelete(code.id)} />} />
+              ))}
+            </div>
+          )
+        ) : (
         <div style={{ overflowX: 'auto' }}>
           <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '0.82rem' }}>
             <thead>
@@ -974,6 +1022,7 @@ export default function Referrals() {
             </tbody>
           </table>
         </div>
+        )}
 
         {/* ── Pagination ── */}
         {!loading && codes.length > 0 && pagination.last_page > 1 && (

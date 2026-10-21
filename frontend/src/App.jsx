@@ -1543,7 +1543,7 @@ function App() {
                 path="/admin/referrals/:id"
                 element={
                   <ProtectedRoute requireAdmin permission="promos.manage">
-                    <ReferralDetail />
+                    <RecordSidebar kind="referrals"><ReferralDetail /></RecordSidebar>
                   </ProtectedRoute>
                 }
               />
@@ -1559,7 +1559,7 @@ function App() {
                 path="/admin/promo-codes/:id"
                 element={
                   <ProtectedRoute requireAdmin permission="promos.manage">
-                    <PromoCodeDetail />
+                    <RecordSidebar kind="promos"><PromoCodeDetail /></RecordSidebar>
                   </ProtectedRoute>
                 }
               />
@@ -1586,7 +1586,7 @@ function App() {
                 path="/admin/loyalty/:customerId"
                 element={
                   <ProtectedRoute requireAdmin permission="customers.view">
-                    <LoyaltyLedgerDetail />
+                    <RecordSidebar kind="loyalty" param="customerId"><LoyaltyLedgerDetail /></RecordSidebar>
                   </ProtectedRoute>
                 }
               />

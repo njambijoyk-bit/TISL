@@ -3,6 +3,9 @@ import { useNavigate, useParams, useLocation } from 'react-router-dom';
 import customersAPI from '../../api/customers';
 import employeesAPI from '../../api/employees';
 import usersAPI from '../../api/users';
+import loyaltyAPI from '../../api/loyalty';
+import promoCodesAPI from '../../api/promoCodes';
+import referralsAPI from '../../api/referrals';
 
 const KINDS = {
   customers: {
@@ -20,12 +23,29 @@ const KINDS = {
     load: (search) => employeesAPI.getEmployees({ per_page: 40, ...(search && { search }) }).then((d) => d.data ?? []),
     map: (e) => ({ id: e.id, name: e.full_name, sub: e.job_title || e.employee_number, status: e.status }),
   },
+  loyalty: {
+    path: '/admin/loyalty',
+    load: (search) => loyaltyAPI.index({ per_page: 40, sort: 'loyalty_points', dir: 'desc', ...(search && { search }) }).then((d) => d.data ?? []),
+    map: (c) => ({ id: c.id, name: `${c.first_name ?? ''} ${c.last_name ?? ''}`.trim(), sub: `${Number(c.loyalty_points ?? 0).toLocaleString()} pts` }),
+  },
+  promos: {
+    path: '/admin/promo-codes',
+    load: (search) => promoCodesAPI.getAll({ per_page: 40, ...(search && { search }) }).then((d) => d.data ?? []),
+    map: (c) => ({ id: c.id, name: c.name, sub: c.code, status: c.status }),
+  },
+  referrals: {
+    path: '/admin/referrals',
+    load: (search) => referralsAPI.getAll({ per_page: 40, ...(search && { search }) }).then((d) => d.data ?? []),
+    map: (c) => ({ id: c.id, name: c.name, sub: c.code, status: c.status }),
+  },
 };
 
 // the same colours as the status badges on each page
 const DOTS = {
   employees: { active: '#10b981', on_leave: '#f59e0b', probation: '#6366f1', suspended: '#ef4444', terminated: '#9ca3af' },
   customers: { active: '#10b981', inactive: '#9ca3af', suspended: '#f59e0b', blacklisted: '#ef4444' },
+  promos: { draft: '#9ca3af', active: '#10b981', paused: '#f59e0b', expired: '#ef4444', depleted: 'var(--color-primary-500)', archived: '#d1d5db' },
+  referrals: { draft: '#9ca3af', active: '#10b981', paused: '#f59e0b', expired: '#ef4444', depleted: 'var(--color-primary-500)', archived: '#d1d5db' },
   users: { active: '#10b981', inactive: '#9ca3af', suspended: '#ef4444', pending_verification: '#f59e0b' },
 };
 
@@ -33,9 +53,9 @@ const DOTS = {
  * Wraps a detail page with a short list of the other customers (or employees) beside it, so staff move between records without going back.
  * The list is hidden on a narrow screen, where the page's own back button does the job. Clicking a record keeps the tab you were on.
  */
-export default function RecordSidebar({ kind, children }) {
+export default function RecordSidebar({ kind, param = 'id', children }) {
   const cfg = KINDS[kind];
-  const { id } = useParams();
+  const id = useParams()[param];
   const navigate = useNavigate();
   const { search: qs } = useLocation();
   const [q, setQ] = useState('');

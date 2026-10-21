@@ -11,6 +11,8 @@ import SettingsLayout from '../../../../_shared/components/layout/SettingsLayout
 import toast from 'react-hot-toast';
 import useCalculatorContext from '../../../../_shared/hooks/useCalculatorContext';
 import CreatePromoModal from './CreatePromoModal';
+import ViewToggle from '../../../../_shared/components/common/ViewToggle';
+import { useViewMode } from '../../../../_shared/components/common/viewMode';
 
 // ── Constants ─────────────────────────────────────────────────────────────────
 
@@ -219,9 +221,57 @@ function SkeletonRow() {
 
 // ── Main component ────────────────────────────────────────────────────────────
 
+// ── Card view: everything the table shows, in one card ───────────────────────
+const cardLabel = { fontSize: '0.6rem', textTransform: 'uppercase', letterSpacing: '0.08em', color: 'var(--text-tertiary)', fontWeight: 700, margin: 0 };
+
+function PromoCard({ code, navigate, actions, codeCurrency, rewardStr }) {
+  const em = EVENT_META[code.event_type] ?? EVENT_META.general;
+  const sm = STATUS_STYLES[code.status] ?? STATUS_STYLES.draft;
+  const expiringSoon = code.valid_until && new Date(code.valid_until) < new Date(Date.now() + 7 * 86400000);
+  const none = <span style={{ fontSize: '0.78rem', color: 'var(--text-tertiary)' }}>—</span>;
+  return (
+    <div style={{ ...card, padding: '18px 18px 16px', display: 'flex', flexDirection: 'column', gap: 14, minWidth: 0 }}>
+      <div style={{ display: 'flex', justifyContent: 'space-between', gap: 10, alignItems: 'flex-start' }}>
+        <div style={{ minWidth: 0 }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 7, flexWrap: 'wrap', marginBottom: 6 }}>
+            <p style={{ fontSize: '0.95rem', fontWeight: 600, color: 'var(--text-primary)', margin: 0, overflowWrap: 'anywhere' }}>{code.name}</p>
+            {code.auto_generated && <span style={{ padding: '1px 6px', borderRadius: 6, fontSize: '0.6rem', fontWeight: 700, background: 'rgba(5,150,105,0.1)', color: '#065f46', border: '1px solid rgba(5,150,105,0.2)' }}>Auto</span>}
+          </div>
+          <CopyCode code={code.code} />
+        </div>
+        <Badge bg={sm.bg} color={sm.color} ring={sm.ring}><span style={{ width: 5, height: 5, borderRadius: '50%', background: sm.dot, flexShrink: 0 }} />{code.status}</Badge>
+      </div>
+      <div><Badge bg={em.bg} color={em.color} ring={em.ring}>{em.label}</Badge></div>
+      <div style={{ borderTop: '1px solid var(--line)', paddingTop: 14, display: 'grid', gridTemplateColumns: 'repeat(2, minmax(0, 1fr))', rowGap: 14, columnGap: 12 }}>
+        <div><p style={cardLabel}>Reward</p><p style={{ fontSize: '0.88rem', fontWeight: 700, margin: '3px 0 0', color: 'var(--text-primary)' }}>{rewardStr(code)}</p>{code.min_order_value > 0 && <p style={{ fontSize: '0.68rem', color: 'var(--text-tertiary)', margin: '2px 0 0' }}>min. {fmt(code.min_order_value, codeCurrency(code))}</p>}</div>
+        <div><p style={cardLabel}>Currency</p><p style={{ fontSize: '0.82rem', margin: '3px 0 0', fontFamily: 'monospace', color: 'var(--text-secondary)' }}>{code.reward_type === 'fixed_amount' || code.min_order_value > 0 ? codeCurrency(code) : '—'}</p></div>
+        <div><p style={cardLabel}>Target</p><p style={{ fontSize: '0.82rem', margin: '3px 0 0', color: 'var(--text-secondary)', overflowWrap: 'anywhere' }}>{code.target_customer ? (code.target_customer.full_name || code.target_customer.email) : 'Public'}</p></div>
+        <div>
+          <p style={cardLabel}>Expires</p>
+          {code.valid_until ? <p style={{ fontSize: '0.82rem', margin: '3px 0 0', color: expiringSoon ? '#b45309' : 'var(--text-primary)', fontWeight: expiringSoon ? 600 : 400 }}>{expiringSoon && '⚠ '}{fmtDate(code.valid_until)}</p> : <p style={{ fontSize: '0.78rem', margin: '3px 0 0', color: 'var(--text-tertiary)' }}>No expiry</p>}
+        </div>
+        <div style={{ gridColumn: '1 / -1' }}>
+          <p style={cardLabel}>Uses</p>
+          <p style={{ fontSize: '0.88rem', fontWeight: 700, margin: '3px 0 0', color: 'var(--text-primary)' }}>{(code.times_used ?? 0).toLocaleString()}{code.max_uses ? <span style={{ fontSize: '0.75rem', fontWeight: 400, color: 'var(--text-tertiary)' }}> / {code.max_uses.toLocaleString()}</span> : null}</p>
+          {code.max_uses ? (
+            <div style={{ height: 4, borderRadius: 99, background: 'color-mix(in srgb, var(--color-primary-500) 10%, transparent)', marginTop: 6, overflow: 'hidden' }}>
+              <div style={{ height: '100%', borderRadius: 99, width: `${Math.min((code.times_used / code.max_uses) * 100, 100)}%`, background: code.times_used >= code.max_uses ? '#ef4444' : 'linear-gradient(90deg,var(--color-primary-500),var(--color-primary-600))' }} />
+            </div>
+          ) : none}
+        </div>
+      </div>
+      <div style={{ borderTop: '1px solid var(--line)', paddingTop: 14, marginTop: 'auto', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+        <button type="button" onClick={() => navigate(`/admin/promo-codes/${code.id}`)} style={{ padding: '7px 16px', borderRadius: 8, cursor: 'pointer', fontFamily: 'inherit', fontSize: '0.8rem', fontWeight: 600, color: 'var(--text-primary)', background: 'var(--surface-input)', border: '1.5px solid var(--line)' }}>View</button>
+        {actions}
+      </div>
+    </div>
+  );
+}
+
 export default function PromoCodes() {
   useCalculatorContext({ type: 'promos' });   // Alt+C: how every code did, fixed against percentage
   const navigate = useNavigate();
+  const [view, setView] = useViewMode('promo-codes');
   const {
     codes, statistics, pagination, filters, loading,
     fetchCodes, fetchStatistics, setFilter, resetFilters,
@@ -481,8 +531,23 @@ export default function PromoCodes() {
         )}
       </div>
 
-      {/* ── Table ── */}
-      <div style={{ ...card, overflow: 'hidden' }}>
+      {/* ── Layout switch (F3) ── */}
+      <div style={{ display: 'flex', justifyContent: 'flex-end', margin: '-12px 0 -12px' }}><ViewToggle view={view} setView={setView} /></div>
+
+      {/* ── Table or cards ── */}
+      <div style={view === 'cards' ? undefined : { ...card, overflow: 'hidden' }}>
+        {view === 'cards' ? (
+          loading ? <p style={{ padding: 24, color: 'var(--text-tertiary)', fontSize: '0.85rem' }}>Loading…</p> : codes.length === 0 ? (
+            <div style={{ ...card, padding: 48, textAlign: 'center', color: 'var(--text-tertiary)', fontSize: '0.85rem' }}>No promo codes found</div>
+          ) : (
+            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(min(100%, 340px), 1fr))', gap: 16, alignItems: 'stretch' }}>
+              {codes.map((code) => (
+                <PromoCard key={code.id} code={code} navigate={navigate} codeCurrency={codeCurrency} rewardStr={rewardStr}
+                  actions={<ActionMenu code={code} onView={() => navigate(`/admin/promo-codes/${code.id}`)} onActivate={() => handleActivate(code.id)} onPause={() => handlePause(code.id)} onArchive={() => handleArchive(code.id)} onDelete={() => handleDelete(code.id)} />} />
+              ))}
+            </div>
+          )
+        ) : (
         <div style={{ overflowX: 'auto' }}>
           <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '0.82rem' }}>
             <thead>
@@ -655,6 +720,7 @@ export default function PromoCodes() {
             </tbody>
           </table>
         </div>
+        )}
 
         {/* ── Pagination ── */}
         {!loading && codes.length > 0 && pagination.last_page > 1 && (
