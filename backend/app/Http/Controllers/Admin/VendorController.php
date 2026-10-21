@@ -221,7 +221,7 @@ class VendorController extends Controller
         return [
             'id' => $v->id, 'vendor_number' => $v->vendor_number, 'company_name' => $v->company_name, 'contact_name' => $v->contact_name, 'email' => $v->email, 'phone' => $v->phone,
             'status' => $v->status, 'ledger_id' => $ledgerId ? (int) $ledgerId : null, 'owed' => $owed,
-            'flags' => $v->status === 'active' ? [] : app(\App\Services\Tenders\VendorChecks::class)->flags($v),
+            'flags' => app(\App\Services\Tenders\VendorChecks::class)->flags($v),
             'special_group' => $v->special_group, 'special_group_status' => $v->special_group_status, 'special_group_certificate' => $v->special_group_certificate, 'special_group_valid_until' => $v->special_group_valid_until?->toDateString(),
         ];
     }

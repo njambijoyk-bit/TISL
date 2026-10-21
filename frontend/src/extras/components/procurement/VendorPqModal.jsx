@@ -14,7 +14,7 @@ const BLANK = { category: 'goods', status: 'qualified', qualified_from: '', vali
  * Pre-qualification is decided offline; this is where staff record the outcome on the vendor.
  * Every decision (and every change) needs a written reason, kept with who recorded it.
  */
-export default function VendorPqModal({ vendor, canManage, onClose }) {
+export function VendorPqPanel({ vendor, canManage, onClose }) {
   const [rows, setRows] = useState(null);
   const [vendorFlags, setVendorFlags] = useState([]);
   const [f, setF] = useState(BLANK);
@@ -47,7 +47,7 @@ export default function VendorPqModal({ vendor, canManage, onClose }) {
   const small = { ...btnGhost, padding: '3px 9px', fontSize: '0.7rem', marginRight: 6 };
 
   return (
-    <Modal title="Pre-qualification" subtitle={vendor.company_name} onClose={onClose} width={720}>
+    <>
       <FormStack>
         <FormError message={err} />
         {vendorFlags.length > 0 && (
@@ -106,6 +106,14 @@ export default function VendorPqModal({ vendor, canManage, onClose }) {
           </form>
         )}
       </FormStack>
+    </>
+  );
+}
+
+export default function VendorPqModal({ vendor, canManage, onClose }) {
+  return (
+    <Modal title="Pre-qualification" subtitle={vendor.company_name} onClose={onClose} width={720}>
+      <VendorPqPanel vendor={vendor} canManage={canManage} onClose={onClose} />
     </Modal>
   );
 }

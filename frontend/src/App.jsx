@@ -148,6 +148,7 @@ const PurchaseForm       = lazy(() => import('./core/pages/admin/stock/PurchaseF
 const ExpiringStock      = lazy(() => import('./core/pages/admin/stock/ExpiringStock'));
 const HeldStock          = lazy(() => import('./core/pages/admin/stock/HeldStock'));
 const Vendors            = lazy(() => import('./core/pages/admin/stock/Vendors'));
+const VendorFile = lazy(() => import('./core/pages/admin/stock/VendorFile'));
 const StockTransfers     = lazy(() => import('./core/pages/admin/stock/StockTransfers'));
 const StockCounts        = lazy(() => import('./core/pages/admin/stock/StockCounts'));
 const Recipes            = lazy(() => import('./menus/pages/admin/Recipes'));
@@ -923,6 +924,7 @@ function App() {
               <Route path="/admin/stock/expiry" element={<ProtectedRoute requireAdmin permission="stock.view"><ExpiringStock /></ProtectedRoute>} />
               <Route path="/admin/stock/held" element={<ProtectedRoute requireAdmin permission="stock.view"><HeldStock /></ProtectedRoute>} />
               <Route path="/admin/vendors" element={<ProtectedRoute requireAdmin permission="vendors.view"><Vendors /></ProtectedRoute>} />
+              <Route path="/admin/vendors/:id" element={<ProtectedRoute requireAdmin permission="vendors.view"><VendorFile /></ProtectedRoute>} />
 
               {/* ── Admin Tenders & Pre-Qualification (Extras) ─────────────── */}
               <Route path="/admin/tenders" element={<ProtectedRoute requireAdmin permission="tenders.view"><ModuleRoute module="extras" redirectTo="/admin"><TenderList /></ModuleRoute></ProtectedRoute>} />

@@ -1,11 +1,9 @@
-import { useCallback, useEffect, useState } from 'react';
-import { Link } from 'react-router-dom';
-import { Plus } from 'lucide-react';
+import { useCallback, useEffect, useMemo, useState } from 'react';
+import { useNavigate } from 'react-router-dom';
+import { Plus, Table2, LayoutGrid } from 'lucide-react';
 import toast from 'react-hot-toast';
 import AdminLayout from '../../../../_shared/components/layout/AdminLayout';
 import HubHeader, { NoAccess } from '../../../components/admin/ui/HubHeader';
-import Modal from '../../../components/admin/ui/Modal';
-import { Field, NumberInput, SelectInput, TextInput, FormStack, ModalActions, FormError } from '../../../components/admin/ui/Form';
 import { money } from '../../../components/admin/books/booksFmt';
 import vendorsAPI from '../../../../_shared/api/vendors';
 import useAuthStore from '../../../../_shared/store/authStore';
@@ -13,253 +11,158 @@ import { canReadFinance, canWriteFinance, hasPermission } from '../../../../_sha
 import { isModuleActive, MODULES } from '../../../../_shared/navigation/modules';
 import { errMsg } from '../../../../_shared/store/helpers/apiState';
 import { btnGhost, btnPrimary, card, colors } from '../../../../_shared/theme/tokens';
-import VendorPqModal from '../../../../extras/components/procurement/VendorPqModal';
+import { VendorModal, PortalLoginModal } from './vendors/VendorModals';
+import { Chip, StatusChip, FlagChip, GroupLine, RowMenu } from './vendors/vendorUi';
+import { useNarrow, GROUP_LABELS } from './vendors/vendorHelpers';
 
 /**
- * Vendors: everyone we buy from. Each is a Sundry Creditors ledger, so purchases, payments and what we owe them
- * all follow. Vendors have no login or portal: we enter what they invoice us as a Purchase.
+ * Vendors: everyone we buy from. Each is a Sundry Creditors ledger, so purchases, payments and what we owe them all follow.
+ * Two ways to look: a table (best with many vendors) or cards (best on a phone, the default there). "View" opens the vendor's file.
  */
 
-const th = { textAlign: 'left', padding: '8px 10px', fontSize: '0.68rem', textTransform: 'uppercase', letterSpacing: '0.06em', color: colors.textFaint };
-const td = { padding: '9px 10px', fontSize: '0.8rem', borderTop: `1px solid ${colors.tint(0.06)}`, verticalAlign: 'top' };
-const small = { ...btnGhost, padding: '4px 10px', fontSize: '0.72rem', marginRight: 6 };
+const th = { textAlign: 'left', padding: '12px 14px', fontSize: '0.68rem', textTransform: 'uppercase', letterSpacing: '0.07em', color: colors.textFaint, fontWeight: 700 };
+const td = { padding: '12px 14px', fontSize: '0.84rem', borderTop: `1px solid ${colors.tint(0.07)}`, verticalAlign: 'middle', color: colors.text };
+const sub = { fontSize: '0.72rem', color: colors.textFaint, marginTop: 2 };
+const pill = (on) => ({ fontFamily: 'inherit', fontSize: '0.78rem', fontWeight: 600, padding: '6px 13px', borderRadius: 999, cursor: 'pointer', color: on ? colors.textOnPrimary ?? '#fff' : colors.textMuted, background: on ? colors.primary : 'transparent', border: `1px solid ${on ? colors.primary : colors.tint(0.22)}` });
 
-function VendorModal({ vendor, onClose, onDone, groups, canConfirm }) {
-  const [f, setF] = useState({ company_name: vendor?.company_name ?? '', contact_name: vendor?.contact_name ?? '', email: vendor?.email ?? '', phone: vendor?.phone ?? '', tax_id: vendor?.tax_id ?? '', registration_number: vendor?.registration_number ?? '', address: vendor?.address ?? '', payment_terms_days: vendor?.payment_terms_days ?? 30, notes: vendor?.notes ?? '', special_group: vendor?.special_group ?? '', special_group_certificate: vendor?.special_group_certificate ?? '', special_group_valid_until: vendor?.special_group_valid_until ?? '' });
-  const [busy, setBusy] = useState(false);
-  const [err, setErr] = useState(null);
-  const set = (k) => (e) => setF((x) => ({ ...x, [k]: e.target.value }));
-  const confirmGroup = async () => {
-    try { const res = await vendorsAPI.confirmPeopleCategory(vendor.id, vendor.special_group_status !== 'confirmed'); toast.success(res.message); onDone(); } catch (x) { setErr(errMsg(x, 'Could not change it')); }
-  };
-  const go = async (e) => {
-    e.preventDefault(); setBusy(true); setErr(null);
-    const body = { ...f, registration_number: f.registration_number || null, payment_terms_days: Number(f.payment_terms_days) || 0, special_group: f.special_group || null, special_group_certificate: f.special_group_certificate || null, special_group_valid_until: f.special_group_valid_until || null };
-    if (!groups) { delete body.special_group; delete body.special_group_certificate; delete body.special_group_valid_until; }
-    try {
-      const res = vendor ? await vendorsAPI.update(vendor.id, body) : await vendorsAPI.create(body);
-      toast.success(res.message); onDone();
-    } catch (x) { setErr(errMsg(x, 'Could not save the vendor')); } finally { setBusy(false); }
-  };
-  return (
-    <Modal title={vendor ? 'Edit vendor' : 'Add a vendor'} onClose={onClose} width={620}>
-      <form onSubmit={go}>
-        <FormStack>
-          <FormError message={err} />
-          <Field label="Company"><TextInput required value={f.company_name} onChange={set('company_name')} /></Field>
-          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10 }}>
-            <Field label="Contact person"><TextInput value={f.contact_name} onChange={set('contact_name')} /></Field>
-            <Field label="Phone"><TextInput value={f.phone} onChange={set('phone')} /></Field>
-            <Field label="Email"><TextInput type="email" value={f.email} onChange={set('email')} /></Field>
-            <Field label="Tax ID / PIN"><TextInput value={f.tax_id} onChange={set('tax_id')} /></Field>
-            <Field label="Company registration no."><TextInput value={f.registration_number} onChange={set('registration_number')} /></Field>
-            <Field label="Payment terms (days)"><NumberInput min="0" value={f.payment_terms_days} onChange={set('payment_terms_days')} /></Field>
-            <Field label="Address"><TextInput value={f.address} onChange={set('address')} placeholder="Street, town" /></Field>
-          </div>
-          <Field label="Notes"><TextInput value={f.notes} onChange={set('notes')} /></Field>
-          {groups && vendor?.special_group && (
-            <div style={{ fontSize: '0.78rem', color: colors.textBody, display: 'grid', gap: 6 }}>
-              <div>People category: <strong>{vendor.special_group}</strong> ({vendor.special_group_status === 'confirmed' ? 'confirmed' : 'not confirmed yet'}). {(vendor.scan_urls || []).length === 0 ? 'No certificate scan uploaded.' : 'Certificate scan:'}</div>
-              {(vendor.scan_urls || []).length > 0 && (
-                <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
-                  {vendor.scan_urls.map((u, i) => <a key={u} href={u} target="_blank" rel="noopener noreferrer"><img src={u} alt={`Certificate page ${i + 1}`} style={{ width: 80, height: 100, objectFit: 'cover', objectPosition: 'top', borderRadius: 6, border: `1px solid ${colors.tint(0.2)}` }} /></a>)}
-                </div>
-              )}
-              {canConfirm && <div><button type="button" style={small} onClick={confirmGroup}>{vendor.special_group_status === 'confirmed' ? 'Take back confirmation' : 'Confirm people category'}</button></div>}
-            </div>
-          )}
-          {groups && (
-            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(170px, 1fr))', gap: 10 }}>
-              <Field label="People category" hint="Blank = none. For youth, women, disability or SME tenders">
-                <SelectInput value={f.special_group} onChange={set('special_group')}>
-                  <option value="">None</option><option value="youth">Youth</option><option value="women">Women</option><option value="pwd">Persons with disabilities</option><option value="sme">SMEs</option>
-                </SelectInput>
-              </Field>
-              {f.special_group && <Field label="Certificate no."><TextInput value={f.special_group_certificate} onChange={set('special_group_certificate')} /></Field>}
-              {f.special_group && <Field label="Certificate valid until"><TextInput type="date" value={f.special_group_valid_until} onChange={set('special_group_valid_until')} /></Field>}
-            </div>
-          )}
-          <p style={{ margin: 0, fontSize: '0.78rem', color: colors.textMuted }}>A Sundry Creditors ledger is created for the vendor, so purchases and payments post to it.</p>
-          <ModalActions onCancel={onClose} submitLabel={vendor ? 'Save' : 'Add vendor'} busy={busy} />
-        </FormStack>
-      </form>
-    </Modal>
-  );
-}
-
-function newPassword() {
-  const sets = ['abcdefghjkmnpqrstuvwxyz', 'ABCDEFGHJKMNPQRSTUVWXYZ', '23456789'];
-  const all = sets.join('');
-  const pick = (chars) => chars[crypto.getRandomValues(new Uint32Array(1))[0] % chars.length];
-  const out = [...sets.map(pick), ...Array.from({ length: 11 }, () => pick(all))];
-  for (let i = out.length - 1; i > 0; i--) { const j = crypto.getRandomValues(new Uint32Array(1))[0] % (i + 1); [out[i], out[j]] = [out[j], out[i]]; }
-  return out.join('');
-}
-
-/** A login to the vendor portal for a vendor we created: the first time it is made, or a new password for one that exists. */
-function PortalLoginModal({ vendor, onClose, onDone }) {
-  const reset = Boolean(vendor.has_login);
-  const [email, setEmail] = useState(vendor.email ?? '');
-  const [password, setPassword] = useState('');
-  const [show, setShow] = useState(false);
-  const [busy, setBusy] = useState(false);
-  const [err, setErr] = useState(null);
-  const [result, setResult] = useState(null);
-
-  const go = async (e) => {
-    e.preventDefault(); setBusy(true); setErr(null);
-    try {
-      const res = reset ? await vendorsAPI.portalPassword(vendor.id, { password: password || undefined }) : await vendorsAPI.portalLogin(vendor.id, { email: email || undefined, password: password || undefined });
-      setResult({ message: res.message, email: res.email, password: res.password ?? password, generated: res.generated });
-    } catch (x) { setErr(errMsg(x, 'Could not save')); } finally { setBusy(false); }
-  };
-  const copy = (text) => { try { navigator.clipboard.writeText(text).then(() => toast.success('Copied'), () => toast.error('Could not copy: select it instead')); } catch { toast.error('Could not copy: select it instead'); } };
-  const mono = { fontFamily: 'monospace', fontSize: '0.9rem', padding: '8px 10px', borderRadius: 8, background: colors.tint(0.06), wordBreak: 'break-all', userSelect: 'all' };
-
-  return (
-    <Modal title={reset ? 'Reset portal password' : 'Create portal login'} subtitle={vendor.company_name} onClose={result ? onDone : onClose} width={520}>
-      {result ? (
-        <FormStack>
-          <p style={{ margin: 0, fontSize: '0.85rem', color: colors.text }}>{result.message}</p>
-          <Field label="Sign in with"><div style={mono}>{result.email}</div></Field>
-          <Field label="Initial password" hint={result.generated ? 'Shown this once: copy it now and pass it on safely.' : 'The password you entered.'}>
-            <div style={{ display: 'flex', gap: 8 }}><div style={{ ...mono, flex: 1 }}>{result.password}</div><button type="button" style={btnGhost} onClick={() => copy(result.password)}>Copy</button></div>
-          </Field>
-          <ModalActions onCancel={onDone} submitLabel="Done" onSubmit={onDone} />
-        </FormStack>
-      ) : (
-        <form onSubmit={go}>
-          <FormStack>
-            <FormError message={err} />
-            {!reset && (
-              <Field label="Email (their username)" hint={vendor.email ? 'Leave as the vendor\'s email, or change it.' : 'This vendor has no email yet: enter one.'}>
-                <TextInput type="email" required value={email} onChange={(e) => setEmail(e.target.value)} />
-              </Field>
-            )}
-            <Field label="Initial password" hint="Leave blank and one is made for you and shown once. Either way they must choose their own password when they first sign in.">
-              <div style={{ display: 'flex', gap: 8 }}>
-                <TextInput type={show ? 'text' : 'password'} autoComplete="new-password" value={password} onChange={(e) => setPassword(e.target.value)} placeholder="Blank = make one for me" />
-                <button type="button" style={btnGhost} onClick={() => setShow((s) => !s)}>{show ? 'Hide' : 'Show'}</button>
-                <button type="button" style={btnGhost} onClick={() => { setPassword(newPassword()); setShow(true); }}>Generate</button>
-              </div>
-            </Field>
-            {reset && <p style={{ margin: 0, fontSize: '0.78rem', color: colors.textMuted }}>Their open sessions end, so they sign in again with the new password.</p>}
-            <ModalActions onCancel={onClose} submitLabel={reset ? 'Set password' : 'Create login'} busy={busy} />
-          </FormStack>
-        </form>
-      )}
-    </Modal>
-  );
-}
-
-function DetailModal({ id, onClose }) {
-  const [v, setV] = useState(null);
-  useEffect(() => { vendorsAPI.show(id).then(setV).catch((e) => toast.error(errMsg(e, 'Could not load the vendor'))); }, [id]);
-  return (
-    <Modal title={v ? v.company_name : 'Vendor'} subtitle={v ? `${v.vendor_number} · we owe ${money(v.owed)}` : ''} onClose={onClose} width={720}>
-      {!v ? <p>Loading…</p> : (
-        <div style={{ display: 'grid', gap: 10, fontSize: '0.82rem' }}>
-          <div>{[v.contact_name, v.phone, v.email].filter(Boolean).join(' · ') || 'No contact details'}{v.payment_terms_days != null ? ` · ${v.payment_terms_days} day terms` : ''}</div>
-          {v.address && <div style={{ color: colors.textMuted }}>{v.address}</div>}
-          <h3 style={{ margin: '6px 0 0', fontSize: '0.85rem' }}>Recent purchases</h3>
-          {v.purchases.length === 0 ? <p style={{ margin: 0, color: colors.textMuted }}>Nothing bought from this vendor yet.</p> : (
-            <table style={{ width: '100%', borderCollapse: 'collapse' }}>
-              <thead><tr><th style={th}>Voucher</th><th style={th}>Date</th><th style={th}>Invoice no.</th><th style={th}>Ref</th><th style={{ ...th, textAlign: 'right' }}>Total</th></tr></thead>
-              <tbody>{v.purchases.map((p) => (
-                <tr key={p.id}><td style={td}><Link to={`/admin/books/vouchers/${p.id}`}>{p.voucher_number}</Link><div style={{ fontSize: '0.7rem', color: colors.textFaint }}>{p.type}</div></td><td style={td}>{String(p.date).slice(0, 10)}</td><td style={td}>{p.supplier_invoice_no ?? '—'}</td><td style={td}>{p.reference_no ?? '—'}</td><td style={{ ...td, textAlign: 'right' }}>{money(p.total)}</td></tr>
-              ))}</tbody>
-            </table>
-          )}
-        </div>
-      )}
-    </Modal>
-  );
-}
+const readPref = (k) => { try { return window.localStorage.getItem(k); } catch { return null; } };
+const savePref = (k, v) => { try { window.localStorage.setItem(k, v); } catch { /* not saved: fine */ } };
 
 export default function Vendors() {
+  const navigate = useNavigate();
   const user = useAuthStore((s) => s.user);
   const canWrite = canWriteFinance(user);
   const portalOn = isModuleActive(MODULES.EXTRAS);
   const canPortal = portalOn && hasPermission(user, 'vendors.portal');
   const canSeePq = portalOn && hasPermission(user, 'prequalification.view');
-  const canManagePq = portalOn && hasPermission(user, 'prequalification.manage');
+  const narrow = useNarrow();
+  const prefKey = narrow ? 'vendors.view.phone' : 'vendors.view.desktop';
+
   const [rows, setRows] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(null);
   const [search, setSearch] = useState('');
+  const [filter, setFilter] = useState('all');
   const [modal, setModal] = useState(null);
+  const [chosen, setChosen] = useState(null);
+  const view = chosen ?? readPref(prefKey) ?? (narrow ? 'cards' : 'table');
+  const setView = (v) => { setChosen(v); savePref(prefKey, v); };
 
   const load = useCallback(() => {
     setLoading(true);
-    vendorsAPI.list({ search: search || undefined }).then((d) => setRows(d.rows)).catch((e) => toast.error(errMsg(e, 'Could not load vendors'))).finally(() => setLoading(false));
+    vendorsAPI.list({ search: search || undefined })
+      .then((d) => { setRows(d.rows); setError(null); })
+      .catch((e) => { setRows([]); setError(errMsg(e, 'Could not load vendors')); })
+      .finally(() => setLoading(false));
   }, [search]);
   useEffect(() => { const t = setTimeout(load, search ? 250 : 0); return () => clearTimeout(t); }, [load, search]);
   const done = () => { setModal(null); load(); };
-  const edit = async (r) => { try { setModal({ kind: 'edit', vendor: await vendorsAPI.show(r.id) }); } catch (x) { toast.error(errMsg(x, 'Could not load')); } };
+
+  const filters = useMemo(() => {
+    const list = [
+      ['all', 'All', () => true],
+      ['active', 'Active', (r) => r.status === 'active'],
+      ['pending', 'Pending approval', (r) => r.status === 'pending_approval'],
+      ['suspended', 'Suspended', (r) => r.status === 'suspended'],
+      ['check', 'Needs a look', (r) => (r.flags || []).length > 0],
+      ['owed', 'Owed money', (r) => Number(r.owed) > 0],
+    ];
+    if (portalOn) {
+      list.push(['nologin', 'No portal login', (r) => !r.has_login]);
+      Object.entries(GROUP_LABELS).forEach(([k, label]) => list.push([`g_${k}`, label, (r) => r.special_group === k]));
+    }
+    return list.map(([key, label, fn]) => ({ key, label, fn, count: rows.filter(fn).length }));
+  }, [rows, portalOn]);
+  const active = filters.find((f) => f.key === filter) ?? filters[0];
+  const shown = rows.filter(active.fn);
+
   const toggle = async (r) => {
     try { const res = await vendorsAPI.update(r.id, { status: r.status === 'active' ? 'suspended' : 'active' }); toast.success(res.message); load(); } catch (x) { toast.error(errMsg(x, 'Could not update')); }
   };
+  const confirmGroup = async (r) => {
+    try { const res = await vendorsAPI.confirmPeopleCategory(r.id, r.special_group_status !== 'confirmed'); toast.success(res.message); load(); } catch (x) { toast.error(errMsg(x, 'Could not change it')); }
+  };
+  const edit = async (r) => { try { setModal({ kind: 'edit', vendor: await vendorsAPI.show(r.id) }); } catch (x) { toast.error(errMsg(x, 'Could not load')); } };
+  const open = (r, tab) => navigate(`/admin/vendors/${r.id}${tab ? `?tab=${tab}` : ''}`);
+
+  const menuFor = (r) => [
+    canWrite && { label: 'Edit details', onClick: () => edit(r) },
+    canSeePq && { label: 'Pre-qualification', onClick: () => open(r, 'pq') },
+    canPortal && r.special_group && { label: r.special_group_status === 'confirmed' ? 'Take back people category' : 'Confirm people category', onClick: () => confirmGroup(r) },
+    canPortal && { label: r.has_login ? 'Reset portal password' : 'Create portal login', onClick: () => setModal({ kind: 'portal', vendor: r }) },
+    canWrite && 'divider',
+    canWrite && { label: r.status === 'active' ? 'Suspend vendor' : 'Activate vendor', tone: r.status === 'active' ? 'danger' : 'success', onClick: () => toggle(r) },
+  ];
 
   if (!canReadFinance(user)) return <AdminLayout><div style={{ padding: 32 }}><NoAccess what="vendors" /></div></AdminLayout>;
 
+  const seg = (v, Icon, label) => (
+    <button type="button" aria-pressed={view === v} aria-label={label} title={label} onClick={() => setView(v)}
+      style={{ ...btnGhost, padding: '6px 10px', borderRadius: 0, border: 'none', background: view === v ? colors.tint(0.16) : 'transparent', color: view === v ? colors.primary : colors.textMuted }}><Icon size={16} /></button>
+  );
+
   return (
     <AdminLayout>
-      <div style={{ padding: '32px 24px', maxWidth: 1200, margin: '0 auto' }}>
+      <div style={{ padding: '32px 24px', maxWidth: 1280, margin: '0 auto' }}>
         <HubHeader title="Vendors" description="Everyone we buy from. Each is a Sundry Creditors ledger; enter what they invoice us as a Purchase." />
-        <div style={{ display: 'flex', gap: 10, alignItems: 'center', margin: '0 0 14px' }}>
-          <input value={search} onChange={(e) => setSearch(e.target.value)} placeholder="Search vendors" aria-label="Search vendors" style={{ padding: '7px 10px', borderRadius: 8, border: `1.5px solid ${colors.tint(0.18)}`, fontSize: '0.8rem', fontFamily: 'inherit', minWidth: 240 }} />
+
+        <div style={{ display: 'flex', gap: 10, alignItems: 'center', flexWrap: 'wrap', margin: '0 0 12px' }}>
+          <input value={search} onChange={(e) => setSearch(e.target.value)} placeholder="Search vendors" aria-label="Search vendors" style={{ padding: '8px 12px', borderRadius: 8, border: `1.5px solid ${colors.tint(0.18)}`, fontSize: '0.82rem', fontFamily: 'inherit', minWidth: 220, flex: '0 1 280px', background: 'transparent', color: colors.text }} />
           <span style={{ flex: 1 }} />
+          <div role="group" aria-label="Layout" style={{ display: 'inline-flex', overflow: 'hidden', borderRadius: 8, border: `1px solid ${colors.tint(0.22)}` }}>{seg('table', Table2, 'Table')}{seg('cards', LayoutGrid, 'Cards')}</div>
           {canWrite && <button type="button" style={btnPrimary} onClick={() => setModal({ kind: 'add' })}><Plus size={14} /> Add a vendor</button>}
         </div>
-        <div style={{ ...card, padding: 0, overflowX: 'auto' }}>
-          {loading ? <p style={{ padding: 20, color: colors.textMuted }}>Loading…</p> : rows.length === 0 ? (
-            <p style={{ padding: 20, margin: 0, color: colors.textMuted, fontSize: '0.85rem' }}>{search ? 'No vendors match.' : 'No vendors yet.'}</p>
-          ) : (
-            <table style={{ width: '100%', borderCollapse: 'collapse' }}>
+
+        <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap', marginBottom: 14 }}>
+          {filters.filter((f) => f.key === 'all' || f.key === filter || f.count > 0).map((f) => (
+            <button key={f.key} type="button" aria-pressed={filter === f.key} onClick={() => setFilter(f.key)} style={pill(filter === f.key)}>{f.label} <b style={{ opacity: 0.75, marginLeft: 4 }}>{f.count}</b></button>
+          ))}
+        </div>
+
+        {error && <p role="alert" style={{ margin: '0 0 14px', padding: '10px 14px', borderRadius: radiusSm, fontSize: '0.8rem', background: colors.dangerBg, color: colors.dangerText }}>{error}</p>}
+
+        {loading && rows.length === 0 ? <p style={{ padding: 20, color: colors.textMuted }}>Loading…</p> : shown.length === 0 ? (
+          <div style={{ ...card, padding: 28, textAlign: 'center', color: colors.textMuted, fontSize: '0.85rem' }}>{error ? '' : search || filter !== 'all' ? 'No vendors match.' : 'No vendors yet.'}</div>
+        ) : view === 'cards' ? (
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(min(100%, 300px), 1fr))', gap: 14, opacity: loading ? 0.6 : 1 }}>
+            {shown.map((r) => (
+              <div key={r.id} style={{ ...card, padding: 18, display: 'flex', flexDirection: 'column', gap: 12, minWidth: 0 }}>
+                <div style={{ display: 'flex', justifyContent: 'space-between', gap: 10 }}>
+                  <div style={{ minWidth: 0 }}><div style={{ fontWeight: 700, fontSize: '0.95rem', overflowWrap: 'anywhere' }}>{r.company_name}</div><div style={sub}>{r.vendor_number}</div><GroupLine v={r} /></div>
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: 4, alignItems: 'flex-end' }}><StatusChip status={r.status} /><FlagChip flags={r.flags} /></div>
+                </div>
+                <div style={{ fontSize: '0.8rem', color: colors.textMuted, lineHeight: 1.5, overflowWrap: 'anywhere' }}>{r.contact_name}<br />{[r.phone, r.email].filter(Boolean).join(' · ')}</div>
+                {portalOn && <div><Chip tone={r.has_login ? 'success' : 'neutral'}>{r.has_login ? 'Portal login' : 'No portal login'}</Chip></div>}
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginTop: 'auto', borderTop: `1px solid ${colors.tint(0.08)}`, paddingTop: 12 }}>
+                  <div><div style={{ fontSize: '0.64rem', textTransform: 'uppercase', letterSpacing: '0.07em', color: colors.textFaint, fontWeight: 700 }}>We owe</div><div style={{ fontWeight: 800, fontSize: '1.05rem', color: Number(r.owed) > 0 ? colors.warningText : colors.text }}>{money(r.owed)}</div></div>
+                  <div style={{ display: 'flex', gap: 6 }}><button type="button" style={btnGhost} onClick={() => open(r)}>View</button><RowMenu items={menuFor(r)} /></div>
+                </div>
+              </div>
+            ))}
+          </div>
+        ) : (
+          <div style={{ ...card, padding: 0, overflowX: 'auto', opacity: loading ? 0.6 : 1 }}>
+            <table style={{ width: '100%', borderCollapse: 'collapse', minWidth: 860 }}>
               <thead><tr><th style={th}>Vendor</th><th style={th}>Contact</th><th style={th}>Status</th>{portalOn && <th style={th}>Portal</th>}<th style={{ ...th, textAlign: 'right' }}>We owe</th><th style={th} /></tr></thead>
-              <tbody>{rows.map((r) => (
+              <tbody>{shown.map((r) => (
                 <tr key={r.id}>
-                  <td style={td}><strong>{r.company_name}</strong><div style={{ fontSize: '0.7rem', color: colors.textFaint }}>{r.vendor_number}</div>{r.special_group && <div style={{ fontSize: '0.68rem', color: r.special_group_status === 'confirmed' ? colors.successText : colors.warningText }}>{r.special_group} ({r.special_group_status === 'confirmed' ? 'confirmed' : 'to confirm'})</div>}</td>
-                  <td style={td}>{r.contact_name}<div style={{ fontSize: '0.7rem', color: colors.textFaint }}>{[r.phone, r.email].filter(Boolean).join(' · ')}</div></td>
-                  <td style={td}>
-                    {(r.flags || []).length > 0 && (
-                      <div title={r.flags.map((f) => f.text).join('\n')} style={{ fontSize: '0.66rem', fontWeight: 700, marginBottom: 3, color: colors.warningText }}>
-                        Flagged by the system ({r.flags.length}): {r.flags[0].text}
-                      </div>
-                    )}
-                    {r.status === 'active' ? 'active' : (
-                      <span style={{ fontSize: '0.68rem', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.04em', padding: '2px 8px', borderRadius: 6, whiteSpace: 'nowrap',
-                        background: r.status === 'suspended' ? colors.dangerBg : colors.warningBg, color: r.status === 'suspended' ? colors.dangerText : colors.warningText }}>
-                        {String(r.status || '').replace(/_/g, ' ')}
-                      </span>
-                    )}
-                  </td>
-                  {portalOn && (
-                    <td style={td}>
-                      <span style={{ fontSize: '0.68rem', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.04em', padding: '2px 8px', borderRadius: 6, whiteSpace: 'nowrap',
-                        background: r.has_login ? colors.successBg : colors.neutralBg, color: r.has_login ? colors.successText : colors.neutralText }}>
-                        {r.has_login ? 'Has login' : 'No login'}
-                      </span>
-                    </td>
-                  )}
-                  <td style={{ ...td, textAlign: 'right' }}>{money(r.owed)}</td>
-                  <td style={{ ...td, whiteSpace: 'nowrap' }}>
-                    <button type="button" style={small} onClick={() => setModal({ kind: 'detail', id: r.id })}>View</button>
-                    {canWrite && <button type="button" style={small} onClick={() => edit(r)}>Edit</button>}
-                    {canWrite && <button type="button" style={small} onClick={() => toggle(r)}>{r.status === 'active' ? 'Suspend' : 'Activate'}</button>}
-                    {canSeePq && <button type="button" style={small} onClick={() => setModal({ kind: 'pq', vendor: r })}>Pre-qualification</button>}
-                    {canPortal && <button type="button" style={small} onClick={() => setModal({ kind: 'portal', vendor: r })}>{r.has_login ? 'Reset password' : 'Create login'}</button>}
-                  </td>
+                  <td style={td}><strong>{r.company_name}</strong><div style={sub}>{r.vendor_number}</div><GroupLine v={r} /></td>
+                  <td style={td}>{r.contact_name}<div style={sub}>{[r.phone, r.email].filter(Boolean).join(' · ')}</div></td>
+                  <td style={td}><div style={{ display: 'flex', gap: 6, flexWrap: 'wrap' }}><StatusChip status={r.status} /><FlagChip flags={r.flags} /></div></td>
+                  {portalOn && <td style={td}><Chip tone={r.has_login ? 'success' : 'neutral'}>{r.has_login ? 'Has login' : 'No login'}</Chip></td>}
+                  <td style={{ ...td, textAlign: 'right', fontVariantNumeric: 'tabular-nums', fontWeight: Number(r.owed) > 0 ? 700 : 400 }}>{money(r.owed)}</td>
+                  <td style={{ ...td, textAlign: 'right', whiteSpace: 'nowrap' }}><button type="button" style={{ ...btnGhost, marginRight: 6 }} onClick={() => open(r)}>View</button><RowMenu items={menuFor(r)} /></td>
                 </tr>
               ))}</tbody>
             </table>
-          )}
-        </div>
+          </div>
+        )}
       </div>
       {modal?.kind === 'add' && <VendorModal groups={portalOn} onClose={() => setModal(null)} onDone={done} />}
       {modal?.kind === 'edit' && <VendorModal groups={portalOn} canConfirm={canPortal} vendor={modal.vendor} onClose={() => setModal(null)} onDone={done} />}
-      {modal?.kind === 'detail' && <DetailModal id={modal.id} onClose={() => setModal(null)} />}
-      {modal?.kind === 'pq' && <VendorPqModal vendor={modal.vendor} canManage={canManagePq} onClose={() => setModal(null)} />}
       {modal?.kind === 'portal' && <PortalLoginModal vendor={modal.vendor} onClose={() => setModal(null)} onDone={done} />}
     </AdminLayout>
   );
 }
+
+const radiusSm = 8;
