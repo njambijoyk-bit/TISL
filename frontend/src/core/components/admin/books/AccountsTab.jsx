@@ -1,15 +1,24 @@
 import { useEffect, useState, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Plus, ChevronRight, ChevronDown, Lock, FileText } from 'lucide-react';
+import { Plus, ChevronRight, ChevronDown, Lock, FileText, Table2, LayoutList, LayoutGrid, Network } from 'lucide-react';
 import toast from 'react-hot-toast';
 import booksAPI from '../../../../_shared/api/books';
 import { errMsg, fieldErrors } from '../../../../_shared/store/helpers/apiState';
 import Modal from '../ui/Modal';
 import { Field, TextInput, NumberInput, SelectInput, TextArea, FormGrid, FormStack, ModalActions, FormError, CheckboxRow } from '../ui/Form';
 import SimpleTable from '../ui/SimpleTable';
+import { SheetView, BlocksView, MapView } from './ChartViews';
 import CurrencySelect from './CurrencySelect';
 import taxAPI from '../../../../_shared/api/tax';
 import { btnPrimary, btnGhost, card, colors } from '../../../../_shared/theme/tokens';
+
+const LAYOUTS = [
+  { key: 'table',  label: 'Table',  icon: <Table2 size={15} /> },
+  { key: 'sheet',  label: 'Sheet',  icon: <LayoutList size={15} /> },
+  { key: 'blocks', label: 'Blocks', icon: <LayoutGrid size={15} /> },
+  { key: 'map',    label: 'Map',    icon: <Network size={15} /> },
+];
+const readLayout = () => { try { const v = window.localStorage.getItem('view.chart-of-accounts'); return LAYOUTS.some((l) => l.key === v) ? v : 'table'; } catch { return 'table'; } };
 
 const NATURE = { asset: 'Asset', liability: 'Liability', income: 'Income', expense: 'Expense' };
 
@@ -352,16 +361,19 @@ export default function AccountsTab({ canWrite }) {
   const [ledgerForm, setLedgerForm] = useState(null);
   const [groupForm, setGroupForm] = useState(false);
   const [search, setSearch] = useState('');
+  const [layout, setLayoutState] = useState(readLayout);
+  const setLayout = (v) => { setLayoutState(v); try { window.localStorage.setItem('view.chart-of-accounts', v); } catch { /* not remembered: fine */ } };
+  const chart = layout !== 'table';   // the chart views show everything, so the group picker and its filter stand aside
 
   const loadGroups = useCallback(() => booksAPI.groups().then(setGroups).catch((e) => toast.error(errMsg(e, 'Could not load the chart of accounts'))), []);
   const loadLedgers = useCallback(async () => {
     setLoading(true);
     try {
-      const res = await booksAPI.ledgers({ all: 1, group_id: sel?.id || undefined, search: search || undefined });
+      const res = await booksAPI.ledgers({ all: 1, group_id: (!chart && sel?.id) || undefined, search: search || undefined });
       setLedgers(Array.isArray(res) ? res : res.data ?? []);
     } catch (e) { toast.error(errMsg(e, 'Could not load ledgers')); }
     finally { setLoading(false); }
-  }, [sel, search]);
+  }, [sel, search, chart]);
 
   useEffect(() => { loadGroups(); }, [loadGroups]);
   useEffect(() => { const t = setTimeout(loadLedgers, search ? 250 : 0); return () => clearTimeout(t); }, [loadLedgers]); // eslint-disable-line react-hooks/exhaustive-deps
@@ -393,8 +405,8 @@ export default function AccountsTab({ canWrite }) {
   ];
 
   return (
-    <div style={{ display: 'grid', gridTemplateColumns: 'minmax(220px, 300px) 1fr', gap: 18, alignItems: 'start' }}>
-      <div style={{ ...card, padding: 10 }}>
+    <div style={{ display: 'grid', gridTemplateColumns: chart ? 'minmax(0, 1fr)' : 'minmax(220px, 300px) 1fr', gap: 18, alignItems: 'start' }}>
+      {!chart && <div style={{ ...card, padding: 10 }}>
         <div style={{ display: 'flex', gap: 6, justifyContent: 'space-between', alignItems: 'center', padding: '4px 8px 8px' }}>
           <span style={{ fontSize: '0.7rem', fontWeight: 700, color: colors.textFaint }}>GROUPS</span>
           <button type="button" onClick={() => setSel(null)} style={{ background: 'none', border: 'none', fontSize: '0.72rem', color: colors.primary, cursor: 'pointer' }}>Show all</button>
@@ -408,19 +420,38 @@ export default function AccountsTab({ canWrite }) {
             {sel && !sel.is_system && <button type="button" style={{ ...btnGhost, padding: '5px 10px', fontSize: '0.75rem', color: colors.danger }} onClick={removeGroup}>Delete “{sel.name}”</button>}
           </div>
         )}
-      </div>
+      </div>}
       <div>
         <div style={{ display: 'flex', gap: 10, justifyContent: 'space-between', alignItems: 'center', marginBottom: 12, flexWrap: 'wrap' }}>
           <div>
-            <p style={{ margin: 0, fontWeight: 700, color: colors.primary }}>{sel ? sel.name : 'All ledgers'}</p>
-            {sel && <p style={{ margin: 0, fontSize: '0.72rem', color: colors.textFaint }}>{NATURE[sel.nature]} · includes subgroups</p>}
+            <p style={{ margin: 0, fontWeight: 700, color: colors.primary }}>{sel && !chart ? sel.name : 'All ledgers'}</p>
+            {sel && !chart && <p style={{ margin: 0, fontSize: '0.72rem', color: colors.textFaint }}>{NATURE[sel.nature]} · includes subgroups</p>}
           </div>
-          <div style={{ display: 'flex', gap: 8 }}>
+          <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap', alignItems: 'center' }}>
+            <div role="group" aria-label="Layout" style={{ display: 'inline-flex', overflow: 'hidden', borderRadius: 8, border: `1.5px solid ${colors.tint(0.2)}` }}>
+              {LAYOUTS.map(({ key, label, icon }, i) => {
+                const next = LAYOUTS[(LAYOUTS.findIndex((l) => l.key === layout) + 1) % LAYOUTS.length].key === key;   // F3 steps to the next layout
+                return (
+                  <button key={key} type="button" aria-pressed={layout === key} aria-label={label} title={layout === key ? label : `${label}${next ? ' (F3)' : ''}`} data-hotkey={next ? 'F3' : undefined} onClick={() => setLayout(key)}
+                    style={{ display: 'inline-flex', alignItems: 'center', gap: 5, padding: '7px 10px', border: 'none', borderLeft: i ? `1px solid ${colors.tint(0.12)}` : 'none', cursor: 'pointer', fontFamily: 'inherit', fontSize: '0.74rem', fontWeight: 600,
+                      background: layout === key ? colors.tint(0.16) : 'transparent', color: layout === key ? colors.primary : colors.textFaint }}>
+                    {icon}{layout === key && label}
+                  </button>
+                );
+              })}
+            </div>
             <input value={search} onChange={(e) => setSearch(e.target.value)} placeholder="Search ledgers…" style={{ padding: '7px 10px', borderRadius: 8, border: `1.5px solid ${colors.tint(0.18)}`, fontSize: '0.8rem' }} />
             {canWrite && <button type="button" style={btnPrimary} onClick={() => setLedgerForm('new')}><Plus size={14} /> New ledger</button>}
           </div>
         </div>
-        <SimpleTable columns={columns} rows={ledgers} loading={loading} onRowClick={canWrite ? setLedgerForm : undefined} empty="No ledgers in this group yet." />
+        {layout === 'table'
+          ? <SimpleTable columns={columns} rows={ledgers} loading={loading} onRowClick={canWrite ? setLedgerForm : undefined} empty="No ledgers in this group yet." />
+          : loading && !ledgers.length ? <p style={{ color: colors.textFaint, fontSize: '0.85rem' }}>Loading…</p>
+          : (() => {
+              const open = (l) => (canWrite ? setLedgerForm(l) : nav(`/admin/books?tab=reports&report=ledger&ledger=${l.id}`));
+              const View = { sheet: SheetView, blocks: BlocksView, map: MapView }[layout];
+              return <View groups={groups} ledgers={ledgers} searching={Boolean(search)} onOpen={open} />;
+            })()}
       </div>
       {ledgerForm && <LedgerForm ledger={ledgerForm === 'new' ? null : ledgerForm} groups={groups} defaultGroupId={sel?.id} onClose={() => setLedgerForm(null)} onSaved={() => { loadLedgers(); loadGroups(); }} />}
       {groupForm && <GroupForm groups={groups} parentId={sel?.id} onClose={() => setGroupForm(false)} onSaved={loadGroups} />}
