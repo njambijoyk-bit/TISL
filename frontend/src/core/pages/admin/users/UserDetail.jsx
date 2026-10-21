@@ -1,4 +1,5 @@
 import { useEffect, useState } from 'react';
+import { notifyRecordsChanged } from '../../../../_shared/components/common/recordEvents';
 import { useParams, useNavigate } from 'react-router-dom';
 import {
   ChevronLeft, Shield, Lock, Unlock, KeyRound,
@@ -281,6 +282,8 @@ export default function UserDetail() {
     fetchRoles();
     return () => clearCurrentUser();
   }, [id]);
+
+  useEffect(() => { if (user) notifyRecordsChanged(); }, [user]);   // the sidebar's status dot follows
 
   useEffect(() => {
     if (user) {

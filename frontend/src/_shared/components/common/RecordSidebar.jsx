@@ -2,12 +2,18 @@ import { useEffect, useState } from 'react';
 import { useNavigate, useParams, useLocation } from 'react-router-dom';
 import customersAPI from '../../api/customers';
 import employeesAPI from '../../api/employees';
+import usersAPI from '../../api/users';
 
 const KINDS = {
   customers: {
     path: '/admin/customers',
     load: (search) => customersAPI.getAllCustomers({ per_page: 40, sort_by: 'first_name', sort_order: 'asc', ...(search && { search }) }).then((d) => d.data ?? []),
     map: (c) => ({ id: c.id, name: c.full_name, sub: c.customer_number || c.email, status: c.status }),
+  },
+  users: {
+    path: '/admin/users',
+    load: (search) => usersAPI.getUsers({ tab: 'all', per_page: 40, sort_by: 'name', sort_order: 'asc', ...(search && { search }) }).then((d) => d.data ?? []),
+    map: (u) => ({ id: u.id, name: u.name, sub: u.role_name || u.role, status: u.status }),
   },
   employees: {
     path: '/admin/employees',
@@ -20,6 +26,7 @@ const KINDS = {
 const DOTS = {
   employees: { active: '#10b981', on_leave: '#f59e0b', probation: '#6366f1', suspended: '#ef4444', terminated: '#9ca3af' },
   customers: { active: '#10b981', inactive: '#9ca3af', suspended: '#f59e0b', blacklisted: '#ef4444' },
+  users: { active: '#10b981', inactive: '#9ca3af', suspended: '#ef4444', pending_verification: '#f59e0b' },
 };
 
 /**

@@ -1491,7 +1491,7 @@ function App() {
                 path="/admin/users/:id"
                 element={
                   <ProtectedRoute requireAdmin>
-                    <UserDetail />
+                    <RecordSidebar kind="users"><UserDetail /></RecordSidebar>
                   </ProtectedRoute>
                 }
               />
