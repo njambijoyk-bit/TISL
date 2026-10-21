@@ -60,10 +60,10 @@ export default function RecordSidebar({ kind, children }) {
 
   return (
     <div style={{ display: 'flex', alignItems: 'flex-start', gap: 8 }}>
-      <aside aria-label={`Other ${kind}`} style={{ width: 260, flex: 'none', position: 'sticky', top: 12, alignSelf: 'flex-start', padding: '32px 0 0 20px', display: 'flex', flexDirection: 'column', gap: 8, maxHeight: '100vh' }}>
+      <aside aria-label={`Other ${kind}`} style={{ width: 260, flex: 'none', position: 'sticky', top: 0, alignSelf: 'flex-start', height: '100vh', boxSizing: 'border-box', padding: '28px 0 16px 20px', display: 'flex', flexDirection: 'column', gap: 8 }}>
         <input value={q} onChange={(e) => setQ(e.target.value)} placeholder={`Search ${kind}`} aria-label={`Search ${kind}`}
           style={{ padding: '8px 12px', borderRadius: 8, border: '1.5px solid color-mix(in srgb, var(--color-primary-500) 18%, transparent)', fontSize: '0.8rem', fontFamily: 'inherit', background: 'transparent', color: 'var(--text-primary)' }} />
-        <div style={{ display: 'flex', flexDirection: 'column', gap: 3, overflowY: 'auto', maxHeight: 'calc(100vh - 140px)' }}>
+        <div style={{ display: 'flex', flexDirection: 'column', gap: 3, overflowY: 'auto', flex: 1, minHeight: 0 }}>
           {rows.map((r) => {
             const on = String(r.id) === String(id);
             return (

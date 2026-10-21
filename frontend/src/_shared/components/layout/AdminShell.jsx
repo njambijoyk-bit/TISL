@@ -88,7 +88,7 @@ export default function AdminShell() {
     <AdminShellContext.Provider value={ctx}>
       <div style={{ display: 'flex', minHeight: '100vh', background: 'var(--bg-secondary, #f9fafb)' }}>
         {showSidebar && <Sidebar shell onOpenSearch={openSearch} onOpenCalc={toggleCalc} />}
-        <main className="admin-shell-main" style={{ flex: 1, minWidth: 0, overflowX: 'hidden' }}>
+        <main className="admin-shell-main" style={{ flex: 1, minWidth: 0, overflowX: 'clip' }}>
           {!onPos && <SectionTabs item={strip.item} activeTab={strip.tab} />}   {/* the till is a screen of its own: no tab strip above it */}
           <Outlet />
         </main>

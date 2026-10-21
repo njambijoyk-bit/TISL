@@ -14,7 +14,7 @@ export default function AdminLayout({ children }) {
   return (
     <div style={{ display: 'flex', minHeight: '100vh', background: 'var(--bg-secondary, #f9fafb)' }}>
       <Sidebar />
-      <main style={{ flex: 1, minWidth: 0, overflowX: 'hidden' }}>{body}</main>
+      <main style={{ flex: 1, minWidth: 0, overflowX: 'clip' }}>{body}</main>
     </div>
   );
 }

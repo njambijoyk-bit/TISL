@@ -852,10 +852,10 @@ export default function CustomerDetail() {
         </div>
 
         {/* ── Tab bar ── */}
-        <div style={{ display: 'flex', alignItems: 'center', gap: 4, marginBottom: 20, borderBottom: '2px solid color-mix(in srgb, var(--color-primary-500) 10%, transparent)' }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 2, marginBottom: 20, overflowX: 'auto', borderBottom: '2px solid color-mix(in srgb, var(--color-primary-500) 10%, transparent)' }}>
           {['overview', 'addresses', 'orders', 'credit', ...(showTaxTab ? ['tax'] : [])].map(t => (
             <button key={t} onClick={() => setTab(t)} style={{
-              padding: '10px 16px', fontSize: '0.82rem', fontWeight: tab === t ? 700 : 500,
+              padding: '10px 14px', fontSize: '0.82rem', fontWeight: tab === t ? 700 : 500, whiteSpace: 'nowrap',
               color: tab === t ? 'var(--color-primary-500)' : 'var(--text-tertiary)',
               background: 'none', border: 'none', cursor: 'pointer', fontFamily: 'inherit',
               borderBottom: `2px solid ${tab === t ? 'var(--color-primary-500)' : 'transparent'}`,
