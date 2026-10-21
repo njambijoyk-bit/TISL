@@ -32,14 +32,18 @@ export async function exportElement(el, { name, title, subtitle, format = 'pdf' 
   const pix = document.createElement('canvas'); pix.width = 1; pix.height = 1;
   const ctx = pix.getContext('2d', { willReadFrequently: true });
   const page = rgbOf(ctx, getComputedStyle(document.body).backgroundColor);
-  const width = Math.max(el.scrollWidth, el.offsetWidth);
+  // the widest the content really is: a scrolling child (the map) can be wider than the box around it
+  const box = el.getBoundingClientRect();
+  const pad = 24;
+  const content = Math.ceil([el, ...el.querySelectorAll('*')].reduce((w, n) => Math.max(w, n.getBoundingClientRect().left - box.left + Math.max(n.scrollWidth, n.offsetWidth)), el.offsetWidth));
+  const total = content + pad * 2;
 
   const canvas = await html2canvas(el, {
-    scale: 2, useCORS: true, logging: false, backgroundColor: page, width, windowWidth: width + 48,
+    scale: 2, useCORS: true, logging: false, backgroundColor: page, width: total, windowWidth: Math.ceil(box.left) + total + 80,
     onclone: (doc, root) => {
       const view = doc.defaultView;
-      root.style.width = `${width}px`;
-      root.style.padding = '24px';
+      root.style.width = `${content}px`;
+      root.style.padding = `${pad}px`;
       root.style.boxSizing = 'content-box';
       [root, ...root.querySelectorAll('*')].forEach((n) => {
         const cs = view.getComputedStyle(n);
