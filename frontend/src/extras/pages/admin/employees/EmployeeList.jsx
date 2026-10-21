@@ -114,6 +114,60 @@ function SkeletonRow() {
 
 // ── Main ───────────────────────────────────────────────────────────────────────
 
+// ── Card view: everything the table shows, in one card ───────────────────────
+
+const cardLabel = { fontSize: '0.6rem', textTransform: 'uppercase', letterSpacing: '0.08em', color: 'var(--text-tertiary)', fontWeight: 700, margin: 0 };
+
+function EmployeeCard({ emp, navigate, onDelete }) {
+  const initials = (n) => n?.split(' ').map(x => x[0]).join('').slice(0, 2).toUpperCase() || '?';
+  const dim = { fontSize: '0.8rem', color: 'var(--text-tertiary)', margin: 0 };
+  return (
+    <div style={{ ...card, padding: '18px 18px 16px', display: 'flex', flexDirection: 'column', gap: 14, minWidth: 0 }}>
+      <div style={{ display: 'flex', gap: 12, alignItems: 'center', minWidth: 0 }}>
+        <div style={{ width: 46, height: 46, borderRadius: 12, flexShrink: 0, display: 'flex', alignItems: 'center', justifyContent: 'center', background: 'linear-gradient(135deg,color-mix(in srgb, var(--color-primary-500) 15%, transparent),color-mix(in srgb, var(--color-primary-600) 20%, transparent))', color: 'var(--color-primary-600)', fontSize: '0.95rem', fontWeight: 800, boxShadow: '0 0 0 1px color-mix(in srgb, var(--color-primary-500) 20%, transparent)' }}>{initials(emp.full_name)}</div>
+        <div style={{ flex: 1, minWidth: 0 }}>
+          <p style={{ fontSize: '0.95rem', fontWeight: 600, color: 'var(--text-primary)', margin: 0, overflowWrap: 'anywhere' }}>{emp.full_name || 'Unknown'}</p>
+          <p style={{ fontSize: '0.75rem', color: 'var(--text-secondary)', margin: '1px 0 0' }}>{emp.job_title || '—'}</p>
+          <p style={{ fontSize: '0.68rem', color: 'var(--text-tertiary)', fontFamily: 'monospace', margin: '1px 0 0' }}>{emp.employee_number}</p>
+        </div>
+        <Badge status={emp.status} />
+      </div>
+      <div style={{ borderTop: '1px solid var(--line)', paddingTop: 14, display: 'flex', flexDirection: 'column', gap: 14 }}>
+        <div>
+          <p style={cardLabel}>Contact</p>
+          <p style={{ fontSize: '0.82rem', margin: '3px 0 0', color: 'var(--text-primary)', overflowWrap: 'anywhere' }}>{emp.user?.email || '—'}</p>
+          <p style={{ ...dim, margin: '2px 0 0', fontFamily: emp.work_phone ? 'monospace' : 'inherit', color: emp.work_phone ? 'var(--text-secondary)' : 'var(--text-tertiary)' }}>{emp.work_phone || 'No phone'}</p>
+        </div>
+        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, minmax(0, 1fr))', gap: 12 }}>
+          <div>
+            <p style={cardLabel}>Department</p>
+            <p style={{ fontSize: '0.82rem', margin: '3px 0 0', color: 'var(--text-primary)' }}>{emp.department || '—'}</p>
+            <p style={{ ...dim, margin: '2px 0 0' }}>{EMPLOYMENT_TYPE_LABELS[emp.employment_type] || '—'}</p>
+          </div>
+          <div>
+            <p style={cardLabel}>Hired</p>
+            <p style={{ fontSize: '0.82rem', margin: '3px 0 0', color: emp.hire_date ? 'var(--text-primary)' : 'var(--text-tertiary)' }}>{emp.hire_date ? new Date(emp.hire_date).toLocaleDateString('en-KE', { day: 'numeric', month: 'short', year: 'numeric' }) : '—'}</p>
+            {emp.tenure_years && <p style={{ ...dim, margin: '2px 0 0' }}>{emp.tenure_years} years</p>}
+          </div>
+        </div>
+        <div>
+          <p style={cardLabel}>Manager</p>
+          {emp.manager?.user ? (
+            <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginTop: 4 }}>
+              <div style={{ width: 26, height: 26, borderRadius: 7, display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'var(--color-primary-600)', fontSize: '0.72rem', fontWeight: 700, boxShadow: '0 0 0 1px color-mix(in srgb, var(--color-primary-500) 15%, transparent)' }}>{emp.manager.user.name?.[0] || '?'}</div>
+              <span style={{ fontSize: '0.82rem', color: 'var(--text-primary)' }}>{emp.manager.user.name}</span>
+            </div>
+          ) : <p style={{ ...dim, margin: '3px 0 0' }}>No manager</p>}
+        </div>
+      </div>
+      <div style={{ borderTop: '1px solid var(--line)', paddingTop: 14, marginTop: 'auto', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+        <button type="button" onClick={() => navigate(`/admin/employees/${emp.id}`)} style={{ padding: '7px 16px', borderRadius: 8, cursor: 'pointer', fontFamily: 'inherit', fontSize: '0.8rem', fontWeight: 600, color: 'var(--text-primary)', background: 'var(--surface-input)', border: '1.5px solid var(--line)' }}>View</button>
+        <RowActions empId={emp.id} onDelete={onDelete} navigate={navigate} />
+      </div>
+    </div>
+  );
+}
+
 export default function EmployeeList() {
   const navigate = useNavigate();
   const [view, setView] = useViewMode('employees');
@@ -414,31 +468,8 @@ export default function EmployeeList() {
           loading ? <p style={{ padding: 24, color: 'var(--text-tertiary)', fontSize: '0.85rem' }}>Loading…</p> : employees.length === 0 ? (
             <div style={{ ...card, padding: 48, textAlign: 'center', color: 'var(--text-tertiary)', fontSize: '0.85rem' }}>{hasFilters ? 'No employees match your filters' : 'No employees found'}</div>
           ) : (
-            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(min(100%, 280px), 1fr))', gap: 14 }}>
-              {employees.map((emp) => (
-                <button key={emp.id} type="button" onClick={() => navigate(`/admin/employees/${emp.id}`)}
-                  style={{ ...card, padding: 16, display: 'flex', flexDirection: 'column', gap: 12, textAlign: 'left', cursor: 'pointer', fontFamily: 'inherit', color: 'inherit', minWidth: 0 }}>
-                  <div style={{ display: 'flex', gap: 12, alignItems: 'center', minWidth: 0 }}>
-                    <div style={{ width: 44, height: 44, borderRadius: 12, flexShrink: 0, display: 'flex', alignItems: 'center', justifyContent: 'center', background: 'linear-gradient(135deg,color-mix(in srgb, var(--color-primary-500) 15%, transparent),color-mix(in srgb, var(--color-primary-600) 20%, transparent))', color: 'var(--color-primary-600)', fontSize: '0.95rem', fontWeight: 800 }}>
-                      {emp.full_name?.split(' ').map(n => n[0]).join('').slice(0, 2).toUpperCase() || '?'}
-                    </div>
-                    <div style={{ minWidth: 0 }}>
-                      <p style={{ fontSize: '0.9rem', fontWeight: 700, color: 'var(--text-primary)', margin: 0, overflowWrap: 'anywhere' }}>{emp.full_name || 'Unknown'}</p>
-                      <p style={{ fontSize: '0.72rem', color: 'var(--text-tertiary)', margin: '1px 0 0' }}>{emp.job_title || '—'}</p>
-                      <p style={{ fontSize: '0.65rem', color: 'var(--text-tertiary)', fontFamily: 'monospace', margin: '1px 0 0' }}>{emp.employee_number}</p>
-                    </div>
-                  </div>
-                  <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap', alignItems: 'center' }}>
-                    <Badge status={emp.status} />
-                    {emp.department && <span style={{ fontSize: '0.74rem', color: 'var(--text-secondary)' }}>{emp.department}</span>}
-                    {EMPLOYMENT_TYPE_LABELS[emp.employment_type] && <span style={{ fontSize: '0.7rem', color: 'var(--text-tertiary)' }}>· {EMPLOYMENT_TYPE_LABELS[emp.employment_type]}</span>}
-                  </div>
-                  <div style={{ display: 'flex', justifyContent: 'space-between', gap: 8, borderTop: '1px solid var(--line)', paddingTop: 10, fontSize: '0.74rem', color: 'var(--text-tertiary)' }}>
-                    <span>{emp.manager?.user ? `Reports to ${emp.manager.user.name}` : 'No manager'}</span>
-                    <span>{emp.hire_date ? new Date(emp.hire_date).toLocaleDateString('en-KE', { month: 'short', year: 'numeric' }) : ''}</span>
-                  </div>
-                </button>
-              ))}
+            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(min(100%, 340px), 1fr))', gap: 16, alignItems: 'stretch' }}>
+              {employees.map((emp) => <EmployeeCard key={emp.id} emp={emp} navigate={navigate} onDelete={() => handleSoftDelete(emp.id)} />)}
             </div>
           )
         ) : (

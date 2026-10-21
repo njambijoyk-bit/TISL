@@ -178,6 +178,78 @@ function SkeletonRow() {
   );
 }
 
+// ── Card view: everything the table shows, in one card ───────────────────────
+
+const cardLabel = { fontSize: '0.6rem', textTransform: 'uppercase', letterSpacing: '0.08em', color: 'var(--text-tertiary)', fontWeight: 700, margin: 0 };
+
+function CardStat({ label, children, sub }) {
+  return (
+    <div style={{ minWidth: 0 }}>
+      <p style={cardLabel}>{label}</p>
+      <div style={{ fontSize: '0.88rem', fontWeight: 700, marginTop: 3, overflowWrap: 'anywhere' }}>{children}</div>
+      {sub && <p style={{ fontSize: '0.65rem', color: 'var(--text-tertiary)', margin: '2px 0 0' }}>{sub}</p>}
+    </div>
+  );
+}
+
+function CardMenu({ items }) {
+  const [open, setOpen] = useState(false);
+  return (
+    <div style={{ position: 'relative' }}>
+      <button type="button" aria-label="More actions" aria-expanded={open} onClick={() => setOpen(v => !v)}
+        style={{ width: 34, height: 32, borderRadius: 8, cursor: 'pointer', fontFamily: 'inherit', fontWeight: 700, color: 'var(--text-secondary)', background: 'transparent', border: '1.5px solid var(--line)' }}>···</button>
+      {open && (
+        <>
+          <div style={{ position: 'fixed', inset: 0, zIndex: 19 }} onClick={() => setOpen(false)} />
+          <div role="menu" style={{ position: 'absolute', right: 0, bottom: 'calc(100% + 6px)', width: 170, zIndex: 20, background: 'var(--surface-card, #fff)', borderRadius: 12, padding: '6px 0', border: '1.5px solid var(--line)', boxShadow: '0 8px 32px rgba(0,0,0,0.25)' }}>
+            {items.map(it => (
+              <button key={it.label} type="button" role="menuitem" onClick={() => { setOpen(false); it.onClick(); }}
+                style={{ display: 'block', width: '100%', textAlign: 'left', padding: '8px 14px', fontSize: '0.8rem', fontWeight: 500, background: 'none', border: 'none', cursor: 'pointer', fontFamily: 'inherit', color: 'var(--text-primary)' }}>{it.label}</button>
+            ))}
+          </div>
+        </>
+      )}
+    </div>
+  );
+}
+
+function CustomerCard({ c, tierOptions, navigate }) {
+  const st = STATUS_STYLES[c.status] ?? STATUS_STYLES.inactive;
+  const tr = tierStyle(c.tier, tierOptions);
+  const go = (tab) => navigate(`/admin/customers/${c.id}${tab ? `?tab=${tab}` : ''}`);
+  const none = <span style={{ color: 'var(--text-tertiary)', fontWeight: 500 }}>—</span>;
+  return (
+    <div style={{ ...card, padding: '18px 18px 16px', display: 'flex', flexDirection: 'column', gap: 14, minWidth: 0 }}>
+      <div style={{ display: 'flex', gap: 12, alignItems: 'center', minWidth: 0 }}>
+        <img src={c.profile_image_url} alt="" style={{ width: 46, height: 46, borderRadius: '50%', objectFit: 'cover', flexShrink: 0, background: 'var(--surface-input)' }} />
+        <div style={{ flex: 1, minWidth: 0 }}>
+          <p style={{ fontSize: '0.95rem', fontWeight: 600, color: 'var(--text-primary)', margin: 0, overflowWrap: 'anywhere' }}>{c.full_name}</p>
+          <p style={{ fontSize: '0.75rem', color: 'var(--text-secondary)', margin: '1px 0 0', overflowWrap: 'anywhere' }}>{c.email}</p>
+          <p style={{ fontSize: '0.68rem', color: 'var(--text-tertiary)', fontFamily: 'monospace', margin: '1px 0 0' }}>{c.customer_number}</p>
+        </div>
+        <Badge bg={st.bg} color={st.color} ring={st.ring}><span style={{ width: 5, height: 5, borderRadius: '50%', background: st.dot, flexShrink: 0 }} />{c.status}</Badge>
+      </div>
+      <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap' }}>
+        <Badge bg="color-mix(in srgb, var(--color-primary-500) 7%, transparent)" color="var(--color-primary-600)" ring="color-mix(in srgb, var(--color-primary-500) 18%, transparent)">{TYPE_ICONS[c.customer_type]}{c.customer_type}</Badge>
+        <Badge bg={tr.bg} color={tr.color} ring={tr.ring}>{c.tier}</Badge>
+      </div>
+      <div style={{ borderTop: '1px solid var(--line)', paddingTop: 14, display: 'grid', gridTemplateColumns: 'repeat(3, minmax(0, 1fr))', rowGap: 14, columnGap: 12 }}>
+        <CardStat label="Orders">{(c.total_orders ?? 0).toLocaleString()}</CardStat>
+        <CardStat label="Total spent" sub={c.average_order_value > 0 ? `avg ${fmt(c.average_order_value)}` : null}>{fmt(c.total_spent)}</CardStat>
+        <CardStat label="Last order">{c.last_order_date ? <span style={{ fontWeight: 600 }}>{fmtDate(c.last_order_date)}</span> : none}</CardStat>
+        <CardStat label="Discount">{Number(c.discount_percentage) > 0 ? <span style={{ color: 'var(--color-primary-600)' }}>{Number(c.discount_percentage).toFixed(1)}%</span> : none}</CardStat>
+        <CardStat label="Gift voucher">{Number(c.store_credit) > 0 ? <span style={{ color: '#059669' }}>{fmt(c.store_credit)}</span> : none}</CardStat>
+        <CardStat label="Points">{Number(c.loyalty_points) > 0 ? <span style={{ color: '#d97706' }}>{fmtPts(c.loyalty_points)}</span> : none}</CardStat>
+      </div>
+      <div><p style={cardLabel}>Sales rep</p><p style={{ fontSize: '0.82rem', margin: '3px 0 0', color: c.sales_rep ? 'var(--text-primary)' : 'var(--text-tertiary)' }}>{c.sales_rep?.name || 'Not assigned'}</p></div>
+      <div style={{ borderTop: '1px solid var(--line)', paddingTop: 14, marginTop: 'auto', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+        <button type="button" onClick={() => go()} style={{ padding: '7px 16px', borderRadius: 8, cursor: 'pointer', fontFamily: 'inherit', fontSize: '0.8rem', fontWeight: 600, color: 'var(--text-primary)', background: 'var(--surface-input)', border: '1.5px solid var(--line)' }}>View</button>
+        <CardMenu items={[{ label: 'Orders', onClick: () => go('orders') }, { label: 'Credit', onClick: () => go('credit') }, { label: 'Addresses', onClick: () => go('addresses') }]} />
+      </div>
+    </div>
+  );
+}
+
 // ── Main component ────────────────────────────────────────────────────────────
 
 export default function Customers() {
@@ -484,34 +556,8 @@ export default function Customers() {
           loading ? <p style={{ padding: 24, color: 'var(--text-tertiary)', fontSize: '0.85rem' }}>Loading…</p> : customers.length === 0 ? (
             <div style={{ ...card, padding: 48, textAlign: 'center', color: 'var(--text-tertiary)', fontSize: '0.85rem' }}>No customers found</div>
           ) : (
-            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(min(100%, 280px), 1fr))', gap: 14 }}>
-              {customers.map((c) => {
-                const st = STATUS_STYLES[c.status] ?? STATUS_STYLES.inactive;
-                const tr = tierStyle(c.tier, tierOptions);
-                return (
-                  <button key={c.id} type="button" onClick={() => navigate(`/admin/customers/${c.id}`)}
-                    style={{ ...card, padding: 16, display: 'flex', flexDirection: 'column', gap: 12, textAlign: 'left', cursor: 'pointer', fontFamily: 'inherit', color: 'inherit', minWidth: 0 }}>
-                    <div style={{ display: 'flex', gap: 12, alignItems: 'center', minWidth: 0 }}>
-                      <img src={c.profile_image_url} alt="" style={{ width: 44, height: 44, borderRadius: '50%', objectFit: 'cover', flexShrink: 0, background: 'var(--surface-input)' }} />
-                      <div style={{ minWidth: 0 }}>
-                        <p style={{ fontSize: '0.9rem', fontWeight: 700, color: 'var(--text-primary)', margin: 0, overflowWrap: 'anywhere' }}>{c.full_name}</p>
-                        <p style={{ fontSize: '0.72rem', color: 'var(--text-tertiary)', margin: '1px 0 0', overflowWrap: 'anywhere' }}>{c.email}</p>
-                        <p style={{ fontSize: '0.65rem', color: 'var(--text-tertiary)', fontFamily: 'monospace', margin: '1px 0 0' }}>{c.customer_number}</p>
-                      </div>
-                    </div>
-                    <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap' }}>
-                      <Badge bg={st.bg} color={st.color} ring={st.ring}><span style={{ width: 5, height: 5, borderRadius: '50%', background: st.dot, flexShrink: 0 }} />{c.status}</Badge>
-                      <Badge bg={tr.bg} color={tr.color} ring={tr.ring}>{c.tier}</Badge>
-                      <Badge bg="color-mix(in srgb, var(--color-primary-500) 7%, transparent)" color="var(--color-primary-600)" ring="color-mix(in srgb, var(--color-primary-500) 18%, transparent)">{TYPE_ICONS[c.customer_type]}{c.customer_type}</Badge>
-                    </div>
-                    <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: 8, borderTop: '1px solid var(--line)', paddingTop: 10 }}>
-                      <div><div style={{ fontSize: '0.6rem', textTransform: 'uppercase', letterSpacing: '0.07em', color: 'var(--text-tertiary)', fontWeight: 700 }}>Orders</div><div style={{ fontWeight: 700, fontSize: '0.88rem' }}>{(c.total_orders ?? 0).toLocaleString()}</div></div>
-                      <div><div style={{ fontSize: '0.6rem', textTransform: 'uppercase', letterSpacing: '0.07em', color: 'var(--text-tertiary)', fontWeight: 700 }}>Spent</div><div style={{ fontWeight: 700, fontSize: '0.88rem' }}>{fmt(c.total_spent)}</div></div>
-                      <div><div style={{ fontSize: '0.6rem', textTransform: 'uppercase', letterSpacing: '0.07em', color: 'var(--text-tertiary)', fontWeight: 700 }}>Last order</div><div style={{ fontWeight: 600, fontSize: '0.8rem' }}>{fmtDate(c.last_order_date)}</div></div>
-                    </div>
-                  </button>
-                );
-              })}
+            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(min(100%, 340px), 1fr))', gap: 16, alignItems: 'stretch' }}>
+              {customers.map((c) => <CustomerCard key={c.id} c={c} tierOptions={tierOptions} navigate={navigate} />)}
             </div>
           )
         ) : (
