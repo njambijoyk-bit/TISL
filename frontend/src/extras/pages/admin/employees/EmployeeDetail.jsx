@@ -1,3 +1,4 @@
+import { notifyRecordsChanged } from '../../../../_shared/components/common/recordEvents';
 import { useState, useEffect } from 'react';
 import { useParams, useNavigate, Link } from 'react-router-dom';
 import {
@@ -152,6 +153,7 @@ export default function EmployeeDetail() {
   const [termDate, setTermDate]               = useState('');
 
   useEffect(() => { fetchEmployee(); }, [id]);
+  useEffect(() => { if (employee) notifyRecordsChanged(); }, [employee]);   // the sidebar's status colour follows
 
   const fetchEmployee = async () => {
     setLoading(true);

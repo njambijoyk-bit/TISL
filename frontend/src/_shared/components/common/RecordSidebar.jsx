@@ -16,7 +16,11 @@ const KINDS = {
   },
 };
 
-const dot = (s) => (s === 'active' ? '#10b981' : s === 'suspended' || s === 'on_leave' ? '#f59e0b' : s === 'blacklisted' || s === 'terminated' ? '#ef4444' : '#9ca3af');
+// the same colours as the status badges on each page
+const DOTS = {
+  employees: { active: '#10b981', on_leave: '#f59e0b', probation: '#6366f1', suspended: '#ef4444', terminated: '#9ca3af' },
+  customers: { active: '#10b981', inactive: '#9ca3af', suspended: '#f59e0b', blacklisted: '#ef4444' },
+};
 
 /**
  * Wraps a detail page with a short list of the other customers (or employees) beside it, so staff move between records without going back.
@@ -38,11 +42,18 @@ export default function RecordSidebar({ kind, children }) {
     return () => m.removeEventListener('change', on);
   }, []);
 
+  const [stamp, setStamp] = useState(0);   // bumps when a detail page says a record changed
+  useEffect(() => {
+    const on = () => setStamp((n) => n + 1);
+    window.addEventListener('records:changed', on);
+    return () => window.removeEventListener('records:changed', on);
+  }, []);
+
   useEffect(() => {
     if (!wide) return undefined;
     const t = setTimeout(() => cfg.load(q).then((r) => setRows(r.map(cfg.map))).catch(() => setRows([])), q ? 250 : 0);
     return () => clearTimeout(t);
-  }, [cfg, q, wide]);
+  }, [cfg, q, wide, stamp]);
 
   if (!wide) return children;
   const tab = new URLSearchParams(qs).get('tab');
@@ -59,7 +70,7 @@ export default function RecordSidebar({ kind, children }) {
               <button key={r.id} type="button" aria-current={on ? 'true' : undefined} onClick={() => navigate(`${cfg.path}/${r.id}${tab ? `?tab=${tab}` : ''}`)}
                 style={{ display: 'flex', alignItems: 'center', gap: 10, textAlign: 'left', width: '100%', padding: '9px 11px', borderRadius: 10, cursor: 'pointer', fontFamily: 'inherit', color: 'var(--text-primary)',
                   background: on ? 'color-mix(in srgb, var(--color-primary-500) 12%, transparent)' : 'transparent', border: `1px solid ${on ? 'color-mix(in srgb, var(--color-primary-500) 30%, transparent)' : 'transparent'}` }}>
-                <span aria-hidden="true" style={{ width: 8, height: 8, borderRadius: '50%', flex: 'none', background: dot(r.status) }} />
+                <span aria-hidden="true" style={{ width: 8, height: 8, borderRadius: '50%', flex: 'none', background: DOTS[kind]?.[r.status] ?? '#9ca3af' }} />
                 <span style={{ flex: 1, minWidth: 0 }}>
                   <span style={{ display: 'block', fontWeight: 600, fontSize: '0.82rem', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{r.name || 'Unnamed'}</span>
                   <span style={{ display: 'block', fontSize: '0.68rem', color: 'var(--text-tertiary)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{r.sub}</span>

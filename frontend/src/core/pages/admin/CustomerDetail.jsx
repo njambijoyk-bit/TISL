@@ -1,4 +1,5 @@
 import { useState, useEffect, useRef, useCallback } from 'react';
+import { notifyRecordsChanged } from '../../../_shared/components/common/recordEvents';
 import { useParams, useNavigate, Link } from 'react-router-dom';
 import useCalculatorContext from '../../../_shared/hooks/useCalculatorContext';
 import {
@@ -417,6 +418,7 @@ export default function CustomerDetail() {
   const [addrsLoading,setAddrsLoading]= useState(false);
   const [addingAddr,  setAddingAddr]  = useState(false);
   const [editingAddr, setEditingAddr] = useState(null);
+  useEffect(() => { if (customer) notifyRecordsChanged(); }, [customer]);   // the sidebar's status colour follows
 
   const [orders,       setOrders]       = useState([]);
   const [ordersLoading,setOrdersLoading]= useState(false);
