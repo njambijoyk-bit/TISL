@@ -735,7 +735,7 @@ export default function PromoCodes() {
             </p>
 
             <div style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
-              <button
+              <button aria-label="Previous page"
                 onClick={() => setFilter('page', pagination.current_page - 1)}
                 disabled={pagination.current_page <= 1}
                 style={{
@@ -777,7 +777,7 @@ export default function PromoCodes() {
                 );
               })}
 
-              <button
+              <button aria-label="Next page"
                 onClick={() => setFilter('page', pagination.current_page + 1)}
                 disabled={pagination.current_page >= pagination.last_page}
                 style={{

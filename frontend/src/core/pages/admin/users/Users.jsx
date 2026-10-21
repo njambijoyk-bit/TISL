@@ -46,7 +46,6 @@ const STAT_META = [
 
 const PER_PAGE_OPTIONS = [10, 20, 50];
 const fmtDate = (d) => d ? new Date(d).toLocaleDateString('en-KE', { day: 'numeric', month: 'short', year: 'numeric' }) : '—';
-const fmtDateTime = (d) => d ? new Date(d).toLocaleString('en-GB', { day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit' }) : '—';
 
 // ── Shared styles ─────────────────────────────────────────────────────────────
 const card = {
@@ -106,7 +105,7 @@ function Badge({ bg, color, ring, children }) {
   );
 }
 
-function SkeletonRow({ cols }) {
+function SkeletonRow() {
   return (
     <tr style={{ borderBottom: '1px solid color-mix(in srgb, var(--color-primary-500) 5%, transparent)' }}>
       <td style={{ padding: '12px 16px', width: 44 }}>
@@ -531,7 +530,7 @@ export default function UsersPage() {
   const navigate = useNavigate();
   const {
     users, statistics, departments, pagination, filters,
-    loading, actionLoading,
+    loading,
     fetchUsers, fetchStatistics, fetchDepartments, fetchRoles, roles,
     setFilter, setTab, resetFilters,
     deleteUser, restoreUser, updateStatus,
@@ -1036,7 +1035,7 @@ export default function UsersPage() {
               </p>
 
               <div style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
-                <button
+                <button aria-label="Previous page"
                   onClick={() => setFilter('page', pagination.current_page - 1)}
                   disabled={pagination.current_page <= 1}
                   style={{
@@ -1078,7 +1077,7 @@ export default function UsersPage() {
                   );
                 })}
 
-                <button
+                <button aria-label="Next page"
                   onClick={() => setFilter('page', pagination.current_page + 1)}
                   disabled={pagination.current_page >= pagination.last_page}
                   style={{

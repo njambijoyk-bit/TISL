@@ -651,7 +651,7 @@ export default function LoyaltyLedger() {
             background: 'var(--surface-card, #fff)', gap: 4,
         }}>
             {/* Prev */}
-            <button onClick={() => setPage(p => Math.max(1, p - 1))} disabled={meta.current_page <= 1} style={{
+            <button aria-label="Previous page" onClick={() => setPage(p => Math.max(1, p - 1))} disabled={meta.current_page <= 1} style={{
             width: 30, height: 30, display: 'flex', alignItems: 'center', justifyContent: 'center',
             borderRadius: 7, border: '1.5px solid var(--line)', background: 'none',
             color: 'var(--color-primary-500)', cursor: meta.current_page <= 1 ? 'not-allowed' : 'pointer',
@@ -684,7 +684,7 @@ export default function LoyaltyLedger() {
             }
 
             {/* Next */}
-            <button onClick={() => setPage(p => Math.min(meta.last_page, p + 1))} disabled={meta.current_page >= meta.last_page} style={{
+            <button aria-label="Next page" onClick={() => setPage(p => Math.min(meta.last_page, p + 1))} disabled={meta.current_page >= meta.last_page} style={{
             width: 30, height: 30, display: 'flex', alignItems: 'center', justifyContent: 'center',
             borderRadius: 7, border: '1.5px solid var(--line)', background: 'none',
             color: 'var(--color-primary-500)', cursor: meta.current_page >= meta.last_page ? 'not-allowed' : 'pointer',
