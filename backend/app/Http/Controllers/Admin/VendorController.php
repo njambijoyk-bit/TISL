@@ -49,7 +49,7 @@ class VendorController extends Controller
             ->map(fn ($x) => ['id' => (int) $x->id, 'voucher_number' => $x->voucher_number, 'date' => (string) $x->date, 'type' => $x->type, 'reference_no' => $x->reference_no,
                 'supplier_invoice_no' => $x->supplier_invoice_no, 'total' => (float) $x->total_amount])->values() : [];
 
-        return response()->json($this->row($v, $ledger) + ['scan_urls' => $v->scanUrls(), 'registration_number' => $v->registration_number, 'purchases' => $purchases, 'address' => $v->address, 'tax_id' => $v->tax_id, 'notes' => $v->notes, 'payment_terms_days' => $v->payment_terms_days]);
+        return response()->json($this->row($v, $ledger) + ['has_login' => $v->user_id !== null, 'login_email' => $v->user_id ? User::whereKey($v->user_id)->value('email') : null, 'scan_urls' => $v->scanUrls(), 'registration_number' => $v->registration_number, 'purchases' => $purchases, 'address' => $v->address, 'tax_id' => $v->tax_id, 'notes' => $v->notes, 'payment_terms_days' => $v->payment_terms_days]);
     }
 
     /** Body: company_name, contact_name?, email?, phone?, tax_id?, address?, payment_terms_days?, notes?. */
@@ -115,6 +115,16 @@ class VendorController extends Controller
 
             return response()->json(['message' => 'Vendor updated.']);
         });
+    }
+
+    /** Body: verified (bool). Staff mark a vendor verified once they have seen its registration documents (or take that back). */
+    public function verify(Request $request, int $id): JsonResponse
+    {
+        $v = Vendor::findOrFail($id);
+        $d = $request->validate(['verified' => 'required|boolean']);
+        $v->forceFill($d['verified'] ? ['is_verified' => true, 'verified_at' => now(), 'approved_by' => $request->user()->id] : ['is_verified' => false, 'verified_at' => null])->save();
+
+        return response()->json(['message' => $d['verified'] ? 'Vendor marked as verified.' : 'Verification taken back.']);
     }
 
     /** Body: confirmed (bool). Staff check the certificate scan, then confirm (or take back) the vendor's people category. */
@@ -221,7 +231,7 @@ class VendorController extends Controller
         return [
             'id' => $v->id, 'vendor_number' => $v->vendor_number, 'company_name' => $v->company_name, 'contact_name' => $v->contact_name, 'email' => $v->email, 'phone' => $v->phone,
             'status' => $v->status, 'ledger_id' => $ledgerId ? (int) $ledgerId : null, 'owed' => $owed,
-            'flags' => app(\App\Services\Tenders\VendorChecks::class)->flags($v),
+            'flags' => app(\App\Services\Tenders\VendorChecks::class)->flags($v), 'is_verified' => (bool) $v->is_verified,
             'special_group' => $v->special_group, 'special_group_status' => $v->special_group_status, 'special_group_certificate' => $v->special_group_certificate, 'special_group_valid_until' => $v->special_group_valid_until?->toDateString(),
         ];
     }

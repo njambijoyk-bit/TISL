@@ -124,7 +124,7 @@ export default function KeyboardShortcuts() {
           e.preventDefault();
           const log = pageHotkeyTarget('EditLog', undefined, 'nav.admin-section-tabs');
           if (log) log.click(); else navigate('/admin/books/edit-log');
-        } else if (['F2', 'F8', 'F9'].includes(e.key) && !dialogOpen() && (e.key !== 'F2' || inAdmin)) {
+        } else if (['F2', 'F3', 'F8', 'F9'].includes(e.key) && !dialogOpen() && (e.key !== 'F2' || inAdmin)) {
           const target = pageHotkeyTarget(e.key);
           if (target) { e.preventDefault(); target.click(); }
         }
@@ -182,6 +182,7 @@ export default function KeyboardShortcuts() {
     ['Shift', 'R', 'Refresh the list'],
     ['Shift', '←', 'Previous page of the list'],
     ['Shift', '→', 'Next page of the list'],
+    ['', 'F3', 'Switch the layout (table or cards)'],
     ['', 'F8', 'Show or hide the filters'],
     ['', 'F9', 'Export or download'],
     [mod, 'S', 'Save'],

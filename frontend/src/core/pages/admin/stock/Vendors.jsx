@@ -35,6 +35,7 @@ export default function Vendors() {
   const portalOn = isModuleActive(MODULES.EXTRAS);
   const canPortal = portalOn && hasPermission(user, 'vendors.portal');
   const canSeePq = portalOn && hasPermission(user, 'prequalification.view');
+  const canVerify = hasPermission(user, 'vendors.approve');
   const narrow = useNarrow();
   const prefKey = narrow ? 'vendors.view.phone' : 'vendors.view.desktop';
 
@@ -82,6 +83,9 @@ export default function Vendors() {
   const confirmGroup = async (r) => {
     try { const res = await vendorsAPI.confirmPeopleCategory(r.id, r.special_group_status !== 'confirmed'); toast.success(res.message); load(); } catch (x) { toast.error(errMsg(x, 'Could not change it')); }
   };
+  const verify = async (r) => {
+    try { const res = await vendorsAPI.verify(r.id, !r.is_verified); toast.success(res.message); load(); } catch (x) { toast.error(errMsg(x, 'Could not change it')); }
+  };
   const edit = async (r) => { try { setModal({ kind: 'edit', vendor: await vendorsAPI.show(r.id) }); } catch (x) { toast.error(errMsg(x, 'Could not load')); } };
   const open = (r, tab) => navigate(`/admin/vendors/${r.id}${tab ? `?tab=${tab}` : ''}`);
 
@@ -90,6 +94,7 @@ export default function Vendors() {
     canSeePq && { label: 'Pre-qualification', onClick: () => open(r, 'pq') },
     canPortal && r.special_group && { label: r.special_group_status === 'confirmed' ? 'Take back people category' : 'Confirm people category', onClick: () => confirmGroup(r) },
     canPortal && { label: r.has_login ? 'Reset portal password' : 'Create portal login', onClick: () => setModal({ kind: 'portal', vendor: r }) },
+    canVerify && { label: r.is_verified ? 'Take back verification' : 'Mark as verified', onClick: () => verify(r) },
     canWrite && 'divider',
     canWrite && { label: r.status === 'active' ? 'Suspend vendor' : 'Activate vendor', tone: r.status === 'active' ? 'danger' : 'success', onClick: () => toggle(r) },
   ];
@@ -97,7 +102,7 @@ export default function Vendors() {
   if (!canReadFinance(user)) return <AdminLayout><div style={{ padding: 32 }}><NoAccess what="vendors" /></div></AdminLayout>;
 
   const seg = (v, Icon, label) => (
-    <button type="button" aria-pressed={view === v} aria-label={label} title={label} onClick={() => setView(v)}
+    <button type="button" aria-pressed={view === v} aria-label={label} title={view === v ? label : `${label} (F3)`} data-hotkey={view === v ? undefined : 'F3'} onClick={() => setView(v)}
       style={{ ...btnGhost, padding: '6px 10px', borderRadius: 0, border: 'none', background: view === v ? colors.tint(0.16) : 'transparent', color: view === v ? colors.primary : colors.textMuted }}><Icon size={16} /></button>
   );
 

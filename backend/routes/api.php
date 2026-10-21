@@ -1170,6 +1170,7 @@ Route::middleware('auth:sanctum')->group(function () {
             Route::post('/', [$c, 'store']);
             Route::put('/{id}', [$c, 'update'])->whereNumber('id');
         });
+        Route::post('/{id}/verify', [$c, 'verify'])->whereNumber('id')->middleware('permission:vendors.approve');
     });
 
     // STOCK & EXPIRY settings (Core) — what happens to expired goods; admin / super_admin

@@ -2,6 +2,7 @@
 //   F12      Configuration (or "Loyalty configuration", "Programme configuration": one word, then configuration)
 //   F7       Recycle bin or Trash
 //   F2       New / Add / Create something (admin pages)
+//   F3       Switch view (a page with a table/cards toggle marks the button that would switch with data-hotkey="F3")
 //   F8       Filters
 //   F9       Export / Download
 //   Save     Save, Save changes         (Ctrl+S / Cmd+S)
@@ -15,6 +16,7 @@ const MATCHERS = {
   F12: /^(?!(?:save|use|edit|reset|apply|cancel|open|add|new|set)\b)(?:[\p{L}'-]+ )?configuration$/iu,
   F7: /^(?:recycle bin|trash)(?: \d+)?$/i,   // a count after the name (Trash 3) is fine
   F2: /^(?:(?:new|add|create)(?: [\p{L}'-]+){1,3}|add|create)$/iu,   // "New" alone is a status, not an action
+  F3: /^switch view$/i,
   F8: /^(?:show |hide )?filters?(?: \d+)?$/i,
   F9: /^(?:export|download)(?: (?:csv|pdf|excel|xlsx|report|list|data))?$/i,
   Save: /^save(?: changes)?$/i,

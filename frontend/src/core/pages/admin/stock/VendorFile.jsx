@@ -37,6 +37,7 @@ export default function VendorFile() {
   const portalOn = isModuleActive(MODULES.EXTRAS);
   const canPortal = portalOn && hasPermission(user, 'vendors.portal');
   const canSeePq = portalOn && hasPermission(user, 'prequalification.view');
+  const canVerify = hasPermission(user, 'vendors.approve');
   const canManagePq = portalOn && hasPermission(user, 'prequalification.manage');
 
   const [v, setV] = useState(null);
@@ -68,6 +69,7 @@ export default function VendorFile() {
   const currentPqs = pqs.filter((p) => p.current);
   const fine = [];
   if (v) {
+    if (v.is_verified) fine.push('Verified by staff');
     if (v.tax_id) fine.push('Tax PIN is on file');
     if (v.registration_number) fine.push('Company registration number is on file');
     if (v.special_group && v.special_group_status === 'confirmed') fine.push('People category confirmed by staff');
@@ -77,12 +79,13 @@ export default function VendorFile() {
   const header = v && (
     <div style={{ ...box, display: 'flex', justifyContent: 'space-between', gap: 16, flexWrap: 'wrap', alignItems: 'flex-start' }}>
       <div style={{ minWidth: 0 }}>
-        <div style={{ display: 'flex', gap: 10, alignItems: 'center', flexWrap: 'wrap' }}><span style={{ fontSize: '1.4rem', fontWeight: 800, color: colors.text, overflowWrap: 'anywhere' }}>{v.company_name}</span><StatusChip status={v.status} /></div>
+        <div style={{ display: 'flex', gap: 10, alignItems: 'center', flexWrap: 'wrap' }}><span style={{ fontSize: '1.4rem', fontWeight: 800, color: colors.text, overflowWrap: 'anywhere' }}>{v.company_name}</span><StatusChip status={v.status} />{v.is_verified && <Chip tone="success">Verified</Chip>}</div>
         <div style={{ fontSize: '0.8rem', color: colors.textMuted, marginTop: 6, overflowWrap: 'anywhere' }}>{[v.vendor_number, v.contact_name, v.phone, v.email].filter(Boolean).join(' · ')}</div>
         <GroupLine v={v} />
       </div>
       <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
         {canWrite && <button type="button" style={v.status === 'active' ? { ...btnGhost, color: colors.dangerText } : btnPrimary} onClick={() => act(() => vendorsAPI.update(v.id, { status: v.status === 'active' ? 'suspended' : 'active' }))}>{v.status === 'active' ? 'Suspend' : 'Activate'}</button>}
+        {canVerify && <button type="button" style={v.is_verified ? btnGhost : btnPrimary} onClick={() => act(() => vendorsAPI.verify(v.id, !v.is_verified))}>{v.is_verified ? 'Take back verification' : 'Mark as verified'}</button>}
         {canWrite && <button type="button" style={btnGhost} onClick={() => setModal('edit')}>Edit</button>}
         {canPortal && <button type="button" style={btnGhost} onClick={() => setModal('portal')}>{v.has_login ? 'Reset password' : 'Create login'}</button>}
       </div>
