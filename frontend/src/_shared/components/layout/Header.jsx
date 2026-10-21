@@ -409,7 +409,7 @@ export default function Header() {
     { label: 'Vendor Portal',     icon: Building2,     to: '/vendor-portal', module: MODULES.EXTRAS, vendorOnly: true },
     { label: 'My Profile',        icon: User,          to: profilePath },
     { label: 'My Orders',         icon: ShoppingBag,   to: '/orders' },
-    { label: 'My Account',         icon: User,          to: '/my-account' },
+    { label: 'My Account',         icon: User,          to: vendor ? '/vendor-portal/account' : '/my-account' },
     { label: 'My Wallet',          icon: Gift,          to: '/gift-vouchers' },
     { label: 'My Quotes',         icon: FileText,      to: '/my-quotes' },
     { label: 'My Bookings',       icon: CalendarCheck, to: '/my-bookings', module: MODULES.BOOKINGS },
@@ -424,7 +424,7 @@ export default function Header() {
   ].filter((l) => isModuleActive(l.module))
     .filter((l) => !l.vendorOnly || vendor)
     // a supplier has no shop, quotes or wallet: only their profile, their account and bug reports
-    .filter((l) => !vendor || ['/vendor-portal', profilePath, '/my-account', '/report-bug'].includes(l.to));
+    .filter((l) => !vendor || ['/vendor-portal', profilePath, '/vendor-portal/account', '/report-bug'].includes(l.to));
 
   return (
     <>

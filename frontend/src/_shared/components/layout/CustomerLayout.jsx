@@ -10,6 +10,7 @@ import { useState } from 'react';
 import { useNavigate, useLocation, Link } from 'react-router-dom';
 import ThemeSwitcher from '../common/ThemeSwitcher';
 import useAuthStore from '../../store/authStore';
+import { isVendor } from '../../lib/roles';
 import { useLayoutAudio } from './useLayoutAudio';
 
 const PANEL_W   = 224;
@@ -80,6 +81,13 @@ const CUSTOMER_GROUPS = [
   },
 ];
 
+// A supplier has no shop, wallet or quotes: their account section is their profile, the account page (coming soon) and bug reports
+const VENDOR_ACCOUNT = { '/profile': { name: 'My Profile', path: '/vendor-portal/profile' }, '/my-account': { name: 'My Account', path: '/vendor-portal/account' }, '/account/bug-reports': {} };
+const vendorGroups = (groups) => groups.map((g) => (g.label !== 'My Account' ? g : {
+  ...g,
+  items: g.items.filter((i) => VENDOR_ACCOUNT[i.path]).map((i) => ({ ...i, ...VENDOR_ACCOUNT[i.path] })),
+}));
+
 export default function CustomerLayout({ children }) {
   const [collapsed, setCollapsed] = useState(false);
   const audio        = useLayoutAudio();
@@ -87,6 +95,7 @@ export default function CustomerLayout({ children }) {
   const { pathname } = useLocation();
 
   const { user, logout, isAuthenticated } = useAuthStore();
+  const groups = isVendor(user) ? vendorGroups(CUSTOMER_GROUPS) : CUSTOMER_GROUPS;
 
   const doCollapse = (val) => {
     setCollapsed(val);
@@ -241,7 +250,7 @@ export default function CustomerLayout({ children }) {
             overflowY: 'auto',
             overflowX: 'hidden',
           }}>
-            {CUSTOMER_GROUPS.map((group, groupIndex) => (
+            {groups.map((group, groupIndex) => (
               <div key={group.label}>
                 {groupIndex > 0 && !collapsed && (
                   <div style={{ height: 1, background: 'rgba(255,255,255,0.06)', margin: '4px 0' }} />

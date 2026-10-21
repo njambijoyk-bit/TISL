@@ -322,6 +322,7 @@ const VendorDashboard    = lazy(() => import('./extras/pages/vendor-portal/Vendo
 const VendorTenders      = lazy(() => import('./extras/pages/vendor-portal/VendorTenders'));
 const VendorTenderDetail = lazy(() => import('./extras/pages/vendor-portal/VendorTenderDetail'));
 const VendorPq           = lazy(() => import('./extras/pages/vendor-portal/VendorPrequalification'));
+const VendorAccount      = lazy(() => import('./extras/pages/vendor-portal/VendorAccount'));
 const VendorOrders       = lazy(() => import('./extras/pages/vendor-portal/VendorOrders'));
 const VendorProfile      = lazy(() => import('./extras/pages/vendor-portal/VendorProfile'));
 const TenderList         = lazy(() => import('./extras/pages/admin/tenders/TenderList'));
@@ -657,6 +658,7 @@ function App() {
             <Route path="/vendor-portal/tenders/:id" element={<ProtectedRoute><ModuleRoute module="extras"><VendorTenderDetail /></ModuleRoute></ProtectedRoute>} />
             <Route path="/vendor-portal/pq" element={<ProtectedRoute><ModuleRoute module="extras"><VendorPq /></ModuleRoute></ProtectedRoute>} />
             <Route path="/vendor-portal/orders" element={<ProtectedRoute><ModuleRoute module="extras"><VendorOrders /></ModuleRoute></ProtectedRoute>} />
+            <Route path="/vendor-portal/account" element={<ProtectedRoute><ModuleRoute module="extras"><VendorAccount /></ModuleRoute></ProtectedRoute>} />
             <Route path="/vendor-portal/profile" element={<ProtectedRoute><ModuleRoute module="extras"><VendorProfile /></ModuleRoute></ProtectedRoute>} />
 
             <Route element={<CareersLayout />}>
