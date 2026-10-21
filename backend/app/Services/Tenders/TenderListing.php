@@ -130,6 +130,7 @@ class TenderListing
             'published_at'        => $t->published_at,
             'submission_deadline' => $t->submission_deadline,
             'reservation_scheme'  => $t->reservation_scheme,
+            'reservation_groups'  => $t->reservation_groups,
             'reserved_groups'     => $t->reservedGroups(),
             'addendum_count'      => (int) ($t->addendum_count ?? 0),
         ];

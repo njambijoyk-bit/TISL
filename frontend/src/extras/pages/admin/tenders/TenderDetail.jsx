@@ -147,7 +147,7 @@ function Audience({ tender, reload, onError }) {
       <div style={box}>
         <strong style={{ fontSize: '0.85rem' }}>Email vendors</strong>
         <p style={{ margin: 0, fontSize: '0.78rem', color: colors.textMuted }}>
-          {eligible === null ? 'Counting…' : <>This reaches <strong>{eligible.count}</strong> vendor{eligible.count === 1 ? '' : 's'} who can see this tender{tender.reservation_scheme ? ' and are in the reserved group' : ''}. Each gets a notification, and an email where they have turned email on.</>}
+          {eligible === null ? 'Counting…' : <>This reaches <strong>{eligible.count}</strong> vendor{eligible.count === 1 ? '' : 's'} who can see this tender{(tender.reservation_groups || []).length ? ' and are in one of the reserved groups' : ''}. Each gets a notification, and an email where they have turned email on.</>}
         </p>
         {eligible?.vendors?.length > 0 && <p style={{ margin: 0, fontSize: '0.72rem', color: colors.textFaint, overflowWrap: 'anywhere' }}>{eligible.vendors.slice(0, 12).map(v => v.company_name).join(', ')}{eligible.count > 12 ? ` and ${eligible.count - 12} more` : ''}</p>}
         <div style={{ display: 'grid', gridTemplateColumns: 'minmax(140px, 1fr) minmax(200px, 2fr)', gap: 12 }}>

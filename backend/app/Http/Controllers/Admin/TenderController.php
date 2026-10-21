@@ -71,7 +71,8 @@ class TenderController extends Controller
             'ocid'                  => 'nullable|string|max:100',
             'procurement_method'    => 'nullable|in:' . implode(',', Tender::PROCUREMENT_METHODS),
             'submission_method'     => 'nullable|in:' . implode(',', Tender::SUBMISSION_METHODS),
-            'reservation_scheme'    => 'nullable|in:' . implode(',', Tender::RESERVATION_GROUPS),
+            'reservation_groups'    => 'nullable|array|max:4',
+            'reservation_groups.*'  => 'in:' . implode(',', Tender::RESERVATION_GROUPS),
             'has_preference_scheme' => 'nullable|boolean',
             'opening_venue'         => 'nullable|string|max:255',
             'tender_fee'            => 'nullable|numeric|min:0',
@@ -105,6 +106,7 @@ class TenderController extends Controller
             'tender_number'       => ['required', 'string', 'max:60', 'regex:/^[A-Za-z0-9][A-Za-z0-9\/._-]*$/', 'unique:tenders,tender_number'],
         ] + $this->noticeRules());
 
+        $this->normaliseGroups($d);
         $this->guardLots($d['lots'] ?? []);
         if (Tender::withTrashed()->bySlug(Tender::slugFor($d['tender_number']))->exists()) {
             throw ValidationException::withMessages(['tender_number' => 'Another tender already has this number (slashes and dashes count as the same).']);
@@ -156,6 +158,7 @@ class TenderController extends Controller
             'opening_date'        => 'nullable|date',
         ] + $this->noticeRules());
 
+        $this->normaliseGroups($d);
         $this->guardLots($d['lots'] ?? []);
 
         // these columns can't be NULL: leave them as they are when the form sends nothing
@@ -173,6 +176,15 @@ class TenderController extends Controller
         });
 
         return response()->json(['message' => 'Tender updated.']);
+    }
+
+    /** The groups chosen on the form become the comma list kept in reservation_scheme (youth,pwd). */
+    private function normaliseGroups(array &$d): void
+    {
+        if (array_key_exists('reservation_groups', $d)) {
+            $d['reservation_scheme'] = $d['reservation_groups'] ? implode(',', array_values(array_unique($d['reservation_groups']))) : null;
+            unset($d['reservation_groups']);
+        }
     }
 
     /** Lot codes are unique within a tender. */

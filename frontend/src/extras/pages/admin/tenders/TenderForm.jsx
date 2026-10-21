@@ -11,10 +11,10 @@ import { METHOD_LABELS, SUBMISSION_LABELS, GROUP_LABELS, VISIBILITY_LABELS, NOTI
 
 const BLANK = {
   title: '', description: '', notice_type: 'tender', category: 'goods', visibility: 'public', procuring_entity: '', submission_deadline: '',
-  tender_number: '', ocid: '', procurement_method: 'open_tender', submission_method: 'electronic', reservation_scheme: '', has_preference_scheme: false,
+  tender_number: '', ocid: '', procurement_method: 'open_tender', submission_method: 'electronic', reservation_groups: [], has_preference_scheme: false,
   opening_venue: '', tender_fee: '', validity_days: '', financial_year: '', public_link: '', lots: [],
 };
-const BLANK_TO_NULL = ['ocid', 'reservation_scheme', 'opening_venue', 'financial_year', 'public_link', 'validity_days', 'procuring_entity'];
+const BLANK_TO_NULL = ['ocid', 'opening_venue', 'financial_year', 'public_link', 'validity_days', 'procuring_entity'];
 const row2 = { display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: 12 };
 
 export default function TenderForm() {
@@ -35,7 +35,7 @@ export default function TenderForm() {
         visibility: t.visibility || 'public', procuring_entity: t.procuring_entity || '',
         submission_deadline: t.submission_deadline ? t.submission_deadline.replace(' ', 'T').slice(0, 16) : '',
         tender_number: t.tender_number || '', ocid: t.ocid || '', procurement_method: t.procurement_method || 'open_tender', submission_method: t.submission_method || 'electronic',
-        reservation_scheme: t.reservation_scheme || '', has_preference_scheme: !!t.has_preference_scheme, opening_venue: t.opening_venue || '',
+        reservation_groups: t.reservation_groups || [], has_preference_scheme: !!t.has_preference_scheme, opening_venue: t.opening_venue || '',
         tender_fee: Number(t.tender_fee) || '', validity_days: t.validity_days || '', financial_year: t.financial_year || '', public_link: t.public_link || '',
         lots: (t.lots || []).map(l => ({ code: l.code, title: l.title, description: l.description || '', reservation_group: l.reservation_group || '' })),
       }))
@@ -117,11 +117,13 @@ export default function TenderForm() {
           </Field>
         </div>
         <div style={row2}>
-          <Field label="Reserved for (the whole tender)" hint="Blank = open to everyone. Reserve single lots below instead if only some are reserved" error={err('reservation_scheme')}>
-            <SelectInput value={form.reservation_scheme} onChange={set('reservation_scheme')}>
-              <option value="">Not reserved</option>
-              {Object.entries(GROUP_LABELS).map(([k, v]) => <option key={k} value={k}>{v}</option>)}
-            </SelectInput>
+          <Field label="Reserved for (the whole tender)" hint="Tick every group it is reserved for. A vendor in any one of them qualifies. None ticked = open to everyone. To reserve only some lots, use the lots below" error={err('reservation_groups')}>
+            <div style={{ display: 'flex', gap: '6px 18px', flexWrap: 'wrap', paddingTop: 4 }}>
+              {Object.entries(GROUP_LABELS).map(([k, v]) => (
+                <CheckboxRow key={k} label={v} checked={form.reservation_groups.includes(k)}
+                  onChange={(on) => setForm(f => ({ ...f, reservation_groups: on ? [...f.reservation_groups, k] : f.reservation_groups.filter(g => g !== k) }))} />
+              ))}
+            </div>
           </Field>
           <Field label="Financial year" hint="e.g. 2026/2027" error={err('financial_year')}><TextInput value={form.financial_year} onChange={set('financial_year')} placeholder="2026/2027" error={err('financial_year')} /></Field>
         </div>

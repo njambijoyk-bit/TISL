@@ -32,7 +32,7 @@ class TenderNotices
         }
 
         $lots = $tender->lots()->get();
-        $groups = $tender->reservation_scheme ? [$tender->reservation_scheme] : [];
+        $groups = $tender->reservation_groups;
         // reserved only when nothing in it is open to everyone: the tender itself, or every one of its lots
         if (! $groups && $lots->isNotEmpty() && $lots->every(fn ($l) => $l->reservation_group)) {
             $groups = $lots->pluck('reservation_group')->unique()->all();

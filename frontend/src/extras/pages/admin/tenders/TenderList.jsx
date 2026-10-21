@@ -56,7 +56,7 @@ export default function TenderList() {
                 <Link to={`/admin/tenders/${t.id}`} style={linkStyle}>{t.title}</Link>
               </td>
               <td style={td}>{NOTICE_TYPE_LABELS[t.notice_type] || 'Tender'}</td>
-              <td style={td}>{WHO[t.visibility] || t.visibility} {t.reservation_scheme && <GroupBadge group={t.reservation_scheme} />}</td>
+              <td style={td}>{WHO[t.visibility] || t.visibility} {(t.reservation_groups || []).map(g => <GroupBadge key={g} group={g} />)}</td>
               <td style={td}><StatusBadge status={t.display_status || t.status} /></td>
               <td style={{ ...td, whiteSpace: 'nowrap' }}>{fmtDateTime(t.submission_deadline)}</td>
               <td style={td}>{t.documents_count ?? 0}</td>

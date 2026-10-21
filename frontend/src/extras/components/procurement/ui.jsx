@@ -180,7 +180,7 @@ export function NoticeDetails({ tender: t, extra = [], onOpen }) {
     ['Procurement method', METHOD_LABELS[t.procurement_method] || t.procurement_method],
     ['Procurement category', CATEGORY_LABELS[t.category] || t.category],
     ['Submission methods', SUBMISSION_LABELS[t.submission_method] && <span style={chip}>{SUBMISSION_LABELS[t.submission_method]}</span>],
-    ['Reservation scheme', t.reservation_scheme && <span style={chip}>{GROUP_LABELS[t.reservation_scheme] || t.reservation_scheme}</span>],
+    ['Reservation scheme', (t.reservation_groups || []).length > 0 && <span style={{ display: 'inline-flex', gap: 6, flexWrap: 'wrap' }}>{t.reservation_groups.map(g => <span key={g} style={chip}>{GROUP_LABELS[g] || g}</span>)}</span>],
     ['Opening venue', t.opening_venue],
     ['Published date', t.published_at ? fmtLongDate(t.published_at) : null],
     ['Close date and time', fmtDateTime(t.submission_deadline)],

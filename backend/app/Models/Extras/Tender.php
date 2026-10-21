@@ -74,6 +74,14 @@ class Tender extends Model
         'metadata',
     ];
 
+    /** The groups the whole tender is reserved for ('youth,pwd' is stored in reservation_scheme). A vendor in any one of them qualifies. */
+    protected $appends = ['reservation_groups'];
+
+    public function getReservationGroupsAttribute(): array
+    {
+        return collect(explode(',', (string) $this->reservation_scheme))->map(fn ($g) => strtolower(trim($g)))->filter(fn ($g) => in_array($g, self::RESERVATION_GROUPS, true))->unique()->values()->all();
+    }
+
     protected $casts = [
         'requirements'        => 'array',
         'metadata'            => 'array',
@@ -253,6 +261,6 @@ class Tender extends Model
     {
         $groups = $this->relationLoaded('lots') ? $this->lots->pluck('reservation_group') : $this->lots()->pluck('reservation_group');
 
-        return $groups->push($this->reservation_scheme)->filter()->unique()->values()->all();
+        return $groups->merge($this->reservation_groups)->filter()->unique()->values()->all();
     }
 }
