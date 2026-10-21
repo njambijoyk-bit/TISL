@@ -137,8 +137,8 @@ function ActionMenu({ user, onView, onStatusChange, onUnlock, onForceReset, onDe
   const items = [
     { icon: Eye,       label: 'View details',         onClick: onView,                              danger: false },
     ...(!user.deleted_at ? [
-      user.status === 'suspended'
-        ? { icon: UserCheck, label: 'Activate',       onClick: () => onStatusChange('active'),      danger: false }
+      ['suspended', 'pending_verification', 'inactive'].includes(user.status)
+        ? { icon: UserCheck, label: user.status === 'pending_verification' ? 'Approve and activate' : 'Activate', onClick: () => onStatusChange('active'), danger: false }
         : { icon: UserX,     label: 'Suspend',        onClick: () => onStatusChange('suspended'),   danger: true  },
       ...(isLocked ? [{ icon: Unlock, label: 'Unlock account', onClick: onUnlock, danger: false }] : []),
       { icon: KeyRound,  label: 'Force password reset', onClick: onForceReset,                      danger: false },
