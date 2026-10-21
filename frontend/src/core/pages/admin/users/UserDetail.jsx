@@ -424,7 +424,7 @@ export default function UserDetail() {
                   <ActionBtn icon={KeyRound} label="Reset password" onClick={() => setShowResetModal(true)} />
                   <ActionBtn icon={ShieldAlert} label="Reset sign-in methods" onClick={() => setShowMethodsModal(true)} />
                   {user.status === 'suspended' || user.status === 'pending_verification'
-                    ? <ActionBtn icon={UserCheck} label={user.status === 'pending_verification' ? 'Approve and activate' : 'Activate'} onClick={() => handleStatusChange('active')}    loading={actionLoading} />
+                    ? <ActionBtn primary={user.status === 'pending_verification'} icon={UserCheck} label={user.status === 'pending_verification' ? 'Approve and activate' : 'Activate'} onClick={() => handleStatusChange('active')}    loading={actionLoading} />
                     : <ActionBtn icon={UserX}     label="Suspend"  onClick={() => handleStatusChange('suspended')} loading={actionLoading} danger />
                   }
                   <ActionBtn

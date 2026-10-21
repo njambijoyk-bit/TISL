@@ -610,7 +610,7 @@ export default function LoyaltyLedger() {
                   <td style={{ padding: '11px 16px', textAlign: 'right' }}>
                     <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'flex-end', gap: 6 }}>
                       <Coins size={13} style={{ color: Number(c.loyalty_points) > 0 ? 'var(--color-primary-500)' : 'var(--text-tertiary)' }} />
-                      <span style={{ fontSize: '0.85rem', fontWeight: 700, color: Number(c.loyalty_points) > 0 ? '#111827' : 'var(--text-tertiary)', fontVariantNumeric: 'tabular-nums' }}>
+                      <span style={{ fontSize: '0.85rem', fontWeight: 700, color: Number(c.loyalty_points) > 0 ? 'var(--text-primary)' : 'var(--text-tertiary)', fontVariantNumeric: 'tabular-nums' }}>
                         {fmtPts(c.loyalty_points)}
                       </span>
                     </div>
