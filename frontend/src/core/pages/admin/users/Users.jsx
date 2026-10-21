@@ -5,13 +5,15 @@ import {
   Shield, ShieldAlert, Lock, Unlock, Info, ExternalLink, Upload,
   KeyRound, UserX, UserCheck, Trash2, RotateCcw,
   ChevronLeft, ChevronRight, AlertCircle, CheckCircle, Eye,
-  ArrowUpDown, ChevronDown, ChevronUp, Building2,
+  ArrowUpDown, ChevronDown, ChevronUp, Building2, Download,
 } from 'lucide-react';
 import useUsersStore from '../../../../_shared/store/usersStore';
 import usersAPI from '../../../../_shared/api/users';
 import toast from 'react-hot-toast';
 import CreateUserModal from './components/CreateUserModal';
 import AdminLayout from '../../../../_shared/components/layout/AdminLayout';
+import ViewToggle from '../../../../_shared/components/common/ViewToggle';
+import { useViewMode } from '../../../../_shared/components/common/viewMode';
 
 // ── Constants ─────────────────────────────────────────────────────────────────
 // The role badge colour follows the clearance level (0 to 6), never the role's name: roles are made in the role builder.
@@ -382,6 +384,148 @@ function UsersDevNotesModal({ onClose }) {
   );
 }
 
+// ── Table and card pieces, per tab ───────────────────────────────────────────
+const money = (n) => `Ksh ${Number(n || 0).toLocaleString()}`;
+
+/** "3 months ago": how long ago, in the biggest unit that fits. */
+function ago(d) {
+  if (!d) return null;
+  const mins = Math.max(0, Math.round((Date.now() - new Date(d).getTime()) / 60000));
+  if (mins < 1) return 'just now';
+  if (mins < 60) return `${mins} min ago`;
+  const hours = Math.round(mins / 60);
+  if (hours < 24) return `${hours} hour${hours === 1 ? '' : 's'} ago`;
+  const days = Math.round(hours / 24);
+  if (days < 30) return `${days} day${days === 1 ? '' : 's'} ago`;
+  const months = Math.round(days / 30);
+  if (months < 12) return `${months} month${months === 1 ? '' : 's'} ago`;
+  const years = Math.round(days / 365);
+  return `${years} year${years === 1 ? '' : 's'} ago`;
+}
+
+// which columns each tab shows (after User); the rest of the row is the same everywhere
+const TAB_COLUMNS = {
+  staff:     ['dept', 'role', 'status', 'login', 'flags'],
+  drivers:   ['dept', 'role', 'status', 'login', 'flags'],
+  customers: ['type', 'orders', 'spent', 'lastOrder', 'status', 'flags'],
+  vendors:   ['company', 'vendorNo', 'status', 'login', 'flags'],
+};
+const COLUMN_LABELS = { dept: 'Department', role: 'Role', status: 'Status', login: 'Last login', flags: 'Flags', type: 'Type and tier', orders: 'Orders', spent: 'Total spent', lastOrder: 'Last order', company: 'Company', vendorNo: 'Vendor no.' };
+const RIGHT_COLUMNS = ['orders', 'spent'];
+
+const dash = <span style={{ color: 'var(--text-tertiary)' }}>—</span>;
+
+function StatusCell({ user }) {
+  if (user.status === 'pending_verification') return dash;   // shown as a flag instead
+  const st = STATUS_STYLES[user.status] ?? STATUS_STYLES.inactive;
+  return (
+    <Badge bg={st.bg} color={st.color} ring={st.ring}>
+      <span style={{ width: 5, height: 5, borderRadius: '50%', background: st.dot, flexShrink: 0 }} />
+      {user.status?.replace('_', ' ') ?? 'unknown'}
+    </Badge>
+  );
+}
+
+/** Only real problems: locked, password reset due, pending verification, unverified email, deleted. A clean user shows nothing. */
+function FlagsCell({ user, locked }) {
+  const flag = (bg, color, ring, icon, text) => (
+    <span key={text} style={{ display: 'inline-flex', alignItems: 'center', gap: 3, padding: '2px 7px', borderRadius: 20, fontSize: '0.62rem', fontWeight: 700, background: bg, color, boxShadow: `0 0 0 1px ${ring}`, whiteSpace: 'nowrap' }}>{icon} {text}</span>
+  );
+  const out = [];
+  if (user.deleted_at) out.push(flag('rgba(239,68,68,0.07)', '#b91c1c', 'rgba(239,68,68,0.15)', <Trash2 size={9} />, 'Deleted'));
+  if (locked) out.push(flag('rgba(245,158,11,0.1)', '#b45309', 'rgba(245,158,11,0.25)', <Lock size={9} />, 'Locked'));
+  if (user.force_password_change) out.push(flag('rgba(239,68,68,0.08)', '#b91c1c', 'rgba(239,68,68,0.2)', <KeyRound size={9} />, 'Password reset'));
+  if (user.status === 'pending_verification') out.push(flag('rgba(245,158,11,0.1)', '#b45309', 'rgba(245,158,11,0.25)', <AlertCircle size={9} />, 'Pending verification'));
+  if (!user.email_verified_at) out.push(flag('rgba(107,114,128,0.08)', 'var(--text-secondary)', 'rgba(107,114,128,0.2)', <AlertCircle size={9} />, 'Unverified'));
+  return out.length ? <div style={{ display: 'flex', gap: 4, flexWrap: 'wrap' }}>{out}</div> : dash;
+}
+
+function LoginCell({ user }) {
+  if (!user.last_login_at) return <span style={{ fontSize: '0.78rem', color: 'var(--text-tertiary)' }}>Never</span>;
+  return (
+    <div>
+      <span style={{ fontSize: '0.78rem', color: 'var(--text-primary)' }}>{ago(user.last_login_at)}</span>
+      <p style={{ fontSize: '0.65rem', color: 'var(--text-tertiary)', margin: '1px 0 0' }}>{fmtDate(user.last_login_at)}, {new Date(user.last_login_at).toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit' })}</p>
+    </div>
+  );
+}
+
+function cellFor(key, user, locked) {
+  const c = user.customer;
+  const note = { fontSize: '0.78rem', color: 'var(--text-secondary)' };
+  switch (key) {
+    case 'dept': return <span style={note}>{user.department || '—'}</span>;
+    case 'company': return <span style={note}>{user.vendor?.company_name || user.company_name || '—'}</span>;
+    case 'vendorNo': return <span style={{ ...note, fontFamily: 'monospace' }}>{user.vendor?.vendor_number || '—'}</span>;
+    case 'role': { const rm = levelStyle(user); return <Badge bg={rm.bg} color={rm.color} ring={rm.ring}>{user.role_name || user.role}</Badge>; }
+    case 'status': return <StatusCell user={user} />;
+    case 'login': return <LoginCell user={user} />;
+    case 'flags': return <FlagsCell user={user} locked={locked} />;
+    case 'type': return c ? (
+      <div style={{ display: 'flex', gap: 5, flexWrap: 'wrap' }}>
+        {c.customer_type && <Badge bg="color-mix(in srgb, var(--color-primary-500) 7%, transparent)" color="var(--color-primary-600)" ring="color-mix(in srgb, var(--color-primary-500) 18%, transparent)">{c.customer_type}</Badge>}
+        {c.tier && <Badge bg="rgba(107,114,128,0.1)" color="var(--text-secondary)" ring="rgba(107,114,128,0.2)">{c.tier}</Badge>}
+      </div>
+    ) : dash;
+    case 'orders': return c ? <span style={{ fontWeight: 700, fontSize: '0.85rem' }}>{(c.total_orders ?? 0).toLocaleString()}</span> : dash;
+    case 'spent': return c ? (
+      <div><span style={{ fontWeight: 700, fontSize: '0.82rem' }}>{money(c.total_spent)}</span>
+        {Number(c.average_order_value) > 0 && <p style={{ fontSize: '0.65rem', color: 'var(--text-tertiary)', margin: '2px 0 0', whiteSpace: 'nowrap' }}>avg {money(c.average_order_value)}</p>}</div>
+    ) : dash;
+    case 'lastOrder': return c?.last_order_date ? <span style={{ fontSize: '0.78rem' }}>{fmtDate(c.last_order_date)}</span> : dash;
+    default: return null;
+  }
+}
+
+function UserIdentity({ user }) {
+  return (
+    <div style={{ display: 'flex', alignItems: 'center', gap: 12, minWidth: 0 }}>
+      <img src={user.customer ? (user.customer.profile_image_url || user.profile_picture_url) : user.profile_picture_url} alt={user.name}
+        style={{ width: 40, height: 40, borderRadius: '50%', objectFit: 'cover', flexShrink: 0, background: 'var(--surface-card, #fff)', display: 'block' }} />
+      <div style={{ minWidth: 0 }}>
+        <p style={{ fontSize: '0.86rem', fontWeight: 600, color: 'var(--text-primary)', margin: '0 0 1px', overflowWrap: 'anywhere' }}>{user.name}</p>
+        <p style={{ fontSize: '0.74rem', color: 'var(--text-tertiary)', margin: '0 0 1px', overflowWrap: 'anywhere' }}>{user.email}</p>
+        {user.phone && <p style={{ fontSize: '0.68rem', color: 'var(--text-tertiary)', fontFamily: 'monospace', margin: 0 }}>{user.phone}</p>}
+      </div>
+    </div>
+  );
+}
+
+/** The selected users as a spreadsheet file (CSV opens in Excel). */
+function exportUsers(rows, tab) {
+  const esc = (v) => `"${String(v ?? '').replace(/"/g, '""')}"`;
+  const head = ['Name', 'Email', 'Phone', 'Role', 'Status', 'Department', 'Company', 'Email verified', 'Phone verified', 'Last login'];
+  const lines = [head, ...rows.map((u) => [u.name, u.email, u.phone, u.role_name || u.role, u.status, u.department, u.vendor?.company_name || u.company_name, u.email_verified_at ? 'yes' : 'no', u.phone_verified_at ? 'yes' : 'no', u.last_login_at ? new Date(u.last_login_at).toISOString() : ''])];
+  const blob = new Blob(['﻿' + lines.map((l) => l.map(esc).join(',')).join('\r\n')], { type: 'text/csv;charset=utf-8' });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url; a.download = `users-${tab}.csv`; a.click();
+  URL.revokeObjectURL(url);
+}
+
+const cardLabel = { fontSize: '0.6rem', textTransform: 'uppercase', letterSpacing: '0.08em', color: 'var(--text-tertiary)', fontWeight: 700, margin: 0 };
+
+function UserCard({ user, locked, columns, selected, onToggle, navigate, menu }) {
+  return (
+    <div style={{ ...card, padding: '18px 18px 16px', display: 'flex', flexDirection: 'column', gap: 14, minWidth: 0, opacity: user.deleted_at ? 0.6 : 1, outline: selected ? '2px solid var(--color-primary-500)' : 'none' }}>
+      <div style={{ display: 'flex', gap: 10, alignItems: 'flex-start' }}>
+        <input type="checkbox" aria-label={`Select ${user.name}`} checked={selected} onChange={onToggle} style={{ accentColor: 'var(--color-primary-500)', width: 15, height: 15, cursor: 'pointer', marginTop: 12 }} />
+        <div style={{ flex: 1, minWidth: 0 }}><UserIdentity user={user} /></div>
+      </div>
+      <div style={{ borderTop: '1px solid var(--line)', paddingTop: 14, display: 'grid', gridTemplateColumns: 'repeat(2, minmax(0, 1fr))', rowGap: 14, columnGap: 12 }}>
+        {columns.filter((k) => k !== 'flags').map((k) => (
+          <div key={k} style={{ minWidth: 0 }}><p style={cardLabel}>{COLUMN_LABELS[k]}</p><div style={{ marginTop: 4 }}>{cellFor(k, user, locked)}</div></div>
+        ))}
+        {columns.includes('flags') && <div style={{ gridColumn: '1 / -1' }}><p style={cardLabel}>Flags</p><div style={{ marginTop: 4 }}>{cellFor('flags', user, locked)}</div></div>}
+      </div>
+      <div style={{ borderTop: '1px solid var(--line)', paddingTop: 14, marginTop: 'auto', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+        <button type="button" onClick={() => navigate(`/admin/users/${user.id}`)} style={{ padding: '7px 16px', borderRadius: 8, cursor: 'pointer', fontFamily: 'inherit', fontSize: '0.8rem', fontWeight: 600, color: 'var(--text-primary)', background: 'var(--surface-input)', border: '1.5px solid var(--line)' }}>View</button>
+        {menu}
+      </div>
+    </div>
+  );
+}
+
 // ── Main component ────────────────────────────────────────────────────────────
 export default function UsersPage() {
   const navigate = useNavigate();
@@ -399,6 +543,7 @@ export default function UsersPage() {
   const [showFilters,     setShowFilters]     = useState(false);
   const [showInfo, setShowInfo] = useState(false);
   const [devNotesOpen, setDevNotesOpen] = useState(false);
+  const [view, setView] = useViewMode('users');
 
   useEffect(() => { fetchStatistics(); fetchDepartments(); fetchRoles(); }, []);
   useEffect(() => { fetchUsers(); setSelectedIds([]); }, [filters]);
@@ -491,8 +636,8 @@ export default function UsersPage() {
 
   const showStaffTab = filters.tab === 'staff';
   const showDriversTab = filters.tab === 'drivers';
-  const showCustomersTab = filters.tab === 'customers';
-  const showVendorsTab = filters.tab === 'vendors';
+  const columns = TAB_COLUMNS[filters.tab] ?? TAB_COLUMNS.staff;
+  const selectedUsers = users.filter(u => selectedIds.includes(u.id));
   const staffSide = showStaffTab || showDriversTab;   // staff and drivers have a department; customers and vendors a company
 
   return (
@@ -600,12 +745,18 @@ export default function UsersPage() {
           </div>
         </div>
 
-        {/* ── Stat cards ── */}
+        {/* ── Summary strip ── */}
         {statistics && (
-          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(6, 1fr)', gap: 12 }}>
-            {STAT_META.map(({ key, label, icon, accent, bg }) => (
-              <StatCard key={key} icon={icon} label={label} value={statistics[key]?.toLocaleString()} accent={accent} bg={bg} />
-            ))}
+          <div style={{ ...card, display: 'flex', flexWrap: 'wrap', padding: '12px 0' }}>
+            {STAT_META.map(({ key, label }, i) => {
+              const tone = key === 'active' ? '#059669' : key === 'suspended' ? '#dc2626' : key === 'locked' ? 'var(--text-tertiary)' : 'var(--text-primary)';
+              return (
+                <div key={key} style={{ flex: '1 1 140px', padding: '4px 22px', borderLeft: i ? '1px solid var(--line)' : 'none', minWidth: 0 }}>
+                  <p style={{ fontSize: '0.62rem', color: 'var(--text-tertiary)', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.08em', margin: 0 }}>{label}</p>
+                  <p style={{ fontSize: '1.35rem', fontWeight: 800, color: tone, lineHeight: 1.15, margin: '2px 0 0', letterSpacing: '-0.02em' }}>{(statistics[key] ?? 0).toLocaleString()}</p>
+                </div>
+              );
+            })}
           </div>
         )}
 
@@ -657,58 +808,6 @@ export default function UsersPage() {
               })}
             </div>
 
-            {/* Bulk actions */}
-            {selectedIds.length > 0 && (() => {
-              const emailCount = users.filter(u => selectedIds.includes(u.id) && !u.email_verified_at).length;
-              const phoneCount = users.filter(u => selectedIds.includes(u.id) && u.phone && !u.phone_verified_at).length;
-              return (
-                <div style={{ display: 'flex', alignItems: 'center', gap: 8, paddingBottom: 8 }}>
-                  <span style={{ fontSize: '0.72rem', color: 'var(--text-tertiary)' }}>{selectedIds.length} selected</span>
-
-                  {emailCount > 0 && (
-                    <button onClick={handleBulkVerifyEmail} style={{
-                      display: 'flex', alignItems: 'center', gap: 5,
-                      padding: '5px 12px', borderRadius: 7, fontSize: '0.75rem', fontWeight: 700,
-                      border: 'none', cursor: 'pointer', fontFamily: 'inherit',
-                      background: 'rgba(8,145,178,0.1)', color: '#0e7490',
-                    }}>
-                      <CheckCircle size={12} /> Verify {emailCount} email{emailCount !== 1 ? 's' : ''}
-                    </button>
-                  )}
-
-                  {phoneCount > 0 && (
-                    <button onClick={handleBulkVerifyPhone} style={{
-                      display: 'flex', alignItems: 'center', gap: 5,
-                      padding: '5px 12px', borderRadius: 7, fontSize: '0.75rem', fontWeight: 700,
-                      border: 'none', cursor: 'pointer', fontFamily: 'inherit',
-                      background: 'rgba(5,150,105,0.1)', color: '#065f46',
-                    }}>
-                      <CheckCircle size={12} /> Verify {phoneCount} phone{phoneCount !== 1 ? 's' : ''}
-                    </button>
-                  )}
-
-                  {filters.trashed ? (
-                    <button onClick={handleBulkRestore} style={{
-                      display: 'flex', alignItems: 'center', gap: 5,
-                      padding: '5px 12px', borderRadius: 7, fontSize: '0.75rem', fontWeight: 700,
-                      border: 'none', cursor: 'pointer', fontFamily: 'inherit',
-                      background: 'rgba(5,150,105,0.1)', color: '#065f46',
-                    }}>
-                      <RotateCcw size={12} /> Restore
-                    </button>
-                  ) : (
-                    <button onClick={handleBulkDelete} style={{
-                      display: 'flex', alignItems: 'center', gap: 5,
-                      padding: '5px 12px', borderRadius: 7, fontSize: '0.75rem', fontWeight: 700,
-                      border: 'none', cursor: 'pointer', fontFamily: 'inherit',
-                      background: 'rgba(239,68,68,0.08)', color: '#b91c1c',
-                    }}>
-                      <Trash2 size={12} /> Delete
-                    </button>
-                  )}
-                </div>
-              );
-            })()}
           </div>
 
           {/* Search + filter toggle */}
@@ -731,6 +830,8 @@ export default function UsersPage() {
                 onBlur={e => { e.currentTarget.style.borderColor = 'var(--line)'; e.currentTarget.style.boxShadow = 'none'; }}
               />
             </div>
+
+            <ViewToggle view={view} setView={setView} />
 
             <button
               onClick={() => setShowFilters(v => !v)}
@@ -817,212 +918,110 @@ export default function UsersPage() {
           )}
         </div>
 
-        {/* ── Table ── */}
-        <div style={{ ...card, overflow: 'hidden' }}>
+        {/* ── Bulk bar ── */}
+        {selectedIds.length > 0 && (() => {
+          const emailCount = selectedUsers.filter(u => !u.email_verified_at).length;
+          const phoneCount = selectedUsers.filter(u => u.phone && !u.phone_verified_at).length;
+          const pill = (bg, color) => ({ display: 'flex', alignItems: 'center', gap: 5, padding: '6px 12px', borderRadius: 8, fontSize: '0.75rem', fontWeight: 700, border: 'none', cursor: 'pointer', fontFamily: 'inherit', background: bg, color });
+          return (
+            <div role="region" aria-label="Bulk actions" style={{ display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap', padding: '10px 16px', borderRadius: 12, background: 'rgba(245,158,11,0.1)', boxShadow: '0 0 0 1px rgba(245,158,11,0.25)' }}>
+              <span style={{ fontSize: '0.82rem', fontWeight: 700, color: '#b45309' }}>{selectedIds.length} selected</span>
+              <span style={{ flex: 1 }} />
+              {emailCount > 0 && <button type="button" onClick={handleBulkVerifyEmail} style={pill('rgba(8,145,178,0.12)', '#0e7490')}><CheckCircle size={12} /> Verify {emailCount} email{emailCount !== 1 ? 's' : ''}</button>}
+              {phoneCount > 0 && <button type="button" onClick={handleBulkVerifyPhone} style={pill('rgba(5,150,105,0.12)', '#065f46')}><CheckCircle size={12} /> Verify {phoneCount} phone{phoneCount !== 1 ? 's' : ''}</button>}
+              <button type="button" onClick={() => exportUsers(selectedUsers, filters.tab)} style={pill('var(--surface-input)', 'var(--text-primary)')}><Download size={12} /> Export</button>
+              {filters.trashed
+                ? <button type="button" onClick={handleBulkRestore} style={pill('rgba(5,150,105,0.12)', '#065f46')}><RotateCcw size={12} /> Restore</button>
+                : <button type="button" onClick={handleBulkDelete} style={pill('rgba(239,68,68,0.1)', '#b91c1c')}><Trash2 size={12} /> Delete</button>}
+              <button type="button" onClick={() => setSelectedIds([])} style={pill('transparent', 'var(--text-tertiary)')}>Clear</button>
+            </div>
+          );
+        })()}
+
+        {/* ── Table or cards ── */}
+        <div style={view === 'cards' ? undefined : { ...card, overflow: 'hidden' }}>
+          {view === 'cards' ? (
+            loading ? <p style={{ padding: 24, color: 'var(--text-tertiary)', fontSize: '0.85rem' }}>Loading…</p> : users.length === 0 ? (
+              <div style={{ ...card, padding: 48, textAlign: 'center', color: 'var(--text-tertiary)', fontSize: '0.85rem' }}>No users found</div>
+            ) : (
+              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(min(100%, 340px), 1fr))', gap: 16, alignItems: 'stretch' }}>
+                {users.map((user) => {
+                  const locked = isLocked(user);
+                  return (
+                    <UserCard key={user.id} user={user} locked={locked} columns={columns} selected={selectedIds.includes(user.id)} onToggle={() => toggleSelect(user.id)} navigate={navigate}
+                      menu={user.manageable && (
+                        <ActionMenu user={user} isLocked={locked}
+                          onView={() => navigate(`/admin/users/${user.id}`)}
+                          onStatusChange={(status) => handleStatusChange(user.id, status)}
+                          onUnlock={() => handleUnlock(user.id)}
+                          onForceReset={() => handleForceReset(user.id)}
+                          onDelete={() => handleDelete(user.id)}
+                          onRestore={() => handleRestore(user.id)} />
+                      )} />
+                  );
+                })}
+              </div>
+            )
+          ) : (
           <div style={{ overflowX: 'auto' }}>
             <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '0.82rem' }}>
               <thead>
                 <tr style={{ borderBottom: '1px solid var(--line)', background: 'var(--surface-card, #fff)' }}>
                   <th style={{ padding: '10px 16px', width: 44 }}>
-                    <input
-                      type="checkbox"
-                      checked={selectedIds.length === users.length && users.length > 0}
-                      onChange={toggleSelectAll}
-                      style={{ accentColor: 'var(--color-primary-500)', width: 15, height: 15, cursor: 'pointer' }}
-                    />
+                    <input type="checkbox" aria-label="Select all" checked={selectedIds.length === users.length && users.length > 0} onChange={toggleSelectAll}
+                      style={{ accentColor: 'var(--color-primary-500)', width: 15, height: 15, cursor: 'pointer' }} />
                   </th>
-                  <th style={{ padding: '10px 20px', textAlign: 'left', minWidth: 220 }}>
-                    <TH_LABEL>User</TH_LABEL>
-                  </th>
-                  <th style={{ padding: '10px 16px', textAlign: 'left', minWidth: 110 }}>
-                    <TH_LABEL>{staffSide ? 'Department' : 'Company'}</TH_LABEL>
-                  </th>
-                  <th style={{ padding: '10px 16px', textAlign: 'left', minWidth: 110 }}>
-                    <TH_LABEL>Role</TH_LABEL>
-                  </th>
-                  <th style={{ padding: '10px 16px', textAlign: 'left', minWidth: 100 }}>
-                    <TH_LABEL>Status</TH_LABEL>
-                  </th>
-                  <th style={{ padding: '10px 16px', textAlign: 'left', minWidth: 130 }}>
-                    <TH_LABEL>Last login</TH_LABEL>
-                  </th>
-                  <th style={{ padding: '10px 16px', textAlign: 'left', minWidth: 140 }}>
-                    <TH_LABEL>Flags</TH_LABEL>
-                  </th>
+                  <th style={{ padding: '10px 20px', textAlign: 'left', minWidth: 240 }}><TH_LABEL>User</TH_LABEL></th>
+                  {columns.map((k) => (
+                    <th key={k} style={{ padding: '10px 16px', textAlign: RIGHT_COLUMNS.includes(k) ? 'right' : 'left', minWidth: k === 'flags' ? 170 : 90 }}><TH_LABEL>{COLUMN_LABELS[k]}</TH_LABEL></th>
+                  ))}
                   <th style={{ padding: '10px 16px', width: 44 }} />
                 </tr>
               </thead>
-
               <tbody>
                 {loading
                   ? Array.from({ length: 8 }).map((_, i) => <SkeletonRow key={i} />)
-
                   : users.length === 0
                     ? (
                       <tr>
-                        <td colSpan={8} style={{ padding: '64px 24px', textAlign: 'center' }}>
+                        <td colSpan={columns.length + 3} style={{ padding: '64px 24px', textAlign: 'center' }}>
                           <Users size={36} style={{ color: 'color-mix(in srgb, var(--color-primary-500) 15%, transparent)', margin: '0 auto 12px', display: 'block' }} />
                           <p style={{ fontSize: '0.82rem', color: 'var(--text-tertiary)', margin: '0 0 8px' }}>No users found</p>
-                          {hasFilters && (
-                            <button onClick={resetFilters} style={{
-                              fontSize: '0.75rem', fontWeight: 600, color: 'var(--color-primary-500)',
-                              background: 'none', border: 'none', cursor: 'pointer', fontFamily: 'inherit',
-                            }}>
-                              Clear filters
-                            </button>
-                          )}
+                          {hasFilters && <button onClick={resetFilters} style={{ fontSize: '0.75rem', fontWeight: 600, color: 'var(--color-primary-500)', background: 'none', border: 'none', cursor: 'pointer', fontFamily: 'inherit' }}>Clear filters</button>}
                         </td>
                       </tr>
                     )
-
                     : users.map((user, i) => {
-                      const rm     = levelStyle(user);
-                      const st     = STATUS_STYLES[user.status] ?? STATUS_STYLES.inactive;
                       const locked = isLocked(user);
-                      const isLast = i === users.length - 1;
-
+                      const picked = selectedIds.includes(user.id);
                       return (
-                        <tr
-                          key={user.id}
-                          style={{
-                            borderBottom: isLast ? 'none' : '1px solid color-mix(in srgb, var(--color-primary-500) 5%, transparent)',
-                            transition: 'background 120ms',
-                            opacity: user.deleted_at ? 0.6 : 1,
-                          }}
-                          onMouseEnter={e => e.currentTarget.style.background = 'color-mix(in srgb, var(--color-primary-500) 3%, transparent)'}
-                          onMouseLeave={e => e.currentTarget.style.background = 'transparent'}
-                        >
+                        <tr key={user.id}
+                          style={{ borderBottom: i === users.length - 1 ? 'none' : '1px solid color-mix(in srgb, var(--color-primary-500) 5%, transparent)', transition: 'background 120ms', opacity: user.deleted_at ? 0.6 : 1, background: picked ? 'rgba(245,158,11,0.07)' : 'transparent' }}
+                          onMouseEnter={e => { if (!picked) e.currentTarget.style.background = 'color-mix(in srgb, var(--color-primary-500) 3%, transparent)'; }}
+                          onMouseLeave={e => { e.currentTarget.style.background = picked ? 'rgba(245,158,11,0.07)' : 'transparent'; }}>
                           <td style={{ padding: '12px 16px' }} onClick={e => e.stopPropagation()}>
-                            <input
-                              type="checkbox"
-                              checked={selectedIds.includes(user.id)}
-                              onChange={() => toggleSelect(user.id)}
-                              style={{ accentColor: 'var(--color-primary-500)', width: 15, height: 15, cursor: 'pointer' }}
-                            />
+                            <input type="checkbox" aria-label={`Select ${user.name}`} checked={picked} onChange={() => toggleSelect(user.id)} style={{ accentColor: 'var(--color-primary-500)', width: 15, height: 15, cursor: 'pointer' }} />
                           </td>
-
-                          <td style={{ padding: '12px 20px', cursor: 'pointer' }} onClick={() => navigate(`/admin/users/${user.id}`)}>
-                            <div style={{ display: 'flex', alignItems: 'center', gap: 12, minWidth: 0 }}>
-                              <img
-                                src={user.customer ? (user.customer.profile_image_url || user.profile_picture_url) : user.profile_picture_url}
-                                alt={user.name}
-                                style={{ 
-                                  width: 36, height: 36, borderRadius: '50%', objectFit: 'cover',
-                                  flexShrink: 0, background: 'var(--surface-card, #fff)', display: 'block',
-                                }}
-                              />
-                              <div style={{ minWidth: 0 }}>
-                                <p style={{ fontSize: '0.82rem', fontWeight: 600, color: 'var(--text-primary)', margin: '0 0 1px', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
-                                  {user.name}
-                                </p>
-                                <p style={{ fontSize: '0.72rem', color: 'var(--text-tertiary)', margin: '0 0 1px', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
-                                  {user.email}
-                                </p>
-                                {user.phone && (
-                                  <p style={{ fontSize: '0.65rem', color: 'var(--text-tertiary)', fontFamily: 'monospace', margin: 0 }}>
-                                    {user.phone}
-                                  </p>
-                                )}
-                              </div>
-                            </div>
-                          </td>
-
-                          <td style={{ padding: '12px 16px' }}>
-                            <span style={{ fontSize: '0.78rem', color: 'var(--text-secondary)' }}>
-                              {staffSide ? (user.department || '—') : (user.company_name || '—')}
-                            </span>
-                          </td>
-
-                          <td style={{ padding: '12px 16px' }}>
-                            <Badge bg={rm.bg} color={rm.color} ring={rm.ring}>
-                              {user.role_name || user.role}
-                            </Badge>
-                          </td>
-
-                          <td style={{ padding: '12px 16px' }}>
-                            <Badge bg={st.bg} color={st.color} ring={st.ring}>
-                              <span style={{ width: 5, height: 5, borderRadius: '50%', background: st.dot, flexShrink: 0 }} />
-                              {user.status?.replace('_', ' ') ?? 'unknown'}
-                            </Badge>
-                          </td>
-
-                          <td style={{ padding: '12px 16px' }}>
-                            <span style={{ fontSize: '0.75rem', color: user.last_login_at ? 'var(--text-primary)' : 'var(--text-tertiary)' }}>
-                              {fmtDate(user.last_login_at)}
-                            </span>
-                            {user.last_login_at && (
-                              <p style={{ fontSize: '0.65rem', color: 'var(--text-tertiary)', margin: '1px 0 0' }}>
-                                {new Date(user.last_login_at).toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit' })}
-                              </p>
-                            )}
-                          </td>
-
-                          <td style={{ padding: '12px 16px' }}>
-                            <div style={{ display: 'flex', alignItems: 'center', gap: 4, flexWrap: 'wrap' }}>
-                              {locked && (
-                                <span style={{
-                                  display: 'inline-flex', alignItems: 'center', gap: 3,
-                                  padding: '2px 7px', borderRadius: 20, fontSize: '0.62rem', fontWeight: 700,
-                                  background: 'rgba(245,158,11,0.1)', color: '#b45309',
-                                  boxShadow: '0 0 0 1px rgba(245,158,11,0.25)',
-                                }}>
-                                  <Lock size={9} /> Locked
-                                </span>
-                              )}
-                              {user.force_password_change && (
-                                <span style={{
-                                  display: 'inline-flex', alignItems: 'center', gap: 3,
-                                  padding: '2px 7px', borderRadius: 20, fontSize: '0.62rem', fontWeight: 700,
-                                  background: 'rgba(239,68,68,0.08)', color: '#b91c1c',
-                                  boxShadow: '0 0 0 1px rgba(239,68,68,0.2)',
-                                }}>
-                                  <KeyRound size={9} /> Pwd reset
-                                </span>
-                              )}
-                              {!user.email_verified_at && (
-                                <span style={{
-                                  display: 'inline-flex', alignItems: 'center', gap: 3,
-                                  padding: '2px 7px', borderRadius: 20, fontSize: '0.62rem', fontWeight: 700,
-                                  background: 'rgba(107,114,128,0.08)', color: 'var(--text-secondary)',
-                                  boxShadow: '0 0 0 1px rgba(107,114,128,0.2)',
-                                }}>
-                                  <AlertCircle size={9} /> Unverified
-                                </span>
-                              )}
-                              {user.deleted_at && (
-                                <span style={{
-                                  display: 'inline-flex', alignItems: 'center', gap: 3,
-                                  padding: '2px 7px', borderRadius: 20, fontSize: '0.62rem', fontWeight: 700,
-                                  background: 'rgba(239,68,68,0.07)', color: '#b91c1c',
-                                  boxShadow: '0 0 0 1px rgba(239,68,68,0.15)',
-                                }}>
-                                  <Trash2 size={9} /> Deleted
-                                </span>
-                              )}
-                            </div>
-                          </td>
-
+                          <td style={{ padding: '12px 20px', cursor: 'pointer' }} onClick={() => navigate(`/admin/users/${user.id}`)}><UserIdentity user={user} /></td>
+                          {columns.map((k) => <td key={k} style={{ padding: '12px 16px', textAlign: RIGHT_COLUMNS.includes(k) ? 'right' : 'left' }}>{cellFor(k, user, locked)}</td>)}
                           <td style={{ padding: '12px 16px' }} onClick={e => e.stopPropagation()}>
                             {user.manageable && (
-                              <ActionMenu
-                                user={user}
-                                isLocked={locked}
+                              <ActionMenu user={user} isLocked={locked}
                                 onView={() => navigate(`/admin/users/${user.id}`)}
                                 onStatusChange={(status) => handleStatusChange(user.id, status)}
                                 onUnlock={() => handleUnlock(user.id)}
                                 onForceReset={() => handleForceReset(user.id)}
                                 onDelete={() => handleDelete(user.id)}
-                                onRestore={() => handleRestore(user.id)}
-                              />
+                                onRestore={() => handleRestore(user.id)} />
                             )}
                           </td>
                         </tr>
                       );
-                    })
-                }
+                    })}
               </tbody>
             </table>
           </div>
+          )}
 
           {/* ── Pagination ── */}
           {!loading && users.length > 0 && pagination.last_page > 1 && (
