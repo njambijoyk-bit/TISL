@@ -6,6 +6,7 @@ import {
 } from 'lucide-react';
 import useUsersStore from '../../../../../_shared/store/usersStore';
 import toast from 'react-hot-toast';
+import SuggestPassword from '../../../../../_shared/components/common/SuggestPassword';
 
 // The chip colour follows the clearance level a role needs (0 to 6), never the role's name: roles are made in the role builder.
 const LEVEL_CHIPS = [
@@ -213,7 +214,7 @@ export default function CreateUserModal({ onClose, onSuccess, managers = [] }) {
 
               {/* Password */}
               <div>
-                <Label>Password *</Label>
+                <div className="flex items-center justify-between"><Label>Password *</Label><SuggestPassword onPick={(pw) => { set('password', pw); setShowPwd(true); }} /></div>
                 <div className="relative">
                   <input
                     type={showPwd ? 'text' : 'password'}

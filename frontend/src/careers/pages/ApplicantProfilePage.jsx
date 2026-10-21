@@ -1,5 +1,6 @@
 import { useState } from 'react';
 import { Linkedin, Globe, Phone, MapPin, Briefcase, Clock, Save, CheckCircle, KeyRound, Eye, EyeOff } from 'lucide-react';
+import SuggestPassword from '../../_shared/components/common/SuggestPassword';
 import useCareersStore from '../../_shared/store/useCareersStore';
 
 const FIELD = {
@@ -65,6 +66,8 @@ export default function ApplicantProfilePage() {
     const [pwErrors, setPwErrors] = useState({});
     const [pwGlobalError, setPwGlobalError] = useState(null);
     const [showPw, setShowPw]   = useState({ current: false, next: false, confirm: false });
+
+    const pickPw = (pw) => { setPwForm(f => ({ ...f, password: pw, password_confirmation: pw })); setPwErrors({}); setPwSaved(false); setShowPw(s => ({ ...s, next: true, confirm: true })); };
 
     const patchPw = (key) => (e) => {
         setPwForm(f => ({ ...f, [key]: e.target.value }));
@@ -207,6 +210,7 @@ export default function ApplicantProfilePage() {
                         />
                         <PwField
                             label="New password"
+                            suggest={pickPw}
                             value={pwForm.password}
                             onChange={patchPw('password')}
                             show={showPw.next}
@@ -267,11 +271,12 @@ function Section({ label, children }) {
     );
 }
 
-function PwField({ label, value, onChange, show, onToggle, error, placeholder }) {
+function PwField({ label, value, onChange, show, onToggle, error, placeholder, suggest }) {
     return (
         <div>
             <label style={{ display: 'flex', alignItems: 'center', gap: 5, fontSize: 12, color: 'var(--text-secondary)', marginBottom: 5 }}>
                 {label}
+                {suggest && <SuggestPassword onPick={suggest} style={{ marginLeft: 'auto' }} />}
             </label>
             <div style={{ position: 'relative' }}>
                 <input

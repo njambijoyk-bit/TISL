@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import SuggestPassword from '../../../../../_shared/components/common/SuggestPassword';
 import vaultAPI from '../../../../../_shared/api/vault';
 
 // ─── Icons ───────────────────────────────────────────────────────────────────
@@ -177,6 +178,7 @@ export default function PasswordModal({ item, mode = 'set', onClose, onSuccess }
             <div className="vault-modal__field">
               <label className="vault-modal__label">
                 {actualMode === 'unlock' ? 'Password' : 'New password'}
+                {actualMode === 'set' && <SuggestPassword style={{ float: 'right' }} onPick={(pw) => { setPassword(pw); setConfirmPassword(pw); setShowPassword(true); }} />}
               </label>
               <div className="vault-password__input-wrap">
                 <input

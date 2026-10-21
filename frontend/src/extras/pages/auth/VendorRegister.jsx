@@ -7,15 +7,16 @@ import toast from 'react-hot-toast';
 import PolicyConsentCheckbox from '../../../_shared/components/legal/shared/PolicyConsentCheckbox';
 import { AuthBrandBar, AuthBrandPanel } from '../../../core/pages/auth/AuthBrand';
 import { useAuthBrand } from '../../../core/pages/auth/useAuthBrand';
+import SuggestPassword from '../../../_shared/components/common/SuggestPassword';
 import { colors, input, label as labelStyle } from '../../../_shared/theme/tokens';
 
 const POLICY_KEYS = ['terms_of_use', 'privacy_policy'];
 
 // Outside the page component so inputs keep focus while typing
-function Field({ name, label, type = 'text', placeholder, icon: Icon, value, error, focused, setFocused, onChange, rightEl }) {
+function Field({ name, label, type = 'text', placeholder, icon: Icon, value, error, focused, setFocused, onChange, rightEl, suggest }) {
   return (
     <div style={{ minWidth: 0 }}>
-      <label style={labelStyle}>{label}</label>
+      <label style={labelStyle}>{label}{suggest && <SuggestPassword onPick={suggest} style={{ float: 'right' }} />}</label>
       <div style={{ position: 'relative' }}>
         {Icon && <Icon size={14} style={{ position: 'absolute', left: 13, top: '50%', transform: 'translateY(-50%)', color: focused === name ? colors.primary : colors.textFaint, transition: 'color 150ms', flexShrink: 0 }} />}
         <input
@@ -187,6 +188,7 @@ export default function VendorRegister() {
               </div>
 
               <Field name="password" label="Password" type={showPassword ? 'text' : 'password'} icon={Lock} placeholder="At least 10 characters"
+                suggest={(pw) => { setForm(f => ({ ...f, password: pw, password_confirmation: pw })); setShowPassword(true); setShowConfirm(true); }}
                 value={form.password} error={errors.password} {...fp}
                 rightEl={<EyeBtn show={showPassword} toggle={() => setShowPassword(s => !s)} />} />
               <Field name="password_confirmation" label="Confirm password" type={showConfirm ? 'text' : 'password'} icon={Lock} placeholder="Confirm your password"

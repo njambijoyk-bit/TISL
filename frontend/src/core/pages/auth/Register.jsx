@@ -5,16 +5,18 @@ import { authAPI } from '../../../_shared/api/index';
 import { useAuthStore } from '../../../_shared/store/index';
 import toast from 'react-hot-toast';
 import PolicyConsentCheckbox from '../../../_shared/components/legal/shared/PolicyConsentCheckbox';
+import SuggestPassword from '../../../_shared/components/common/SuggestPassword';
 import { AuthBrandBar, AuthBrandPanel } from './AuthBrand';
 import { useAuthBrand } from './useAuthBrand';
 import { isModuleActive } from '../../../_shared/navigation/modules';
 
 // ── Reusable field renderer (must be OUTSIDE Register to preserve focus) ──
-function Field({ name, label, type = 'text', placeholder, icon: Icon, onChange, rightEl, error: fieldError, value, focused, setFocused, handleChange }) {
+function Field({ name, label, type = 'text', placeholder, icon: Icon, onChange, rightEl, error: fieldError, value, focused, setFocused, handleChange, suggest }) {
   return (
     <div>
       <label style={{ display: 'block', fontSize: '0.72rem', fontWeight: 700, marginBottom: 5, textTransform: 'uppercase', letterSpacing: '0.06em' }} className="text-gray-500 dark:text-gray-400">
         {label}
+        {suggest && <SuggestPassword onPick={suggest} style={{ float: 'right' }} />}
       </label>
       <div style={{ position: 'relative' }}>
         {Icon && <Icon size={14} style={{ position: 'absolute', left: 13, top: '50%', transform: 'translateY(-50%)', color: focused === name ? 'var(--color-primary-500)' : 'var(--text-tertiary)', transition: 'color 150ms', flexShrink: 0 }} />}
@@ -227,6 +229,7 @@ export default function Register() {
 
             <Field
               name="password" label="Password" type={showPassword ? 'text' : 'password'}
+              suggest={(pw) => { setFormData(f => ({ ...f, password: pw, password_confirmation: pw })); setErrors(e => ({ ...e, password: '', password_confirmation: '' })); setShowPassword(true); setShowConfirm(true); }}
               placeholder="At least 10 characters" icon={Lock} error={errors.password}
               rightEl={<EyeBtn show={showPassword} toggle={() => setShowPassword(s => !s)} />}
               value={formData.password} {...fieldProps}

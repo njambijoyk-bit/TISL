@@ -20,6 +20,7 @@ import { useAuthStore, usePromoCodeStore, useCurrencyStore, useLocationStore } f
 import CurrencyToggle from '../../../_shared/components/common/currency/CurrencyToggle';
 import LocationPicker from '../../../_shared/components/common/LocationPicker';
 import toast from 'react-hot-toast';
+import SuggestPassword from '../../../_shared/components/common/SuggestPassword';
 import { formatMoney } from '../../../_shared/lib/money';
 
 // ── Shared input styles ───────────────────────────────────────────────────────
@@ -1457,7 +1458,7 @@ export default function Profile() {
                     { key: 'new_password',             label: 'New password',          show: 'new',     hint: 'At least 10 characters' },
                     { key: 'new_password_confirmation',label: 'Confirm new password',  show: 'confirm' },
                   ].map(({ key, label, show, hint }) => (
-                    <Field key={key} label={label}>
+                    <Field key={key} label={key === 'new_password' ? <><SuggestPassword style={{ float: 'right' }} onPick={(pw) => { setPwd(p => ({ ...p, new_password: pw, new_password_confirmation: pw })); setPwdErrors({}); setShowPwd(s => ({ ...s, new: true, confirm: true })); }} />{label}</> : label}>
                       <div style={{ position: 'relative' }}>
                         <input
                           type={showPwd[show] ? 'text' : 'password'}

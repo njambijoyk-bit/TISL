@@ -5,6 +5,7 @@ import toast from 'react-hot-toast';
 import GeneralLayout from '../../../../_shared/components/layout/GeneralLayout';
 import { useAuthStore } from '../../../../_shared/store/index';
 import { authAPI } from '../../../../_shared/api/index';
+import SuggestPassword from '../../../../_shared/components/common/SuggestPassword';
 import { useDeliveryAudio } from '../delivery/useDeliveryAudio';
 import { D, DeliveryPageShell, DeliveryPageHeader, DeliveryCard, DeliveryBtn } from '../delivery/DeliveryShared';
 
@@ -99,7 +100,7 @@ export default function DriverProfilePage() {
             <form onSubmit={savePassword} style={{ display: 'grid', gap: 12 }}>
               {[['current_password', 'Current password'], ['new_password', 'New password'], ['new_password_confirmation', 'Confirm new password']].map(([k, l]) => (
                 <div key={k}>
-                  <span style={label}>{l}</span>
+                  <span style={label}>{l}</span>{k === 'new_password' && <SuggestPassword style={{ float: 'right' }} onPick={(pw) => { setPwd((p) => ({ ...p, new_password: pw, new_password_confirmation: pw })); setErrs({}); setShow(true); }} />}
                   <div style={{ position: 'relative' }}>
                     <input type={show ? 'text' : 'password'} value={pwd[k]} onChange={(e) => setPwd((p) => ({ ...p, [k]: e.target.value }))} required autoComplete={k === 'current_password' ? 'current-password' : 'new-password'} style={{ ...field, paddingRight: 38 }} />
                     {k === 'current_password' && (

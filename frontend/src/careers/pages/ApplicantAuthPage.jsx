@@ -1,5 +1,6 @@
 import { useState } from 'react';
 import { useNavigate, useSearchParams, Link } from 'react-router-dom';
+import SuggestPassword from '../../_shared/components/common/SuggestPassword';
 import useCareersStore from '../../_shared/store/useCareersStore';
 
 const s = {
@@ -28,10 +29,10 @@ const s = {
     portalLink: { textAlign: 'center', fontSize: 13, color: 'var(--text-tertiary)' },
 };
 
-function Field({ label, name, type = 'text', value, onChange, error, placeholder }) {
+function Field({ label, name, type = 'text', value, onChange, error, placeholder, suggest }) {
     return (
         <div style={s.field}>
-            <label style={s.label}>{label}</label>
+            <label style={s.label}>{label}{suggest && <SuggestPassword onPick={suggest} style={{ float: 'right' }} />}</label>
             <input
                 style={s.input} type={type} name={name} value={value}
                 onChange={onChange} placeholder={placeholder}
@@ -51,6 +52,7 @@ export default function ApplicantAuthPage() {
 
     const [tab, setTab] = useState('login');
     const [accepted, setAccepted] = useState(false);
+    const [revealPw, setRevealPw] = useState(false);
     const [errors, setErrors] = useState({});
     const [globalError, setGlobalError] = useState(null);
 
@@ -115,7 +117,7 @@ export default function ApplicantAuthPage() {
                 {tab === 'login' ? (
                     <form onSubmit={handleLogin}>
                         <Field label="Email" name="email" type="email" value={loginForm.email} onChange={patchLogin('email')} error={errors.email?.[0]} />
-                        <Field label="Password" name="password" type="password" value={loginForm.password} onChange={patchLogin('password')} error={errors.password?.[0]} />
+                        <Field label="Password" name="password" type={revealPw ? 'text' : 'password'} suggest={(pw) => { setRegForm(f => ({ ...f, password: pw, password_confirmation: pw })); setRevealPw(true); }} value={loginForm.password} onChange={patchLogin('password')} error={errors.password?.[0]} />
                         <div style={{ textAlign: 'right', marginBottom: 20, marginTop: -10 }}>
                             <Link to="/careers/forgot-password" style={{ fontSize: 12, color: 'var(--text-tertiary)', textDecoration: 'none' }}>Forgot password?</Link>
                         </div>
@@ -149,7 +151,7 @@ export default function ApplicantAuthPage() {
                         <Field label="Phone" name="phone" type="tel" value={regForm.phone} onChange={patchReg('phone')} placeholder="+254 7xx xxx xxx" error={errors.phone?.[0]} />
                         <Field label="Current Role" name="current_role" value={regForm.current_role} onChange={patchReg('current_role')} placeholder="e.g. Mechanical Engineer" error={errors.current_role?.[0]} />
                         <Field label="Password" name="password" type="password" value={regForm.password} onChange={patchReg('password')} error={errors.password?.[0]} />
-                        <Field label="Confirm Password" name="password_confirmation" type="password" value={regForm.password_confirmation} onChange={patchReg('password_confirmation')} />
+                        <Field label="Confirm Password" name="password_confirmation" type={revealPw ? 'text' : 'password'} value={regForm.password_confirmation} onChange={patchReg('password_confirmation')} />
                         {/* ── Terms checkbox ── */}
                         <div style={{ display: 'flex', alignItems: 'flex-start', gap: 10, margin: '16px 0 8px' }}>
                             <input

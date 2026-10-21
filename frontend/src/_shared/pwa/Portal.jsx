@@ -3,6 +3,7 @@
  * No white backgrounds. Compact, touch-friendly, animated.
  */
 
+import SuggestPassword from '../components/common/SuggestPassword';
 import { useState, useEffect, useRef, useCallback } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
 import {
@@ -589,6 +590,7 @@ function PasswordTab({ customer, onVerifyEmail, onLogout }) {
 
       <GlassCard>
         <PwdField label="Current Password"    field="current_password"          showKey="cur" {...fieldProps} />
+        <div style={{ textAlign: 'right', marginBottom: 2 }}><SuggestPassword onPick={(pw) => { setPwd(p => ({ ...p, new_password: pw, new_password_confirmation: pw })); setErrors({}); setShow(s => ({ ...s, nw: true, cf: true })); }} /></div>
         <PwdField label="New Password"        field="new_password"              showKey="nw"  {...fieldProps} />
         <PwdField label="Confirm New Password" field="new_password_confirmation" showKey="cf"  {...fieldProps} />
         <button onClick={handleSave}

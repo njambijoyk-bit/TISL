@@ -19,6 +19,7 @@ import toast from 'react-hot-toast';
 import { useAuthStore } from '../../../_shared/store/index';
 import { authAPI, notificationsAPI } from '../../../_shared/api/index';
 import calendarAPI from '../../../_shared/api/calendar';
+import SuggestPassword from '../../../_shared/components/common/SuggestPassword';
 import employeesAPI from '../../../_shared/api/employees';
 
 import { isDriver, roleName } from '../../../_shared/lib/roles';
@@ -578,7 +579,7 @@ export default function AdminProfile() {
                       { key: 'new_password_confirmation', label: 'Confirm new password', show: 'confirm' },
                     ].map(({ key, label, show, hint }) => (
                       <div key={key}>
-                        <label style={labelStyle}>{label}</label>
+                        <label style={labelStyle}>{label}{key === 'new_password' && <SuggestPassword style={{ float: 'right' }} onPick={(pw) => { setPwd(p => ({ ...p, new_password: pw, new_password_confirmation: pw })); setPwdErrors({}); setShowPwd(s => ({ ...s, new: true, confirm: true })); }} />}</label>
                         <div style={{ position: 'relative' }}>
                           <input
                             type={showPwd[show] ? 'text' : 'password'}

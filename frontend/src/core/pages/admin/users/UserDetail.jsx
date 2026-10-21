@@ -1,4 +1,5 @@
 import { useEffect, useState } from 'react';
+import SuggestPassword from '../../../../_shared/components/common/SuggestPassword';
 import { notifyRecordsChanged } from '../../../../_shared/components/common/recordEvents';
 import { useParams, useNavigate } from 'react-router-dom';
 import {
@@ -171,6 +172,7 @@ function ResetPasswordModal({ onClose, onConfirm, loading }) {
 
   return (
     <Modal title="Reset Password" subtitle="Set a temporary password. The user must change it on next login." onClose={onClose}>
+      <div style={{ textAlign: 'right', marginBottom: 6 }}><SuggestPassword onPick={(pw) => { setPassword(pw); setError(''); setShow(true); }} /></div>
       <div style={{ position: 'relative', marginBottom: 8 }}>
         <input
           type={show ? 'text' : 'password'} value={password}

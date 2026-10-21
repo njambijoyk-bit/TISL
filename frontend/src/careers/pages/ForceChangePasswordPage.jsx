@@ -2,6 +2,7 @@
 import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { ShieldAlert } from 'lucide-react';
+import SuggestPassword from '../../_shared/components/common/SuggestPassword';
 import useCareersStore from '../../_shared/store/useCareersStore';
 
 const s = {
@@ -23,10 +24,13 @@ export default function ForceChangePasswordPage() {
     const navigate = useNavigate();
     const { changePassword, logout } = useCareersStore();
 
+    const [reveal, setReveal] = useState(false);
     const [form, setForm]       = useState({ password: '', password_confirmation: '' });
     const [loading, setLoading] = useState(false);
     const [errors, setErrors]   = useState({});
     const [globalError, setGlobalError] = useState(null);
+
+    const pick = (pw) => { setForm(f => ({ ...f, password: pw, password_confirmation: pw })); setErrors({}); setReveal(true); };
 
     const patch = (key) => (e) => {
         setForm(f => ({ ...f, [key]: e.target.value }));
@@ -72,9 +76,9 @@ export default function ForceChangePasswordPage() {
 
                 <form onSubmit={handleSubmit}>
                     <div style={s.field}>
-                        <label style={s.label}>New password</label>
+                        <label style={s.label}>New password <SuggestPassword onPick={pick} style={{ float: 'right' }} /></label>
                         <input
-                            style={s.input} type="password"
+                            style={s.input} type={reveal ? 'text' : 'password'}
                             value={form.password} onChange={patch('password')}
                             placeholder="Min. 10 characters" required autoFocus
                             onFocus={e => e.target.style.borderColor = 'var(--color-primary-500)'}
@@ -85,7 +89,7 @@ export default function ForceChangePasswordPage() {
                     <div style={s.field}>
                         <label style={s.label}>Confirm password</label>
                         <input
-                            style={s.input} type="password"
+                            style={s.input} type={reveal ? 'text' : 'password'}
                             value={form.password_confirmation} onChange={patch('password_confirmation')}
                             placeholder="Repeat your new password" required
                             onFocus={e => e.target.style.borderColor = 'var(--color-primary-500)'}

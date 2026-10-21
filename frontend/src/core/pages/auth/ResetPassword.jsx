@@ -1,3 +1,4 @@
+import SuggestPassword from '../../../_shared/components/common/SuggestPassword';
 import { useState } from 'react';
 import { useSearchParams, useNavigate, Link } from 'react-router-dom';
 import { Lock, Eye, EyeOff, ArrowRight, ArrowLeft } from 'lucide-react';
@@ -178,6 +179,7 @@ export default function ResetPassword() {
                   marginBottom: 6, textTransform: 'uppercase', letterSpacing: '0.06em',
                 }}>
                   New password
+                  <SuggestPassword style={{ float: 'right' }} onPick={(pw) => { setForm(f => ({ ...f, password: pw, password_confirmation: pw })); setShow({ password: true, confirm: true }); }} />
                 </label>
                 <div style={{ position: 'relative' }}>
                   <Lock size={15} style={{
