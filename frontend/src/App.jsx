@@ -20,7 +20,7 @@ import MemoDock from './core/components/finance/MemoDock';
 import Portal from './_shared/pwa/Portal';
 import PWANavBar from './_shared/pwa/PWANavBar';
 
-import { hasPermission, isDriver, isStaff } from './_shared/lib/roles';
+import { hasPermission, isDriver, isStaff, isVendor } from './_shared/lib/roles';
 
 // ── Auth Pages ────────────────────────────────────────────────────────────────
 const Login               = lazy(() => import('./core/pages/auth/Login'));
@@ -411,9 +411,11 @@ function PageLoader() {
 }
 
 // ── Protected Route ───────────────────────────────────────────────────────────
+const VENDOR_PATHS = ['/vendor-portal', '/my-account', '/report-bug', '/track-bug', '/force-change-password'];
 function ProtectedRoute({ children, requireAdmin = false, permission = null }) {
   const { isAuthenticated, user, access, fetchCustomer } = useAuthStore();
   const [accessTried, setAccessTried] = useState(false);
+  const { pathname } = useLocation();
 
   // a session from before the access engine has no `access` yet: load it once
   useEffect(() => {
@@ -426,6 +428,11 @@ function ProtectedRoute({ children, requireAdmin = false, permission = null }) {
 
   // everything below is decided by the access summary: wait for it
   if (!access && !accessTried) return <PageLoader />;
+
+  // Suppliers only use their portal, their account and bug reports: the customer pages (quotes, orders, wallet...) are not for them
+  if (isVendor(user, access) && !VENDOR_PATHS.some((p) => pathname === p || pathname.startsWith(`${p}/`))) {
+    return <Navigate to="/vendor-portal" replace />;
+  }
 
   // Drivers only use the driver app (/driver/*); the API refuses them everywhere under /admin
   if (requireAdmin && isDriver(user, access) && !window.location.pathname.startsWith('/driver')) {

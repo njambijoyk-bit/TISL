@@ -21,7 +21,7 @@ import useRequestListStore from '../../store/requestListStore';
 import useWishlistStore from '../../store/wishlistStore';
 import { MODULES, isModuleActive } from '../../navigation/modules';
 import { visibleNav } from '../../navigation/adminNav';
-import { isStaff, isDriver, roleName } from '../../lib/roles';
+import { isStaff, isDriver, isVendor, roleName } from '../../lib/roles';
 import useNavStore from '../../store/navStore';
 import { categoriesAPI, brandsAPI, servicesAPI, serviceCategoriesAPI } from '../../api/index';
 import { useTheme } from '../../theme';
@@ -401,7 +401,8 @@ export default function Header() {
       },
     ];
 
-  const profilePath = driver ? '/driver/profile' : isAdmin ? '/admin/profile' : '/profile';
+  const vendor = isVendor(user);
+  const profilePath = driver ? '/driver/profile' : isAdmin ? '/admin/profile' : vendor ? '/vendor-portal/profile' : '/profile';
 
   // ── Customer account menu (built from active modules) ───────────────────────
   const customerLinks = [
@@ -419,7 +420,9 @@ export default function Header() {
     { label: 'Auctions',          icon: Zap,           to: '/auctions', module: MODULES.AUCTIONS },
     { label: 'Wishlist',          icon: Heart,         to: '/wishlist', module: MODULES.ECOMMERCE },
     { label: 'Report a Bug',        icon: Bug,           to: '/report-bug'},
-  ].filter((l) => isModuleActive(l.module));
+  ].filter((l) => isModuleActive(l.module))
+    // a supplier has no shop, quotes or wallet: only their profile, their account and bug reports
+    .filter((l) => !vendor || [profilePath, '/my-account', '/report-bug'].includes(l.to));
 
   return (
     <>
@@ -758,7 +761,7 @@ export default function Header() {
                     </div>
 
                     {/* Preferences — currency + branch */}
-                    {((hasCurrencyChoice && !isAdmin) || (hasBranchChoice && !driver)) && (
+                    {!vendor && ((hasCurrencyChoice && !isAdmin) || (hasBranchChoice && !driver)) && (
                       <div style={{ padding: '10px 14px 12px', borderBottom: '1px solid #f3f4f6', display: 'flex', flexDirection: 'column', gap: 10 }} className="dark:border-gray-700">
                         {hasCurrencyChoice && !isAdmin && (
                           <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 8 }}>
