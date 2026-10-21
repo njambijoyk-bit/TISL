@@ -5,9 +5,12 @@ import {
   ShieldCheck, CreditCard, Star, Eye, ArrowUpDown, Gift, X,
   Building2, User, Package, Briefcase, TrendingUp, Activity,
 } from 'lucide-react';
+import toast from 'react-hot-toast';
 import AdminLayout from '../../../_shared/components/layout/AdminLayout';
 import CustomerDiscountModal from './CustomerDiscountModal';
 import CustomerHealthModal from './CustomerHealthModal';
+import ViewToggle from '../../../_shared/components/common/ViewToggle';
+import { useViewMode } from '../../../_shared/components/common/viewMode';
 import customersAPI from '../../../_shared/api/customers';
 import customerTiersAPI from '../../../_shared/api/customerTiers';
 
@@ -179,6 +182,7 @@ function SkeletonRow() {
 
 export default function Customers() {
   const navigate = useNavigate();
+  const [view, setView] = useViewMode('customers');
 
   const [customers,    setCustomers]    = useState([]);
   const [stats,        setStats]        = useState(null);
@@ -471,8 +475,46 @@ export default function Customers() {
         )}
       </div>
 
-      {/* ── Table ── */}
-      <div style={{ ...card, overflow: 'hidden' }}>
+      {/* ── Layout switch (F3) ── */}
+      <div style={{ display: 'flex', justifyContent: 'flex-end', margin: '-12px 0 -12px' }}><ViewToggle view={view} setView={setView} /></div>
+
+      {/* ── Table or cards ── */}
+      <div style={view === 'cards' ? undefined : { ...card, overflow: 'hidden' }}>
+        {view === 'cards' ? (
+          loading ? <p style={{ padding: 24, color: 'var(--text-tertiary)', fontSize: '0.85rem' }}>Loading…</p> : customers.length === 0 ? (
+            <div style={{ ...card, padding: 48, textAlign: 'center', color: 'var(--text-tertiary)', fontSize: '0.85rem' }}>No customers found</div>
+          ) : (
+            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(min(100%, 280px), 1fr))', gap: 14 }}>
+              {customers.map((c) => {
+                const st = STATUS_STYLES[c.status] ?? STATUS_STYLES.inactive;
+                const tr = tierStyle(c.tier, tierOptions);
+                return (
+                  <button key={c.id} type="button" onClick={() => navigate(`/admin/customers/${c.id}`)}
+                    style={{ ...card, padding: 16, display: 'flex', flexDirection: 'column', gap: 12, textAlign: 'left', cursor: 'pointer', fontFamily: 'inherit', color: 'inherit', minWidth: 0 }}>
+                    <div style={{ display: 'flex', gap: 12, alignItems: 'center', minWidth: 0 }}>
+                      <img src={c.profile_image_url} alt="" style={{ width: 44, height: 44, borderRadius: '50%', objectFit: 'cover', flexShrink: 0, background: 'var(--surface-input)' }} />
+                      <div style={{ minWidth: 0 }}>
+                        <p style={{ fontSize: '0.9rem', fontWeight: 700, color: 'var(--text-primary)', margin: 0, overflowWrap: 'anywhere' }}>{c.full_name}</p>
+                        <p style={{ fontSize: '0.72rem', color: 'var(--text-tertiary)', margin: '1px 0 0', overflowWrap: 'anywhere' }}>{c.email}</p>
+                        <p style={{ fontSize: '0.65rem', color: 'var(--text-tertiary)', fontFamily: 'monospace', margin: '1px 0 0' }}>{c.customer_number}</p>
+                      </div>
+                    </div>
+                    <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap' }}>
+                      <Badge bg={st.bg} color={st.color} ring={st.ring}><span style={{ width: 5, height: 5, borderRadius: '50%', background: st.dot, flexShrink: 0 }} />{c.status}</Badge>
+                      <Badge bg={tr.bg} color={tr.color} ring={tr.ring}>{c.tier}</Badge>
+                      <Badge bg="color-mix(in srgb, var(--color-primary-500) 7%, transparent)" color="var(--color-primary-600)" ring="color-mix(in srgb, var(--color-primary-500) 18%, transparent)">{TYPE_ICONS[c.customer_type]}{c.customer_type}</Badge>
+                    </div>
+                    <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: 8, borderTop: '1px solid var(--line)', paddingTop: 10 }}>
+                      <div><div style={{ fontSize: '0.6rem', textTransform: 'uppercase', letterSpacing: '0.07em', color: 'var(--text-tertiary)', fontWeight: 700 }}>Orders</div><div style={{ fontWeight: 700, fontSize: '0.88rem' }}>{(c.total_orders ?? 0).toLocaleString()}</div></div>
+                      <div><div style={{ fontSize: '0.6rem', textTransform: 'uppercase', letterSpacing: '0.07em', color: 'var(--text-tertiary)', fontWeight: 700 }}>Spent</div><div style={{ fontWeight: 700, fontSize: '0.88rem' }}>{fmt(c.total_spent)}</div></div>
+                      <div><div style={{ fontSize: '0.6rem', textTransform: 'uppercase', letterSpacing: '0.07em', color: 'var(--text-tertiary)', fontWeight: 700 }}>Last order</div><div style={{ fontWeight: 600, fontSize: '0.8rem' }}>{fmtDate(c.last_order_date)}</div></div>
+                    </div>
+                  </button>
+                );
+              })}
+            </div>
+          )
+        ) : (
         <div style={{ overflowX: 'auto' }}>
           <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '0.82rem' }}>
             <thead>
@@ -702,6 +744,7 @@ export default function Customers() {
             </tbody>
           </table>
         </div>
+        )}
 
         {/* ── Load More / Load All ── */}
         {!loading && customers.length > 0 && page < meta.last_page && (

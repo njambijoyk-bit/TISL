@@ -10,6 +10,8 @@ import toast from 'react-hot-toast';
 import employeesApi from '../../../../_shared/api/employees';
 import useAuthStore from '../../../../_shared/store/authStore';
 import AdminLayout from '../../../../_shared/components/layout/AdminLayout';
+import ViewToggle from '../../../../_shared/components/common/ViewToggle';
+import { useViewMode } from '../../../../_shared/components/common/viewMode';
 import { hasPermission } from '../../../../_shared/lib/roles';
 
 // ── Constants ──────────────────────────────────────────────────────────────────
@@ -114,6 +116,7 @@ function SkeletonRow() {
 
 export default function EmployeeList() {
   const navigate = useNavigate();
+  const [view, setView] = useViewMode('employees');
   const user = useAuthStore(state => state.user);
   const isAdminOrSuper = hasPermission(user, 'hr.manage');
   const [employees, setEmployees]   = useState([]);
@@ -402,8 +405,43 @@ export default function EmployeeList() {
         )}
       </div>
 
-      {/* ── Table ── */}
-      <div style={{ ...card, overflow: 'hidden' }}>
+      {/* ── Layout switch (F3) ── */}
+      <div style={{ display: 'flex', justifyContent: 'flex-end', margin: '-12px 0 -12px' }}><ViewToggle view={view} setView={setView} /></div>
+
+      {/* ── Table or cards ── */}
+      <div style={view === 'cards' ? undefined : { ...card, overflow: 'hidden' }}>
+        {view === 'cards' ? (
+          loading ? <p style={{ padding: 24, color: 'var(--text-tertiary)', fontSize: '0.85rem' }}>Loading…</p> : employees.length === 0 ? (
+            <div style={{ ...card, padding: 48, textAlign: 'center', color: 'var(--text-tertiary)', fontSize: '0.85rem' }}>{hasFilters ? 'No employees match your filters' : 'No employees found'}</div>
+          ) : (
+            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(min(100%, 280px), 1fr))', gap: 14 }}>
+              {employees.map((emp) => (
+                <button key={emp.id} type="button" onClick={() => navigate(`/admin/employees/${emp.id}`)}
+                  style={{ ...card, padding: 16, display: 'flex', flexDirection: 'column', gap: 12, textAlign: 'left', cursor: 'pointer', fontFamily: 'inherit', color: 'inherit', minWidth: 0 }}>
+                  <div style={{ display: 'flex', gap: 12, alignItems: 'center', minWidth: 0 }}>
+                    <div style={{ width: 44, height: 44, borderRadius: 12, flexShrink: 0, display: 'flex', alignItems: 'center', justifyContent: 'center', background: 'linear-gradient(135deg,color-mix(in srgb, var(--color-primary-500) 15%, transparent),color-mix(in srgb, var(--color-primary-600) 20%, transparent))', color: 'var(--color-primary-600)', fontSize: '0.95rem', fontWeight: 800 }}>
+                      {emp.full_name?.split(' ').map(n => n[0]).join('').slice(0, 2).toUpperCase() || '?'}
+                    </div>
+                    <div style={{ minWidth: 0 }}>
+                      <p style={{ fontSize: '0.9rem', fontWeight: 700, color: 'var(--text-primary)', margin: 0, overflowWrap: 'anywhere' }}>{emp.full_name || 'Unknown'}</p>
+                      <p style={{ fontSize: '0.72rem', color: 'var(--text-tertiary)', margin: '1px 0 0' }}>{emp.job_title || '—'}</p>
+                      <p style={{ fontSize: '0.65rem', color: 'var(--text-tertiary)', fontFamily: 'monospace', margin: '1px 0 0' }}>{emp.employee_number}</p>
+                    </div>
+                  </div>
+                  <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap', alignItems: 'center' }}>
+                    <Badge status={emp.status} />
+                    {emp.department && <span style={{ fontSize: '0.74rem', color: 'var(--text-secondary)' }}>{emp.department}</span>}
+                    {EMPLOYMENT_TYPE_LABELS[emp.employment_type] && <span style={{ fontSize: '0.7rem', color: 'var(--text-tertiary)' }}>· {EMPLOYMENT_TYPE_LABELS[emp.employment_type]}</span>}
+                  </div>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', gap: 8, borderTop: '1px solid var(--line)', paddingTop: 10, fontSize: '0.74rem', color: 'var(--text-tertiary)' }}>
+                    <span>{emp.manager?.user ? `Reports to ${emp.manager.user.name}` : 'No manager'}</span>
+                    <span>{emp.hire_date ? new Date(emp.hire_date).toLocaleDateString('en-KE', { month: 'short', year: 'numeric' }) : ''}</span>
+                  </div>
+                </button>
+              ))}
+            </div>
+          )
+        ) : (
         <div style={{ overflowX: 'auto' }}>
           <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '0.82rem' }}>
             <thead>
@@ -549,6 +587,7 @@ export default function EmployeeList() {
             </tbody>
           </table>
         </div>
+        )}
 
         {/* Pagination */}
         {!loading && employees.length > 0 && pagination.last_page > 1 && (

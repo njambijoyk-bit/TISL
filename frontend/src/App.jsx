@@ -9,6 +9,7 @@ import ModuleRoute from './_shared/components/routing/ModuleRoute';
 
 import InstallPrompt from './_shared/components/common/InstallPrompt';
 import AlgorithmBanner from './_shared/components/layout/AlgorithmBanner';
+import RecordSidebar from './_shared/components/common/RecordSidebar';
 import BookmarkNote from './_shared/components/BookmarkNote';
 import AiPanelRoot from './core/components/ai/AiPanelRoot';
 import Mimi from './core/components/chat/Mimi';
@@ -1458,7 +1459,7 @@ function App() {
                 path="/admin/customers/:id"
                 element={
                   <ProtectedRoute requireAdmin permission="customers.view">
-                    <CustomerDetail />
+                    <RecordSidebar kind="customers"><CustomerDetail /></RecordSidebar>
                   </ProtectedRoute>
                 }
               />
@@ -1516,7 +1517,7 @@ function App() {
                 path="/admin/employees/:id"
                 element={
                   <ProtectedRoute requireAdmin permission="hr.view">
-                    <EmployeeDetail />
+                    <RecordSidebar kind="employees"><EmployeeDetail /></RecordSidebar>
                   </ProtectedRoute>
                 }
               />
