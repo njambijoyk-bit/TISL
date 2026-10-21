@@ -9,10 +9,6 @@ use App\Services\Tenders\TenderFile;
 use App\Services\Tenders\TenderListing;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
-use Maatwebsite\Excel\Concerns\FromArray;
-use Maatwebsite\Excel\Concerns\ShouldAutoSize;
-use Maatwebsite\Excel\Concerns\WithHeadings;
-use Maatwebsite\Excel\Facades\Excel;
 use Symfony\Component\HttpFoundation\BinaryFileResponse;
 use Symfony\Component\HttpFoundation\StreamedResponse;
 
@@ -54,29 +50,7 @@ class PublicTenderController extends Controller
         $d = $request->validate(TenderListing::rules());
         $d['tab'] = ($d['tab'] ?? 'active') === 'restricted' ? 'all' : ($d['tab'] ?? 'active');
 
-        $rows = $this->listing->withRowData($this->listing->sort($this->listing->filter($this->base(), $d), $d))->limit(2000)->get()
-            ->map(fn (Tender $t) => $this->listing->row($t))
-            ->map(fn ($r) => [
-                $r['tender_number'], $r['title'], $r['procuring_entity'], TenderListing::METHOD_LABELS[$r['procurement_method']] ?? $r['procurement_method'], ucfirst((string) $r['category']),
-                $r['published_at']?->format('Y-m-d'), $r['submission_deadline']?->format('Y-m-d H:i'), ucfirst($r['status']),
-                collect($r['reserved_groups'])->map(fn ($g) => TenderListing::GROUP_LABELS[$g] ?? $g)->implode(', '), $r['addendum_count'] ?: 'None',
-            ])->all();
-
-        $export = new class($rows) implements FromArray, WithHeadings, ShouldAutoSize {
-            public function __construct(private array $rows) {}
-
-            public function array(): array
-            {
-                return $this->rows;
-            }
-
-            public function headings(): array
-            {
-                return ['Tender number', 'Description', 'Procuring entity', 'Method', 'Category', 'Published', 'Closes', 'Status', 'Reserved for', 'Addenda'];
-            }
-        };
-
-        return Excel::download($export, 'tenders.xlsx');
+        return $this->listing->spreadsheet($this->base(), $d);
     }
 
     public function show(string $ref): JsonResponse

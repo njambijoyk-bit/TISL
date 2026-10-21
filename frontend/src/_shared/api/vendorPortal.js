@@ -8,6 +8,7 @@ const vendorPortalAPI = {
 
   // Tenders this vendor may see (public ones and the restricted ones they are eligible for)
   tenders: async (params) => (await api.get('/vendor-portal/tenders', { params })).data,
+  exportTenders: async (params) => (await api.get('/vendor-portal/tenders/export', { params, responseType: 'blob' })).data,
   showTender: async (id) => (await api.get(`/vendor-portal/tenders/${id}`)).data,
   documentLink: async (id, docId, inline) => (await api.get(`/vendor-portal/tenders/${id}/documents/${docId}/link`, { params: { inline: inline ? 1 : 0 } })).data,
 

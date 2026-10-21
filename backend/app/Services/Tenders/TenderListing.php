@@ -6,6 +6,11 @@ use App\Models\CompanyProfile;
 use App\Models\Extras\Tender;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Http\Request;
+use Maatwebsite\Excel\Concerns\FromArray;
+use Maatwebsite\Excel\Concerns\ShouldAutoSize;
+use Maatwebsite\Excel\Concerns\WithHeadings;
+use Maatwebsite\Excel\Facades\Excel;
+use Symfony\Component\HttpFoundation\BinaryFileResponse;
 
 /**
  * How a tender appears in a list (the public page and the vendor portal share it): the same rows, tabs and per-column filters.
@@ -179,5 +184,35 @@ class TenderListing
         }
 
         return $out;
+    }
+
+    /** The filtered list (same tab, search and column filters as the screen) as a spreadsheet. $base already limits who may see what. */
+    public function spreadsheet(Builder $base, array $d): BinaryFileResponse
+    {
+        $d['tab'] = ($d['tab'] ?? 'active') === 'restricted' && ! ($d['allow_restricted'] ?? false) ? 'all' : ($d['tab'] ?? 'active');
+
+        $rows = $this->withRowData($this->sort($this->filter($base, $d), $d))->limit(2000)->get()
+            ->map(fn (Tender $t) => $this->row($t))
+            ->map(fn ($r) => [
+                $r['tender_number'], $r['title'], ucfirst(str_replace('_', ' ', (string) $r['notice_type'])), $r['procuring_entity'], self::METHOD_LABELS[$r['procurement_method']] ?? $r['procurement_method'], ucfirst((string) $r['category']),
+                $r['published_at']?->format('Y-m-d'), $r['submission_deadline']?->format('Y-m-d H:i'), ucfirst($r['status']),
+                collect($r['reserved_groups'])->map(fn ($g) => self::GROUP_LABELS[$g] ?? $g)->implode(', '), $r['addendum_count'] ?: 'None',
+            ])->all();
+
+        $export = new class($rows) implements FromArray, WithHeadings, ShouldAutoSize {
+            public function __construct(private array $rows) {}
+
+            public function array(): array
+            {
+                return $this->rows;
+            }
+
+            public function headings(): array
+            {
+                return ['Tender number', 'Description', 'Type', 'Procuring entity', 'Method', 'Category', 'Published', 'Closes', 'Status', 'Reserved for', 'Addenda'];
+            }
+        };
+
+        return Excel::download($export, 'tenders.xlsx');
     }
 }

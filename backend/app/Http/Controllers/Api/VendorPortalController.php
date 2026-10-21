@@ -59,6 +59,16 @@ class VendorPortalController extends Controller
         ]);
     }
 
+    /** The filtered list (including the Restricted tab) as a spreadsheet. */
+    public function exportTenders(Request $request): \Symfony\Component\HttpFoundation\BinaryFileResponse
+    {
+        $vendor = $this->vendor($request);
+        $d = $request->validate(TenderListing::rules());
+        $d['allow_restricted'] = true;
+
+        return $this->listing->spreadsheet(Tender::visibleTo($vendor), $d);
+    }
+
     public function showTender(Request $request, string $ref): JsonResponse
     {
         $vendor = $this->vendor($request);

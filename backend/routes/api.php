@@ -3332,6 +3332,7 @@ Route::middleware(['auth:sanctum', 'module:extras'])->prefix('vendor-portal')->g
 
     // Tenders visible to this vendor
     Route::get('/tenders',            [$vp, 'tenders']);
+    Route::get('/tenders/export',     [$vp, 'exportTenders']);
     Route::get('/tenders/{ref}',      [$vp, 'showTender']);
     Route::get('/tenders/{ref}/documents/{docId}/link', [$vp, 'documentLink'])->whereNumber('docId');
 
