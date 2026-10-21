@@ -1,6 +1,6 @@
 import { useEffect, useState, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Plus, ChevronRight, ChevronDown, Lock, FileText, Table2, LayoutList, LayoutGrid, Network } from 'lucide-react';
+import { Plus, ChevronRight, ChevronDown, Lock, FileText, Download, Table2, LayoutList, LayoutGrid, Network } from 'lucide-react';
 import toast from 'react-hot-toast';
 import booksAPI from '../../../../_shared/api/books';
 import { errMsg, fieldErrors } from '../../../../_shared/store/helpers/apiState';
@@ -9,6 +9,7 @@ import { Field, TextInput, NumberInput, SelectInput, TextArea, FormGrid, FormSta
 import SimpleTable from '../ui/SimpleTable';
 import { SheetView, BlocksView, MapView } from './ChartViews';
 import CurrencySelect from './CurrencySelect';
+import { downloadCsv } from '../../../../_shared/lib/tableExport';
 import taxAPI from '../../../../_shared/api/tax';
 import { btnPrimary, btnGhost, card, colors } from '../../../../_shared/theme/tokens';
 
@@ -363,17 +364,16 @@ export default function AccountsTab({ canWrite }) {
   const [search, setSearch] = useState('');
   const [layout, setLayoutState] = useState(readLayout);
   const setLayout = (v) => { setLayoutState(v); try { window.localStorage.setItem('view.chart-of-accounts', v); } catch { /* not remembered: fine */ } };
-  const chart = layout !== 'table';   // the chart views show everything, so the group picker and its filter stand aside
 
   const loadGroups = useCallback(() => booksAPI.groups().then(setGroups).catch((e) => toast.error(errMsg(e, 'Could not load the chart of accounts'))), []);
   const loadLedgers = useCallback(async () => {
     setLoading(true);
     try {
-      const res = await booksAPI.ledgers({ all: 1, group_id: (!chart && sel?.id) || undefined, search: search || undefined });
+      const res = await booksAPI.ledgers({ all: 1, group_id: sel?.id || undefined, search: search || undefined });
       setLedgers(Array.isArray(res) ? res : res.data ?? []);
     } catch (e) { toast.error(errMsg(e, 'Could not load ledgers')); }
     finally { setLoading(false); }
-  }, [sel, search, chart]);
+  }, [sel, search]);
 
   useEffect(() => { loadGroups(); }, [loadGroups]);
   useEffect(() => { const t = setTimeout(loadLedgers, search ? 250 : 0); return () => clearTimeout(t); }, [loadLedgers]); // eslint-disable-line react-hooks/exhaustive-deps
@@ -387,6 +387,19 @@ export default function AccountsTab({ canWrite }) {
     if (!confirm(`Delete the ledger “${l.name}”?`)) return;
     try { await booksAPI.deleteLedger(l.id); toast.success('Ledger deleted'); loadLedgers(); loadGroups(); }
     catch (e) { toast.error(errMsg(e, 'Could not delete the ledger')); }
+  };
+
+  // the chart views narrow to the picked group (and what is under it) the same way the table does
+  const findGroup = (list, id) => { for (const g of list) { if (g.id === id) return g; const f = findGroup(g.children ?? [], id); if (f) return f; } return null; };
+  const chartGroups = sel ? [findGroup(groups, sel.id) ?? sel] : groups;
+
+  const exportLedgers = () => {
+    const tax = (l) => ({ taxable: 'VAT-able', zero_rated: 'Zero-rated', exempt: 'Exempt', out_of_scope: 'Out of scope' }[l.tax_nature] ?? '');
+    downloadCsv(`chart-of-accounts${sel ? `-${sel.name.toLowerCase().replace(/[^a-z0-9]+/g, '-')}` : ''}`, [
+      { label: 'Ledger', value: (l) => l.name }, { label: 'Code', value: (l) => l.code }, { label: 'Group', value: (l) => l.group?.name }, { label: 'Nature', value: (l) => NATURE[l.group?.nature] },
+      { label: 'Tax', value: tax }, { label: 'Rate', value: (l) => (l.tax_rate_ledger?.rate_value != null && (l.tax_nature === 'taxable' || l.tax_nature === 'zero_rated') ? `${Number(l.tax_rate_ledger.rate_value)}%` : l.rate_value != null && l.rate_type ? Number(l.rate_value) : '') },
+      { label: 'Opening balance', value: (l) => Number(l.opening_balance) || 0 }, { label: 'Opening side', value: (l) => (Number(l.opening_balance) ? (l.opening_side === 'C' ? 'Cr' : 'Dr') : '') }, { label: 'Active', value: (l) => (l.is_active === false ? 'no' : 'yes') },
+    ], ledgers);
   };
 
   const columns = [
@@ -405,8 +418,8 @@ export default function AccountsTab({ canWrite }) {
   ];
 
   return (
-    <div style={{ display: 'grid', gridTemplateColumns: chart ? 'minmax(0, 1fr)' : 'minmax(220px, 300px) 1fr', gap: 18, alignItems: 'start' }}>
-      {!chart && <div style={{ ...card, padding: 10 }}>
+    <div style={{ display: 'grid', gridTemplateColumns: 'minmax(220px, 300px) minmax(0, 1fr)', gap: 18, alignItems: 'start' }}>
+      <div style={{ ...card, padding: 10 }}>
         <div style={{ display: 'flex', gap: 6, justifyContent: 'space-between', alignItems: 'center', padding: '4px 8px 8px' }}>
           <span style={{ fontSize: '0.7rem', fontWeight: 700, color: colors.textFaint }}>GROUPS</span>
           <button type="button" onClick={() => setSel(null)} style={{ background: 'none', border: 'none', fontSize: '0.72rem', color: colors.primary, cursor: 'pointer' }}>Show all</button>
@@ -420,12 +433,12 @@ export default function AccountsTab({ canWrite }) {
             {sel && !sel.is_system && <button type="button" style={{ ...btnGhost, padding: '5px 10px', fontSize: '0.75rem', color: colors.danger }} onClick={removeGroup}>Delete “{sel.name}”</button>}
           </div>
         )}
-      </div>}
+      </div>
       <div>
         <div style={{ display: 'flex', gap: 10, justifyContent: 'space-between', alignItems: 'center', marginBottom: 12, flexWrap: 'wrap' }}>
           <div>
-            <p style={{ margin: 0, fontWeight: 700, color: colors.primary }}>{sel && !chart ? sel.name : 'All ledgers'}</p>
-            {sel && !chart && <p style={{ margin: 0, fontSize: '0.72rem', color: colors.textFaint }}>{NATURE[sel.nature]} · includes subgroups</p>}
+            <p style={{ margin: 0, fontWeight: 700, color: colors.primary }}>{sel ? sel.name : 'All ledgers'}</p>
+            {sel && <p style={{ margin: 0, fontSize: '0.72rem', color: colors.textFaint }}>{NATURE[sel.nature]} · includes subgroups</p>}
           </div>
           <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap', alignItems: 'center' }}>
             <div role="group" aria-label="Layout" style={{ display: 'inline-flex', overflow: 'hidden', borderRadius: 8, border: `1.5px solid ${colors.tint(0.2)}` }}>
@@ -440,6 +453,7 @@ export default function AccountsTab({ canWrite }) {
                 );
               })}
             </div>
+            <button type="button" style={btnGhost} onClick={exportLedgers} disabled={!ledgers.length}><Download size={14} /> Export</button>
             <input value={search} onChange={(e) => setSearch(e.target.value)} placeholder="Search ledgers…" style={{ padding: '7px 10px', borderRadius: 8, border: `1.5px solid ${colors.tint(0.18)}`, fontSize: '0.8rem' }} />
             {canWrite && <button type="button" style={btnPrimary} onClick={() => setLedgerForm('new')}><Plus size={14} /> New ledger</button>}
           </div>
@@ -450,7 +464,7 @@ export default function AccountsTab({ canWrite }) {
           : (() => {
               const open = (l) => (canWrite ? setLedgerForm(l) : nav(`/admin/books?tab=reports&report=ledger&ledger=${l.id}`));
               const View = { sheet: SheetView, blocks: BlocksView, map: MapView }[layout];
-              return <View groups={groups} ledgers={ledgers} searching={Boolean(search)} onOpen={open} />;
+              return <View groups={chartGroups} ledgers={ledgers} searching={Boolean(search)} onOpen={open} />;
             })()}
       </div>
       {ledgerForm && <LedgerForm ledger={ledgerForm === 'new' ? null : ledgerForm} groups={groups} defaultGroupId={sel?.id} onClose={() => setLedgerForm(null)} onSaved={() => { loadLedgers(); loadGroups(); }} />}
