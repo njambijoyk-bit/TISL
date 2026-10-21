@@ -123,20 +123,43 @@ export function BlocksView({ groups, ledgers, searching, onOpen }) {
   );
 }
 
-// ───────────────────────── Map ─────────────────────────
+// ───────────────────────── Map (radial) ─────────────────────────
 const LINE = 'var(--line)';
 
-function MapGroup({ g, color, onOpen }) {
+function MapGroup({ g, color, onOpen, side }) {
   return (
     <div style={{ marginBottom: 10 }}>
-      <p style={{ margin: '0 0 3px', fontSize: '0.8rem', fontWeight: 700, color: 'var(--text-primary)' }}>{g.name}</p>
-      <ul style={{ margin: 0, paddingLeft: 18, fontSize: '0.8rem', color: 'var(--text-secondary)' }}>
-        <Items list={g.own} onOpen={onOpen} limit={5}
-          render={(l, open) => <li key={l.id} style={{ padding: '1px 0' }}>{ledgerBtn(l, open, { padding: 0, fontSize: '0.8rem', color: 'var(--text-secondary)', display: 'inline', width: 'auto' })}</li>} />
+      <p style={{ margin: '0 0 3px', fontSize: '0.8rem', fontWeight: 700, color: 'var(--text-primary)', textAlign: side === 'left' ? 'right' : 'left' }}>{g.name}</p>
+      <ul style={{ margin: 0, padding: 0, listStyle: 'none', fontSize: '0.8rem', color: 'var(--text-secondary)', textAlign: side === 'left' ? 'right' : 'left' }}>
+        <Items list={g.own} onOpen={onOpen} limit={4}
+          render={(l, open) => <li key={l.id} style={{ padding: '1px 0' }}><span aria-hidden="true" style={{ color }}>{side === 'left' ? '' : '• '}</span>{ledgerBtn(l, open, { padding: 0, fontSize: '0.8rem', color: 'var(--text-secondary)', display: 'inline', width: 'auto' })}<span aria-hidden="true" style={{ color }}>{side === 'left' ? ' •' : ''}</span></li>} />
       </ul>
-      {g.children.length > 0 && <div style={{ marginLeft: 12, marginTop: 6, paddingLeft: 10, borderLeft: `2px solid ${tint(color, 40)}` }}>
-        {g.children.map((c) => <MapGroup key={c.id} g={c} color={color} onOpen={onOpen} />)}
-      </div>}
+      {g.children.length > 0 && (
+        <div style={{ marginTop: 6, [side === 'left' ? 'marginRight' : 'marginLeft']: 10, [side === 'left' ? 'paddingRight' : 'paddingLeft']: 10, [side === 'left' ? 'borderRight' : 'borderLeft']: `2px solid ${tint(color, 40)}` }}>
+          {g.children.map((c) => <MapGroup key={c.id} g={c} color={color} onOpen={onOpen} side={side} />)}
+        </div>
+      )}
+    </div>
+  );
+}
+
+/** One branch: kind box on the spine side, a bracket, and its groups and ledgers fanning outwards. */
+function Branch({ k, side, onOpen }) {
+  const left = side === 'left';
+  const label = (
+    <span style={{ flex: 'none', padding: '10px 16px', borderRadius: 6, background: tint(k.color, 18), border: `1.5px solid ${tint(k.color, 55)}`, fontSize: '0.78rem', fontWeight: 800, letterSpacing: '0.1em', textTransform: 'uppercase', color: 'var(--text-primary)', whiteSpace: 'nowrap', textAlign: 'center' }}>
+      {k.label}<br /><span style={{ fontWeight: 600, letterSpacing: 0, opacity: 0.7 }}>{k.total} ledgers</span>
+    </span>
+  );
+  const list = (
+    <div style={{ flex: 1, minWidth: 0, padding: '4px 14px', [left ? 'borderRight' : 'borderLeft']: `2px solid ${tint(k.color, 55)}` }}>
+      {k.tops.map((g) => <MapGroup key={g.id} g={g} color={k.color} onOpen={onOpen} side={side} />)}
+    </div>
+  );
+  const arm = (w) => <span aria-hidden="true" style={{ flex: 'none', width: w, height: 2, background: LINE }} />;
+  return (
+    <div style={{ display: 'flex', alignItems: 'center' }}>
+      {left ? <>{list}{arm(16)}{label}{arm(36)}</> : <>{arm(36)}{label}{arm(16)}{list}</>}
     </div>
   );
 }
@@ -144,29 +167,22 @@ function MapGroup({ g, color, onOpen }) {
 export function MapView({ groups, ledgers, searching, onOpen }) {
   const kinds = prepare(groups, ledgers, searching);
   if (!kinds.length) return <Empty />;
-  const box = (color, text) => (
-    <span style={{ display: 'inline-block', padding: '10px 18px', borderRadius: 6, background: tint(color, 16), border: `1.5px solid ${tint(color, 50)}`, fontSize: '0.8rem', fontWeight: 800, letterSpacing: '0.1em', textTransform: 'uppercase', color: 'var(--text-primary)', whiteSpace: 'nowrap' }}>{text}</span>
+  // quadrants: top-left, top-right, bottom-left, bottom-right
+  const leftKinds = kinds.filter((_, i) => i % 2 === 0);
+  const rightKinds = kinds.filter((_, i) => i % 2 === 1);
+  const col = (list, side) => (
+    <div style={{ flex: 1, minWidth: 0, display: 'flex', flexDirection: 'column', justifyContent: 'space-between', gap: 130 }}>
+      {list.map((k) => <Branch key={k.key} k={k} side={side} onOpen={onOpen} />)}
+    </div>
   );
   return (
     <div style={{ overflowX: 'auto', paddingBottom: 8 }}>
-      <div style={{ display: 'flex', alignItems: 'stretch', minWidth: 760 }}>
-        <div style={{ display: 'flex', alignItems: 'center', paddingRight: 0 }}>
-          <span style={{ display: 'inline-block', padding: '16px 20px', borderRadius: 8, background: 'color-mix(in srgb, var(--color-primary-500) 16%, transparent)', border: '2px solid color-mix(in srgb, var(--color-primary-500) 55%, transparent)', textAlign: 'center', fontSize: '0.95rem', fontWeight: 800, letterSpacing: '0.08em', textTransform: 'uppercase', color: 'var(--text-primary)' }}>
-            Chart<br />of<br />accounts
-          </span>
-          <span aria-hidden="true" style={{ width: 28, height: 2, background: LINE }} />
-        </div>
-        <div style={{ flex: 1, minWidth: 0, borderLeft: kinds.length > 1 ? `2px solid ${LINE}` : 'none', display: 'flex', flexDirection: 'column' }}>
-          {kinds.map((k) => (
-            <div key={k.key} style={{ display: 'flex', alignItems: 'flex-start', padding: '10px 0' }}>
-              <span aria-hidden="true" style={{ width: 28, height: 2, background: LINE, marginTop: 22, flex: 'none' }} />
-              <div style={{ flex: 'none', marginTop: 8 }}>{box(k.color, `${k.label} · ${k.total}`)}</div>
-              <span aria-hidden="true" style={{ width: 24, height: 2, background: LINE, marginTop: 22, flex: 'none' }} />
-              <div style={{ flex: 1, minWidth: 0, borderLeft: `2px solid ${tint(k.color, 45)}`, paddingLeft: 16, display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(210px, 1fr))', columnGap: 18, alignItems: 'start' }}>
-                {k.tops.map((g) => <MapGroup key={g.id} g={g} color={k.color} onOpen={onOpen} />)}
-              </div>
-            </div>
-          ))}
+      <div style={{ display: 'flex', alignItems: 'stretch', minWidth: 980, position: 'relative', padding: '8px 0' }}>
+        {col(leftKinds, 'left')}
+        <div aria-hidden="true" style={{ flex: 'none', width: 2, background: LINE, position: 'relative' }} />
+        {col(rightKinds, 'right')}
+        <div style={{ position: 'absolute', left: '50%', top: '50%', transform: 'translate(-50%, -50%)', padding: '18px 22px', borderRadius: 8, background: 'color-mix(in srgb, var(--color-primary-500) 18%, var(--surface-card))', border: '2px solid color-mix(in srgb, var(--color-primary-500) 60%, transparent)', textAlign: 'center', fontSize: '1rem', fontWeight: 800, letterSpacing: '0.08em', textTransform: 'uppercase', color: 'var(--text-primary)', lineHeight: 1.25, zIndex: 1 }}>
+          Chart<br />of<br />accounts
         </div>
       </div>
     </div>
