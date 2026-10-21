@@ -97,7 +97,7 @@ function SectionCard({ title, icon: Icon, children, action }) {
 function Modal({ onClose, title, subtitle, icon, iconBg, children }) {
   return (
     <div style={{ position: 'fixed', inset: 0, zIndex: 50, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 16, background: 'rgba(0,0,0,0.5)' }}>
-      <div style={{ ...card, width: '100%', maxWidth: 420, overflow: 'hidden' }}>
+      <div role="dialog" aria-modal="true" aria-label={title} style={{ ...card, width: '100%', maxWidth: 420, overflow: 'hidden' }}>
         <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '14px 18px', borderBottom: '1px solid var(--line)' }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
             <div style={{ width: 34, height: 34, borderRadius: 9, display: 'flex', alignItems: 'center', justifyContent: 'center', background: iconBg }}>{icon}</div>

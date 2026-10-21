@@ -676,7 +676,7 @@ export default function EmployeeList() {
       {/* ── Confirm Modal ── */}
       {confirmModal && (
         <div style={{ position: 'fixed', inset: 0, zIndex: 60, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 16, background: 'rgba(0,0,0,0.55)' }}>
-          <div style={{ ...card, width: '100%', maxWidth: 380, padding: 24, display: 'flex', flexDirection: 'column', gap: 18 }}>
+          <div role="dialog" aria-modal="true" aria-label="Confirm" style={{ ...card, width: '100%', maxWidth: 380, padding: 24, display: 'flex', flexDirection: 'column', gap: 18 }}>
             <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
               <div style={{ width: 42, height: 42, borderRadius: 11, flexShrink: 0, display: 'flex', alignItems: 'center', justifyContent: 'center', background: confirmModal.type === 'restore' ? 'rgba(5,150,105,0.1)' : 'rgba(239,68,68,0.1)' }}>
                 {confirmModal.type === 'restore' ? <RotateCcw size={20} style={{ color: '#059669' }} /> : <ShieldAlert size={20} style={{ color: '#b91c1c' }} />}
@@ -969,7 +969,7 @@ function RowActions({ empId, onDelete, navigate }) {
 function Modal({ onClose, title, subtitle, icon, iconBg, children }) {
   return (
     <div style={{ position: 'fixed', inset: 0, zIndex: 50, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 16, background: 'rgba(0,0,0,0.5)' }}>
-      <div style={{ ...card, width: '100%', maxWidth: 600, maxHeight: '80vh', display: 'flex', flexDirection: 'column', overflow: 'hidden' }}>
+      <div role="dialog" aria-modal="true" aria-label={title} style={{ ...card, width: '100%', maxWidth: 600, maxHeight: '80vh', display: 'flex', flexDirection: 'column', overflow: 'hidden' }}>
         <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '16px 20px', borderBottom: '1px solid var(--line)', flexShrink: 0 }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
             <div style={{ width: 36, height: 36, borderRadius: 9, display: 'flex', alignItems: 'center', justifyContent: 'center', background: iconBg }}>{icon}</div>
