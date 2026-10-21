@@ -1,5 +1,6 @@
 import { useState } from 'react';
 import { ChevronDown } from 'lucide-react';
+import useNarrow from './useNarrow';
 
 /**
  * Three ways to look at the chart of accounts besides the table:
@@ -166,7 +167,29 @@ function Branch({ k, side, onOpen }) {
 
 export function MapView({ groups, ledgers, searching, onOpen }) {
   const kinds = prepare(groups, ledgers, searching);
+  const narrow = useNarrow(820);
   if (!kinds.length) return <Empty />;
+  if (narrow) {
+    // a small screen: the centre on top, each kind stacked below it on a single trunk line
+    return (
+      <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
+        <span style={{ padding: '12px 20px', borderRadius: 8, background: 'color-mix(in srgb, var(--color-primary-500) 18%, var(--surface-card))', border: '2px solid color-mix(in srgb, var(--color-primary-500) 60%, transparent)', fontSize: '0.9rem', fontWeight: 800, letterSpacing: '0.08em', textTransform: 'uppercase', color: 'var(--text-primary)' }}>Chart of accounts</span>
+        <div style={{ width: '100%', marginTop: 0, paddingLeft: 12, borderLeft: `2px solid ${LINE}`, marginLeft: 0 }}>
+          {kinds.map((k) => (
+            <div key={k.key} style={{ paddingTop: 14 }}>
+              <div style={{ display: 'flex', alignItems: 'center' }}>
+                <span aria-hidden="true" style={{ width: 14, height: 2, background: LINE, marginLeft: -12 }} />
+                <span style={{ marginLeft: 12, padding: '7px 12px', borderRadius: 6, background: tint(k.color, 18), border: `1.5px solid ${tint(k.color, 55)}`, fontSize: '0.74rem', fontWeight: 800, letterSpacing: '0.08em', textTransform: 'uppercase', color: 'var(--text-primary)' }}>{k.label} · {k.total}</span>
+              </div>
+              <div style={{ marginLeft: 12, marginTop: 8, paddingLeft: 12, borderLeft: `2px solid ${tint(k.color, 50)}` }}>
+                {k.tops.map((g) => <MapGroup key={g.id} g={g} color={k.color} onOpen={onOpen} side="right" />)}
+              </div>
+            </div>
+          ))}
+        </div>
+      </div>
+    );
+  }
   // quadrants: top-left, top-right, bottom-left, bottom-right
   const leftKinds = kinds.filter((_, i) => i % 2 === 0);
   const rightKinds = kinds.filter((_, i) => i % 2 === 1);

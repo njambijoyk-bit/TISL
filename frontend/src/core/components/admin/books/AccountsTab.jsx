@@ -1,4 +1,4 @@
-import { useEffect, useState, useCallback } from 'react';
+import { useEffect, useState, useCallback, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Plus, ChevronRight, ChevronDown, Lock, FileText, Download, Table2, LayoutList, LayoutGrid, Network } from 'lucide-react';
 import toast from 'react-hot-toast';
@@ -9,6 +9,8 @@ import { Field, TextInput, NumberInput, SelectInput, TextArea, FormGrid, FormSta
 import SimpleTable from '../ui/SimpleTable';
 import { SheetView, BlocksView, MapView } from './ChartViews';
 import CurrencySelect from './CurrencySelect';
+import useNarrow from './useNarrow';
+import { exportElement } from '../../../../_shared/lib/captureExport';
 import { downloadCsv } from '../../../../_shared/lib/tableExport';
 import taxAPI from '../../../../_shared/api/tax';
 import { btnPrimary, btnGhost, card, colors } from '../../../../_shared/theme/tokens';
@@ -362,7 +364,13 @@ export default function AccountsTab({ canWrite }) {
   const [ledgerForm, setLedgerForm] = useState(null);
   const [groupForm, setGroupForm] = useState(false);
   const [search, setSearch] = useState('');
+  const narrow = useNarrow(900);
+  const [showGroups, setShowGroups] = useState(false);   // on a small screen the group picker stays out of the way until asked for
+  const [exportOpen, setExportOpen] = useState(false);
+  const [exporting, setExporting] = useState(false);
+  const chartRef = useRef(null);
   const [layout, setLayoutState] = useState(readLayout);
+  const chart = layout !== 'table';
   const setLayout = (v) => { setLayoutState(v); try { window.localStorage.setItem('view.chart-of-accounts', v); } catch { /* not remembered: fine */ } };
 
   const loadGroups = useCallback(() => booksAPI.groups().then(setGroups).catch((e) => toast.error(errMsg(e, 'Could not load the chart of accounts'))), []);
@@ -402,6 +410,22 @@ export default function AccountsTab({ canWrite }) {
     ], ledgers);
   };
 
+  const exportChart = async (format) => {
+    setExportOpen(false);
+    if (!chartRef.current) return;
+    setExporting(true);
+    try {
+      await exportElement(chartRef.current, {
+        name: `chart-of-accounts-${layout}${sel ? `-${sel.name.toLowerCase().replace(/[^a-z0-9]+/g, '-')}` : ''}`,
+        title: 'Chart of accounts',
+        subtitle: `${sel ? sel.name : 'All groups'} · ${LAYOUTS.find((l) => l.key === layout)?.label} view · ${new Date().toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' })}`,
+        format,
+      });
+    } catch { toast.error('Could not make the file. Try the table view and export CSV.'); }
+    finally { setExporting(false); }
+  };
+  const pickGroup = (g) => { setSel(g); if (narrow) setShowGroups(false); };
+
   const columns = [
     { key: 'name', label: 'Ledger', render: (l) => <strong style={{ color: colors.primary, fontWeight: 600 }}>{l.name}{!l.is_active && <span style={{ color: colors.textFaint, fontWeight: 400 }}> · off</span>}</strong> },
     { key: 'group', label: 'Group', render: (l) => l.group?.name },
@@ -417,15 +441,14 @@ export default function AccountsTab({ canWrite }) {
     ) },
   ];
 
-  return (
-    <div style={{ display: 'grid', gridTemplateColumns: 'minmax(220px, 300px) minmax(0, 1fr)', gap: 18, alignItems: 'start' }}>
-      <div style={{ ...card, padding: 10 }}>
+    const tree = (
+      <div style={{ ...card, padding: 10, marginBottom: narrow ? 12 : 0 }}>
         <div style={{ display: 'flex', gap: 6, justifyContent: 'space-between', alignItems: 'center', padding: '4px 8px 8px' }}>
           <span style={{ fontSize: '0.7rem', fontWeight: 700, color: colors.textFaint }}>GROUPS</span>
-          <button type="button" onClick={() => setSel(null)} style={{ background: 'none', border: 'none', fontSize: '0.72rem', color: colors.primary, cursor: 'pointer' }}>Show all</button>
+          <button type="button" onClick={() => pickGroup(null)} style={{ background: 'none', border: 'none', fontSize: '0.72rem', color: colors.primary, cursor: 'pointer' }}>Show all</button>
         </div>
         {groups.map((g) => (
-          <GroupNode key={g.id} g={g} depth={0} selected={sel?.id} onSelect={setSel} open={open} toggle={(id, cur) => setOpen((o) => ({ ...o, [id]: !cur }))} />
+          <GroupNode key={g.id} g={g} depth={0} selected={sel?.id} onSelect={pickGroup} open={open} toggle={(id, cur) => setOpen((o) => ({ ...o, [id]: !cur }))} />
         ))}
         {canWrite && (
           <div style={{ display: 'flex', gap: 6, padding: '10px 6px 2px', flexWrap: 'wrap' }}>
@@ -434,6 +457,11 @@ export default function AccountsTab({ canWrite }) {
           </div>
         )}
       </div>
+    );
+
+  return (
+    <div style={{ display: 'grid', gridTemplateColumns: narrow ? 'minmax(0, 1fr)' : 'minmax(220px, 300px) minmax(0, 1fr)', gap: 18, alignItems: 'start' }}>
+      {!narrow && tree}
       <div>
         <div style={{ display: 'flex', gap: 10, justifyContent: 'space-between', alignItems: 'center', marginBottom: 12, flexWrap: 'wrap' }}>
           <div>
@@ -453,19 +481,36 @@ export default function AccountsTab({ canWrite }) {
                 );
               })}
             </div>
-            <button type="button" style={btnGhost} onClick={exportLedgers} disabled={!ledgers.length}><Download size={14} /> Export</button>
-            <input value={search} onChange={(e) => setSearch(e.target.value)} placeholder="Search ledgers…" style={{ padding: '7px 10px', borderRadius: 8, border: `1.5px solid ${colors.tint(0.18)}`, fontSize: '0.8rem' }} />
+            {narrow && <button type="button" aria-expanded={showGroups} style={btnGhost} onClick={() => setShowGroups((v) => !v)}>Groups <ChevronDown size={13} style={{ transform: showGroups ? 'rotate(180deg)' : 'none' }} /></button>}
+            <span style={{ position: 'relative', display: 'inline-block' }}>
+              <button type="button" style={btnGhost} disabled={!ledgers.length || exporting} aria-haspopup={chart ? 'menu' : undefined} aria-expanded={chart ? exportOpen : undefined}
+                onClick={() => (chart ? setExportOpen((v) => !v) : exportLedgers())}><Download size={14} /> {exporting ? 'Making file…' : 'Export'}{chart && <ChevronDown size={12} />}</button>
+              {exportOpen && (
+                <>
+                  <button type="button" aria-label="Close menu" onClick={() => setExportOpen(false)} style={{ position: 'fixed', inset: 0, background: 'transparent', border: 'none', cursor: 'default', zIndex: 20 }} />
+                  <div role="menu" style={{ position: 'absolute', right: 0, top: 'calc(100% + 6px)', zIndex: 21, minWidth: 190, padding: 6, borderRadius: 10, background: 'var(--surface-card)', border: '1px solid var(--line)', boxShadow: '0 12px 28px rgba(0,0,0,0.3)' }}>
+                    {[['pdf', 'PDF document'], ['jpeg', 'JPEG picture']].map(([f, label]) => (
+                      <button key={f} role="menuitem" type="button" onClick={() => exportChart(f)} style={{ display: 'block', width: '100%', textAlign: 'left', padding: '8px 12px', borderRadius: 6, background: 'none', border: 'none', cursor: 'pointer', fontFamily: 'inherit', fontSize: '0.8rem', color: 'var(--text-primary)' }}>{label}</button>
+                    ))}
+                  </div>
+                </>
+              )}
+            </span>
+            <input value={search} onChange={(e) => setSearch(e.target.value)} placeholder="Search ledgers…" aria-label="Search ledgers" style={{ flex: '1 1 150px', minWidth: 0, padding: '7px 10px', borderRadius: 8, border: `1.5px solid ${colors.tint(0.18)}`, fontSize: '0.8rem' }} />
             {canWrite && <button type="button" style={btnPrimary} onClick={() => setLedgerForm('new')}><Plus size={14} /> New ledger</button>}
           </div>
         </div>
+        {narrow && showGroups && tree}
+        <div ref={chartRef}>
         {layout === 'table'
-          ? <SimpleTable columns={columns} rows={ledgers} loading={loading} onRowClick={canWrite ? setLedgerForm : undefined} empty="No ledgers in this group yet." />
+          ? <div style={{ overflowX: 'auto' }}><SimpleTable columns={columns} rows={ledgers} loading={loading} onRowClick={canWrite ? setLedgerForm : undefined} empty="No ledgers in this group yet." /></div>
           : loading && !ledgers.length ? <p style={{ color: colors.textFaint, fontSize: '0.85rem' }}>Loading…</p>
           : (() => {
               const open = (l) => (canWrite ? setLedgerForm(l) : nav(`/admin/books?tab=reports&report=ledger&ledger=${l.id}`));
               const View = { sheet: SheetView, blocks: BlocksView, map: MapView }[layout];
               return <View groups={chartGroups} ledgers={ledgers} searching={Boolean(search)} onOpen={open} />;
             })()}
+        </div>
       </div>
       {ledgerForm && <LedgerForm ledger={ledgerForm === 'new' ? null : ledgerForm} groups={groups} defaultGroupId={sel?.id} onClose={() => setLedgerForm(null)} onSaved={() => { loadLedgers(); loadGroups(); }} />}
       {groupForm && <GroupForm groups={groups} parentId={sel?.id} onClose={() => setGroupForm(false)} onSaved={loadGroups} />}
