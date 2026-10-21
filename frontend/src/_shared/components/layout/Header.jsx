@@ -7,7 +7,7 @@ import {
   Package, Wrench, Tag, Award, Star, FileText, ClipboardList, FolderOpen, LogInIcon,
   LogOut, Settings, LayoutDashboard, Users, ShoppingBag, MessageSquare, UserCog,
   BarChart3, Layers, BookOpen, Phone, Info, Zap, Search, BarChart2, LifeBuoy,
-  Bug, Volume2, VolumeX, Gift, CalendarCheck, Truck, KeyRound, Palette,
+  Bug, Volume2, VolumeX, Gift, CalendarCheck, Truck, KeyRound, Palette, Building2,
 } from 'lucide-react';
 import logo from '../../../assets/images/logo.png';
 import { ThemePicker } from '../common/ThemePicker';
@@ -406,6 +406,7 @@ export default function Header() {
 
   // ── Customer account menu (built from active modules) ───────────────────────
   const customerLinks = [
+    { label: 'Vendor Portal',     icon: Building2,     to: '/vendor-portal', module: MODULES.EXTRAS, vendorOnly: true },
     { label: 'My Profile',        icon: User,          to: profilePath },
     { label: 'My Orders',         icon: ShoppingBag,   to: '/orders' },
     { label: 'My Account',         icon: User,          to: '/my-account' },
@@ -421,8 +422,9 @@ export default function Header() {
     { label: 'Wishlist',          icon: Heart,         to: '/wishlist', module: MODULES.ECOMMERCE },
     { label: 'Report a Bug',        icon: Bug,           to: '/report-bug'},
   ].filter((l) => isModuleActive(l.module))
+    .filter((l) => !l.vendorOnly || vendor)
     // a supplier has no shop, quotes or wallet: only their profile, their account and bug reports
-    .filter((l) => !vendor || [profilePath, '/my-account', '/report-bug'].includes(l.to));
+    .filter((l) => !vendor || ['/vendor-portal', profilePath, '/my-account', '/report-bug'].includes(l.to));
 
   return (
     <>
