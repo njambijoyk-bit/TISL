@@ -1,10 +1,20 @@
 import { useState } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
-import { Lock, Eye, EyeOff, ArrowRight, ShieldAlert } from 'lucide-react';
+import { Lock, Eye, EyeOff, ArrowRight, ShieldAlert, Wand2 } from 'lucide-react';
 import authAPI from '../../../_shared/api/auth';
 import { useAuthStore } from '../../../_shared/store/index';
 import toast from 'react-hot-toast';
 import { AuthBrandBar, AuthBrandPanel } from './AuthBrand';
+
+// 16 characters with a letter of each kind, no look-alikes (0/O, 1/l/I), drawn with the browser's secure random numbers
+function suggestPassword() {
+  const sets = ['ABCDEFGHJKLMNPQRSTUVWXYZ', 'abcdefghijkmnopqrstuvwxyz', '23456789', '!@#$%&*?'];
+  const pick = (chars) => chars[crypto.getRandomValues(new Uint32Array(1))[0] % chars.length];
+  const all = sets.join('');
+  const out = [...sets.map(pick), ...Array.from({ length: 12 }, () => pick(all))];
+  for (let i = out.length - 1; i > 0; i -= 1) { const j = crypto.getRandomValues(new Uint32Array(1))[0] % (i + 1); [out[i], out[j]] = [out[j], out[i]]; }
+  return out.join('');
+}
 
 export default function ForceChangePassword() {
   const navigate  = useNavigate();
@@ -52,6 +62,14 @@ export default function ForceChangePassword() {
     } finally {
       setLoading(false);
     }
+  };
+
+  const suggest = () => {
+    const pw = suggestPassword();
+    setForm(f => ({ ...f, new_password: pw, new_password_confirmation: pw }));
+    setErrors(ev => ({ ...ev, new_password: '', new_password_confirmation: '' }));
+    setShow(s => ({ ...s, next: true, confirm: true }));   // shown so it can be written down
+    navigator.clipboard?.writeText(pw).then(() => toast.success('Suggested password filled in and copied. Keep it somewhere safe.'), () => toast.success('Suggested password filled in. Write it down before you continue.'));
   };
 
   const toggleShow = (field) => setShow(s => ({ ...s, [field]: !s[field] }));
@@ -152,6 +170,11 @@ export default function ForceChangePassword() {
                 <div key={key}>
                   <label style={{ display: 'block', fontSize: '0.75rem', fontWeight: 700, marginBottom: 6, textTransform: 'uppercase', letterSpacing: '0.06em' }} className="text-gray-500 dark:text-gray-400">
                     {label}
+                    {key === 'new_password' && (
+                      <button type="button" onClick={suggest} style={{ float: 'right', display: 'inline-flex', alignItems: 'center', gap: 4, background: 'none', border: 'none', cursor: 'pointer', padding: 0, fontSize: '0.72rem', fontWeight: 700, textTransform: 'none', letterSpacing: 0, color: 'var(--color-primary-500)', fontFamily: 'inherit' }}>
+                        <Wand2 size={12} /> Suggest a password
+                      </button>
+                    )}
                   </label>
                   <div style={{ position: 'relative' }}>
                     <Lock size={15} style={{
