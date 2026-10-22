@@ -28,7 +28,7 @@ const num = (n, dp = 2) => (n == null ? '—' : Number(n).toLocaleString('en-KE'
 function RecipeModal({ dish, options, onClose, onDone }) {
   const r = dish.recipe;
   const key = useRef(0);
-  const mk = (l) => ({ key: `k${++key.current}`, ref: l?.recipe_id ? `r:${l.recipe_id}` : l?.ingredient_id ? `i:${l.ingredient_id}` : '', quantity: l?.quantity ?? '', unit: l?.unit ?? 'base', waste_pct: l?.waste_pct ?? '', removable: Boolean(l?.removable), extra_allowed: Boolean(l?.extra_allowed) });
+  const mk = (l) => ({ key: `k${++key.current}`, ref: l?.recipe_id ? `r:${l.recipe_id}` : l?.ingredient_id ? `i:${l.ingredient_id}` : '', quantity: l?.quantity ?? '', unit: l?.unit ?? 'base', waste_pct: l?.waste_pct ?? '', item_id: l?.item_id ? String(l.item_id) : '', removable: Boolean(l?.removable), extra_allowed: Boolean(l?.extra_allowed) });
   const [yieldQty, setYieldQty] = useState(r?.yield_qty ?? 1);
   const [yieldUnit, setYieldUnit] = useState(r?.yield_unit_id ?? '');
   const [order, setOrder] = useState(r?.made_to_order ?? true);
@@ -54,7 +54,7 @@ function RecipeModal({ dish, options, onClose, onDone }) {
     try {
       const payload = {
         yield_qty: Number(yieldQty), ...(dish.standalone ? { yield_unit_id: yieldUnit === '' ? null : Number(yieldUnit) } : {}), made_to_order: order, note: note || null, visibility, prep_minutes: prep === '' ? null : Number(prep), cook_minutes: cook === '' ? null : Number(cook),
-        lines: lines.filter((l) => l.ref).map((l) => ({ ...(l.ref.startsWith('r:') ? { recipe_id: Number(l.ref.slice(2)) } : { ingredient_id: Number(l.ref.slice(2)), ...(options.flags_installed ? { removable: order && l.removable, extra_allowed: order && l.extra_allowed } : {}) }), quantity: Number(l.quantity) || 0, unit: l.unit, waste_pct: l.waste_pct === '' ? 0 : Number(l.waste_pct) })),
+        lines: lines.filter((l) => l.ref).map((l) => ({ ...(l.ref.startsWith('r:') ? { recipe_id: Number(l.ref.slice(2)) } : { ingredient_id: Number(l.ref.slice(2)), ...(options.pins_installed ? { item_id: l.item_id ? Number(l.item_id) : null } : {}), ...(options.flags_installed ? { removable: order && l.removable, extra_allowed: order && l.extra_allowed } : {}) }), quantity: Number(l.quantity) || 0, unit: l.unit, waste_pct: l.waste_pct === '' ? 0 : Number(l.waste_pct) })),
         steps: steps.map((s) => ({ body: s.body, minutes: s.minutes === '' ? null : Number(s.minutes) })),
         ...(options.times_installed ? { times: times.filter((t) => t.up_to !== '' || t.minutes !== '').map((t) => ({ up_to: t.up_to === '' ? 0 : Number(t.up_to), minutes: t.minutes === '' ? 0 : Number(t.minutes) })) } : {}),
       };
@@ -102,7 +102,7 @@ function RecipeModal({ dish, options, onClose, onDone }) {
                 return (
                   <div key={l.key} data-testid="recipe-line" style={{ display: 'grid', gridTemplateColumns: '2fr 0.9fr 0.9fr 0.8fr auto', gap: 8, alignItems: 'end' }}>
                     <Field label="Ingredient or recipe">
-                      <SelectInput aria-label="Ingredient" value={l.ref} onChange={(e) => patch(l.key, { ref: e.target.value, unit: 'base' })}>
+                      <SelectInput aria-label="Ingredient" value={l.ref} onChange={(e) => patch(l.key, { ref: e.target.value, unit: 'base', item_id: '' })}>
                         <option value="">Choose…</option>
                         <optgroup label="Ingredients">{options.ingredients.map((y) => <option key={`i${y.id}`} value={`i:${y.id}`}>{y.name}</option>)}</optgroup>
                         {usable.length > 0 && <optgroup label="Recipes of their own">{usable.map((y) => <option key={`r${y.id}`} value={`r:${y.id}`}>{y.name}</option>)}</optgroup>}
@@ -112,6 +112,20 @@ function RecipeModal({ dish, options, onClose, onDone }) {
                     <Field label="In"><SelectInput aria-label="Unit" value={l.unit} onChange={(e) => patch(l.key, { unit: e.target.value })}><option value="base">{x ? x.unit : i?.base_unit ?? 'base unit'}</option>{i?.alt_unit && <option value="alt">{i.alt_unit}</option>}</SelectInput></Field>
                     <Field label="Waste %" hint="lost in preparing"><NumberInput aria-label="Waste percent" min="0" max="90" step="any" value={l.waste_pct} onChange={(e) => patch(l.key, { waste_pct: e.target.value })} /></Field>
                     <button type="button" aria-label="Remove ingredient" style={iconBtn} onClick={() => setLines((xs) => (xs.length > 1 ? xs.filter((y) => y.key !== l.key) : xs))}><Trash2 size={15} /></button>
+                    {i && options.pins_installed && (
+                      <div data-testid="recipe-line-variant" style={{ gridColumn: '1 / -1', display: 'flex', gap: 10, flexWrap: 'wrap', alignItems: 'center', fontSize: '0.76rem', color: colors.textMuted, marginTop: -2 }}>
+                        <label htmlFor={`rv-${l.key}`}>Variant</label>
+                        <SelectInput id={`rv-${l.key}`} aria-label={`${i.name} variant`} value={l.item_id} onChange={(e) => patch(l.key, { item_id: e.target.value })} style={{ maxWidth: 300 }}>
+                          <option value="">Automatic ({i.pick_label})</option>
+                          {(i.variants ?? []).map((v) => <option key={v.id} value={String(v.id)}>{v.name} ({num(v.left, 2)} {i.base_unit} left)</option>)}
+                        </SelectInput>
+                        <span data-testid="recipe-line-variant-note">
+                          {l.item_id
+                            ? `Takes ${(i.variants ?? []).find((v) => String(v.id) === l.item_id)?.name ?? 'the chosen variant'} first; if it runs short, the rest comes ${i.pick_label}.`
+                            : i.auto ? `Takes now: ${i.auto.name}` : 'Nothing usable on the shelf at this branch.'}
+                        </span>
+                      </div>
+                    )}
                     {i && (
                       <div data-testid="recipe-line-flags" style={{ gridColumn: '1 / -1', display: 'flex', gap: 18, flexWrap: 'wrap', fontSize: '0.76rem', color: colors.textMuted, marginTop: -2 }}>
                         <label style={{ display: 'flex', gap: 5, alignItems: 'center' }}><input type="checkbox" aria-label={`${i.name} may be left out`} disabled={!canFlag} checked={canFlag && l.removable} onChange={(e) => patch(l.key, { removable: e.target.checked })} /> The customer may leave it out</label>
@@ -123,6 +137,7 @@ function RecipeModal({ dish, options, onClose, onDone }) {
               })}
             </div>
             <button type="button" style={{ ...small, marginTop: 8 }} onClick={() => setLines((xs) => [...xs, mk()])}><Plus size={12} /> Add an ingredient or recipe</button>
+            {!options.pins_installed && <p role="status" data-testid="recipe-pins-missing" style={{ margin: '8px 0 0', fontSize: '0.76rem', color: colors.textMuted }}>Choosing a variant for a line: run database script 225_menus_recipe_line_variant.sql to add it here. Until then the pick rule chooses.</p>}
             {!options.flags_installed && <p role="status" data-testid="recipe-flags-missing" style={{ margin: '8px 0 0', fontSize: '0.76rem', color: colors.textMuted }}>What a customer may leave out or add: run database script 205_menus_recipe_line_flags.sql to add it here.</p>}
             {options.flags_installed && !order && <p style={{ margin: '8px 0 0', fontSize: '0.76rem', color: colors.textFaint }}>A recipe made ahead in batches cannot lose an ingredient once it is cooked, so nothing can be left out or added to. Make it to order to allow that.</p>}
           </div>

@@ -8,6 +8,7 @@ use App\Models\Menus\DishRecipeLine;
 use App\Models\Menus\DishRecipeStep;
 use App\Models\Menus\DishRecipeTime;
 use App\Models\Menus\Ingredient;
+use App\Models\Menus\IngredientItem;
 use App\Models\UnitOfMeasure;
 use App\Services\Books\BooksException;
 use Illuminate\Support\Facades\DB;
@@ -204,7 +205,7 @@ class DishRecipes
             if ($waste < 0 || $waste > 90) {
                 throw new BooksException("Line {$row}: waste must be between 0 and 90 percent.");
             }
-            $lines[] = ['ingredient_id' => $ing->id, 'quantity' => $qty, 'unit' => $unit, 'waste_pct' => $waste, 'position' => count($lines) + 1] + $flags;
+            $lines[] = ['ingredient_id' => $ing->id, 'quantity' => $qty, 'unit' => $unit, 'waste_pct' => $waste, 'position' => count($lines) + 1] + $flags + $this->pin($l, $row, $ing);
         }
         if (! $lines) {
             throw new BooksException('Add at least one ingredient.');
@@ -272,6 +273,41 @@ class DishRecipes
         }
 
         return ['ingredient_id' => null, 'sub_recipe_id' => $sub->id, 'quantity' => $qty, 'unit' => 'base', 'waste_pct' => $waste, 'position' => $position];
+    }
+
+    /** The variant a line names, checked: one of this ingredient's own that may be used. Empty leaves it to the pick rule. @return array{item_id?: ?int} */
+    private function pin(array $l, int $row, Ingredient $ing): array
+    {
+        $id = (int) ($l['item_id'] ?? 0);
+        if (! self::hasPins()) {
+            if ($id) {
+                throw new BooksException('Run database script 225_menus_recipe_line_variant.sql first: until then a recipe line can not name a variant.');
+            }
+
+            return [];
+        }
+        if (! $id) {
+            return ['item_id' => null];
+        }
+        $item = IngredientItem::where('id', $id)->where('ingredient_id', $ing->id)->first();
+        if (! $item) {
+            throw new BooksException("Line {$row}: that is not a variant of {$ing->name}.");
+        }
+        if (! $item->is_allowed || ! $item->is_active) {
+            throw new BooksException("Line {$row}: {$item->name} may not be used (it is switched off or marked not to be used), so choose another or leave it on automatic.");
+        }
+
+        return ['item_id' => $id];
+    }
+
+    /** Has script 225 been run: can a recipe line name the variant it takes? */
+    public static function hasPins(): bool
+    {
+        if (app()->runningUnitTests()) {
+            return Schema::hasColumn('menus_recipe_lines', 'item_id');
+        }
+
+        return self::$columns['@pins'] ??= Schema::hasColumn('menus_recipe_lines', 'item_id');
     }
 
     /** Has script 205 been run: can a recipe line say it may be removed or have extra? */

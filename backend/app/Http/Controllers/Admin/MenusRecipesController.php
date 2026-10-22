@@ -7,6 +7,7 @@ use App\Models\Menus\Dish;
 use App\Models\Menus\DishRecipe;
 use App\Models\Menus\Ingredient;
 use App\Models\Menus\Production;
+use App\Models\Menus\StockBatch;
 use App\Services\Books\BooksException;
 use App\Services\Menus\DishProduction;
 use App\Services\Menus\DishRecipes;
@@ -36,10 +37,10 @@ class MenusRecipesController extends Controller
             'dishes' => Dish::orderBy('sort_order')->orderBy('name')->get(['id', 'name', 'is_active'])->map(fn ($d) => [
                 'id' => $d->id, 'name' => $d->name, 'is_active' => (bool) $d->is_active, 'recipe' => ($r = $recipes->get($d->id)) ? $this->row($r, $location) : null,
             ])->values(),
-            'ingredients' => Ingredient::with(['baseUnit:id,code', 'altUnit:id,code'])->where('is_active', true)->orderBy('name')->get()->filter(fn ($i) => IngredientKinds::allowedInRecipe($i))->map(fn ($i) => ['id' => $i->id, 'name' => $i->name, 'base_unit' => $i->baseUnit?->code, 'alt_unit' => $i->altUnit?->code])->values(),
+            'ingredients' => Ingredient::with(['baseUnit:id,code', 'altUnit:id,code'])->where('is_active', true)->orderBy('name')->get()->filter(fn ($i) => IngredientKinds::allowedInRecipe($i))->map(fn ($i) => ['id' => $i->id, 'name' => $i->name, 'base_unit' => $i->baseUnit?->code, 'alt_unit' => $i->altUnit?->code] + $this->variants($i, $location))->values(),
             'standalone' => DishRecipes::has('name') ? DishRecipe::standalone()->with($with)->orderBy('name')->get()->map(fn (DishRecipe $r) => $this->row($r, $location))->values() : [],
             'units' => \App\Models\UnitOfMeasure::active()->whereIn('dimension', DishRecipes::YIELD_DIMENSIONS)->orderBy('dimension')->orderBy('to_base_factor')->get(['id', 'code', 'name', 'dimension']),
-            'visibility' => DishRecipe::VISIBILITY, 'times_installed' => RecipeTimes::installed(), 'own_installed' => DishRecipes::has('name'), 'sub_installed' => DishRecipes::hasSubLines(), 'flags_installed' => DishRecipes::hasFlags(),
+            'visibility' => DishRecipe::VISIBILITY, 'times_installed' => RecipeTimes::installed(), 'own_installed' => DishRecipes::has('name'), 'sub_installed' => DishRecipes::hasSubLines(), 'flags_installed' => DishRecipes::hasFlags(), 'pins_installed' => DishRecipes::hasPins(),
             'recipes' => DishRecipes::has('name') && DishRecipes::hasSubLines() ? DishRecipe::standalone()->with('yieldUnit')->where('is_active', true)->orderBy('name')->get()->map(fn (DishRecipe $r) => ['id' => (int) $r->id, 'name' => $r->name, 'unit' => $r->yieldUnit?->code ?? 'portions'])->values() : [], 'units_installed' => DishRecipes::has('yield_unit_id'),
         ]);
     }
@@ -143,9 +144,25 @@ class MenusRecipesController extends Controller
         return [
             'yield_qty' => 'required|numeric|gt:0', 'yield_unit_id' => 'nullable|integer', 'made_to_order' => 'nullable|boolean', 'note' => 'nullable|string|max:255', 'visibility' => 'nullable|string|max:12',
             'prep_minutes' => 'nullable|integer|min:0|max:6000', 'cook_minutes' => 'nullable|integer|min:0|max:6000', 'is_active' => 'nullable|boolean',
-            'lines' => 'required|array|min:1|max:80', 'lines.*.ingredient_id' => 'nullable|integer', 'lines.*.recipe_id' => 'nullable|integer', 'lines.*.quantity' => 'required|numeric|min:0', 'lines.*.unit' => 'nullable|in:base,alt', 'lines.*.waste_pct' => 'nullable|numeric|min:0|max:90', 'lines.*.removable' => 'nullable|boolean', 'lines.*.extra_allowed' => 'nullable|boolean',
+            'lines' => 'required|array|min:1|max:80', 'lines.*.ingredient_id' => 'nullable|integer', 'lines.*.recipe_id' => 'nullable|integer', 'lines.*.quantity' => 'required|numeric|min:0', 'lines.*.unit' => 'nullable|in:base,alt', 'lines.*.waste_pct' => 'nullable|numeric|min:0|max:90', 'lines.*.item_id' => 'nullable|integer', 'lines.*.removable' => 'nullable|boolean', 'lines.*.extra_allowed' => 'nullable|boolean',
             'times' => 'nullable|array|max:'.RecipeTimes::MAX_ROWS, 'times.*.up_to' => 'nullable|numeric|min:0', 'times.*.minutes' => 'nullable|integer|min:0|max:6000',
             'steps' => 'nullable|array|max:60', 'steps.*.body' => 'nullable|string|max:2000', 'steps.*.minutes' => 'nullable|integer|min:0|max:6000',
+        ];
+    }
+
+    /**
+     * The variants of an ingredient a recipe line may name, with what is left of each at the branch, the pick rule, and the variant the rule would take now (what a line left on automatic gets).
+     *
+     * @return array{pick_rule: string, pick_label: string, variants: array<int, array<string, mixed>>, auto: ?array{id: int, name: string}}
+     */
+    private function variants(Ingredient $i, ?int $location): array
+    {
+        $left = $location ? StockBatch::where('location_id', $location)->where('status', 'ok')->where('qty_left', '>', 0)->whereIn('item_id', $i->variants()->select('id'))->selectRaw('item_id, SUM(qty_left) as q')->groupBy('item_id')->pluck('q', 'item_id') : collect();
+
+        return [
+            'pick_rule' => (string) $i->pick_rule, 'pick_label' => ['preferred' => 'the preferred one first', 'cheapest' => 'the cheapest first', 'first_expiring' => 'the one that expires first'][$i->pick_rule] ?? (string) $i->pick_rule,
+            'variants' => $i->variants()->where('is_active', true)->where('is_allowed', true)->orderBy('preference')->orderBy('id')->get(['id', 'name'])->map(fn ($v) => ['id' => (int) $v->id, 'name' => $v->name, 'left' => round((float) ($left[$v->id] ?? 0), 4)])->values(),
+            'auto' => $location ? $this->use->variantNow($i, $location) : null,
         ];
     }
 
@@ -162,6 +179,7 @@ class MenusRecipesController extends Controller
             ] : [
                 'ingredient_id' => (int) $l->ingredient_id, 'recipe_id' => null, 'name' => $l->ingredient?->name, 'quantity' => (float) $l->quantity, 'unit' => $l->unit, 'waste_pct' => (float) $l->waste_pct,
                 'base_unit' => $l->ingredient?->baseUnit?->code, 'alt_unit' => $l->ingredient?->altUnit?->code, 'removable' => (bool) ($l->removable ?? false), 'extra_allowed' => (bool) ($l->extra_allowed ?? false),
+                'item_id' => ($l->item_id ?? null) ? (int) $l->item_id : null,
             ])->values(),
             'times' => $r->relationLoaded('times') ? $r->times->map(fn ($t) => ['up_to' => (float) $t->up_to_qty, 'minutes' => (int) $t->minutes])->values() : [],
             'steps' => $r->steps->map(fn ($s) => ['body' => $s->body, 'minutes' => $s->minutes])->values(),

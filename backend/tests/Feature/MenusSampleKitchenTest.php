@@ -52,7 +52,7 @@ class MenusSampleKitchenTest extends TestCase
         Schema::create('menus_stations', function ($t) { $t->id(); $t->string('name'); $t->unsignedBigInteger('location_id')->nullable(); $t->unsignedSmallInteger('target_minutes')->default(15); $t->boolean('is_default')->default(false); $t->boolean('is_active')->default(true); $t->timestamps(); });
         Schema::create('users', function ($t) { $t->id(); $t->string('name')->nullable(); });
         Schema::create('menus_chefs', function ($t) { $t->id(); $t->unsignedBigInteger('user_id')->default(0); $t->string('display_name'); $t->boolean('is_active')->default(true); $t->timestamps(); });
-        $this->runSqlScripts('193_menus_config_foundation.sql', '198_menus_prepared_food.sql', '199_menus_prepared_waste_counts.sql', '200_menus_sides.sql', '202_menus_dish_makeup.sql', '205_menus_recipe_line_flags.sql', '206_menus_dish_modifiers.sql');
+        $this->runSqlScripts('193_menus_config_foundation.sql', '198_menus_prepared_food.sql', '199_menus_prepared_waste_counts.sql', '200_menus_sides.sql', '202_menus_dish_makeup.sql', '205_menus_recipe_line_flags.sql', '206_menus_dish_modifiers.sql', '225_menus_recipe_line_variant.sql');
         DB::table('ledgers')->insert(['name' => 'Prepared Food Inventory', 'group_id' => DB::table('ledger_groups')->where('name', 'Stock-in-hand')->value('id')]);
         $this->ml = DB::table('units_of_measure')->insertGetId(['code' => 'ml', 'name' => 'Millilitre', 'dimension' => 'volume', 'to_base_factor' => 1]);
         $this->litre = DB::table('units_of_measure')->insertGetId(['code' => 'L', 'name' => 'Litre', 'dimension' => 'volume', 'to_base_factor' => 1000]);
@@ -346,5 +346,14 @@ class MenusSampleKitchenTest extends TestCase
         $this->sell('Beef stew & ugali', 2);
         $this->assertSame([1.5, 19200.0], [(float) PrepLot::first()->qty_left, $this->left('Unga 2 kg')], '2 x 250 g of ugali from the batch (1.5 kg of the 2 kg left), and no more flour: the stew has none');
         $this->assertEqualsWithDelta(6000 - 2 * 200 / 0.95, $this->left('Stewing meat 1 kg'), 0.01);
+    }
+
+    public function test_naming_the_variant_on_a_recipe_line_changes_what_is_taken_and_what_the_recipe_costs(): void
+    {
+        $this->assertSame(29.0, $this->portionCost('Masala chai'), 'on automatic, milk is the cheapest first: Fresh 1 L');
+        $this->recipeOf('Masala chai (500 ml milk)', 1, [['Milk', 200, 0, ['item_id' => $this->itemId('Fresh 500 ml')]], ['Tea leaves', 5], ['Sugar', 10]]);
+        $this->assertSame(30.6, $this->portionCost('Masala chai (500 ml milk)'), '200 ml at 0.13 instead of the shelf average 0.122: 26.00 + 3.00 + 1.60');
+        app(\App\Services\Menus\IngredientUse::class)->consume(DishRecipe::find($this->recipe['Masala chai (500 ml milk)']), 3, 1, ['type' => 'voucher', 'id' => 1], null);
+        $this->assertSame([19550.0 + 450.0, 4400.0], [$this->left('Fresh 1 L'), $this->left('Fresh 500 ml')], '3 chais take 600 ml of milk from the 500 ml packs and none from the 1 L packs');
     }
 }

@@ -21,7 +21,7 @@ use Illuminate\Support\Facades\DB;
  *   preferred      the first variant in the order set on the ingredient, its soonest-expiring batch first
  *   cheapest       the batch that cost least per base unit
  *   first_expiring the batch that expires soonest, whichever variant it is
- * Expired, held and recalled batches are never used. Using stock books Dr Food Cost of Sales, Cr Food Ingredients Inventory at what the batches cost, and every use is
+ * A recipe line may name a variant (script 225): its batches are taken first, and the pick rule covers what is short. Expired, held and recalled batches are never used. Using stock books Dr Food Cost of Sales, Cr Food Ingredients Inventory at what the batches cost, and every use is
  * recorded so it can be undone exactly (the same batches get their quantity back and the journal is cancelled).
  */
 class IngredientUse
@@ -55,7 +55,7 @@ class IngredientUse
                     throw new BooksException("The recipe {$sub->title()} is switched off, so {$r->title()} can not be made until it is switched on or taken out.");
                 }
                 foreach ($this->needs($sub, (float) $l->quantity * $factor / (1 - (float) $l->waste_pct / 100), [], $depth + 1) as $id => $row) {
-                    $out[$id] = ['ingredient' => $row['ingredient'], 'qty' => round(($out[$id]['qty'] ?? 0) + $row['qty'], 6)];
+                    $out[$id] = $this->merged($out[$id] ?? null, $row['ingredient'], $row['qty'], $row['pins'] ?? []);
                 }
 
                 continue;
@@ -68,7 +68,7 @@ class IngredientUse
                 continue;
             }
             $qty = $ing->toBase((float) $l->quantity, $l->unit) * $factor / (1 - (float) $l->waste_pct / 100);
-            $out[$ing->id] = ['ingredient' => $ing, 'qty' => round(($out[$ing->id]['qty'] ?? 0) + $qty, 6)];
+            $out[$ing->id] = $this->merged($out[$ing->id] ?? null, $ing, $qty, $l->item_id ? [(int) $l->item_id => $qty] : []);
         }
         foreach ($uses as $u) {
             if (($u['mode'] ?? '') !== 'add' || empty($u['ingredient_id']) || (float) ($u['quantity'] ?? 0) <= 0) {
@@ -78,10 +78,28 @@ class IngredientUse
             if (! $ing) {
                 throw new BooksException('An ingredient a choice uses has been removed.');
             }
-            $out[$ing->id] = ['ingredient' => $ing, 'qty' => round(($out[$ing->id]['qty'] ?? 0) + $ing->toBase((float) $u['quantity'], (string) ($u['unit'] ?? 'base')) * $portions, 6)];
+            $out[$ing->id] = $this->merged($out[$ing->id] ?? null, $ing, $ing->toBase((float) $u['quantity'], (string) ($u['unit'] ?? 'base')) * $portions, []);
         }
 
         return $out;
+    }
+
+    /**
+     * One ingredient's row with more added: the amount, and how much of it is asked from a named variant (`pins`, item id => amount). A row with no named variant has no `pins` key.
+     *
+     * @param array{ingredient: Ingredient, qty: float, pins?: array<int, float>}|null $row
+     * @param array<int, float> $pins
+     * @return array{ingredient: Ingredient, qty: float, pins?: array<int, float>}
+     */
+    private function merged(?array $row, Ingredient $ing, float $qty, array $pins): array
+    {
+        $all = $row['pins'] ?? [];
+        foreach ($pins as $item => $q) {
+            $all[$item] = round(($all[$item] ?? 0) + $q, 6);
+        }
+        $out = ['ingredient' => $ing, 'qty' => round(($row['qty'] ?? 0) + $qty, 6)];
+
+        return $all ? $out + ['pins' => $all] : $out;
     }
 
     /**
@@ -129,13 +147,25 @@ class IngredientUse
         })->values();
     }
 
+    /** The variant a recipe line left on automatic takes now at a branch (the first batch the pick rule would take), or null when there is nothing usable. @return array{id: int, name: string}|null */
+    public function variantNow(Ingredient $ing, int $locationId): ?array
+    {
+        $b = $this->usable($ing, $locationId)->first();
+        $item = $b ? \App\Models\Menus\IngredientItem::find($b->item_id) : null;
+
+        return $item ? ['id' => (int) $item->id, 'name' => (string) $item->name] : null;
+    }
+
     /**
      * Where `$need` (base unit) comes from at a branch.
      *
+     * `$pins` ask for part of it from named variants (item id => amount, see needs()): those variants' batches are taken first, and what they cannot give comes from the rest in the pick rule's order.
+     *
+     * @param array<int, float> $pins
      * @return array<int, array{batch: StockBatch, qty: float}>
      * @throws BooksException when the branch does not hold enough in total
      */
-    public function allocate(Ingredient $ing, float $need, int $locationId, ?Carbon $on = null, bool $lock = false): array
+    public function allocate(Ingredient $ing, float $need, int $locationId, ?Carbon $on = null, bool $lock = false, array $pins = []): array
     {
         $need = round($need, 4);
         if ($need <= self::EPS) {
@@ -144,10 +174,28 @@ class IngredientUse
         $left = $need;
         $out = [];
         $have = 0.0;
-        foreach ($this->usable($ing, $locationId, $on, $lock) as $b) {
+        $batches = $this->usable($ing, $locationId, $on, $lock);
+        $taken = [];   // batch id => taken so far
+        foreach ($pins as $item => $ask) {
+            $ask = min((float) $ask, $left);
+            foreach ($batches->where('item_id', (int) $item) as $b) {
+                if ($ask <= self::EPS) {
+                    break;
+                }
+                $take = min($ask, (float) $b->qty_left - ($taken[$b->id] ?? 0));
+                if ($take > self::EPS) {
+                    $out[] = ['batch' => $b, 'qty' => round($take, 4)];
+                    $taken[$b->id] = ($taken[$b->id] ?? 0) + $take;
+                    $ask -= $take;
+                    $left -= $take;
+                }
+            }
+        }
+        foreach ($batches as $b) {
+            $free = (float) $b->qty_left - ($taken[$b->id] ?? 0);
             $have += (float) $b->qty_left;
-            if ($left > self::EPS) {
-                $take = min($left, (float) $b->qty_left);
+            if ($left > self::EPS && $free > self::EPS) {
+                $take = min($left, $free);
                 $out[] = ['batch' => $b, 'qty' => round($take, 4)];
                 $left -= $take;
             }
@@ -178,14 +226,17 @@ class IngredientUse
     }
 
     /** What one base unit of an ingredient costs at a branch: the average of what is on the shelf, else what it last cost. */
-    public function unitCost(Ingredient $ing, int $locationId): ?float
+    public function unitCost(Ingredient $ing, int $locationId, ?int $itemId = null): ?float
     {
         $b = $this->usable($ing, $locationId);
+        if ($itemId !== null) {
+            $b = $b->where('item_id', $itemId);
+        }
         $qty = (float) $b->sum('qty_left');
         if ($qty > self::EPS) {
             return round($b->sum(fn ($x) => (float) $x->qty_left * (float) $x->unit_cost) / $qty, 6);
         }
-        $last = StockBatch::join('menus_ingredient_items as it', 'it.id', '=', 'menus_stock_batches.item_id')->where('it.ingredient_id', $ing->id)->orderByDesc('menus_stock_batches.received_on')->orderByDesc('menus_stock_batches.id')->value('menus_stock_batches.unit_cost');
+        $last = StockBatch::join('menus_ingredient_items as it', 'it.id', '=', 'menus_stock_batches.item_id')->where('it.ingredient_id', $ing->id)->when($itemId !== null, fn ($q) => $q->where('it.id', $itemId))->orderByDesc('menus_stock_batches.received_on')->orderByDesc('menus_stock_batches.id')->value('menus_stock_batches.unit_cost');
 
         return $last === null ? null : round((float) $last, 6);
     }
@@ -204,6 +255,17 @@ class IngredientUse
             $ing = $row['ingredient'];
             $uc = $this->unitCost($ing, $locationId);
             $cost = $uc === null ? null : round($row['qty'] * $uc, 4);
+            if ($uc !== null && ! empty($row['pins'])) {   // what is asked from a named variant costs what that variant costs; a variant with nothing on the shelf falls back to the rest
+                $pinned = 0.0;
+                $cost = 0.0;
+                foreach ($row['pins'] as $item => $q) {
+                    $q = min((float) $q, $row['qty'] - $pinned);
+                    $cost += $q * ($this->unitCost($ing, $locationId, (int) $item) ?? $uc);
+                    $pinned += $q;
+                }
+                $cost = round($cost + ($row['qty'] - $pinned) * $uc, 4);
+                $uc = $row['qty'] > self::EPS ? round($cost / $row['qty'], 6) : $uc;
+            }
             $complete = $complete && $cost !== null;
             $total += $cost ?? 0.0;
             $lines[] = ['ingredient_id' => $ing->id, 'name' => $ing->name, 'qty' => round($row['qty'], 4), 'unit' => $ing->baseUnit?->code, 'unit_cost' => $uc, 'cost' => $cost];
@@ -234,7 +296,7 @@ class IngredientUse
             $byKind = [];   // what it cost, by the kind of ingredient (0: none), for the books
             foreach ($o['needs'] ?? $this->needs($r, $portions, $o['uses'] ?? []) as $row) {
                 $kindId = (int) ($row['ingredient']->kind_id ?? 0);
-                foreach ($this->allocate($row['ingredient'], $row['qty'], $locationId, $on, true) as $a) {
+                foreach ($this->allocate($row['ingredient'], $row['qty'], $locationId, $on, true, $row['pins'] ?? []) as $a) {
                     /** @var StockBatch $b */
                     $b = $a['batch'];
                     StockBatch::whereKey($b->id)->update(['qty_left' => DB::raw('qty_left - '.number_format($a['qty'], 4, '.', ''))]);

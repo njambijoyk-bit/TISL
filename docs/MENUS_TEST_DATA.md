@@ -4,7 +4,7 @@ A small Nairobi kitchen, made so the numbers can be checked by hand. Menus has i
 
 **0 setup, 1 ingredients, 2 opening stock, 3 lists and settings, 4 recipes, 5 sides, 6 dishes, 7 menus, 8 meal plan, 9 packaging and condiments, 10 tips, 11 another currency, 12 timers, codes and scanning.** Section 13 says what to look for, and section 14 says which automated test asserts which figure.
 
-Prices are made up. Run database scripts **181 to 214, in numerical order** first (each header says what it needs; 190 to 192 are the kinds of ingredient and their accounts, 193 the Menus configuration, 200 to 203 sides and make-up, 205 to 206 leaving out and extra, 207 to 211 packaging and condiments, 212 tips, 213 dish currencies, 214 timers) and `php artisan access:seed`.
+Prices are made up. Run database scripts **181 to 214 and 225** (215 to 224 are the vendor portal and tenders, which Menus does not need), in numerical order, first (each header says what it needs; 190 to 192 are the kinds of ingredient and their accounts, 193 the Menus configuration, 200 to 203 sides and make-up, 205 to 206 leaving out and extra, 207 to 211 packaging and condiments, 212 tips, 213 dish currencies, 214 timers, 225 a recipe line naming its variant) and `php artisan access:seed`.
 
 **How the figures were checked.** The automated test `MenusSampleKitchenTest` enters sections 1 to 6 exactly as written below (the ingredients with their variants and stock, the recipes, the sides and the dishes) and asserts the figures marked (test) in section 13: what a portion costs, which variant a sale takes from, what leaving out butter saves, the cake batch, the prices of the Steak sandwich and Burger, the allergens of the dishes. The other figures (prices of sizes and extras, packaging, tips, currencies, timers, codes) are asserted by the tests named in section 14 for the same prices. The whole of this document typed in by hand in the browser has not been run end to end: if a figure does not come out, write it down.
 
@@ -205,6 +205,8 @@ Quantities are for one portion unless the table says "one batch makes". **Waste 
 
 **What to fill in on every recipe.** Besides the lines: *How it is made* (made to order or in batches), *One batch makes* (with its unit), **Prep minutes** and **Cook minutes** (what the kitchen is told to expect), and the **method steps**, each step with its own minutes. Where the length depends on how much is made (ugali), add **Times**: up to this amount, this many minutes. Open each recipe and check that the steps, their minutes and the prep and cook times are shown on the recipe card.
 
+**Which variant a line takes.** Every ingredient line has a **Variant** box. It starts on **Automatic (the ingredient's pick rule)**, and under it the screen says which variant that is **now** at the branch shown ("Takes now: Exe 2 kg" for the flour, "Takes now: Fresh 1 L" for the milk, because milk is set to the cheapest first). Open the box to choose another variant, each listed with what is left of it; variants that may not be used (Soko) are not offered. A chosen variant is taken **first**, and if it runs short the rest comes by the pick rule; the recipe's cost uses that variant's price. Variants are only shown, never chosen for you, when the box says Automatic. To try it, copy the Masala chai recipe as **Masala chai (500 ml milk)** and choose **Fresh 500 ml** for the milk.
+
 **Made to order** (selling it uses the ingredients; "How it is made" is "Made to order", the default). The last column is the cost of one portion on the Recipes screen (asserted by `MenusSampleKitchenTest`).
 
 | Recipe | Lines (amount, waste) | Prep / cook | Method steps (minutes) | Cost per portion |
@@ -386,6 +388,7 @@ A dish made of sides inherits its allergens, tags and diets from **every side in
 ### 13C. Selling
 - **Portion costs on the Recipes screen (test):** Stewed beef 193.09, Chicken pilau 163.57, Sukuma wiki 24.98, Chips 51.20, Pancakes 67.71, Masala chai 29.00, one slice of cake 69.18, a kilogram of Ugali 40.00 (a 250 g plate 10.00). So a Beef stew & ugali plate costs 203.09 and a Sukuma wiki & ugali plate 34.98.
 - **Beef stew & ugali (test):** after making the Ugali batch (13D), sell 2: the beef comes from the shelf (200 g each, 210.5 g with the waste, so 421 g in all) and **500 g of ugali from the batch** (2 kg falls to 1.5 kg); no maize flour is taken at the sale, because it was taken when the batch was made (800 g, so Unga goes from 20,000 g to 19,200 g).
+- **A named variant (test):** Masala chai costs 29.00 with the milk on Automatic. The copy with the milk named as **Fresh 500 ml** costs **30.60** (200 ml at 0.13: 26.00 + 3.00 + 1.60), and three of them take 600 ml from the 500 ml packs and nothing from the 1 L packs (the 500 ml packs go from 5,000 ml to 4,400 ml).
 - **Three Pancakes (test):** the Till or kiosk sells them; the flour comes out of **Exe** (360 g, so Exe goes from 20,000 g to 19,640 g, because Pembe is empty); Soko stays at 5,000 g (it is switched off as a substitute); eggs go from 120 to 117; the milk (150 ml × 3 = 450 ml) comes from the 1 L packs because milk is set to "the cheapest first" (19,550 ml left, the 500 ml packs untouched); butter goes from 1,250 g to 1,220 g. Books gets one journal: Dr Food Cost of Sales, Cr Food Ingredients Inventory.
 - **Three Pancakes with No butter (test):** the butter stays at 1,250 g (10 g a pancake saved); the rest of the pancake is still made (flour 19,640 g).
 - **Chicken pilau (test):** sell 5, the sixth is refused ("Not enough Chicken: need 180 g, have 100.", 1 kg holds five portions of 180 g) and the till shows the dish as sold out. Cancel one of the five sales and the chicken comes back.
@@ -421,6 +424,7 @@ What to expect is written under each of sections 9 to 12.
 
 | Figures | Test |
 |---|---|
+| A recipe line naming its variant: what is taken, the cost, top-up by the rule, refusals, what the Recipes screen offers | `MenusRecipeVariantPinTest`, `MenusSampleKitchenTest` |
 | Sections 1 to 6 entered as written: portion costs, Beef stew & ugali taking the stew from the shelf and the ugali from the batch, Pancakes taking Exe and the cheapest milk, No butter, the sixth Chicken pilau refused, Jumbo Chips, the cake batch 553.00 and 69.13, the Steak sandwich 650, 720, 800 and 350, free extras taken off the shelf, the Burger 570 and its stock, the allergens of dishes made of sides | `MenusSampleKitchenTest` |
 | Steak sandwich make-up, Jumbo choma, kale, wet fry | `MenusOrderingMakeupTest`, `MenusDishSelectionTest` |
 | Burger fees kept apart; extra cheese stock | `MenusOrderingModifiersTest`, `MenusDishModifiersTest` |
