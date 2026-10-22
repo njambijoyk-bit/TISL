@@ -138,6 +138,8 @@ class MenusCondimentsTest extends TestCase
         $shown = app(Condiments::class)->show($this->snack);
         $this->assertSame([['Ketchup', 2], ['Mayo', 1]], array_map(fn ($a) => [$a['name'], $a['quantity']], $shown['allowance']));
         $this->assertContains('Ketchup', array_column($shown['items'], 'name'));
+        $box = collect($shown['items'])->firstWhere('name', 'Container');
+        $this->assertSame('packaging', $box['kind_code'], 'every ingredient says its kind, so the form can offer one kind at a time');
         $this->fails(fn () => app(Condiments::class)->save($this->snack, [['ingredient_id' => $this->ing('Ketchup'), 'quantity' => 0]]), 'from 1 to 99');
         $this->fails(fn () => app(Condiments::class)->save($this->snack, [['ingredient_id' => $this->ing('Ketchup'), 'quantity' => 1], ['ingredient_id' => $this->ing('Ketchup'), 'quantity' => 2]]), 'listed twice');
         $this->fails(fn () => app(Condiments::class)->save($this->snack, [['ingredient_id' => 99999, 'quantity' => 1]]), 'not there any more');

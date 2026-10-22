@@ -86,6 +86,7 @@ export function CondimentsSection({ dish, canEdit = true }) {
   const [rows, setRows] = useState([]);
   const [busy, setBusy] = useState(false);
   const [err, setErr] = useState(null);
+  const [kinds, setKinds] = useState(null);   // the kinds ticked above the list: only their ingredients are offered (none ticked: all)
 
   useEffect(() => {
     menusAPI.dishCondiments(dish.id).then((d) => { setData(d); setRows(d.allowance); }).catch((e) => setErr(errMsg(e, 'Could not load the free condiments')));
@@ -101,7 +102,9 @@ export function CondimentsSection({ dish, canEdit = true }) {
 
   if (!data) return <p role="status" style={{ margin: 0 }}>{err ?? 'Loading…'}</p>;
   if (!data.ready) return <p role="status" style={{ margin: 0, fontSize: '0.82rem', color: colors.textMuted }}>Run database script 211_menus_condiments.sql first: until then free condiments can not be set.</p>;
-  const free = data.items.filter((i) => !rows.some((r) => r.ingredient_id === i.ingredient_id));
+  const kindList = [...new Map(data.items.filter((i) => i.kind_id).map((i) => [i.kind_id, { id: i.kind_id, name: i.kind, code: i.kind_code }])).values()];
+  const ticked = kinds ?? kindList.filter((k) => k.code === 'condiment').map((k) => k.id);   // starts on Condiment or extra, where ketchup and mayonnaise are
+  const free = data.items.filter((i) => !rows.some((r) => r.ingredient_id === i.ingredient_id) && (ticked.length === 0 || ticked.includes(i.kind_id)));
 
   return (
     <div data-testid="condiments" style={{ display: 'grid', gap: 8 }}>
@@ -115,6 +118,16 @@ export function CondimentsSection({ dish, canEdit = true }) {
           {canEdit && <button type="button" aria-label={`Remove ${r.name}`} style={{ background: 'none', border: 'none', cursor: 'pointer', color: colors.textFaint }} onClick={() => setRows((xs) => xs.filter((_, j) => j !== i))}><Trash2 size={14} /></button>}
         </div>
       ))}
+      {canEdit && kindList.length > 1 && (
+        <div data-testid="condiment-kinds" style={{ display: 'flex', gap: 14, flexWrap: 'wrap', alignItems: 'center', fontSize: '0.78rem' }}>
+          <span style={{ color: colors.textMuted }}>Offer ingredients of kind:</span>
+          {kindList.map((k) => (
+            <label key={k.id} style={{ display: 'flex', gap: 5, alignItems: 'center' }}>
+              <input type="checkbox" aria-label={`Offer ${k.name}`} checked={ticked.includes(k.id)} onChange={(e) => setKinds(e.target.checked ? [...ticked, k.id] : ticked.filter((x) => x !== k.id))} /> {k.name}
+            </label>
+          ))}
+        </div>
+      )}
       {canEdit && free.length > 0 && (
         <SelectInput aria-label="Add a free condiment" value="" onChange={(e) => { const it = data.items.find((x) => String(x.ingredient_id) === e.target.value); if (it) setRows((xs) => [...xs, { ingredient_id: it.ingredient_id, name: it.name, unit: it.unit, quantity: 1 }]); }}>
           <option value="">Add a free condiment…</option>

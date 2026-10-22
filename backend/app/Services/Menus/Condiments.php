@@ -34,7 +34,7 @@ class Condiments
         }
 
         return ['ready' => true,
-            'items' => Ingredient::with('baseUnit')->where('is_active', true)->orderBy('name')->get()->map(fn ($i) => ['ingredient_id' => (int) $i->id, 'name' => $i->name, 'unit' => $i->baseUnit?->code])->values()->all(),
+            'items' => Ingredient::with('baseUnit', 'kind')->where('is_active', true)->orderBy('name')->get()->map(fn ($i) => ['ingredient_id' => (int) $i->id, 'name' => $i->name, 'unit' => $i->baseUnit?->code, 'kind_id' => $i->kind_id ? (int) $i->kind_id : null, 'kind' => $i->kind?->name, 'kind_code' => $i->kind?->code])->values()->all(),
             'allowance' => DishCondiment::with('ingredient.baseUnit')->where('dish_id', $dish->id)->orderBy('id')->get()->map(fn ($c) => ['ingredient_id' => (int) $c->ingredient_id, 'name' => $c->ingredient?->name ?? '(removed)', 'unit' => $c->ingredient?->baseUnit?->code, 'quantity' => (int) $c->quantity])->values()->all()];
     }
 

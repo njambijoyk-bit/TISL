@@ -166,8 +166,7 @@ export default function Dishes() {
           </div>
           {canWrite && (
             <div style={{ display: 'flex', gap: 8 }}>
-              <button type="button" style={btnGhost} onClick={() => setModal({ guide: {} })} disabled={!data?.settings_ready}>New dish, guided</button>
-              <button type="button" style={btnPrimary} onClick={() => setModal({ dish: null })} disabled={!data?.settings_ready}><Plus size={14} /> New dish</button>
+              <button type="button" style={btnPrimary} onClick={() => setModal({ guide: {} })} disabled={!data?.settings_ready}><Plus size={14} /> New dish</button>
             </div>
           )}
         </div>
