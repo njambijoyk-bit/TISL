@@ -42,7 +42,7 @@ class MenusRecipesController extends Controller
             'ingredients' => Ingredient::with(['baseUnit:id,code', 'altUnit:id,code'])->where('is_active', true)->orderBy('name')->get()->filter(fn ($i) => IngredientKinds::allowedInRecipe($i))->map(fn ($i) => ['id' => $i->id, 'name' => $i->name, 'base_unit' => $i->baseUnit?->code, 'alt_unit' => $i->altUnit?->code] + $this->variants($i, $location))->values(),
             'standalone' => DishRecipes::has('name') ? DishRecipe::standalone()->with($with)->orderBy('name')->get()->map(fn (DishRecipe $r) => $this->row($r, $location))->values() : [],
             'units' => \App\Models\UnitOfMeasure::active()->whereIn('dimension', DishRecipes::YIELD_DIMENSIONS)->orderBy('dimension')->orderBy('to_base_factor')->get(['id', 'code', 'name', 'dimension']),
-            'visibility' => DishRecipe::VISIBILITY, 'times_installed' => RecipeTimes::installed(), 'own_installed' => DishRecipes::has('name'), 'sub_installed' => DishRecipes::hasSubLines(), 'flags_installed' => DishRecipes::hasFlags(), 'pins_installed' => DishRecipes::hasPins(), 'plate_installed' => \App\Services\Menus\Sides::installed() && \App\Services\Menus\DishMakeup::installed(), 'stations' => \Illuminate\Support\Facades\Schema::hasTable('menus_stations') ? \App\Models\Menus\Station::where('is_active', true)->orderBy('name')->get(['id', 'name'])->values() : [],
+            'visibility' => DishRecipe::VISIBILITY, 'times_installed' => RecipeTimes::installed(), 'own_installed' => DishRecipes::has('name'), 'sub_installed' => DishRecipes::hasSubLines(), 'flags_installed' => DishRecipes::hasFlags(), 'pins_installed' => DishRecipes::hasPins(), 'plate_installed' => \App\Services\Menus\Sides::installed() && \App\Services\Menus\DishMakeup::installed(), 'lists' => $this->lists(), 'packaging_items' => $this->packagingItems(), 'stations' => \Illuminate\Support\Facades\Schema::hasTable('menus_stations') ? \App\Models\Menus\Station::where('is_active', true)->orderBy('name')->get(['id', 'name'])->values() : [],
             'recipes' => DishRecipes::has('name') && DishRecipes::hasSubLines() ? DishRecipe::standalone()->with('yieldUnit')->where('is_active', true)->orderBy('name')->get()->map(fn (DishRecipe $r) => ['id' => (int) $r->id, 'name' => $r->name, 'unit' => $r->yieldUnit?->code ?? 'portions'])->values() : [], 'units_installed' => DishRecipes::has('yield_unit_id'),
         ]);
     }
@@ -63,13 +63,13 @@ class MenusRecipesController extends Controller
     public function saveBook(Request $request, ?int $id = null, ?RecipeToPlate $plate = null): JsonResponse
     {
         $plate ??= app(RecipeToPlate::class);
-        $d = $this->validated($request, $this->rules() + ['name' => 'required|string|max:120', 'also_side' => 'nullable|boolean', 'also_dish' => 'nullable|boolean', 'dish_price' => 'nullable|numeric|min:0', 'station_id' => 'nullable|integer']);
+        $d = $this->validated($request, $this->rules() + ['name' => 'required|string|max:120', 'also_side' => 'nullable|boolean', 'also_dish' => 'nullable|boolean', 'dish_price' => 'nullable|numeric|min:0', 'station_id' => 'nullable|integer', 'side_details' => 'nullable|array', 'dish_details' => 'nullable|array']);
 
         return $this->guard(function () use ($d, $id, $plate, $request) {
             $made = DB::transaction(function () use ($d, $id, $plate, $request, &$r) {
                 $r = $this->recipes->saveStandalone($d, $id);
 
-                return $plate->make($r, ['side' => $d['also_side'] ?? false, 'dish' => $d['also_dish'] ?? false, 'price' => $d['dish_price'] ?? null, 'station_id' => $d['station_id'] ?? null], $request->user()?->id)['made'];
+                return $plate->make($r, ['side' => $d['also_side'] ?? false, 'dish' => $d['also_dish'] ?? false, 'price' => $d['dish_price'] ?? null, 'station_id' => $d['station_id'] ?? null, 'side_details' => $d['side_details'] ?? [], 'dish_details' => $d['dish_details'] ?? []], $request->user()?->id)['made'];
             });
             $extra = $made ? ' Also made: '.implode(' and ', $made).'.' : '';
 
@@ -156,6 +156,27 @@ class MenusRecipesController extends Controller
             'times' => 'nullable|array|max:'.RecipeTimes::MAX_ROWS, 'times.*.up_to' => 'nullable|numeric|min:0', 'times.*.minutes' => 'nullable|integer|min:0|max:6000',
             'steps' => 'nullable|array|max:60', 'steps.*.body' => 'nullable|string|max:2000', 'steps.*.minutes' => 'nullable|integer|min:0|max:6000',
         ];
+    }
+
+    /** The sizes and audiences on the lists, for the side and dish details of the shortcut. @return array{servings: array<int, array<string, mixed>>, audiences: array<int, array<string, mixed>>} */
+    private function lists(): array
+    {
+        if (! \App\Services\Menus\MenusLists::installed()) {
+            return ['servings' => [], 'audiences' => []];
+        }
+        $all = app(\App\Services\Menus\MenusLists::class)->all();
+
+        return ['servings' => collect($all['servings'] ?? [])->where('is_active', true)->map(fn ($r) => ['id' => (int) $r['id'], 'name' => $r['name']])->values()->all(), 'audiences' => collect($all['audiences'] ?? [])->where('is_active', true)->map(fn ($r) => ['id' => (int) $r['id'], 'name' => $r['name']])->values()->all()];
+    }
+
+    /** The packaging items a rule may name. @return array<int, array{item_id: int, name: string}> */
+    private function packagingItems(): array
+    {
+        if (! \App\Services\Menus\PackagingRules::installed()) {
+            return [];
+        }
+
+        return collect(app(\App\Services\Menus\PackagingPrices::class)->all()['items'])->where('grey', false)->map(fn ($i) => ['item_id' => (int) $i['item_id'], 'name' => $i['name']])->values()->all();
     }
 
     /**

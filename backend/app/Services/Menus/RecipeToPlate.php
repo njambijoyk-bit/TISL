@@ -14,12 +14,14 @@ use Illuminate\Support\Facades\DB;
  */
 class RecipeToPlate
 {
-    public function __construct(private Sides $sides, private DishService $dishes, private DishMakeup $makeup)
+    public function __construct(private Sides $sides, private DishService $dishes, private DishMakeup $makeup, private PackagingRules $rules)
     {
     }
 
     /**
-     * @param array{side?: bool, dish?: bool, price?: mixed, station_id?: ?int} $o
+     * `side_details` and `dish_details` fill in what the side and the dish forms have (sizes, plating time, who it is for, packaging...). They are used only for what is made now: a side that was there already is left as it is.
+     *
+     * @param array{side?: bool, dish?: bool, price?: mixed, station_id?: ?int, side_details?: array<string, mixed>, dish_details?: array<string, mixed>} $o
      * @return array{side: ?Side, dish: ?Dish, made: string[]} what is there now and what was made
      */
     public function make(DishRecipe $recipe, array $o, ?int $userId = null): array
@@ -40,7 +42,9 @@ class RecipeToPlate
             $made = [];
             $side = Side::where('recipe_id', $recipe->id)->first();
             if (! $side) {
-                $side = $this->sides->save(['name' => $recipe->name, 'recipe_id' => $recipe->id, 'station_id' => $o['station_id'] ?? null]);
+                $sd = (array) ($o['side_details'] ?? []);
+                $side = $this->sides->save(['name' => $recipe->name, 'recipe_id' => $recipe->id, 'station_id' => $o['station_id'] ?? null] + array_intersect_key($sd, array_flip(['base_amount', 'amounts', 'task_minutes', 'note', 'unit_id'])));
+                $this->packaging('side', $side->id, $sd['packaging'] ?? []);
                 $made[] = "the side {$side->name}";
             }
             $dish = null;
@@ -48,12 +52,22 @@ class RecipeToPlate
                 if (! is_numeric($o['price'] ?? null) || (float) $o['price'] < 0) {
                     throw new BooksException('Give the dish a price (0 or more).');
                 }
-                $dish = $this->dishes->save(['name' => $recipe->name, 'price' => (float) $o['price'], 'station_id' => $o['station_id'] ?? null, 'is_active' => true], null, $userId);
-                $this->makeup->save($dish, ['slots' => [['name' => 'Plate', 'kind' => 'fixed', 'choices' => [['side_id' => $side->id]]]]]);
+                $dd = (array) ($o['dish_details'] ?? []);
+                $dish = $this->dishes->save(['name' => $recipe->name, 'price' => (float) $o['price'], 'station_id' => $o['station_id'] ?? null, 'is_active' => true] + array_intersect_key($dd, array_flip(['description', 'prep_minutes'])), null, $userId);
+                $this->makeup->save($dish, ['slots' => [['name' => 'Plate', 'kind' => 'fixed', 'choices' => [['side_id' => $side->id]]]]] + array_intersect_key($dd, array_flip(['servings', 'audience_ids'])));
+                $this->packaging('dish', $dish->id, $dd['packaging'] ?? []);
                 $made[] = "the dish {$dish->name}";
             }
 
             return ['side' => $side, 'dish' => $dish, 'made' => $made];
         });
+    }
+
+    /** The packaging that goes with the new side or dish, when any is asked for. @param array<int, array<string, mixed>> $rules */
+    private function packaging(string $owner, int $id, array $rules): void
+    {
+        if ($rules) {
+            $this->rules->save($owner, $id, array_values($rules));   // refused in words when script 207 and 208 are missing or an item is not packaging
+        }
     }
 }

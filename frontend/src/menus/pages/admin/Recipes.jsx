@@ -25,6 +25,57 @@ const small = { ...btnGhost, padding: '4px 10px', fontSize: '0.72rem', marginRig
 const iconBtn = { background: 'none', border: 'none', cursor: 'pointer', color: colors.textFaint, padding: 3 };
 const num = (n, dp = 2) => (n == null ? '—' : Number(n).toLocaleString('en-KE', { maximumFractionDigits: dp }));
 
+const SCOPES = { per_dish: 'For each dish', per_order: 'Once for the order' };
+const RECEIPT = { auto: 'When charged', always: 'Always', never: 'Never' };
+
+/** Rows of size + value (an amount for a side, a price for a dish). */
+function SizeRows({ label, rows, setRows, servings, valueLabel, testid }) {
+  const free = servings.filter((v) => !rows.some((r) => String(r.serving_id) === String(v.id)));
+  return (
+    <div data-testid={testid}>
+      <div style={{ fontSize: '0.72rem', fontWeight: 700, color: colors.textMuted, marginBottom: 4 }}>{label}</div>
+      {rows.map((r, i) => (
+        <div key={i} style={{ display: 'grid', gridTemplateColumns: '1fr 1fr auto', gap: 8, marginBottom: 6, alignItems: 'center' }}>
+          <SelectInput aria-label={`${label} size ${i + 1}`} value={r.serving_id} onChange={(e) => setRows((xs) => xs.map((x, j) => (j === i ? { ...x, serving_id: e.target.value } : x)))}>
+            <option value={r.serving_id}>{servings.find((v) => String(v.id) === String(r.serving_id))?.name ?? 'Choose a size'}</option>
+            {free.map((v) => <option key={v.id} value={String(v.id)}>{v.name}</option>)}
+          </SelectInput>
+          <NumberInput aria-label={`${valueLabel} for ${servings.find((v) => String(v.id) === String(r.serving_id))?.name ?? 'size'}`} min="0" step="any" value={r.value} onChange={(e) => setRows((xs) => xs.map((x, j) => (j === i ? { ...x, value: e.target.value } : x)))} />
+          <button type="button" aria-label="Remove size" style={iconBtn} onClick={() => setRows((xs) => xs.filter((_, j) => j !== i))}><Trash2 size={15} /></button>
+        </div>
+      ))}
+      {servings.length === 0 ? <p style={{ margin: 0, fontSize: '0.74rem', color: colors.textFaint }}>No sizes on the list yet (Menus, Configuration).</p>
+        : free.length > 0 && <button type="button" style={small} onClick={() => setRows((xs) => [...xs, { serving_id: String(free[0].id), value: '' }])}><Plus size={12} /> Add a size</button>}
+    </div>
+  );
+}
+
+/** Packaging that goes with the new side or dish: the item, how many, for each dish or once for the order, compulsory, charged, receipt. */
+function PackRows({ label, rows, setRows, items }) {
+  const patch = (i, p) => setRows((xs) => xs.map((x, j) => (j === i ? { ...x, ...p } : x)));
+  return (
+    <div data-testid="also-packaging">
+      <div style={{ fontSize: '0.72rem', fontWeight: 700, color: colors.textMuted, marginBottom: 4 }}>{label}</div>
+      {rows.map((r, i) => (
+        <div key={i} style={{ display: 'flex', gap: 8, flexWrap: 'wrap', alignItems: 'center', marginBottom: 6, fontSize: '0.78rem' }}>
+          <SelectInput aria-label={`${label} item ${i + 1}`} value={r.item_id} onChange={(e) => patch(i, { item_id: e.target.value })} style={{ maxWidth: 220 }}>
+            <option value="">Choose…</option>
+            {items.map((it) => <option key={it.item_id} value={String(it.item_id)}>{it.name}</option>)}
+          </SelectInput>
+          <NumberInput aria-label={`${label} count ${i + 1}`} min="1" max="99" value={r.quantity} onChange={(e) => patch(i, { quantity: e.target.value })} style={{ width: 70 }} />
+          <SelectInput aria-label={`${label} counted ${i + 1}`} value={r.scope} onChange={(e) => patch(i, { scope: e.target.value })} style={{ maxWidth: 170 }}>{Object.entries(SCOPES).map(([k, v]) => <option key={k} value={k}>{v}</option>)}</SelectInput>
+          <label style={{ display: 'flex', gap: 4, alignItems: 'center' }}><input type="checkbox" checked={r.compulsory} onChange={(e) => patch(i, { compulsory: e.target.checked })} /> Compulsory</label>
+          <label style={{ display: 'flex', gap: 4, alignItems: 'center' }}><input type="checkbox" checked={r.charged} onChange={(e) => patch(i, { charged: e.target.checked })} /> Charged</label>
+          <SelectInput aria-label={`${label} receipt ${i + 1}`} value={r.receipt} onChange={(e) => patch(i, { receipt: e.target.value })} style={{ maxWidth: 140 }}>{Object.entries(RECEIPT).map(([k, v]) => <option key={k} value={k}>{v}</option>)}</SelectInput>
+          <button type="button" aria-label="Remove packaging" style={iconBtn} onClick={() => setRows((xs) => xs.filter((_, j) => j !== i))}><Trash2 size={15} /></button>
+        </div>
+      ))}
+      {items.length === 0 ? <p style={{ margin: 0, fontSize: '0.74rem', color: colors.textFaint }}>No packaging items yet (Menus, Configuration: choose the packaging kind and price list).</p>
+        : <button type="button" style={small} onClick={() => setRows((xs) => [...xs, { item_id: '', quantity: 1, scope: 'per_dish', compulsory: false, charged: false, receipt: 'auto' }])}><Plus size={12} /> Add packaging</button>}
+    </div>
+  );
+}
+
 function RecipeModal({ dish, options, onClose, onDone }) {
   const r = dish.recipe;
   const key = useRef(0);
@@ -43,6 +94,16 @@ function RecipeModal({ dish, options, onClose, onDone }) {
   const [also, setAlso] = useState('recipe');   // recipe | side | dish: how far the shortcut goes
   const [dishPrice, setDishPrice] = useState('');
   const [station, setStation] = useState('');
+  const [sideAmount, setSideAmount] = useState('1');
+  const [sideSizes, setSideSizes] = useState([]);
+  const [sideTask, setSideTask] = useState('');
+  const [sideNote, setSideNote] = useState('');
+  const [sidePack, setSidePack] = useState([]);
+  const [dishDesc, setDishDesc] = useState('');
+  const [dishPrep, setDishPrep] = useState('');
+  const [dishSizes, setDishSizes] = useState([]);
+  const [dishAud, setDishAud] = useState([]);
+  const [dishPack, setDishPack] = useState([]);
   const [busy, setBusy] = useState(false);
   const [err, setErr] = useState(null);
   const unitLabel = dish.standalone ? (options.units ?? []).find((u) => String(u.id) === String(yieldUnit))?.code ?? 'portions' : 'portions';
@@ -51,6 +112,11 @@ function RecipeModal({ dish, options, onClose, onDone }) {
   const usable = (options.recipes ?? []).filter((x) => !(dish.standalone && dish.id && x.id === dish.id));
   const patch = (k, p) => setLines((xs) => xs.map((x) => (x.key === k ? { ...x, ...p } : x)));
   const canFlag = order && Boolean(options.flags_installed);   // only a recipe made to order can lose or add an ingredient
+
+  const packOut = (rows) => rows.filter((r) => r.item_id).map((r) => ({ item_id: Number(r.item_id), scope: r.scope, quantity: Number(r.quantity) || 1, compulsory: r.compulsory, charged: r.charged, receipt: r.receipt }));
+  const sizesOut = (rows, key) => rows.filter((r) => r.serving_id && r.value !== '').map((r) => ({ serving_id: Number(r.serving_id), [key]: Number(r.value) }));
+  const sideDetails = () => ({ base_amount: sideAmount === '' ? 1 : Number(sideAmount), amounts: sizesOut(sideSizes, 'amount'), task_minutes: sideTask === '' ? null : Number(sideTask), note: sideNote || null, packaging: packOut(sidePack) });
+  const dishDetails = () => ({ description: dishDesc || null, prep_minutes: dishPrep === '' ? null : Number(dishPrep), servings: sizesOut(dishSizes, 'price'), audience_ids: dishAud, packaging: packOut(dishPack) });
 
   const go = async (e) => {
     e.preventDefault(); setBusy(true); setErr(null);
@@ -61,7 +127,7 @@ function RecipeModal({ dish, options, onClose, onDone }) {
         steps: steps.map((s) => ({ body: s.body, minutes: s.minutes === '' ? null : Number(s.minutes) })),
         ...(options.times_installed ? { times: times.filter((t) => t.up_to !== '' || t.minutes !== '').map((t) => ({ up_to: t.up_to === '' ? 0 : Number(t.up_to), minutes: t.minutes === '' ? 0 : Number(t.minutes) })) } : {}),
       };
-      const res = dish.standalone ? await menusAPI.saveRecipeBook({ ...payload, name, ...(also !== 'recipe' ? { also_side: true, also_dish: also === 'dish', dish_price: also === 'dish' ? Number(dishPrice) : null, station_id: station === '' ? null : Number(station) } : {}) }, dish.id) : await menusAPI.saveStockRecipe(dish.id, payload);
+      const res = dish.standalone ? await menusAPI.saveRecipeBook({ ...payload, name, ...(also !== 'recipe' ? { also_side: true, also_dish: also === 'dish', dish_price: also === 'dish' ? Number(dishPrice) : null, station_id: station === '' ? null : Number(station), side_details: sideDetails(), ...(also === 'dish' ? { dish_details: dishDetails() } : {}) } : {}) }, dish.id) : await menusAPI.saveStockRecipe(dish.id, payload);
       toast.success(res.message); onDone();
     } catch (x) { setErr(errMsg(x, 'Could not save the recipe')); } finally { setBusy(false); }
   };
@@ -207,6 +273,38 @@ function RecipeModal({ dish, options, onClose, onDone }) {
                   </SelectInput>
                 </Field>
               )}
+            </div>
+          )}
+          {dish.standalone && options.plate_installed && also !== 'recipe' && (
+            <div data-testid="also-side" style={{ display: 'grid', gap: 10, padding: 10, border: `1px solid ${colors.tint(0.1)}`, borderRadius: 8 }}>
+              <div style={{ fontSize: '0.78rem', fontWeight: 800 }}>The side: {name || 'this recipe'}</div>
+              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 2fr', gap: 10 }}>
+                <Field label="In a serving" htmlFor="rc-sideamt" hint={`in ${unitLabel}`}><NumberInput id="rc-sideamt" min="0" step="any" value={sideAmount} onChange={(e) => setSideAmount(e.target.value)} /></Field>
+                <Field label="Plating (minutes)" htmlFor="rc-sidetask" hint="at the pass"><NumberInput id="rc-sidetask" min="1" max="240" value={sideTask} onChange={(e) => setSideTask(e.target.value)} /></Field>
+                <Field label="Note" htmlFor="rc-sidenote"><TextInput id="rc-sidenote" maxLength={255} value={sideNote} onChange={(e) => setSideNote(e.target.value)} /></Field>
+              </div>
+              <SizeRows label="Amount for a size" rows={sideSizes} setRows={setSideSizes} servings={options.lists?.servings ?? []} valueLabel="Amount" testid="also-side-sizes" />
+              <PackRows label="Side packaging" rows={sidePack} setRows={setSidePack} items={options.packaging_items ?? []} />
+            </div>
+          )}
+          {dish.standalone && options.plate_installed && also === 'dish' && (
+            <div data-testid="also-dish" style={{ display: 'grid', gap: 10, padding: 10, border: `1px solid ${colors.tint(0.1)}`, borderRadius: 8 }}>
+              <div style={{ fontSize: '0.78rem', fontWeight: 800 }}>The dish: {name || 'this recipe'}</div>
+              <div style={{ display: 'grid', gridTemplateColumns: '3fr 1fr', gap: 10 }}>
+                <Field label="Description" htmlFor="rc-dishdesc"><TextInput id="rc-dishdesc" maxLength={3000} value={dishDesc} onChange={(e) => setDishDesc(e.target.value)} /></Field>
+                <Field label="Takes about (minutes)" htmlFor="rc-dishprep"><NumberInput id="rc-dishprep" min="0" value={dishPrep} onChange={(e) => setDishPrep(e.target.value)} /></Field>
+              </div>
+              <SizeRows label="Price for a size" rows={dishSizes} setRows={setDishSizes} servings={options.lists?.servings ?? []} valueLabel="Price" testid="also-dish-sizes" />
+              {(options.lists?.audiences ?? []).length > 0 && (
+                <div data-testid="also-audiences">
+                  <div style={{ fontSize: '0.72rem', fontWeight: 700, color: colors.textMuted, marginBottom: 4 }}>Who it is for (none ticked: everyone)</div>
+                  <div style={{ display: 'flex', gap: 14, flexWrap: 'wrap', fontSize: '0.8rem' }}>
+                    {options.lists.audiences.map((a) => <label key={a.id} style={{ display: 'flex', gap: 5, alignItems: 'center' }}><input type="checkbox" checked={dishAud.includes(a.id)} onChange={(e) => setDishAud((xs) => (e.target.checked ? [...xs, a.id] : xs.filter((x) => x !== a.id)))} /> {a.name}</label>)}
+                  </div>
+                </div>
+              )}
+              <PackRows label="Dish packaging" rows={dishPack} setRows={setDishPack} items={options.packaging_items ?? []} />
+              <p style={{ margin: 0, fontSize: '0.74rem', color: colors.textFaint }}>The dish is one plate holding the side. More slots, extras and free condiments are added afterwards under Menus, Dishes.</p>
             </div>
           )}
           <Field label="Note (optional)"><TextInput aria-label="Note" maxLength={255} value={note} onChange={(e) => setNote(e.target.value)} /></Field>
