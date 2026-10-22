@@ -71,6 +71,26 @@ function PlanForm({ plan, data, onClose, onDone }) {
   );
 }
 
+/** What a plan sends out: the dishes that go every delivery day, then what each day has besides. Mirrors the Every delivery day box of the menu editor. */
+function PlanMenuSummary({ plan }) {
+  if (plan.menu.length === 0) return <div style={{ fontSize: '0.82rem' }}><em style={{ color: '#b45309' }}>No menu yet: choose the dishes for each day.</em></div>;
+  const cells = [];
+  for (let w = 1; w <= plan.cycle_weeks; w += 1) plan.delivery_weekdays.forEach((d) => cells.push(plan.menu.find((m) => m.week_no === w && m.weekday === d)?.dishes ?? []));
+  const every = cells.length > 1 ? cells[0].filter((x) => cells.every((c) => c.some((y) => y.id === x.id))) : [];
+  const rest = plan.menu.map((m) => ({ ...m, dishes: m.dishes.filter((x) => !every.some((y) => y.id === x.id)) })).filter((m) => m.dishes.length > 0).sort((a, b) => a.week_no - b.week_no || a.weekday - b.weekday);
+
+  return (
+    <div data-testid="plan-menu" style={{ fontSize: '0.82rem', display: 'grid', gap: 3 }}>
+      {every.length > 0 && <div data-testid="plan-every"><strong>Every delivery day:</strong> {every.map((x) => x.name).join(', ')}</div>}
+      {rest.length > 0 && (
+        <div style={{ color: colors.textMuted }}>
+          {rest.map((m) => `${plan.cycle_weeks > 1 ? `Week ${m.week_no} ` : ''}${DAYS.find((x) => x[0] === m.weekday)?.[1] ?? m.weekday}: ${m.dishes.map((x) => x.name).join(', ')}`).join(' · ')}
+        </div>
+      )}
+    </div>
+  );
+}
+
 function MenuGrid({ plan, data, onClose, onDone }) {
   const cell = (w, d) => plan.menu.find((m) => m.week_no === w && m.weekday === d)?.dishes.map((x) => x.id) ?? [];
   const keys = [];
@@ -204,7 +224,7 @@ export default function MenusPlans() {
                   <Pill tone="ok">{p.subscribers} subscriber{p.subscribers === 1 ? '' : 's'}</Pill>
                 </div>
                 <div style={{ fontSize: '0.82rem', color: colors.textMuted }}>{p.delivery_weekdays.map((d) => DAYS.find((x) => x[0] === d)[1]).join(', ')} · {p.slot_from}–{p.slot_to} · menu repeats every {p.cycle_weeks} week{p.cycle_weeks === 1 ? '' : 's'} · skip up to {p.cutoff_hours} h before</div>
-                <div style={{ fontSize: '0.82rem' }}>{p.menu.length === 0 ? <em style={{ color: '#b45309' }}>No menu yet: choose the dishes for each day.</em> : `${p.menu.reduce((n, m) => n + m.dishes.length, 0)} dishes placed over ${p.menu.length} day${p.menu.length === 1 ? '' : 's'}.`}</div>
+                <PlanMenuSummary plan={p} />
                 {canAct && (
                   <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap' }}>
                     <button type="button" style={{ ...btnPrimary, padding: '6px 12px', fontSize: '0.78rem' }} onClick={() => setMenu(p)}>Edit the menu</button>
