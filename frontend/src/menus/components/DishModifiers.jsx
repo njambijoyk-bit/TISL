@@ -21,23 +21,27 @@ const feeWords = (p, price) => {
 };
 
 /** The removals and extras a dish offers (the recipe lines ticked "may be left out" or "may have extra", on the dish and on its sides) and the policy that prices each. */
-export function ModifiersSection({ dish, onSaved }) {
+export function ModifiersSection({ dish, onSaved, saveRef }) {
   const [data, setData] = useState(null);
   const [chosen, setChosen] = useState({});
+  const [loaded, setLoaded] = useState('{}');
   const [busy, setBusy] = useState(false);
   const [err, setErr] = useState(null);
 
   useEffect(() => {
-    menusAPI.dishModifiers(dish.id).then((d) => { setData(d); setChosen(Object.fromEntries(d.items.map((i) => [keyOf(i), i.policy_id ?? '']))); }).catch((e) => setErr(errMsg(e, 'Could not load the modifiers')));
+    menusAPI.dishModifiers(dish.id).then((d) => { const c = Object.fromEntries(d.items.map((i) => [keyOf(i), i.policy_id ?? ''])); setData(d); setChosen(c); setLoaded(JSON.stringify(c)); }).catch((e) => setErr(errMsg(e, 'Could not load the modifiers')));
   }, [dish.id]);
 
   const save = async () => {
     setBusy(true); setErr(null);
     try {
       const res = await menusAPI.saveDishModifiers(dish.id, data.items.map((i) => ({ ingredient_id: i.ingredient_id, kind: i.kind, policy_id: chosen[keyOf(i)] === '' ? null : Number(chosen[keyOf(i)]) })));
-      toast.success(res.message); onSaved?.();
-    } catch (x) { setErr(errMsg(x, 'Could not save the modifiers')); } finally { setBusy(false); }
+      toast.success(res.message); setLoaded(JSON.stringify(chosen)); onSaved?.();
+
+      return true;
+    } catch (x) { setErr(errMsg(x, 'Could not save the modifiers')); return false; } finally { setBusy(false); }
   };
+  if (saveRef) saveRef.current = async () => (!data?.ready || JSON.stringify(chosen) === loaded ? true : save());
 
   if (!data) return <p role="status" style={{ margin: 0 }}>{err ?? 'Loading…'}</p>;
   if (!data.ready) return <p role="status" style={{ margin: 0, fontSize: '0.82rem', color: colors.textMuted }}>Run database script 206_menus_dish_modifiers.sql first (with 205 before it): until then a policy can not be chosen.</p>;

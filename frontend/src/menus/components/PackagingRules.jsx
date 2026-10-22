@@ -15,14 +15,15 @@ const SCOPES = { per_dish: 'For each dish', per_order: 'Once for the order' };
 const RECEIPT = { auto: 'When charged', always: 'Always', never: 'Never' };
 
 /** The packaging that goes with a side or a dish: the item, how many, for each dish or once for the order, compulsory or not, free or charged, and whether the receipt shows it. */
-export function PackagingRulesSection({ owner, id, name, canEdit = true, onSaved }) {
+export function PackagingRulesSection({ owner, id, name, canEdit = true, onSaved, saveRef }) {
   const [data, setData] = useState(null);
   const [rows, setRows] = useState([]);
+  const [loaded, setLoaded] = useState('[]');   // the rows as last loaded or saved: a difference is something not saved yet
   const [busy, setBusy] = useState(false);
   const [err, setErr] = useState(null);
 
   useEffect(() => {
-    menusAPI.packagingRules(owner, id).then((d) => { setData(d); setRows(d.rules.filter((r) => !r.grey)); }).catch((e) => setErr(errMsg(e, 'Could not load the packaging rules')));
+    menusAPI.packagingRules(owner, id).then((d) => { const r = d.rules.filter((x) => !x.grey); setData(d); setRows(r); setLoaded(JSON.stringify(r)); }).catch((e) => setErr(errMsg(e, 'Could not load the packaging rules')));
   }, [owner, id]);
 
   const patch = (i, p) => setRows((xs) => xs.map((x, j) => (j === i ? { ...x, ...p } : x)));
@@ -30,9 +31,13 @@ export function PackagingRulesSection({ owner, id, name, canEdit = true, onSaved
     setBusy(true); setErr(null);
     try {
       const res = await menusAPI.savePackagingRules(owner, id, rows.map((r) => ({ item_id: r.item_id, scope: r.scope, quantity: Number(r.quantity) || 1, compulsory: r.compulsory, charged: r.charged, receipt: r.receipt })));
-      setData(res); setRows(res.rules.filter((r) => !r.grey)); toast.success(res.message); onSaved?.();
-    } catch (x) { setErr(errMsg(x, 'Could not save the packaging rules')); } finally { setBusy(false); }
+      const r = res.rules.filter((x) => !x.grey);
+      setData(res); setRows(r); setLoaded(JSON.stringify(r)); toast.success(res.message); onSaved?.();
+
+      return true;
+    } catch (x) { setErr(errMsg(x, 'Could not save the packaging rules')); return false; } finally { setBusy(false); }
   };
+  if (saveRef) saveRef.current = async () => (JSON.stringify(rows) === loaded ? true : save());   // the guided set-up saves what is typed when it moves on
 
   if (!data) return <p role="status" style={{ margin: 0 }}>{err ?? 'Loading…'}</p>;
   if (!data.ready) return <p role="status" style={{ margin: 0, fontSize: '0.82rem', color: colors.textMuted }}>Run database script 208_menus_packaging_rules.sql first (with 207 before it): until then packaging rules can not be saved.</p>;
@@ -81,24 +86,28 @@ export function PackagingRulesSection({ owner, id, name, canEdit = true, onSaved
 }
 
 /** The free condiments that go with each sale of a dish (fries: 2 ketchup, 1 mayonnaise). At checkout the cashier says what was actually given; a different count only warns. */
-export function CondimentsSection({ dish, canEdit = true }) {
+export function CondimentsSection({ dish, canEdit = true, saveRef }) {
   const [data, setData] = useState(null);
   const [rows, setRows] = useState([]);
+  const [loaded, setLoaded] = useState('[]');
   const [busy, setBusy] = useState(false);
   const [err, setErr] = useState(null);
   const [kinds, setKinds] = useState(null);   // the kinds ticked above the list: only their ingredients are offered (none ticked: all)
 
   useEffect(() => {
-    menusAPI.dishCondiments(dish.id).then((d) => { setData(d); setRows(d.allowance); }).catch((e) => setErr(errMsg(e, 'Could not load the free condiments')));
+    menusAPI.dishCondiments(dish.id).then((d) => { setData(d); setRows(d.allowance); setLoaded(JSON.stringify(d.allowance)); }).catch((e) => setErr(errMsg(e, 'Could not load the free condiments')));
   }, [dish.id]);
 
   const save = async () => {
     setBusy(true); setErr(null);
     try {
       const res = await menusAPI.saveDishCondiments(dish.id, rows.map((r) => ({ ingredient_id: r.ingredient_id, quantity: Number(r.quantity) || 1 })));
-      setData(res); setRows(res.allowance); toast.success(res.message);
-    } catch (x) { setErr(errMsg(x, 'Could not save the free condiments')); } finally { setBusy(false); }
+      setData(res); setRows(res.allowance); setLoaded(JSON.stringify(res.allowance)); toast.success(res.message);
+
+      return true;
+    } catch (x) { setErr(errMsg(x, 'Could not save the free condiments')); return false; } finally { setBusy(false); }
   };
+  if (saveRef) saveRef.current = async () => (JSON.stringify(rows) === loaded ? true : save());
 
   if (!data) return <p role="status" style={{ margin: 0 }}>{err ?? 'Loading…'}</p>;
   if (!data.ready) return <p role="status" style={{ margin: 0, fontSize: '0.82rem', color: colors.textMuted }}>Run database script 211_menus_condiments.sql first: until then free condiments can not be set.</p>;

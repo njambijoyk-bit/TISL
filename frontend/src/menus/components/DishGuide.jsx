@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { Plus, Trash2 } from 'lucide-react';
 import toast from 'react-hot-toast';
 import Modal from '../../core/components/admin/ui/Modal';
@@ -73,6 +73,16 @@ function Steps({ dish, step, setStep, onClose, onDone, onChoices }) {
   const m = useMakeup(dish);
   const { data, slots, setSlots, key, busy, err } = m;
   const [making, setMaking] = useState(false);
+  const modsRef = useRef(null);   // what a step's boxes have typed and not yet saved: saved when the guide moves on or finishes
+  const packRef = useRef(null);
+  const condRef = useRef(null);
+  const flush = async () => {
+    for (const r of [modsRef, packRef, condRef]) {
+      if (r.current && !(await r.current())) return false;
+    }
+
+    return true;
+  };
   const included = slots.find((s) => s.kind === 'fixed' && s.name === INCLUDED);
   const isIncluded = (id) => Boolean(included?.choices.some((c) => Number(c.side_id) === Number(id)));
   const include = (id, on) => setSlots((xs) => {
@@ -85,11 +95,17 @@ function Steps({ dish, step, setStep, onClose, onDone, onChoices }) {
 
     return xs.map((s) => (s === has ? { ...s, choices: s.choices.filter((c) => Number(c.side_id) !== Number(id)) } : s)).filter((s) => s.choices.length > 0 || s.name !== INCLUDED);
   });
+  const moveTo = async (n) => {   // save what the boxes of this step hold, then show the other step (whose own boxes register again)
+    if (!(await flush())) return;
+    modsRef.current = null; packRef.current = null; condRef.current = null;
+    setStep(n);
+  };
   const saveThenNext = async () => {   // the modifiers come from the sides it is made of, so they are saved before that step
     const res = await m.save();
     if (res) setStep(4);
   };
   const finish = async () => {
+    if (!(await flush())) return;
     const res = await m.save();
     if (res) { toast.success(res.message); onDone(); }
   };
@@ -116,7 +132,7 @@ function Steps({ dish, step, setStep, onClose, onDone, onChoices }) {
         <div data-testid="guide-choices" style={{ display: 'grid', gap: 14, fontSize: '0.84rem' }}>
           <div>
             <div style={{ fontWeight: 800, marginBottom: 6 }}>Leaving out and extra</div>
-            <ModifiersSection dish={dish} />
+            <ModifiersSection dish={dish} saveRef={modsRef} />
           </div>
           <div>Choices are the older way to let a guest leave something out or add something (no onions, extra cheese), with a price for it. They sit beside the sides above.</div>
           <div><button type="button" style={small} onClick={async () => { const res = await m.save(); if (res) onChoices(dish); }}>Set up choices for {dish.name}</button></div>
@@ -125,17 +141,17 @@ function Steps({ dish, step, setStep, onClose, onDone, onChoices }) {
       )}
       {step === 5 && (
         <div data-testid="guide-packaging" style={{ display: 'grid', gap: 14 }}>
-          <PackagingRulesSection owner="dish" id={dish.id} name={dish.name} />
+          <PackagingRulesSection owner="dish" id={dish.id} name={dish.name} saveRef={packRef} />
           <div data-testid="guide-condiments">
             <h3 style={{ margin: '0 0 6px', fontSize: '0.9rem', fontWeight: 800 }}>Free condiments</h3>
-            <CondimentsSection dish={dish} />
+            <CondimentsSection dish={dish} saveRef={condRef} />
           </div>
         </div>
       )}
       <div style={{ display: 'flex', gap: 8, justifyContent: 'flex-end', marginTop: 4 }}>
         <button type="button" style={small} onClick={onClose}>Cancel</button>
-        {step > 1 && <button type="button" style={small} onClick={() => setStep(step - 1)}>Back</button>}
-        {step < STEPS.length - 1 && <button type="button" style={{ ...btnPrimary, padding: '6px 16px' }} disabled={busy} onClick={step === 3 ? saveThenNext : () => setStep(step + 1)}>Next</button>}
+        {step > 1 && <button type="button" style={small} onClick={() => moveTo(step - 1)}>Back</button>}
+        {step < STEPS.length - 1 && <button type="button" style={{ ...btnPrimary, padding: '6px 16px' }} disabled={busy} onClick={step === 3 ? saveThenNext : () => moveTo(step + 1)}>Next</button>}
         {step === STEPS.length - 1 && <button type="button" style={{ ...btnPrimary, padding: '6px 16px' }} disabled={busy} onClick={finish}>{busy ? 'Saving…' : 'Finish'}</button>}
       </div>
     </FormStack>
