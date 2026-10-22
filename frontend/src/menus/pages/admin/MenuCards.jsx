@@ -20,6 +20,48 @@ const small = { ...btnGhost, padding: '4px 10px', fontSize: '0.72rem', marginRig
 const iconBtn = { background: 'none', border: 'none', cursor: 'pointer', color: colors.textFaint, padding: 3 };
 const swap = (xs, i, d) => { const ys = [...xs]; const j = i + d; if (j < 0 || j >= ys.length) return ys; [ys[i], ys[j]] = [ys[j], ys[i]]; return ys; };
 
+/** Add dishes to a section: the drop-down for one, or "Choose several" for a list of checkboxes (with a search) added together. */
+function AddDishes({ section, dishes, onAdd }) {
+  const [many, setMany] = useState(false);
+  const [q, setQ] = useState('');
+  const [ticked, setTicked] = useState([]);
+  const free = dishes.filter((d) => !section.dishes.some((x) => x.id === d.id));
+  const shown = free.filter((d) => d.name.toLowerCase().includes(q.trim().toLowerCase()));
+  const label = section.name || 'the section';
+  const done = () => { setMany(false); setQ(''); setTicked([]); };
+
+  return (
+    <div style={{ marginTop: 6 }}>
+      <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
+        <SelectInput aria-label={`Add a dish to ${label}`} value="" onChange={(e) => { const id = Number(e.target.value); if (id) onAdd([id]); }}>
+          <option value="">Add a dish…</option>{free.map((d) => <option key={d.id} value={d.id}>{d.name}{d.is_active ? '' : ' (off the menu)'}</option>)}
+        </SelectInput>
+        {free.length > 1 && <button type="button" style={{ ...small, marginRight: 0, whiteSpace: 'nowrap' }} aria-expanded={many} onClick={() => (many ? done() : setMany(true))}>{many ? 'Close the list' : 'Choose several'}</button>}
+      </div>
+      {many && (
+        <div data-testid="dish-checklist" style={{ border: `1px solid ${colors.tint(0.14)}`, borderRadius: 8, padding: 8, marginTop: 6, display: 'grid', gap: 6 }}>
+          <TextInput aria-label={`Search dishes for ${label}`} value={q} placeholder="Search dishes" onChange={(e) => setQ(e.target.value)} />
+          <div style={{ maxHeight: 220, overflowY: 'auto', display: 'grid', gap: 2 }}>
+            {shown.map((d) => (
+              <label key={d.id} style={{ display: 'flex', gap: 8, alignItems: 'center', fontSize: '0.82rem', padding: '3px 2px' }}>
+                <input type="checkbox" aria-label={`Add ${d.name}`} checked={ticked.includes(d.id)} onChange={(e) => setTicked((xs) => (e.target.checked ? [...xs, d.id] : xs.filter((x) => x !== d.id)))} />
+                {d.name}{d.is_active ? '' : ' (off the menu)'}
+              </label>
+            ))}
+            {shown.length === 0 && <span style={{ fontSize: '0.78rem', color: colors.textFaint }}>No dish matches.</span>}
+          </div>
+          <div style={{ display: 'flex', gap: 8, alignItems: 'center', flexWrap: 'wrap' }}>
+            <button type="button" style={{ ...small, marginRight: 0 }} onClick={() => setTicked(shown.map((d) => d.id))}>Tick all shown</button>
+            <button type="button" style={{ ...small, marginRight: 0 }} onClick={() => setTicked([])} disabled={ticked.length === 0}>Clear</button>
+            <span style={{ flex: 1 }} />
+            <button type="button" style={{ ...btnPrimary, padding: '5px 14px', fontSize: '0.78rem' }} disabled={ticked.length === 0} onClick={() => { onAdd(ticked); done(); }}>Add {ticked.length || ''} selected</button>
+          </div>
+        </div>
+      )}
+    </div>
+  );
+}
+
 function MenuModal({ menu, dishes, days, onClose, onDone }) {
   const [name, setName] = useState(menu?.name ?? '');
   const [description, setDescription] = useState(menu?.description ?? '');
@@ -90,9 +132,7 @@ function MenuModal({ menu, dishes, days, onClose, onDone }) {
                     <button type="button" aria-label={`Take ${nameOf(d.id)} out`} style={iconBtn} onClick={() => patch(i, { dishes: s.dishes.filter((x) => x.id !== d.id) })}><Trash2 size={13} /></button>
                   </div>
                 ))}
-                <SelectInput aria-label={`Add a dish to ${s.name || 'the section'}`} value="" style={{ marginTop: 6 }} onChange={(e) => { const id = Number(e.target.value); if (id && !s.dishes.some((x) => x.id === id)) patch(i, { dishes: [...s.dishes, { id }] }); }}>
-                  <option value="">Add a dish…</option>{dishes.filter((d) => !s.dishes.some((x) => x.id === d.id)).map((d) => <option key={d.id} value={d.id}>{d.name}{d.is_active ? '' : ' (off the menu)'}</option>)}
-                </SelectInput>
+                <AddDishes section={s} dishes={dishes} onAdd={(ids) => patch(i, { dishes: [...s.dishes, ...ids.filter((id) => !s.dishes.some((x) => x.id === id)).map((id) => ({ id }))] })} />
               </div>
             ))}
             <button type="button" style={small} onClick={() => setSections((xs) => [...xs, { name: '', description: '', dishes: [] }])}>Add a section</button>

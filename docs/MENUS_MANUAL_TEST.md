@@ -273,7 +273,7 @@ Needs two branches (Settings, Branches), say **Main** and **Westlands**.
 1. **Recipes**: make a recipe for a dish (amounts in g or kg, waste %, method steps, how many portions a batch makes). Expect: cost per portion shows, and "can make" counts portions from the shelf. Watch: does the allergen from an ingredient show where you would look for it?
 2. **Allergens** (G, then A): add a tag, rename it, change what it rules out and try to remove one that is in use. Expect: the dish badges follow at once, and a clear refusal for the one in use.
 3. **Dishes**: add a dish with a price, a photo, allergens and one option group (Size: small, large +100). Expect: option price shows on the dish. Mark it **Sold out (86)** and back.
-4. **Menus**: make a menu with two sections, put dishes in them, set the days and hours it serves. Expect: a dish whose ingredients are out (or whose made-ahead portions are out) is not offered.
+4. **Menus**: make a menu with two sections, put dishes in them, set the days and hours it serves. In a section, **Add a dish…** adds one; **Choose several** opens a searchable list of checkboxes (with *Tick all shown* and *Clear*) and **Add N selected** puts them all in at once; dishes already in the section are not listed. Expect: a dish whose ingredients are out (or whose made-ahead portions are out) is not offered.
 5. Open the **public menu page** in a private window (no sign-in). Expect: allergens, prices, sold-out dishes greyed, options work, the page reads well on a phone.
 
 ## 2. Online order (customer, then manager)
