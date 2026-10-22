@@ -117,7 +117,7 @@ function DishModal({ dish, data, onClose, onDone }) {
               <SelectInput id="dish-chef" value={chef} disabled={!data.chefs || data.chefs.length === 0} onChange={(e) => setChef(e.target.value)}><option value="">No one in particular</option>{(data.chefs ?? []).map((c) => <option key={c.id} value={c.id}>{c.name}</option>)}</SelectInput>
             </Field>
             <Field label="Made to order: notice needed (hours)" htmlFor="dish-lead" hint="For a cake or anything customers ask for ahead. Empty: an ordinary dish. Dishes with a notice appear under Cakes &amp; catering."><NumberInput id="dish-lead" min="0" max="2000" value={lead} onChange={(e) => setLead(e.target.value)} /></Field>
-            <Field label="Order on the menu" htmlFor="dish-sort" hint="Smaller numbers come first."><NumberInput id="dish-sort" min="0" value={sort} onChange={(e) => setSort(e.target.value)} /></Field>
+            <Field label="Sort order" htmlFor="dish-sort" hint="Smaller numbers come first."><NumberInput id="dish-sort" min="0" value={sort} onChange={(e) => setSort(e.target.value)} /></Field>
           </div>
           <SectionPicker sections={data.sections} value={sections} onChange={setSections} />
           <Declare title="Allergens" options={data.allergens} inherited={dish?.allergens ?? []} value={allergens} onChange={setAllergens} />

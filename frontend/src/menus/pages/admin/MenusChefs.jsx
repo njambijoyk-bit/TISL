@@ -107,7 +107,7 @@ function ChefForm({ chef, stations, canPay, onClose, onDone }) {
             {f.pay_mode !== 'salary' && <p style={{ margin: 0, fontSize: '0.78rem', color: colors.textMuted }}>The chef still needs an employee record for payroll to include them. Nothing is deducted for absence: a day not worked simply earns nothing.</p>}
           </fieldset>
         )}
-        <Field label="Order on the page" htmlFor="chef-sort" hint="Smaller numbers come first."><NumberInput id="chef-sort" min={0} value={f.sort_order} onChange={(e) => setF({ ...f, sort_order: e.target.value })} /></Field>
+        <Field label="Sort order" htmlFor="chef-sort" hint="Smaller numbers come first."><NumberInput id="chef-sort" min={0} value={f.sort_order} onChange={(e) => setF({ ...f, sort_order: e.target.value })} /></Field>
       </FormStack>
     </Modal>
   );

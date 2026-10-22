@@ -232,7 +232,7 @@ export default function DishGuide({ dish: given, data, onClose, onDone, onChoice
               <SelectInput id="guide-chef" value={chef} disabled={!data.chefs || data.chefs.length === 0} onChange={(e) => setChef(e.target.value)}><option value="">No one in particular</option>{(data.chefs ?? []).map((c) => <option key={c.id} value={c.id}>{c.name}</option>)}</SelectInput>
             </Field>
             <Field label="Made to order: notice needed (hours)" htmlFor="guide-lead" hint="For a cake or anything customers ask for ahead. Empty: an ordinary dish. Dishes with a notice appear under Cakes & catering."><NumberInput id="guide-lead" min="0" max="2000" value={lead} onChange={(e) => setLead(e.target.value)} /></Field>
-            <Field label="Order on the menu" htmlFor="guide-sort" hint="Smaller numbers come first."><NumberInput id="guide-sort" min="0" value={sort} onChange={(e) => setSort(e.target.value)} /></Field>
+            <Field label="Sort order" htmlFor="guide-sort" hint="Smaller numbers come first."><NumberInput id="guide-sort" min="0" value={sort} onChange={(e) => setSort(e.target.value)} /></Field>
           </div>
           {data.branches_ready && <BranchPriceRows branches={data.branches} rows={branchRows} setRows={setBranchRows} price={price} />}
           <SectionPicker sections={data.sections} value={sections} onChange={setSections} />

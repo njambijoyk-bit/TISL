@@ -52,7 +52,7 @@ function MenuModal({ menu, dishes, days, onClose, onDone }) {
           <FormError message={err} />
           <div style={{ display: 'grid', gridTemplateColumns: '2fr 1fr', gap: 10 }}>
             <Field label="Name" htmlFor="menu-name"><TextInput id="menu-name" required maxLength={120} value={name} onChange={(e) => setName(e.target.value)} placeholder="Breakfast" /></Field>
-            <Field label="Order" htmlFor="menu-sort" hint="Smaller comes first."><NumberInput id="menu-sort" min="0" value={sort} onChange={(e) => setSort(e.target.value)} /></Field>
+            <Field label="Sort order" htmlFor="menu-sort" hint="Smaller numbers come first."><NumberInput id="menu-sort" min="0" value={sort} onChange={(e) => setSort(e.target.value)} /></Field>
           </div>
           <Field label="A line under the name (optional)" htmlFor="menu-desc"><TextInput id="menu-desc" maxLength={500} value={description} onChange={(e) => setDescription(e.target.value)} /></Field>
           <fieldset style={{ border: 'none', margin: 0, padding: 0 }}>
