@@ -137,6 +137,9 @@ class MenusSampleKitchenTest extends TestCase
         $this->recipeOf('Egg', 1, [['Eggs', 1]]);
         $this->recipeOf('Ketchup portion', 1, [['Tomato ketchup', 30]]);
         $this->recipeOf('Mayo portion', 1, [['Mayonnaise', 20]]);
+        $this->recipeOf('Beef pilau', 1, [['Rice', 150], ['Beef', 150], ['Onions', 50], ['Cooking oil', 25], ['Tomatoes', 40], ['Salt', 3]], ['prep_minutes' => 15, 'cook_minutes' => 45, 'steps' => [['body' => 'Fry the onions in the oil until golden.', 'minutes' => 8], ['body' => 'Add the beef, tomatoes and salt and brown.', 'minutes' => 12], ['body' => 'Stir in the rice and water, cover and cook until dry.', 'minutes' => 25]]]);
+        $this->recipeOf('Mandazi', 1, [['Wheat flour', 100], ['Sugar', 20], ['Milk', 60], ['Cooking oil', 40], ['Baking powder', 3]], ['prep_minutes' => 20, 'cook_minutes' => 10, 'steps' => [['body' => 'Mix the flour, sugar and baking powder, then the milk, and knead.', 'minutes' => 10], ['body' => 'Rest the dough, roll and cut into triangles.', 'minutes' => 10], ['body' => 'Deep fry until golden.', 'minutes' => 10]]]);
+        $this->recipeOf('Cheese omelette', 1, [['Eggs', 2], ['Cheddar cheese', 20], ['Butter', 10], ['Salt', 1]], ['prep_minutes' => 3, 'cook_minutes' => 5, 'steps' => [['body' => 'Beat the eggs with the salt.', 'minutes' => 2], ['body' => 'Melt the butter, pour in the eggs, add the cheese and fold.', 'minutes' => 4]]]);
         $this->recipeOf('Burger', 1, [['Burger bun', 1], ['Beef', 120], ['Cheddar cheese', 20, 0, ['removable' => true, 'extra_allowed' => true]], ['Onions', 10, 0, ['removable' => true]], ['Cooking oil', 5]]);
     }
 
@@ -144,7 +147,7 @@ class MenusSampleKitchenTest extends TestCase
     private function sides(): void
     {
         $svc = app(Sides::class);
-        foreach (['Stewed beef', 'Chicken pilau', 'Sukuma wiki', 'Pancakes', 'Masala chai', 'Chocolate cake', 'Bread', 'Choma', 'Wet fry', 'Kale', 'Egg', 'Burger'] as $n) {
+        foreach (['Stewed beef', 'Chicken pilau', 'Sukuma wiki', 'Pancakes', 'Masala chai', 'Chocolate cake', 'Bread', 'Choma', 'Wet fry', 'Kale', 'Egg', 'Burger', 'Beef pilau', 'Mandazi', 'Cheese omelette'] as $n) {
             $this->side[$n] = $svc->save(['name' => $n, 'recipe_id' => $this->recipe[$n]])->id;
         }
         $this->side['Chips'] = $svc->save(['name' => 'Chips', 'recipe_id' => $this->recipe['Chips'], 'base_amount' => 1, 'amounts' => [['serving_id' => $this->jumbo, 'amount' => 1.5]]])->id;
@@ -168,6 +171,9 @@ class MenusSampleKitchenTest extends TestCase
     {
         $this->plate('Beef stew & ugali', 650, 'Stewed beef', ['slots' => [['name' => 'Main', 'kind' => 'fixed', 'choices' => [['side_id' => $this->side['Stewed beef']]]], ['name' => 'Starch', 'kind' => 'fixed', 'choices' => [['side_id' => $this->side['Ugali']]]]]]);
         $this->plate('Chicken pilau', 600, 'Chicken pilau');
+        $this->plate('Beef pilau', 650, 'Beef pilau');
+        $this->plate('Mandazi', 80, 'Mandazi');
+        $this->plate('Cheese omelette', 300, 'Cheese omelette');
         $this->plate('Sukuma wiki & ugali', 250, 'Sukuma wiki', ['slots' => [['name' => 'Main', 'kind' => 'fixed', 'choices' => [['side_id' => $this->side['Sukuma wiki']]]], ['name' => 'Starch', 'kind' => 'fixed', 'choices' => [['side_id' => $this->side['Ugali']]]]]]);
         $this->plate('Pancakes', 350, 'Pancakes');
         $this->plate('Masala chai', 150, 'Masala chai');
@@ -212,8 +218,8 @@ class MenusSampleKitchenTest extends TestCase
     public function test_what_a_portion_of_each_recipe_costs(): void
     {
         $this->assertSame(
-            ['Stewed beef' => 193.09, 'Chicken pilau' => 163.57, 'Sukuma wiki' => 24.98, 'Chips' => 51.20, 'Pancakes' => 67.71, 'Masala chai' => 29.00],
-            collect(['Stewed beef', 'Chicken pilau', 'Sukuma wiki', 'Chips', 'Pancakes', 'Masala chai'])->mapWithKeys(fn ($r) => [$r => $this->portionCost($r)])->all(),
+            ['Beef pilau' => 166.57, 'Mandazi' => 39.97, 'Cheese omelette' => 61.28, 'Stewed beef' => 193.09, 'Chicken pilau' => 163.57, 'Sukuma wiki' => 24.98, 'Chips' => 51.20, 'Pancakes' => 67.71, 'Masala chai' => 29.00],
+            collect(['Beef pilau', 'Mandazi', 'Cheese omelette', 'Stewed beef', 'Chicken pilau', 'Sukuma wiki', 'Chips', 'Pancakes', 'Masala chai'])->mapWithKeys(fn ($r) => [$r => $this->portionCost($r)])->all(),
         );
     }
 
@@ -355,5 +361,19 @@ class MenusSampleKitchenTest extends TestCase
         $this->assertSame(30.6, $this->portionCost('Masala chai (500 ml milk)'), '200 ml at 0.13 instead of the shelf average 0.122: 26.00 + 3.00 + 1.60');
         app(\App\Services\Menus\IngredientUse::class)->consume(DishRecipe::find($this->recipe['Masala chai (500 ml milk)']), 3, 1, ['type' => 'voucher', 'id' => 1], null);
         $this->assertSame([19550.0 + 450.0, 4400.0], [$this->left('Fresh 1 L'), $this->left('Fresh 500 ml')], '3 chais take 600 ml of milk from the 500 ml packs and none from the 1 L packs');
+    }
+
+    public function test_the_three_simple_dishes_beef_pilau_mandazi_and_cheese_omelette(): void
+    {
+        $this->sell('Beef pilau', 2);
+        $this->assertSame([5700.0, 9700.0], [$this->left('Stewing meat 1 kg'), $this->left('Pishori 2 kg')], '2 pilau take 300 g of beef and 300 g of rice, in one pot');
+        $this->sell('Mandazi', 3);
+        $this->assertSame([19700.0, 9940.0], [$this->left('Exe 2 kg'), $this->left('Kabras 1 kg')], '3 mandazi take 300 g of flour (Exe) and 60 g of sugar');
+        $this->sell('Cheese omelette', 1);
+        $this->assertSame([118.0, 2980.0, 1240.0], [$this->left('Tray of 30'), $this->left('Block 1 kg'), $this->left('Block 250 g')], '2 eggs, 20 g of cheese, 10 g of butter');
+        foreach (['Eggs' => [['eggs'], ['egg']], 'Cheddar cheese' => [['milk'], ['dairy']]] as $name => [$a, $t]) {
+            \App\Models\Menus\Ingredient::where('name', $name)->first()->update(['allergens' => $a, 'tags' => $t]);
+        }
+        $this->assertEqualsCanonicalizing(['eggs', 'milk'], app(\App\Services\Menus\DishInfo::class)->profile($this->dish['Cheese omelette']->fresh())['allergens']);
     }
 }

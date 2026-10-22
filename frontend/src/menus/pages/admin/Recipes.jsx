@@ -40,6 +40,9 @@ function RecipeModal({ dish, options, onClose, onDone }) {
   const [visibility, setVisibility] = useState(r?.visibility ?? 'internal');
   const [note, setNote] = useState(r?.note ?? '');
   const [name, setName] = useState(dish.name ?? '');
+  const [also, setAlso] = useState('recipe');   // recipe | side | dish: how far the shortcut goes
+  const [dishPrice, setDishPrice] = useState('');
+  const [station, setStation] = useState('');
   const [busy, setBusy] = useState(false);
   const [err, setErr] = useState(null);
   const unitLabel = dish.standalone ? (options.units ?? []).find((u) => String(u.id) === String(yieldUnit))?.code ?? 'portions' : 'portions';
@@ -58,7 +61,7 @@ function RecipeModal({ dish, options, onClose, onDone }) {
         steps: steps.map((s) => ({ body: s.body, minutes: s.minutes === '' ? null : Number(s.minutes) })),
         ...(options.times_installed ? { times: times.filter((t) => t.up_to !== '' || t.minutes !== '').map((t) => ({ up_to: t.up_to === '' ? 0 : Number(t.up_to), minutes: t.minutes === '' ? 0 : Number(t.minutes) })) } : {}),
       };
-      const res = dish.standalone ? await menusAPI.saveRecipeBook({ ...payload, name }, dish.id) : await menusAPI.saveStockRecipe(dish.id, payload);
+      const res = dish.standalone ? await menusAPI.saveRecipeBook({ ...payload, name, ...(also !== 'recipe' ? { also_side: true, also_dish: also === 'dish', dish_price: also === 'dish' ? Number(dishPrice) : null, station_id: station === '' ? null : Number(station) } : {}) }, dish.id) : await menusAPI.saveStockRecipe(dish.id, payload);
       toast.success(res.message); onDone();
     } catch (x) { setErr(errMsg(x, 'Could not save the recipe')); } finally { setBusy(false); }
   };
@@ -186,8 +189,28 @@ function RecipeModal({ dish, options, onClose, onDone }) {
             </div>
             <button type="button" style={{ ...small, marginTop: 8 }} onClick={() => setSteps((xs) => [...xs, { key: `s${++key.current}`, body: '', minutes: '' }])}><Plus size={12} /> Add a step</button>
           </div>
+          {dish.standalone && options.plate_installed && (
+            <div data-testid="recipe-also" style={{ display: 'grid', gridTemplateColumns: '2fr 1fr 1fr', gap: 10, alignItems: 'end' }}>
+              <Field label="After saving" htmlFor="rc-also" hint="For a simple item, skip typing it three times: the side and the dish get the same name, and the dish is one plate holding that side. A recipe that already has a side keeps it.">
+                <SelectInput id="rc-also" value={also} onChange={(e) => setAlso(e.target.value)}>
+                  <option value="recipe">Just the recipe</option>
+                  <option value="side">Also make it a side</option>
+                  <option value="dish">Also make it a side and a dish</option>
+                </SelectInput>
+              </Field>
+              {also === 'dish' && <Field label="Dish price" htmlFor="rc-price" hint="before tax"><NumberInput id="rc-price" min="0" step="any" required value={dishPrice} onChange={(e) => setDishPrice(e.target.value)} /></Field>}
+              {also !== 'recipe' && (
+                <Field label="Station" htmlFor="rc-station" hint="who makes it">
+                  <SelectInput id="rc-station" value={station} onChange={(e) => setStation(e.target.value)}>
+                    <option value="">None yet</option>
+                    {(options.stations ?? []).map((st) => <option key={st.id} value={String(st.id)}>{st.name}</option>)}
+                  </SelectInput>
+                </Field>
+              )}
+            </div>
+          )}
           <Field label="Note (optional)"><TextInput aria-label="Note" maxLength={255} value={note} onChange={(e) => setNote(e.target.value)} /></Field>
-          <ModalActions onCancel={onClose} submitLabel="Save recipe" busy={busy} disabled={!lines.some((l) => l.ref && Number(l.quantity) > 0) || (dish.standalone && !name.trim())} />
+          <ModalActions onCancel={onClose} submitLabel="Save recipe" busy={busy} disabled={!lines.some((l) => l.ref && Number(l.quantity) > 0) || (dish.standalone && !name.trim()) || (also === 'dish' && dishPrice === '')} />
         </FormStack>
       </form>
     </Modal>

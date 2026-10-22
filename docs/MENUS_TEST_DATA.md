@@ -203,6 +203,8 @@ Packaging, tips and currency settings are in sections 9 to 11, where they are us
 
 Quantities are for one portion unless the table says "one batch makes". **Waste %** is added back: 5% on 200 g means 210.5 g is taken from the shelf. The cost on the Recipes screen is worked out from the prices in section 2 (a pack's price divided by what it holds; where an ingredient has several variants on the shelf it is the quantity-weighted average of what is there, so cooking oil is about 0.32 a ml and milk about 0.122).
 
+**The shortcut for a simple item.** Chicken pilau, Beef pilau, Mandazi and Cheese omelette are each one pot or one item: the recipe, the side and the dish would all have the same name. For these, on the recipe form choose **After saving: Also make it a side and a dish**, type the **Dish price** and pick the **Station**. Saving then makes the recipe, the side of the same name (at that station) and the dish of the same name with one slot, **Plate**, holding the side. A recipe that already has a side keeps it, and if anything is refused (a price missing, a name already used) nothing at all is saved. Use the shortcut for the **three new dishes**, **Beef pilau** (650, Hot kitchen), **Mandazi** (80, Fryer) and **Cheese omelette** (300, Hot kitchen), and write the other recipes the long way (recipe, then side, then dish) so you test both routes.
+
 **What to fill in on every recipe.** Besides the lines: *How it is made* (made to order or in batches), *One batch makes* (with its unit), **Prep minutes** and **Cook minutes** (what the kitchen is told to expect), and the **method steps**, each step with its own minutes. Where the length depends on how much is made (ugali), add **Times**: up to this amount, this many minutes. Open each recipe and check that the steps, their minutes and the prep and cook times are shown on the recipe card.
 
 **Which variant a line takes.** Every ingredient line has a **Variant** box. It starts on **Automatic (the ingredient's pick rule)**, and under it the screen says which variant that is **now** at the branch shown ("Takes now: Exe 2 kg" for the flour, "Takes now: Fresh 1 L" for the milk, because milk is set to the cheapest first). Open the box to choose another variant, each listed with what is left of it; variants that may not be used (Soko) are not offered. A chosen variant is taken **first**, and if it runs short the rest comes by the pick rule; the recipe's cost uses that variant's price. Variants are only shown, never chosen for you, when the box says Automatic. To try it, copy the Masala chai recipe as **Masala chai (500 ml milk)** and choose **Fresh 500 ml** for the milk.
@@ -213,6 +215,9 @@ Quantities are for one portion unless the table says "one batch makes". **Waste 
 |---|---|---|---|---|
 | Stewed beef | Beef 200 g (5%), Onions 60 g, Tomatoes 100 g, Cooking oil 20 ml, Salt 3 g | 10 / 90 min | 1 Brown the beef in the oil (10). 2 Add the onions, tomatoes and salt and cook down (10). 3 Cover and simmer until the beef is tender (70). | 193.09 |
 | Chicken pilau (rice and chicken in one pot) | Rice 150 g, Chicken 180 g, Onions 50 g, Cooking oil 25 ml, Tomatoes 40 g, Salt 3 g | 15 / 40 min | 1 Fry the onions in the oil until golden (8). 2 Add the chicken, tomatoes and salt and brown (12). 3 Stir in the rice and water, cover and cook until dry (20). | 163.57 |
+| Beef pilau (rice and beef in one pot) | Rice 150 g, Beef 150 g, Onions 50 g, Cooking oil 25 ml, Tomatoes 40 g, Salt 3 g | 15 / 45 min | 1 Fry the onions in the oil until golden (8). 2 Add the beef, tomatoes and salt and brown (12). 3 Stir in the rice and water, cover and cook until dry (25). | 166.57 |
+| Mandazi | Wheat flour 100 g, Sugar 20 g, Milk 60 ml, Cooking oil 40 ml, Baking powder 3 g | 20 / 10 min | 1 Mix the flour, sugar and baking powder, then the milk, and knead (10). 2 Rest the dough, roll and cut into triangles (10). 3 Deep fry until golden (10). | 39.97 |
+| Cheese omelette | Eggs 2, Cheddar cheese 20 g, Butter 10 g, Salt 1 g | 3 / 5 min | 1 Beat the eggs with the salt (2). 2 Melt the butter, pour in the eggs, add the cheese and fold (4). | 61.28 |
 | Sukuma wiki | Kale 150 g (10%), Onions 40 g, Tomatoes 50 g, Cooking oil 15 ml, Salt 2 g | 5 / 10 min | 1 Fry the onions and tomatoes in the oil (5). 2 Add the chopped kale and salt and cook until soft (5). | 24.98 |
 | Chips | Potatoes 300 g (15% peeling waste), Cooking oil 60 ml, Salt 2 g | 10 / 12 min | 1 Peel, cut and dry the potatoes (10). 2 Fry until golden (12). | 51.20 |
 | Pancakes | Wheat flour 120 g, Eggs 1, Milk 150 ml, Sugar 15 g, **Butter 10 g, tick *may be left out***, Cooking oil 10 ml | 5 / 10 min | 1 Whisk the batter (5). 2 Fry in the oil and butter (10). | 67.71 (the flour is Exe at 0.13 a gram, Pembe being empty) |
@@ -247,6 +252,9 @@ A side is one thing a plate is made of. It is made from **a recipe**, or from **
 |---|---|---|---|---|---|---|
 | Stewed beef | recipe Stewed beef | 1 | | | | Hot kitchen |
 | Chicken pilau | recipe Chicken pilau | 1 | | | | Hot kitchen |
+| Beef pilau | recipe Beef pilau | 1 | | | | Hot kitchen |
+| Mandazi | recipe Mandazi | 1 | | | | Fryer |
+| Cheese omelette | recipe Cheese omelette | 1 | | | | Hot kitchen |
 | Sukuma wiki | recipe Sukuma wiki | 1 | | | | Hot kitchen |
 | Pancakes | recipe Pancakes | 1 | | | | Pastry |
 | Masala chai | recipe Masala chai | 1 | | | | Bar |
@@ -279,6 +287,9 @@ Every dish is **made of sides**, put in **slots**. A dish has its own price (bef
 |---|---|---|---|---|
 | Beef stew & ugali | 650 | 20 min | Hot kitchen | *Main:* Stewed beef. *Starch:* Ugali. Slow-cooked beef in tomato and onion gravy with ugali |
 | Chicken pilau | 600 | 25 min | Hot kitchen | Spiced rice with chicken |
+| Beef pilau | 650 | 25 min | Hot kitchen | Spiced rice with beef, cooked in one pot. **Made with the shortcut.** |
+| Mandazi | 80 | 10 min | Fryer | Fried dough triangles. **Made with the shortcut.** |
+| Cheese omelette | 300 | 8 min | Hot kitchen | Two eggs with cheddar. **Made with the shortcut.** |
 | Sukuma wiki & ugali | 250 | 10 min | Hot kitchen | *Main:* Sukuma wiki. *Starch:* Ugali. Sautéed kale with ugali |
 | Chips | 300 | 12 min | Fryer | *Sizes:* **Medium 300**, **Jumbo 400** (a Jumbo takes 1.5 portions of the Chips side). Replaces the old "Large +100" choice. |
 | Pancakes | 350 | 10 min | Pastry | Three pancakes with butter and sugar. Under *Leaving out and extra*, **Butter, leave out** with the policy **Free**. |
@@ -297,8 +308,8 @@ Every dish is **made of sides**, put in **slots**. A dish has its own price (bef
 
 | Menu | Days | Hours | Sections and their dishes |
 |---|---|---|---|
-| Breakfast | all seven | 06:00 to 11:00 | **Pancakes and tea**: Pancakes, Masala chai |
-| Lunch & dinner | all seven | 11:00 to 22:00 | **Mains**: Beef stew & ugali, Chicken pilau, Sukuma wiki & ugali, Steak sandwich, Burger, Stew meal. **Sides**: Chips. **Drinks**: Masala chai |
+| Breakfast | all seven | 06:00 to 11:00 | **Pancakes and tea**: Pancakes, Masala chai, Mandazi, Cheese omelette |
+| Lunch & dinner | all seven | 11:00 to 22:00 | **Mains**: Beef stew & ugali, Chicken pilau, Beef pilau, Sukuma wiki & ugali, Steak sandwich, Burger, Stew meal. **Sides**: Chips. **Drinks**: Masala chai |
 | Bakery | all seven | all day (leave the hours empty) | **Cakes**: Chocolate cake slice |
 | Weekend special | Sat, Sun | 12:00 to 16:00 | **Sunday roast**: Chicken pilau, Chips |
 
@@ -386,7 +397,8 @@ A dish made of sides inherits its allergens, tags and diets from **every side in
 - The Steak sandwich shows **wheat** (bread) and **eggs** (the egg side, the mayonnaise), even though a guest takes only one protein. The Burger shows **wheat** and **milk**. A dish with a Cola side is complete (a ready-to-serve ingredient says what it is). A dish with no recipe and no sides is unknown and claims no diet.
 
 ### 13C. Selling
-- **Portion costs on the Recipes screen (test):** Stewed beef 193.09, Chicken pilau 163.57, Sukuma wiki 24.98, Chips 51.20, Pancakes 67.71, Masala chai 29.00, one slice of cake 69.18, a kilogram of Ugali 40.00 (a 250 g plate 10.00). So a Beef stew & ugali plate costs 203.09 and a Sukuma wiki & ugali plate 34.98.
+- **Portion costs on the Recipes screen (test):** Stewed beef 193.09, Chicken pilau 163.57, Beef pilau 166.57, Mandazi 39.97, Cheese omelette 61.28, Sukuma wiki 24.98, Chips 51.20, Pancakes 67.71, Masala chai 29.00, one slice of cake 69.18, a kilogram of Ugali 40.00 (a 250 g plate 10.00). So a Beef stew & ugali plate costs 203.09 and a Sukuma wiki & ugali plate 34.98.
+- **The three simple dishes (test):** two Beef pilau take 300 g of beef (6,000 g falls to 5,700 g) and 300 g of rice (10,000 g to 9,700 g), all in one recipe. Three Mandazi take 300 g of flour from Exe and 60 g of sugar. One Cheese omelette takes 2 eggs, 20 g of cheese and 10 g of butter, and shows the allergens eggs and milk. Check also that the shortcut gave each the side and the dish with the right station, and that saving a Beef pilau recipe a second time with the shortcut does not make a second side.
 - **Beef stew & ugali (test):** after making the Ugali batch (13D), sell 2: the beef comes from the shelf (200 g each, 210.5 g with the waste, so 421 g in all) and **500 g of ugali from the batch** (2 kg falls to 1.5 kg); no maize flour is taken at the sale, because it was taken when the batch was made (800 g, so Unga goes from 20,000 g to 19,200 g).
 - **A named variant (test):** Masala chai costs 29.00 with the milk on Automatic. The copy with the milk named as **Fresh 500 ml** costs **30.60** (200 ml at 0.13: 26.00 + 3.00 + 1.60), and three of them take 600 ml from the 500 ml packs and nothing from the 1 L packs (the 500 ml packs go from 5,000 ml to 4,400 ml).
 - **Three Pancakes (test):** the Till or kiosk sells them; the flour comes out of **Exe** (360 g, so Exe goes from 20,000 g to 19,640 g, because Pembe is empty); Soko stays at 5,000 g (it is switched off as a substitute); eggs go from 120 to 117; the milk (150 ml × 3 = 450 ml) comes from the 1 L packs because milk is set to "the cheapest first" (19,550 ml left, the 500 ml packs untouched); butter goes from 1,250 g to 1,220 g. Books gets one journal: Dr Food Cost of Sales, Cr Food Ingredients Inventory.
@@ -424,6 +436,7 @@ What to expect is written under each of sections 9 to 12.
 
 | Figures | Test |
 |---|---|
+| The shortcut (recipe, side and dish in one form; nothing kept when refused; no second side) | `MenusRecipeToPlateTest` |
 | A recipe line naming its variant: what is taken, the cost, top-up by the rule, refusals, what the Recipes screen offers | `MenusRecipeVariantPinTest`, `MenusSampleKitchenTest` |
 | Sections 1 to 6 entered as written: portion costs, Beef stew & ugali taking the stew from the shelf and the ugali from the batch, Pancakes taking Exe and the cheapest milk, No butter, the sixth Chicken pilau refused, Jumbo Chips, the cake batch 553.00 and 69.13, the Steak sandwich 650, 720, 800 and 350, free extras taken off the shelf, the Burger 570 and its stock, the allergens of dishes made of sides | `MenusSampleKitchenTest` |
 | Steak sandwich make-up, Jumbo choma, kale, wet fry | `MenusOrderingMakeupTest`, `MenusDishSelectionTest` |
