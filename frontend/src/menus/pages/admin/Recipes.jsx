@@ -204,7 +204,7 @@ function KitchenCard({ title, recipe, onClose, onLabel }) {
     if (!w) { toast.error('Allow pop-ups to print the card.'); return; }
     w.document.write(`<!doctype html><title>${esc(title)}</title><style>body{font-family:system-ui,sans-serif;margin:24px;color:#0f172a}h1{margin:0 0 4px}table{border-collapse:collapse;width:100%}td,th{border-bottom:1px solid #cbd5e1;padding:5px 8px;text-align:left}ol{padding-left:20px}li{margin:6px 0}small{color:#475569}</style>
       <h1>${esc(title)}</h1><p><small>${esc(recipe.yield_label ? `Makes ${recipe.yield_label}` : '')}${recipe.made_to_order ? ', made to order' : ', made ahead'}${recipe.prep_minutes ? `, prep ${recipe.prep_minutes} min` : ''}${recipe.cook_minutes ? `, cook ${recipe.cook_minutes} min` : ''}</small></p>
-      <h2>Ingredients</h2><table>${recipe.lines.map((l) => `<tr><td>${esc(l.name)}</td><td>${esc(num(l.quantity, 3))} ${esc(unitOf(l) ?? '')}</td></tr>`).join('')}</table>
+      <h2>Ingredients</h2><table>${recipe.lines.map((l) => `<tr><td>${esc(l.name)}${l.variant ? ` (${esc(l.variant)})` : ''}</td><td>${esc(num(l.quantity, 3))} ${esc(unitOf(l) ?? '')}</td></tr>`).join('')}</table>
       ${recipe.steps.length ? `<h2>Method</h2><ol>${recipe.steps.map((s) => `<li>${esc(s.body)}${s.minutes ? ` <small>(${s.minutes} min)</small>` : ''}</li>`).join('')}</ol>` : ''}
       ${recipe.times?.length ? `<h2>Time by batch size</h2><table>${recipe.times.map((t) => `<tr><td>up to ${esc(num(t.up_to, 3))}</td><td>${t.minutes} min</td></tr>`).join('')}</table>` : ''}`);
     w.document.close(); w.focus(); w.print();
@@ -216,7 +216,7 @@ function KitchenCard({ title, recipe, onClose, onLabel }) {
       <div data-testid="kitchen-card" style={{ display: 'grid', gap: 12, fontSize: '0.88rem' }}>
         <table style={{ width: '100%', borderCollapse: 'collapse' }}>
           <thead><tr><th style={th}>Ingredient</th><th style={{ ...th, textAlign: 'right' }}>Amount</th></tr></thead>
-          <tbody>{recipe.lines.map((l, i) => <tr key={i}><td style={td}>{l.name}</td><td style={{ ...td, textAlign: 'right' }}>{num(l.quantity, 3)} {unitOf(l)}</td></tr>)}</tbody>
+          <tbody>{recipe.lines.map((l, i) => <tr key={i}><td style={td}>{l.name}{l.variant && <span style={{ color: colors.textMuted }}> ({l.variant})</span>}</td><td style={{ ...td, textAlign: 'right' }}>{num(l.quantity, 3)} {unitOf(l)}</td></tr>)}</tbody>
         </table>
         {recipe.steps.length > 0 && <ol style={{ margin: 0, paddingLeft: 20, display: 'grid', gap: 6 }}>{recipe.steps.map((s, i) => <li key={i}>{s.body}{s.minutes ? <small style={{ color: colors.textMuted }}> ({s.minutes} min)</small> : null}</li>)}</ol>}
         {(recipe.prep_minutes || recipe.cook_minutes) && <p style={{ margin: 0, color: colors.textMuted }}>{recipe.prep_minutes ? `Prep ${recipe.prep_minutes} min. ` : ''}{recipe.cook_minutes ? `Cook ${recipe.cook_minutes} min.` : ''}</p>}

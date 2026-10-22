@@ -112,6 +112,7 @@ class MenusRecipeVariantPinTest extends TestCase
         $this->assertSame(['preferred', 'the preferred one first', 'Pembe'], [$flour['pick_rule'], $flour['pick_label'], $flour['auto']['name']]);
         $this->assertEquals([['Pembe', 1000], ['Exe', 5000]], array_map(fn ($v) => [$v['name'], $v['left']], $flour['variants']), 'Soko may not be used, so it is not offered');
         $this->assertSame($this->item('Exe'), $out['dishes'][0]['recipe']['lines'][0]['item_id']);
+        $this->assertSame('Exe', $out['dishes'][0]['recipe']['lines'][0]['variant'], 'the kitchen card names the variant a line takes');
         $this->assertNotNull($r);
     }
 }

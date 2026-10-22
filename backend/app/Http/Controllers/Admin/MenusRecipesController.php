@@ -6,6 +6,7 @@ use App\Http\Controllers\Controller;
 use App\Models\Menus\Dish;
 use App\Models\Menus\DishRecipe;
 use App\Models\Menus\Ingredient;
+use App\Models\Menus\IngredientItem;
 use App\Models\Menus\Production;
 use App\Models\Menus\StockBatch;
 use App\Services\Books\BooksException;
@@ -169,6 +170,7 @@ class MenusRecipesController extends Controller
     private function row(DishRecipe $r, ?int $location): array
     {
         $cost = $location ? $this->use->cost($r, $location) : null;
+        $variants = DishRecipes::hasPins() ? IngredientItem::whereIn('id', $r->lines->pluck('item_id')->filter()->unique())->pluck('name', 'id') : collect();   // the variant a line names, for the kitchen card
 
         return [
             'id' => $r->id, 'dish_id' => $r->dish_id ? (int) $r->dish_id : null, 'name' => $r->name, 'yield_qty' => (float) $r->yield_qty, 'yield_unit_id' => $r->yield_unit_id ? (int) $r->yield_unit_id : null, 'yield_unit' => $r->yieldUnit?->code, 'yield_label' => $r->yieldLabel(), 'made_to_order' => (bool) $r->made_to_order, 'note' => $r->note, 'visibility' => $r->visibility,
@@ -179,7 +181,7 @@ class MenusRecipesController extends Controller
             ] : [
                 'ingredient_id' => (int) $l->ingredient_id, 'recipe_id' => null, 'name' => $l->ingredient?->name, 'quantity' => (float) $l->quantity, 'unit' => $l->unit, 'waste_pct' => (float) $l->waste_pct,
                 'base_unit' => $l->ingredient?->baseUnit?->code, 'alt_unit' => $l->ingredient?->altUnit?->code, 'removable' => (bool) ($l->removable ?? false), 'extra_allowed' => (bool) ($l->extra_allowed ?? false),
-                'item_id' => ($l->item_id ?? null) ? (int) $l->item_id : null,
+                'item_id' => ($l->item_id ?? null) ? (int) $l->item_id : null, 'variant' => ($l->item_id ?? null) ? $variants[(int) $l->item_id] ?? null : null,
             ])->values(),
             'times' => $r->relationLoaded('times') ? $r->times->map(fn ($t) => ['up_to' => (float) $t->up_to_qty, 'minutes' => (int) $t->minutes])->values() : [],
             'steps' => $r->steps->map(fn ($s) => ['body' => $s->body, 'minutes' => $s->minutes])->values(),

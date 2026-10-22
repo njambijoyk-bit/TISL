@@ -11,7 +11,7 @@ Prices are made up. Run database scripts **181 to 214 and 225** (215 to 224 are 
 ## 0. Before you start
 - **Units** (Settings, Units): g and kg (mass), ml and L (volume), each (count). Add any that are missing. The alternate unit must be of the same kind as the base unit (kg for g, L for ml).
 - **Menus, Configuration, accounts:** **Ingredient stock**, **Cost of food** and **Food waste** are empty on purpose: empty means the accounts the scripts made, **Food Ingredients Inventory** (current asset), **Food Cost of Sales** and **Food Waste Expense** (direct expenses); packaging and supplies use **Kitchen Supplies Inventory** and **Kitchen Supplies Used**, and prepared food **Prepared Food Inventory**. Choose the **Sales account for dishes** (it decides the tax). Choose the **Purchase account for ingredients** too (use **Purchases**, VAT-able 16%): it is the account an ingredient is bought under when it has none of its own. Run `189_menus_purchase_accounts.sql` first: it adds **Purchases - exempt** and **Purchases - zero rated** beside Purchases. Suppliers are the ledgers under **Sundry Creditors**; make one called "Naivas Wholesale" and one called "Unga Traders".
-- **Kitchen stations** (Menus, Configuration, the stations card): Hot kitchen, Bar, Pastry.
+- **Kitchen stations** (Menus, Configuration, the stations card), add these seven: **Hot kitchen**, **Grill**, **Fryer**, **Cold station** (salads, sauces, bread), **Bar** (drinks), **Pastry** (cakes, pancakes, tea) and **Packing** (the pass: boxes, bags, condiments). Section 5 says which side goes to which station and section 6 which station makes each dish. A station's target minutes can stay at the default.
 - **Payment methods** (Settings, Payment methods): Cash (with its cash ledger set, or the Tips screen has nothing to pay tips out of) and M-Pesa.
 - **People** (give each a role; permissions are set in the role builder): **Manager Mo** (`menus.view`, `menus.manage`, `menus.configure`, the tips permissions including *hand one's own tip over*, *undo a tip* and *waive packaging*); **Cashier Jo** (`menus.till`, *see the tips*, *hand tips over to other people*; **not** *waive packaging*); **Waiter Wanjiku** (`menus.till`, a user, so tips can be handed to her); **Viewer** (*see the tips* only); **Chef Wanjiru** (`menus.view`, `menus.manage`, set up under Menus, Chefs).
 - **Names:** where the manual test (`docs/MENUS_MANUAL_TEST.md`) says *Coke* use **Cola**, *Container* is the **Takeaway box**, *Bag* is the **Paper bag**, *Ketchup* is **Tomato ketchup**, *fries* are **Chips**, and *a burger* and *a steak sandwich* are the two dishes of section 6.
@@ -239,35 +239,35 @@ Open **Chips** and **Ugali** and check the "one batch makes" unit. Open **Pancak
 
 ## 5. Sides (Menus, Sides)
 
-A side is one thing a plate is made of. It is made from **a recipe**, or from **one ready-to-serve ingredient** (a Cola); an ingredient of the kind Cooking ingredient (flour, beef) is not offered as a side, it is not sold as it is. *Amounts* are in the side's own unit: "in a serving" is the amount for any size that has none of its own.
+A side is one thing a plate is made of. It is made from **a recipe**, or from **one ready-to-serve ingredient** (a Cola); an ingredient of the kind Cooking ingredient (flour, beef) is not offered as a side, it is not sold as it is. The **Station** column is the station to choose on the side (Made at); it decides which station's screen the side shows on. *Amounts* are in the side's own unit: "in a serving" is the amount for any size that has none of its own.
 
 **The sides of the classic dishes.** Each pot is a side made from the recipe of the same name, one serving each (Ugali is in the next table, it is the starch of two dishes):
 
-| Side | Made from | In a serving | Jumbo | Kids | Plating or reheating (minutes) |
-|---|---|---|---|---|---|
-| Stewed beef | recipe Stewed beef | 1 | | | |
-| Chicken pilau | recipe Chicken pilau | 1 | | | |
-| Sukuma wiki | recipe Sukuma wiki | 1 | | | |
-| Pancakes | recipe Pancakes | 1 | | | |
-| Masala chai | recipe Masala chai | 1 | | | |
-| Chocolate cake | recipe Chocolate cake (a slice is 1 portion of the 8) | 1 | | | |
-| Chips | recipe Chips | **1** | **1.5** | | |
+| Side | Made from | In a serving | Jumbo | Kids | Plating or reheating (minutes) | Station |
+|---|---|---|---|---|---|---|
+| Stewed beef | recipe Stewed beef | 1 | | | | Hot kitchen |
+| Chicken pilau | recipe Chicken pilau | 1 | | | | Hot kitchen |
+| Sukuma wiki | recipe Sukuma wiki | 1 | | | | Hot kitchen |
+| Pancakes | recipe Pancakes | 1 | | | | Pastry |
+| Masala chai | recipe Masala chai | 1 | | | | Bar |
+| Chocolate cake | recipe Chocolate cake (a slice is 1 portion of the 8) | 1 | | | | Pastry |
+| Chips | recipe Chips | **1** | **1.5** | | | Fryer |
 
 **The sides to put plates together from:**
 
-| Side | Made from | In a serving | Jumbo | Kids | Plating or reheating (minutes) |
-|---|---|---|---|---|---|
-| Ugali | recipe Ugali, written in **Gram** | 250 g | 350 g | 100 g | 3 |
-| Bread | recipe Bread | 1 | | | |
-| Choma | recipe Choma | 2 | | 1 | **5** |
-| Wet fry | recipe Wet fry | 1 | | | 4 |
-| Kale | recipe Kale | 1 | | | |
-| Egg | recipe Egg | 1 | | | |
-| Ketchup | recipe Ketchup portion | 1 | | | |
-| Mayo | recipe Mayo portion | 1 | | | |
-| Stew | recipe Stew | 1 | | | |
-| Burger | recipe Burger | 1 | | | |
-| Cola | the ready-to-serve ingredient Cola | 1 each | | | |
+| Side | Made from | In a serving | Jumbo | Kids | Plating or reheating (minutes) | Station |
+|---|---|---|---|---|---|---|
+| Ugali | recipe Ugali, written in **Gram** | 250 g | 350 g | 100 g | 3 | Hot kitchen |
+| Bread | recipe Bread | 1 | | | | Cold station |
+| Choma | recipe Choma | 2 | | 1 | **5** | Grill |
+| Wet fry | recipe Wet fry | 1 | | | 4 | Hot kitchen |
+| Kale | recipe Kale | 1 | | | | Hot kitchen |
+| Egg | recipe Egg | 1 | | | | Hot kitchen |
+| Ketchup | recipe Ketchup portion | 1 | | | | Cold station |
+| Mayo | recipe Mayo portion | 1 | | | | Cold station |
+| Stew | recipe Stew | 1 | | | | Hot kitchen |
+| Burger | recipe Burger | 1 | | | | Grill |
+| Cola | the ready-to-serve ingredient Cola | 1 each | | | | Bar |
 
 ## 6. Dishes (Menus, Dishes)
 
@@ -280,7 +280,7 @@ Every dish is **made of sides**, put in **slots**. A dish has its own price (bef
 | Beef stew & ugali | 650 | 20 min | Hot kitchen | *Main:* Stewed beef. *Starch:* Ugali. Slow-cooked beef in tomato and onion gravy with ugali |
 | Chicken pilau | 600 | 25 min | Hot kitchen | Spiced rice with chicken |
 | Sukuma wiki & ugali | 250 | 10 min | Hot kitchen | *Main:* Sukuma wiki. *Starch:* Ugali. Sautéed kale with ugali |
-| Chips | 300 | 12 min | Hot kitchen | *Sizes:* **Medium 300**, **Jumbo 400** (a Jumbo takes 1.5 portions of the Chips side). Replaces the old "Large +100" choice. |
+| Chips | 300 | 12 min | Fryer | *Sizes:* **Medium 300**, **Jumbo 400** (a Jumbo takes 1.5 portions of the Chips side). Replaces the old "Large +100" choice. |
 | Pancakes | 350 | 10 min | Pastry | Three pancakes with butter and sugar. Under *Leaving out and extra*, **Butter, leave out** with the policy **Free**. |
 | Masala chai | 150 | 5 min | Bar | Milk tea with spice |
 | Chocolate cake slice | 400 | 2 min | Pastry | A slice of chocolate cake (made ahead) |
@@ -289,8 +289,8 @@ Every dish is **made of sides**, put in **slots**. A dish has its own price (bef
 
 | Dish | Price | Made at | Make-up and rules |
 |---|---|---|---|
-| **Steak sandwich** | 500 | Hot kitchen | *Sizes:* Jumbo 650, Kids 350. *For:* Adults and Kids. *Slots:* **Bread** (always included: Bread); **Protein** (choose one: Choma, the default, or Wet fry **+50**); **Greens** (choose any, fewest 0, most 2: Kale **+20**); **Sauces** (free extra, most 2: Ketchup, Mayo); **Drink** (free extra, most 2: Cola); **Extras** (paid extra, most 3: Egg **+40**). |
-| **Burger** | 500 | Hot kitchen | *Slot:* **Plate** (always included: Burger). *For:* Adults only. *Leaving out and extra:* **extra Cheddar cheese with Ten percent**; **leave out Onions with Fee 20**. (The Burger recipe's ticks of section 4 are what offer these.) |
+| **Steak sandwich** | 500 | Grill | *Sizes:* Jumbo 650, Kids 350. *For:* Adults and Kids. *Slots:* **Bread** (always included: Bread); **Protein** (choose one: Choma, the default, or Wet fry **+50**); **Greens** (choose any, fewest 0, most 2: Kale **+20**); **Sauces** (free extra, most 2: Ketchup, Mayo); **Drink** (free extra, most 2: Cola); **Extras** (paid extra, most 3: Egg **+40**). |
+| **Burger** | 500 | Grill | *Slot:* **Plate** (always included: Burger). *For:* Adults only. *Leaving out and extra:* **extra Cheddar cheese with Ten percent**; **leave out Onions with Fee 20**. (The Burger recipe's ticks of section 4 are what offer these.) |
 | **Stew meal** | 650 | Hot kitchen | *Slots:* **Main** (always included: Stew); **Starch** (always included: Ugali). No sizes. For the packaging tests. |
 
 ## 7. Menus (Menus, Menus)
