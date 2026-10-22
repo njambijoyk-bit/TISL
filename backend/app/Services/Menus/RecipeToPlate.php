@@ -19,9 +19,10 @@ class RecipeToPlate
     }
 
     /**
-     * `side_details` and `dish_details` fill in what the side and the dish forms have (sizes, plating time, who it is for, packaging...). They are used only for what is made now: a side that was there already is left as it is.
+     * `side_details` and `dish_details` fill in what the side and the dish forms have (sizes, plating time, who it is for, packaging...). They are used for what is made now; a side that was there already is left as it is,
+     * unless `update_side` is set: then the details are written to it (its amounts and packaging are replaced by what is sent).
      *
-     * @param array{side?: bool, dish?: bool, price?: mixed, station_id?: ?int, side_details?: array<string, mixed>, dish_details?: array<string, mixed>} $o
+     * @param array{side?: bool, dish?: bool, price?: mixed, station_id?: ?int, update_side?: bool, side_details?: array<string, mixed>, dish_details?: array<string, mixed>} $o
      * @return array{side: ?Side, dish: ?Dish, made: string[]} what is there now and what was made
      */
     public function make(DishRecipe $recipe, array $o, ?int $userId = null): array
@@ -49,6 +50,14 @@ class RecipeToPlate
                 $side = $this->sides->save(['name' => $recipe->name, 'recipe_id' => $recipe->id, 'station_id' => $o['station_id'] ?? null] + array_intersect_key($sd, array_flip(['base_amount', 'amounts', 'task_minutes', 'note', 'unit_id'])));
                 $this->packaging('side', $side->id, $sd['packaging'] ?? []);
                 $made[] = "the side {$side->name}";
+            } elseif (! empty($o['update_side']) && ! empty($o['side_details'])) {
+                $sd = (array) $o['side_details'];
+                $side = $this->sides->save(['name' => $side->name, 'recipe_id' => $recipe->id, 'unit_id' => $side->unit_id, 'is_active' => (bool) $side->is_active, 'station_id' => $o['station_id'] ?? null]
+                    + array_intersect_key($sd, array_flip(['base_amount', 'amounts', 'task_minutes', 'note'])), (int) $side->id);
+                if (array_key_exists('packaging', $sd)) {
+                    $this->rules->save('side', (int) $side->id, array_values((array) $sd['packaging']));
+                }
+                $made[] = "the side {$side->name} updated";
             }
             $dish = null;
             if ($wantDish) {

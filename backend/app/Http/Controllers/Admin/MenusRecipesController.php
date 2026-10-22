@@ -70,13 +70,13 @@ class MenusRecipesController extends Controller
     public function saveBook(Request $request, ?int $id = null, ?RecipeToPlate $plate = null): JsonResponse
     {
         $plate ??= app(RecipeToPlate::class);
-        $d = $this->validated($request, $this->rules() + ['name' => 'required|string|max:120', 'also_side' => 'nullable|boolean', 'also_dish' => 'nullable|boolean', 'dish_price' => 'nullable|numeric|min:0', 'station_id' => 'nullable|integer', 'side_details' => 'nullable|array', 'dish_details' => 'nullable|array']);
+        $d = $this->validated($request, $this->rules() + ['name' => 'required|string|max:120', 'also_side' => 'nullable|boolean', 'also_dish' => 'nullable|boolean', 'dish_price' => 'nullable|numeric|min:0', 'station_id' => 'nullable|integer', 'update_side' => 'nullable|boolean', 'side_details' => 'nullable|array', 'dish_details' => 'nullable|array']);
 
         return $this->guard(function () use ($d, $id, $plate, $request) {
             $made = DB::transaction(function () use ($d, $id, $plate, $request, &$r) {
                 $r = $this->recipes->saveStandalone($d, $id);
 
-                return $plate->make($r, ['side' => $d['also_side'] ?? false, 'dish' => $d['also_dish'] ?? false, 'price' => $d['dish_price'] ?? null, 'station_id' => $d['station_id'] ?? null, 'side_details' => $d['side_details'] ?? [], 'dish_details' => $d['dish_details'] ?? []], $request->user()?->id)['made'];
+                return $plate->make($r, ['side' => $d['also_side'] ?? false, 'dish' => $d['also_dish'] ?? false, 'price' => $d['dish_price'] ?? null, 'station_id' => $d['station_id'] ?? null, 'update_side' => $d['update_side'] ?? false, 'side_details' => $d['side_details'] ?? [], 'dish_details' => $d['dish_details'] ?? []], $request->user()?->id)['made'];
             });
             $extra = $made ? ' Also made: '.implode(' and ', $made).'.' : '';
 
@@ -202,6 +202,16 @@ class MenusRecipesController extends Controller
         ];
     }
 
+    /** The side made from a recipe of its own, with its packaging, so the recipe form can edit them together; null when there is none. @return array<string, mixed>|null */
+    private function sideOf(DishRecipe $r): ?array
+    {
+        if ($r->dish_id || ! \App\Services\Menus\Sides::installed() || ! ($side = \App\Models\Menus\Side::with(['recipe.yieldUnit', 'ingredient.baseUnit', 'unit', 'station', 'amounts.serving'])->where('recipe_id', $r->id)->first())) {
+            return null;
+        }
+
+        return app(\App\Services\Menus\Sides::class)->row($side) + ['packaging' => \App\Services\Menus\PackagingRules::installed() ? array_values(array_filter(app(\App\Services\Menus\PackagingRules::class)->show('side', $side->id)['rules'], fn ($x) => ! $x['grey'])) : []];
+    }
+
     private function row(DishRecipe $r, ?int $location): array
     {
         $cost = $location ? $this->use->cost($r, $location) : null;
@@ -220,6 +230,7 @@ class MenusRecipesController extends Controller
             ])->values(),
             'times' => $r->relationLoaded('times') ? $r->times->map(fn ($t) => ['up_to' => (float) $t->up_to_qty, 'minutes' => (int) $t->minutes])->values() : [],
             'steps' => $r->steps->map(fn ($s) => ['body' => $s->body, 'minutes' => $s->minutes])->values(),
+            'side' => $this->sideOf($r),
             'cost' => $cost, 'portions' => $location && $r->made_to_order && $r->is_active ? $this->use->capacity($r, $location) : null,
         ];
     }

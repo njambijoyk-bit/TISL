@@ -147,4 +147,29 @@ class MenusRecipeToPlateTest extends TestCase
         $out = app(MenusRecipesController::class)->index(Request::create('/x', 'GET'))->getData(true);
         $this->assertSame([['Jumbo'], ['Adults'], ['Takeaway box - Pack of 50']], [array_column($out['lists']['servings'], 'name'), array_column($out['lists']['audiences'], 'name'), array_column($out['packaging_items'], 'name')]);
     }
+
+    public function test_editing_the_recipe_edits_its_side_with_it_and_the_door_hands_the_side_to_the_form(): void
+    {
+        $rule = ['item_id' => $this->box, 'scope' => 'per_dish', 'quantity' => 2, 'compulsory' => true, 'charged' => true, 'receipt' => 'auto'];
+        $this->saveRecipe($this->body('Beef pilau', ['also_side' => true, 'side_details' => ['task_minutes' => 3, 'packaging' => [$rule]]]));
+        $id = (int) DishRecipe::standalone()->value('id');
+        $out = app(MenusRecipesController::class)->index(Request::create('/x', 'GET'))->getData(true);
+        $side = $out['standalone'][0]['side'];
+        $this->assertSame([3, 2], [$side['task_minutes'], $side['packaging'][0]['quantity']], 'the form opens with the side as it is');
+
+        $res = $this->saveRecipe($this->body('Beef pilau', ['yield_qty' => 1, 'also_side' => true, 'update_side' => true, 'station_id' => $this->station,
+            'side_details' => ['base_amount' => 2, 'amounts' => [['serving_id' => $this->jumbo, 'amount' => 3]], 'task_minutes' => 5, 'note' => 'Hot', 'packaging' => []]]), $id);
+        $this->assertSame(200, $res->getStatusCode(), $res->getContent());
+        $this->assertStringContainsString('the side Beef pilau updated', $res->getData(true)['message']);
+        $s = Side::with('amounts')->first();
+        $this->assertSame([1, 2.0, 5, 'Hot', $this->station, [$this->jumbo => 3.0]], [Side::count(), (float) $s->base_amount, (int) $s->task_minutes, $s->note, (int) $s->station_id, $s->amounts->pluck('amount', 'serving_id')->map(fn ($a) => (float) $a)->all()]);
+        $this->assertSame(0, \App\Models\Menus\PackagingRule::where('side_id', $s->id)->count(), 'the packaging the form sent (none) replaced the old');
+    }
+
+    public function test_saving_a_recipe_without_update_side_leaves_its_side_alone(): void
+    {
+        $this->saveRecipe($this->body('Beef pilau', ['also_side' => true, 'side_details' => ['task_minutes' => 3]]));
+        $this->saveRecipe($this->body('Beef pilau', ['yield_qty' => 1]), (int) DishRecipe::standalone()->value('id'));
+        $this->assertSame(3, (int) Side::first()->task_minutes);
+    }
 }

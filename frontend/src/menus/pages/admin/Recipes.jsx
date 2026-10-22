@@ -92,12 +92,14 @@ function RecipeModal({ dish, options, onClose, onDone }) {
   const [note, setNote] = useState(r?.note ?? '');
   const [name, setName] = useState(dish.name ?? '');
   const [notSimple, setNotSimple] = useState(false);   // a new recipe also makes its side unless it is ticked as not a simple meal (a base, a marinade)
-  const [station, setStation] = useState('');
-  const [sideAmount, setSideAmount] = useState('1');
-  const [sideSizes, setSideSizes] = useState([]);
-  const [sideTask, setSideTask] = useState('');
-  const [sideNote, setSideNote] = useState('');
-  const [sidePack, setSidePack] = useState([]);
+  const own = dish.standalone && dish.id ? r?.side ?? null : null;   // the side already made from this recipe, edited here with it
+  const [station, setStation] = useState(own?.station_id ? String(own.station_id) : '');
+  const [sideAmount, setSideAmount] = useState(own ? String(own.base_amount) : '1');
+  const [sideSizes, setSideSizes] = useState((own?.amounts ?? []).map((a) => ({ serving_id: String(a.serving_id), value: String(a.amount) })));
+  const [sideTask, setSideTask] = useState(own?.task_minutes ? String(own.task_minutes) : '');
+  const [sideNote, setSideNote] = useState(own?.note ?? '');
+  const [sidePack, setSidePack] = useState((own?.packaging ?? []).map((x) => ({ item_id: String(x.item_id), quantity: x.quantity, scope: x.scope, compulsory: x.compulsory, charged: x.charged, receipt: x.receipt })));
+  const [addSide, setAddSide] = useState(false);   // editing a recipe that has no side: tick to make one
   const [busy, setBusy] = useState(false);
   const [err, setErr] = useState(null);
   const unitLabel = dish.standalone ? (options.units ?? []).find((u) => String(u.id) === String(yieldUnit))?.code ?? 'portions' : 'portions';
@@ -111,7 +113,7 @@ function RecipeModal({ dish, options, onClose, onDone }) {
   const sizesOut = (rows, key) => rows.filter((r) => r.serving_id && r.value !== '').map((r) => ({ serving_id: Number(r.serving_id), [key]: Number(r.value) }));
   const sideDetails = () => ({ base_amount: sideAmount === '' ? 1 : Number(sideAmount), amounts: sizesOut(sideSizes, 'amount'), task_minutes: sideTask === '' ? null : Number(sideTask), note: sideNote || null, packaging: packOut(sidePack) });
 
-  const makesSide = Boolean(dish.standalone && !dish.id && options.plate_installed && !notSimple);   // only a new recipe of its own
+  const makesSide = Boolean(dish.standalone && options.plate_installed && (dish.id ? (own || addSide) : !notSimple));   // a new recipe of its own, or one being edited that has a side (or is given one now)
   const go = async (e) => {
     e.preventDefault(); setBusy(true); setErr(null);
     try {
@@ -121,7 +123,7 @@ function RecipeModal({ dish, options, onClose, onDone }) {
         steps: steps.map((s) => ({ body: s.body, minutes: s.minutes === '' ? null : Number(s.minutes) })),
         ...(options.times_installed ? { times: times.filter((t) => t.up_to !== '' || t.minutes !== '').map((t) => ({ up_to: t.up_to === '' ? 0 : Number(t.up_to), minutes: t.minutes === '' ? 0 : Number(t.minutes) })) } : {}),
       };
-      const res = dish.standalone ? await menusAPI.saveRecipeBook({ ...payload, name, ...(makesSide ? { also_side: true, station_id: station === '' ? null : Number(station), side_details: sideDetails() } : {}) }, dish.id) : await menusAPI.saveStockRecipe(dish.id, payload);
+      const res = dish.standalone ? await menusAPI.saveRecipeBook({ ...payload, name, ...(makesSide ? { also_side: true, ...(own ? { update_side: true } : {}), station_id: station === '' ? null : Number(station), side_details: sideDetails() } : {}) }, dish.id) : await menusAPI.saveStockRecipe(dish.id, payload);
       toast.success(res.message); onDone();
     } catch (x) { setErr(errMsg(x, 'Could not save the recipe')); } finally { setBusy(false); }
   };
@@ -249,6 +251,11 @@ function RecipeModal({ dish, options, onClose, onDone }) {
             </div>
             <button type="button" style={{ ...small, marginTop: 8 }} onClick={() => setSteps((xs) => [...xs, { key: `s${++key.current}`, body: '', minutes: '' }])}><Plus size={12} /> Add a step</button>
           </div>
+          {dish.standalone && dish.id && !own && options.plate_installed && (
+            <label data-testid="recipe-add-side" style={{ display: 'flex', gap: 6, alignItems: 'center', fontSize: '0.82rem', fontWeight: 700 }}>
+              <input type="checkbox" aria-label="Make a side from this recipe" checked={addSide} onChange={(e) => setAddSide(e.target.checked)} /> Make a side from this recipe too
+            </label>
+          )}
           {dish.standalone && !dish.id && options.plate_installed && (
             <div data-testid="recipe-also" style={{ display: 'grid', gridTemplateColumns: '2fr 1fr', gap: 10, alignItems: 'end' }}>
               <div>
@@ -269,7 +276,15 @@ function RecipeModal({ dish, options, onClose, onDone }) {
           )}
           {makesSide && (
             <div data-testid="also-side" style={{ display: 'grid', gap: 10, padding: 10, border: `1px solid ${colors.tint(0.1)}`, borderRadius: 8 }}>
-              <div style={{ fontSize: '0.78rem', fontWeight: 800 }}>The side: {name || 'this recipe'}</div>
+              <div style={{ fontSize: '0.78rem', fontWeight: 800 }}>The side: {own?.name ?? (name || 'this recipe')}{own && <span style={{ fontWeight: 400, color: colors.textFaint }}> (saved together with the recipe)</span>}</div>
+              {dish.id && (
+                <Field label="Station" htmlFor="rc-station2" hint="who makes the side">
+                  <SelectInput id="rc-station2" value={station} onChange={(e) => setStation(e.target.value)}>
+                    <option value="">None yet</option>
+                    {(options.stations ?? []).map((st) => <option key={st.id} value={String(st.id)}>{st.name}</option>)}
+                  </SelectInput>
+                </Field>
+              )}
               <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 2fr', gap: 10 }}>
                 <Field label="In a serving" htmlFor="rc-sideamt" hint={`in ${unitLabel}`}><NumberInput id="rc-sideamt" min="0" step="any" value={sideAmount} onChange={(e) => setSideAmount(e.target.value)} /></Field>
                 <Field label="Plating (minutes)" htmlFor="rc-sidetask" hint="at the pass"><NumberInput id="rc-sidetask" min="1" max="240" value={sideTask} onChange={(e) => setSideTask(e.target.value)} /></Field>
