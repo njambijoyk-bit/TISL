@@ -2,7 +2,7 @@
 
 A small Nairobi kitchen, made so the numbers can be checked by hand. Menus has its own stock: **ingredients** with a base unit, an alternate unit and **variants** (Exe, Pembe, Soko), bought, counted, wasted and used up as ingredients. Dishes are made the way the program now makes them: **recipes of their own, then sides made from them, then dishes made of sides** (with sizes, slots, leaving out and extra), with packaging, tips, a currency and timers on top. Enter it in this order, because each part needs the one before:
 
-**0 setup, 1 ingredients, 2 opening stock, 3 lists and settings, 4 recipes, 5 sides, 6 dishes, 7 menus, 8 meal plan, 9 packaging and condiments, 10 tips, 11 another currency, 12 timers, codes and scanning.** Section 13 says what to look for, and section 14 says which automated test asserts which figure.
+**0 setup, 1 ingredients, 2 opening stock, 3 lists and settings, 4 recipes, 5 sides, 6 dishes, 7 menus, 8 meal plan, 9 packaging and condiments, 10 tips, 11 another currency, 12 prepared food, timers, codes and scanning.** Section 13 says what to look for, and section 14 says which automated test asserts which figure.
 
 Prices are made up. Run database scripts **181 to 214 and 225** (215 to 224 are the vendor portal and tenders, which Menus does not need), in numerical order, first (each header says what it needs; 190 to 192 are the kinds of ingredient and their accounts, 193 the Menus configuration, 200 to 203 sides and make-up, 205 to 206 leaving out and extra, 207 to 211 packaging and condiments, 212 tips, 213 dish currencies, 214 timers, 225 a recipe line naming its variant) and `php artisan access:seed`.
 
@@ -237,7 +237,7 @@ Quantities are for one portion unless the table says "one batch makes". **Waste 
 
 | Recipe | One batch makes | Lines for the whole batch | Notes |
 |---|---|---|---|
-| Ugali | **2 kg** (counted in Kilogram) | Maize flour 800 g | Cost **40.00** a kilogram, so a 250 g plate is **10.00**. **Times:** up to 1 kg 15 min, up to 2 kg 20 min, up to 5 kg 40 min. Method: 1 Boil the water (5 min). 2 Stir in the flour (20 min). Make a batch before you sell a plate that has ugali (section 13D): the plates take it from the batch. |
+| Ugali | **2 kg** (counted in Kilogram) | Maize flour 800 g | Cost **40.00** a kilogram, so a 250 g plate is **10.00**. **Times:** up to 1 kg 15 min, up to 2 kg 20 min, up to 5 kg 40 min. Method: 1 Boil the water (5 min). 2 Stir in the flour (20 min). Make a batch before you sell a plate that has ugali (section 12B): the plates take it from the batch. |
 | Chocolate cake | **8** portions, prep 20 min, cook 40 min | Wheat flour 300 g, Sugar 250 g, Eggs 4, Butter 200 g, Cocoa 60 g, Milk 200 ml, Baking powder 10 g | The Recipes screen says **69.18** a slice (the shelf average); making the batch costs **553.00**, which is **69.13** a slice, because it takes the flour from Exe and the milk from the 1 L packs. Method: 1 Cream the butter and sugar. 2 Beat in the eggs. 3 Fold in flour, cocoa and baking powder, loosen with milk. 4 Bake at 170 degrees for 40 minutes. 5 Cool and cut into 8. Set "Who may see it" to "May be shown on the website and in courses" to test copying it to Courses. |
 
 Open **Chips** and **Ugali** and check the "one batch makes" unit. Open **Pancakes**: the butter line shows its *may be left out* tick, the others do not.
@@ -369,70 +369,191 @@ What to expect (asserted by `MenusDishCurrencyTest` and `MenusPackagingCalcTest`
 - Paper bag at 0.04 USD on a shilling order: **5.20**. On a USD menu a bag priced at 5 shillings is 0.04.
 - On the Dishes page a dish's margin is worked out in the base currency. Meal plans and Cakes & catering stay in the base currency.
 
-## 12. Timers, codes and scanning (Menus, Prepared food; Menus, Kitchen; Admin, Codes)
+## 12. Prepared food, timers, codes and scanning
 
-- **A chef:** Menus, Chefs, **Chef Wanjiru** (active, shown to the public if you like).
-- **Batch timers** (Prepared food, *Start a timer*): Ugali **2 kg** says **20 minutes**; **1 kg** **15**; **5 kg** **40**; **6 kg** has no time row, so the box asks for minutes (type **45**). Typed minutes win over the recipe's (type 30 for 2 kg). Make the 2 kg batch from its timer with Chef Wanjiru, use-by **today + 3 days**: the timer closes and the batch is timed from when the timer started. (Asserted by `MenusPrepTimersTest`.)
-- **Ticket timers:** order a **Steak sandwich** in Jumbo with the default **Choma** (5 min): the kitchen ticket shows **Plate Choma: 5 min**, counts down once the cook starts it, and goes red and says *over* when it runs out. Order another with **Wet fry** (4 min) instead: **Plate Wet fry: 4 min**. Add **Kale** (no task time) to either: nothing changes; the longest task on the ticket is its timer, not the sum. A **Chips** order has no ticket timer. (Asserted by `MenusTicketTimersTest`.)
-- **Supplier barcodes** (all with a correct check digit; type them in Menus, Ingredients, *Barcode or code*): Cola **Crate of 24** `6001234560012`; Cola **Single bottle** `6001234560029`; Fanta **Crate of 24** `6001234560036`; Bottled water **Pack of 12** `6001234560043`. A wrong one to try: `6001234567890` (refused, check digit). The same code on two items is refused.
-- **Scan at the stock screens** (type the code in the box and press Enter): Receive stock, scan `6001234560012` twice: Cola crate, quantity **2**. Scan `6001234560050` (a valid barcode nothing has): the screen asks which item it is. Count the shelf: scan the single bottle three times: counted **3**. What to buy: scan the Fanta crate: it is added to the order by the pack.
-- **Codes page** (Admin, Codes, with Menus on): tabs **Dishes, Recipes, Prepared batches, Ingredient lots, Kitchen stock**. Codes are made from the number: the first dish is `DSH00000001`, a recipe `RCP...`, a prepared batch `PBL...`, an ingredient lot `ILT...`, a kitchen stock item without a barcode gets `KIT...` on *Give a code*. Print a QR label for **Steak sandwich**; scan it (or paste its link): the public menu opens at that dish. Print the **Ugali** recipe's QR: it opens the kitchen card (staff signed in). Print the label of the Ugali batch: `Made <day> 14:30, Chef Wanjiru`, `Batch ... use by ...`.
-- **Reserved shapes:** give a kitchen item the code `DSH00000001`: refused, already used.
+How to read this section: each table is a short test. **Do** is what you press or type, **Expect** is what you should see. "(test)" means an automated test checks the same figure (section 14). Do 12B before 12C, 12D and the Beef stew & ugali sale in 13C, because they need the ugali batch.
+
+**Needs:** scripts 198, 199 and 214 run; the **Ugali** recipe saved with its times (section 4); **Chef Wanjiru** added under Menus, Chefs (active; tick *Show on the chefs page* if you like).
+
+### 12A. What "prepared food" means
+Most dishes are **made to order**: the ingredients come off the shelf when the dish is sold. A recipe set to **Made ahead in batches** works the other way: you make a batch first (the ingredients come off the shelf then), the portions sit on a separate **prepared shelf**, and each sale takes a portion from that shelf. In the test data Ugali and Chocolate cake are made ahead; everything else is made to order.
+
+### 12B. Make a batch (Menus, Prepared food, or Menus, Stock, Make a batch)
+
+| # | Do | Expect |
+|---|---|---|
+| 1 | Choose recipe **Ugali**, size **2 kg**. Do not press the button yet. | A table of what the batch takes: for each ingredient what the recipe says, what is really used, what is on the shelf, and the cost. Maize flour 800 g. |
+| 2 | Pick **Chef Wanjiru**, set the start and finish times, press **Make the batch**. | The batch is listed under *Batches made*. Maize flour falls by 800 g (Unga 20,000 g to 19,200 g). 2 kg appears on the prepared shelf. (test) |
+| 3 | Look in Books. | One journal: Dr Prepared Food Inventory, Cr Food Ingredients Inventory, for what the flour cost. |
+| 4 | Make a second batch: **Chocolate cake**, **8** portions. | Flour, sugar, eggs, butter, cocoa, milk and baking powder fall by the batch amounts. The batch costs **553.00**, which is **69.13** a slice. 8 slices are on the prepared shelf. (test) |
+| 5 | Sell **1 Chocolate cake slice** at the till. | The shelf shows 7 slices. Books: Dr Food Cost of Sales, Cr Prepared Food Inventory, 69.13. (test) |
+| 6 | Waste 3 cake slices as *Made too much* (Operations, Waste). | The slices go from the prepared shelf. |
+| 7 | Try to cancel the cake batch after step 5. | Refused: a slice has been sold. Cancelling a batch nobody has sold from works and puts the ingredients back. |
+
+### 12C. Batch timers (Prepared food, **Start a timer**)
+A timer tells the chef how long a batch takes. The recipe gives the time by batch size; a size bigger than every row has no time and you type minutes.
+
+| # | Do | Expect |
+|---|---|---|
+| 1 | Start a timer for Ugali **1 kg**, then **2 kg**, then **5 kg**. | **15**, **20** and **40** minutes. (test) |
+| 2 | Start one for **6 kg**. | No time row fits, so the box asks for minutes: type **45**. |
+| 3 | Start one for 2 kg and type **30** minutes. | 30 is used, not the recipe's 20: typed minutes win. (test) |
+| 4 | Make the 2 kg batch from its timer: Chef Wanjiru, use-by **today + 3 days**. | The timer closes. The batch is timed from when the timer was started. (test) |
+
+### 12D. Ticket timers (Menus, Kitchen)
+A dish with a plating or reheating time on one of its sides gets a countdown on the kitchen ticket. Choma has 5 minutes and Wet fry 4 (section 5).
+
+| # | Do | Expect |
+|---|---|---|
+| 1 | Order a **Steak sandwich**, Jumbo, with the default **Choma**. | The ticket shows **Plate Choma: 5 min**. (test) |
+| 2 | Press **Start** on the ticket. | The countdown runs. When it reaches 0 the ticket goes red and says *over*. |
+| 3 | Order another with **Wet fry** instead. | **Plate Wet fry: 4 min**. (test) |
+| 4 | Add **Kale** (it has no plating time) to either. | Nothing changes. The longest task on the ticket is its timer, not the sum. (test) |
+| 5 | Order a **Chips**. | No ticket timer: nothing on it has a plating time. |
+
+### 12E. Supplier barcodes (Menus, Ingredients, the variant's *Barcode or code* box)
+Type each code on its variant. They all have a correct check digit.
+
+| Variant | Barcode |
+|---|---|
+| Cola, Crate of 24 | `6001234560012` |
+| Cola, Single bottle | `6001234560029` |
+| Fanta, Crate of 24 | `6001234560036` |
+| Bottled water, Pack of 12 | `6001234560043` |
+
+| # | Do | Expect |
+|---|---|---|
+| 1 | Type `6001234567890` on any variant. | Refused: the check digit is wrong. |
+| 2 | Type `6001234560012` on a second variant. | Refused: another item already has that code. |
+
+### 12F. Scanning at the stock screens
+Type the code in the scan box and press Enter, as a scanner would.
+
+| # | Where | Do | Expect |
+|---|---|---|---|
+| 1 | Receive stock | Scan `6001234560012` twice. | Cola crate, quantity **2**. |
+| 2 | Receive stock | Scan `6001234560050` (a valid barcode nothing has). | The screen asks which item it is. |
+| 3 | Count stock | Scan the single bottle three times (`6001234560029`). | Counted **3**. |
+| 4 | Operations, What to buy | Scan the Fanta crate (`6001234560036`). | It is added to the order, by the pack. |
+
+### 12G. Codes and labels (Admin, Codes, with Menus switched on)
+
+| # | Do | Expect |
+|---|---|---|
+| 1 | Open the tabs **Dishes, Recipes, Prepared batches, Ingredient lots, Kitchen stock**. | Every item has a code made from its number: dishes `DSH00000001`, recipes `RCP...`, prepared batches `PBL...`, ingredient lots `ILT...`. (test) |
+| 2 | On Kitchen stock, press *Give a code* on an item that has no barcode. | It gets a code starting `KIT`. (test) |
+| 3 | Print a QR label for **Steak sandwich**, scan it (or paste its link). | The public menu opens at that dish. (test) |
+| 4 | Print the QR for the **Ugali** recipe and open it signed in as staff. | It opens the kitchen card. |
+| 5 | Print the label of the Ugali batch from 12B. | `Made <day> 14:30, Chef Wanjiru` and `Batch ... use by ...`. A batch made without a chef shows only when it was made. |
+| 6 | Give a kitchen item the code `DSH00000001`. | Refused: already used. |
 
 ## 13. What to look for once it is in
 
-"(test)" after a figure means `MenusSampleKitchenTest` or another automated test asserts it for the same data (section 14); the rest is arithmetic or what the screen should say.
+How to read this section: each table row is one check. **Where** is the screen, **Do** what to press, **Expect** what you should see. "(test)" means an automated test (`MenusSampleKitchenTest` or another, listed in section 14) checks the same figure; the rest is arithmetic or what the screen should say. Shelf figures start from the opening stock in section 2.
 
-### 13A. Stock and ingredients
-- Menus, Stock shows Exe at 10 packs, 20 kg, 20,000 g; Pembe at nothing; Jogoo faded (not in use). Receiving a delivery (say 5 packs of Exe at 260 from Naivas Wholesale) is a **Purchase voucher** in Books with a line for the variant (Dr Food Ingredients Inventory, Cr Naivas Wholesale) and 10,000 g more on the shelf; it is also listed under Purchases. Cancelling that voucher takes the stock off again, unless some was used.
-- Deleting an ingredient that a recipe uses, or a variant with stock history, is refused. Move **Wheat flour** to Packaging: refused, "It is in a recipe".
-- **Opening stock** (arithmetic): all rows together are **52,500.00**: **46,350.00** on Food Ingredients Inventory and **6,150.00** on Kitchen Supplies Inventory (boxes 2,000.00, bags 800.00, foil 500.00, gloves 1,050.00, soap 1,800.00).
-- **Menus, Ingredients, Kinds:** five kinds, each with its ledger and stock ledger. The counts with this data: Cooking ingredient **19**, Condiment or extra **4** (Salt, Mayonnaise, Tomato ketchup, Ketchup sachet), Ready to serve **3**, Packaging **3**, Supplies **2** (31 ingredients). The Ingredients page filters by each kind. Remove Supplies: refused (it has ingredients). Add a kind without picking its ledger: Save stays off.
-- **Recipes:** open any recipe and look at the ingredient list. It offers the cooking ingredients and the condiments (Salt, Mayonnaise, Tomato ketchup, Ketchup sachet); it does **not** offer Cola, Fanta, water, boxes, bags, foil, gloves or soap.
-- **Allergens, Menus, Allergens:** Milk shows "not vegan, not dairy free"; Wheat / gluten shows "not gluten free"; each shows how many ingredients carry it: **Milk 3** (Milk, Butter, Cheddar cheese), **Wheat / gluten 2** (flour, bun), **Eggs 2** (Eggs, Mayonnaise), **Dairy 3**. Add Gelatine as in section 1; try to remove Milk and be refused while ingredients carry it.
+### 13A. Stock and set-up checks
 
-### 13B. What a dish tells (test)
-A dish made of sides inherits its allergens, tags and diets from **every side in every slot**, because any of them can end up on the plate. Nobody types them on the dish.
-- Pancakes show **wheat, eggs and milk** (tags gluten, egg, dairy).
-- Beef stew & ugali shows no allergens, the tag meat, and cannot be shown vegetarian. Sukuma wiki & ugali shows no allergens and can be shown vegetarian (the dish takes them from its Sukuma wiki and Ugali sides).
-- The Steak sandwich shows **wheat** (bread) and **eggs** (the egg side, the mayonnaise), even though a guest takes only one protein. The Burger shows **wheat** and **milk**. A dish with a Cola side is complete (a ready-to-serve ingredient says what it is). A dish with no recipe and no sides is unknown and claims no diet.
+| Where | Do | Expect |
+|---|---|---|
+| Menus, Stock | Look at the flour. | **Exe 2 kg**: 10 packs, 20 kg, 20,000 g. **Pembe 24 kg**: nothing. **Jogoo 2 kg**: faded, because it is not in use. |
+| Menus, Stock, Receive | Receive 5 packs of Exe at 260 from Naivas Wholesale. | A Purchase voucher in Books (Dr Food Ingredients Inventory, Cr Naivas Wholesale); 10,000 g more on the shelf; it is listed under Purchases. Cancelling the voucher takes the stock off again, unless some was used. |
+| Menus, Ingredients | Delete an ingredient a recipe uses, or a variant with stock history. | Refused. |
+| Menus, Ingredients | Change Wheat flour's kind to Packaging. | Refused: "It is in a recipe". |
+| Opening stock vouchers | Add up all the rows of section 2. | **52,500.00**: **46,350.00** on Food Ingredients Inventory and **6,150.00** on Kitchen Supplies Inventory (boxes 2,000.00, bags 800.00, foil 500.00, gloves 1,050.00, soap 1,800.00). Arithmetic. |
+| Menus, Ingredients, Kinds | Look at the counts. | Cooking ingredient **19**, Condiment or extra **4** (Salt, Mayonnaise, Tomato ketchup, Ketchup sachet), Ready to serve **3**, Packaging **3**, Supplies **2**; 31 ingredients in all. |
+| Menus, Ingredients, Kinds | Remove the kind Supplies. | Refused: it has ingredients. |
+| Menus, Ingredients, Kinds | Add a kind without choosing its ledger. | Save stays off. |
+| Menus, Recipes | Open any recipe and look at the ingredient list. | Offers cooking ingredients and condiments (Salt, Mayonnaise, Tomato ketchup, Ketchup sachet). Does **not** offer Cola, Fanta, water, boxes, bags, foil, gloves or soap. |
+| Menus, Allergens | Look at the counts. | **Milk 3** (Milk, Butter, Cheddar cheese), **Wheat / gluten 2** (flour, bun), **Eggs 2** (Eggs, Mayonnaise), **Dairy 3**. Milk says "not vegan, not dairy free"; Wheat / gluten says "not gluten free". |
+| Menus, Allergens | Add a tag Gelatine (section 1); try to remove Milk. | Gelatine is added. Milk is refused while ingredients carry it. |
 
-### 13C. Selling
-- **Portion costs on the Recipes screen (test):** Stewed beef 193.09, Chicken pilau 163.57, Beef pilau 166.57, Mandazi 39.97, Cheese omelette 61.28, Sukuma wiki 24.98, Chips 51.20, Pancakes 67.71, Masala chai 29.00, one slice of cake 69.18, a kilogram of Ugali 40.00 (a 250 g plate 10.00). So a Beef stew & ugali plate costs 203.09 and a Sukuma wiki & ugali plate 34.98.
-- **The three simple dishes (test):** two Beef pilau take 300 g of beef (6,000 g falls to 5,700 g) and 300 g of rice (10,000 g to 9,700 g), all in one recipe. Three Mandazi take 300 g of flour from Exe and 60 g of sugar. One Cheese omelette takes 2 eggs, 20 g of cheese and 10 g of butter, and shows the allergens eggs and milk. Check also that the shortcut gave each the side and the dish with the right station, and that saving a Beef pilau recipe a second time with the shortcut does not make a second side.
-- **Dishes page (test):** a dish made of sides does not say "No recipe yet": it says **Made of Stewed beef, Ugali**, with its cost (Beef stew & ugali **203.09**, margin 446.91, 31.2% food cost; Sukuma wiki & ugali 34.98) worked out from the plate as it comes: everything in an always-included slot and the default choice of the others, never the optional extras. The Recipes page lists such a dish as "Made of ... (their recipes, under Sides)", and the prep list (Operations) calls it "Made of sides" and adds the ingredients of its made-to-order sides to what to buy.
-- **Beef stew & ugali (test):** after making the Ugali batch (13D), sell 2: the beef comes from the shelf (200 g each, 210.5 g with the waste, so 421 g in all) and **500 g of ugali from the batch** (2 kg falls to 1.5 kg); no maize flour is taken at the sale, because it was taken when the batch was made (800 g, so Unga goes from 20,000 g to 19,200 g).
-- **A named variant (test):** Masala chai costs 29.00 with the milk on Automatic. The copy with the milk named as **Fresh 500 ml** costs **30.60** (200 ml at 0.13: 26.00 + 3.00 + 1.60), and three of them take 600 ml from the 500 ml packs and nothing from the 1 L packs (the 500 ml packs go from 5,000 ml to 4,400 ml).
-- **Three Pancakes (test):** the Till or kiosk sells them; the flour comes out of **Exe** (360 g, so Exe goes from 20,000 g to 19,640 g, because Pembe is empty); Soko stays at 5,000 g (it is switched off as a substitute); eggs go from 120 to 117; the milk (150 ml × 3 = 450 ml) comes from the 1 L packs because milk is set to "the cheapest first" (19,550 ml left, the 500 ml packs untouched); butter goes from 1,250 g to 1,220 g. Books gets one journal: Dr Food Cost of Sales, Cr Food Ingredients Inventory.
-- **Three Pancakes with No butter (test):** the butter stays at 1,250 g (10 g a pancake saved); the rest of the pancake is still made (flour 19,640 g).
-- **Chicken pilau (test):** sell 5, the sixth is refused ("Not enough Chicken: need 180 g, have 100.", 1 kg holds five portions of 180 g) and the till shows the dish as sold out. Cancel one of the five sales and the chicken comes back.
-- **Chips (test):** a Medium takes 300 g of potatoes (352.9 g from the shelf with the 15% peeling waste added back), a **Jumbo 450 g** (529.4 g): half as much again. Jumbo is 400, Medium 300.
-- **Steak sandwich (test):** Jumbo with the default Choma **650**. Wet fry and Kale: **720** (650 + 50 + 20). Two Eggs as well: **800**. **Kids**: **350**. Free extras (a Cola, a Ketchup) cost nothing: the Cola takes 1 each off the shelf (the crate, 50 each, goes from 72 to 71, the cheapest pick) and the ketchup 30 ml (3,000 to 2,970).
-- **Burger (test):** with **Extra cheese** and **No onion**: **570** (500, plus 10% of 500 for the cheese, plus 20 for the onion). Plain: **500**. The sale takes **40 g** of Cheddar (20 + 20 extra), no onion, one bun and 120 g of beef. On a dish sold in sizes the percentage is of the size's price, not of the dish's own price.
-- Online, the Menu page shows the Steak sandwich "from 350", with each size's price and who it is for; choosing **Kids** under *For* hides the Burger (Adults only) and keeps the Steak sandwich and the Chips (for everyone). A paid extra: after the third Egg the button goes.
-- A ticket for the Steak sandwich in Jumbo shows `Jumbo`, then `- Bread`, `- Choma`, `- Egg x2`.
+### 13B. Costs on the Recipes screen (test)
+The cost of one portion, worked out from the prices in section 2.
 
-### 13D. Making ahead (test)
-- **Ugali first:** Menus, Stock, Make a batch (or Prepared food): Ugali, **2 kg**, which is 8 plates of 250 g. The maize flour falls by 800 g and 2 kg appears on the prepared shelf. Do this before selling the two dishes with ugali.
-- Menus, Stock, Make a batch: Chocolate cake, 8 portions. The flour, sugar, eggs, butter, cocoa, milk and baking powder fall by the batch quantities; the batch costs **553.00**, and 8 slices appear on the prepared shelf at **69.13** each (the till can sell 8). Nothing else is booked until the slices are sold. Selling a slice takes it from the shelf (7 left). Cancelling the batch is refused once any slice is sold.
-- The journals: the batch is Dr Prepared Food Inventory, Cr Food Ingredients Inventory; selling a slice is Dr Food Cost of Sales, Cr Prepared Food Inventory.
+| Recipe | Cost of one portion |
+|---|---|
+| Stewed beef | 193.09 |
+| Chicken pilau | 163.57 |
+| Beef pilau | 166.57 |
+| Sukuma wiki | 24.98 |
+| Mandazi | 39.97 |
+| Cheese omelette | 61.28 |
+| Chips | 51.20 |
+| Pancakes | 67.71 (flour is Exe at 0.13 a gram, Pembe being empty) |
+| Masala chai | 29.00 |
+| Chocolate cake, one slice | 69.18 on the Recipes screen (shelf average); **69.13** when made, see 12B |
+| Ugali | 40.00 a kilogram, so a 250 g plate is 10.00 |
 
-### 13E. Waste, counts, branches, expiry, buying
-- **Operations, Waste:** waste 1 kg of Beef as "Spoilage": the shelf drops by 1,000 g and Books gets Dr Food Waste Expense, Cr Food Ingredients Inventory for its cost (800). "Take back" returns it and cancels the journal. Waste 2 Chips as "Plate waste": potatoes, oil and salt come off. Waste 3 cake slices as "Made too much": the slices go. Waste 1 crate of Cola as Spoilage: 24 each leave and Books gets Dr Food Waste Expense 1,200.00.
-- **Stock, Count stock** (a sheet like Opening stock, one row per variant with what the books say): count Exe as 9 packs and the row says -2,000 g; save, and it is a loss of 1 pack (2 kg), booked to Food Waste Expense. Count it as 11 packs: stock found, a new lot at the last cost. Type 0 where nothing is left; rows you leave empty are not touched. The count is a **Stock count** under Purchases, Stock counts. Count Disposable gloves as 2 boxes (the row says -100 each): saved, it is a shortfall of 350.00 charged to **Kitchen Supplies Used** (credit Kitchen Supplies Inventory), not to waste: supplies are used up on purpose. Count the Cola short instead and that is a loss to Food Waste Expense.
-- **Purchases, Transfers:** send 3 packs of Exe to the second branch. It stays in transit until the other branch receives it (receive 2 packs only and the missing one is written off to Food Waste Expense). Send 1 crate of Cola: it arrives with its cost (50 each) and expiry. Stock, *Send to a branch* does the same for a quick send. Purchases, Expiring stock lists the ingredient lots too.
-- **Buying:** Purchases, New purchase, search "cola": the crate and the single bottle show under it; buy 2 crates at 1,200 with 16% VAT on Purchases. The breakdown shows the VAT and the stock rises by 48 each.
-- **Expiry:** Menus, Stock shows "Expired or expiring this week": the **eggs (4 days), the Fanta (5) and the Burger bun (5)**. The Cola, the ketchup, the mayonnaise and the cheese do not appear.
-- **Operations, What to buy:** Salt appears (under its level of 1 kg, it has 500 g) as 1 pack, from the supplier it was last received from; a week of expected sales also asks for flour, in whole packs of Pembe (the preferred variant). Waste 250 gloves as Other: gloves are at 50 each, under the 100 you keep, so it asks for a box. "Make orders" raises one Purchase Order per supplier in Books.
-- **Prep list:** after a few days of sales, tomorrow's list shows what to make (cake) and what is short.
+A plate's cost is its sides added together: Beef stew & ugali **203.09** (193.09 + 10.00), Sukuma wiki & ugali **34.98**.
 
-### 13F. Menus, plans and courses
-- Breakfast is offered before 11:00 and not after; the Weekend special does not show on a weekday; the dish on all three menus changes price everywhere when you change it once.
-- Meal plan: the day price is 750 and a customer with the plan sees Monday's beef stew.
-- Courses, Recipes: the Chocolate cake appears (it is set to public); copying it gives a lesson with the ingredients (in grams and millilitres) and the five steps. Change the recipe in Menus and "Update the copy" takes the fresh version.
+### 13C. Selling (Till or kiosk). Shelf figures are before and after (test unless marked)
 
-### 13G. Packaging, tips, currency, timers and codes
-What to expect is written under each of sections 9 to 12.
+| Sell | Expect on the shelf and in Books |
+|---|---|
+| **3 Pancakes** | Flour from **Exe**: 20,000 g to 19,640 g (Pembe is empty). Soko stays 5,000 g (switched off as a substitute). Eggs 120 to 117. Milk 450 ml from the **1 L** packs, because milk is "the cheapest first": 20,000 ml to 19,550 ml, the 500 ml packs untouched. Butter 1,250 g to 1,220 g. One journal: Dr Food Cost of Sales, Cr Food Ingredients Inventory. |
+| **3 Pancakes, No butter** | Butter stays 1,250 g (10 g a pancake saved). The rest is still made: flour 19,640 g. |
+| **5 Chicken pilau, then a 6th** | 1 kg of chicken holds five portions of 180 g. The sixth is refused: "Not enough Chicken: need 180 g, have 100." and the till shows the dish as sold out. Cancel one of the five sales and the chicken comes back. |
+| **1 Chips Medium, 1 Chips Jumbo** | Medium takes 300 g of potatoes (352.9 g from the shelf with the 15% peeling waste added back); Jumbo takes 450 g (529.4 g): half as much again. Prices 300 and 400. |
+| **2 Beef pilau** | Beef 6,000 g to 5,700 g, rice 10,000 g to 9,700 g, all in one recipe. |
+| **3 Mandazi** | Flour 300 g (from Exe), sugar 60 g. |
+| **1 Cheese omelette** | 2 eggs, 20 g of cheese, 10 g of butter. Allergens: eggs and milk. |
+| **2 Beef stew & ugali** (after 12B) | Beef 200 g each, 210.5 g with the waste, 421 g in all, from the shelf. **500 g of ugali from the batch**: 2 kg falls to 1.5 kg. No maize flour is taken at the sale: it was taken when the batch was made (Unga 19,200 g). |
+| **1 Steak sandwich, Jumbo, default Choma** | Price **650**. With Wet fry and Kale: **720** (650 + 50 + 20). With two Eggs as well: **800**. **Kids** size: **350**. |
+| **1 Steak sandwich with a Cola and a Ketchup** (free extras) | Price still 650. The Cola crate (50 each) goes 72 to 71, the cheapest pick; ketchup 3,000 ml to 2,970 ml. |
+| **1 Burger with Extra cheese and No onion** | Price **570** (500, plus 10% of 500 for the cheese, plus 20 for the onion). Plain Burger: 500. Takes **40 g** of Cheddar (20 + 20 extra), no onion, one bun, 120 g of beef. A percentage fee is of the size's price, not the dish's own price. |
+
+More to check while selling:
+- **A ticket** for the Steak sandwich in Jumbo shows `Jumbo`, then `- Bread`, `- Choma`, `- Egg x2`.
+- **Online**, the Menu page shows the Steak sandwich "from 350" with each size's price and who it is for. Choosing **Kids** under *For* hides the Burger (Adults only) and keeps the Steak sandwich and the Chips. A paid extra stops after the third Egg.
+- **A named variant (test):** Masala chai costs 29.00 on Automatic. The copy with the milk set to **Fresh 500 ml** costs **30.60** (200 ml at 0.13 is 26.00, plus 3.00, plus 1.60). Three of them take 600 ml from the 500 ml packs and nothing from the 1 L packs (5,000 ml to 4,400 ml).
+
+### 13D. What a dish tells (test)
+A dish made of sides gets its allergens, tags and diets from **every side in every slot**, because any of them can end up on the plate. Nobody types them on the dish.
+
+| Dish | Allergens and diets |
+|---|---|
+| Pancakes | wheat, eggs, milk (tags gluten, egg, dairy) |
+| Beef stew & ugali | no allergens; tag meat; cannot be shown vegetarian |
+| Sukuma wiki & ugali | no allergens; can be shown vegetarian |
+| Steak sandwich | wheat (bread) and eggs (the egg side, the mayonnaise), even though a guest takes only one protein |
+| Burger | wheat, milk |
+| A dish with a Cola side | complete: a ready-to-serve ingredient says what it is |
+| A dish with no recipe and no sides | unknown; claims no diet |
+
+**The Dishes page (test):** a dish made of sides does not say "No recipe yet". It says **Made of Stewed beef, Ugali** with its cost: Beef stew & ugali **203.09**, margin 446.91, food cost 31.2%; Sukuma wiki & ugali 34.98. The cost is the plate as it comes: everything in an always-included slot and the default choice of the others, never the optional extras. The Recipes page lists such a dish as "Made of ... (their recipes, under Sides)". The prep list (Operations) calls it "Made of sides" and adds the ingredients of its made-to-order sides to what to buy.
+
+**The shortcut (test):** a new recipe also makes a side of the same name, with the station you chose. Saving the Beef pilau recipe a second time does not make a second side.
+
+### 13E. Waste, counts, branches, expiry and buying
+
+| Where | Do | Expect |
+|---|---|---|
+| Operations, Waste | Waste 1 kg of Beef as *Spoilage*. | Shelf down 1,000 g. Books: Dr Food Waste Expense, Cr Food Ingredients Inventory, 800. *Take back* returns it and cancels the journal. |
+| Operations, Waste | Waste 2 Chips as *Plate waste*. | Potatoes, oil and salt come off. |
+| Operations, Waste | Waste 1 crate of Cola as *Spoilage*. | 24 each leave. Dr Food Waste Expense 1,200.00. |
+| Stock, Count stock | Count **Exe** as 9 packs. | The row says -2,000 g. Saved: a loss of 1 pack (2 kg), booked to Food Waste Expense. |
+| Stock, Count stock | Count **Exe** as 11 packs. | Stock found: a new lot at the last cost. |
+| Stock, Count stock | Count **Disposable gloves** as 2 boxes. | The row says -100 each. A shortfall of **350.00**, charged to Kitchen Supplies Used (credit Kitchen Supplies Inventory), not to waste: supplies are used up on purpose. |
+| Stock, Count stock | Count the Cola short. | A loss to Food Waste Expense. |
+| Purchases, Transfers | Send 3 packs of Exe to the second branch; receive only 2. | In transit until received; the missing pack is written off to Food Waste Expense. |
+| Purchases, Transfers | Send 1 crate of Cola. | It arrives with its cost (50 each) and expiry. |
+| Purchases, New purchase | Search "cola", buy 2 crates at 1,200 with 16% VAT on Purchases. | The VAT shows in the breakdown. Stock rises by 48 each. |
+| Menus, Stock | Look at "Expired or expiring this week". | The **eggs (4 days)**, the **Fanta (5)** and the **Burger bun (5)**. Not the Cola, ketchup, mayonnaise or cheese. |
+| Operations, What to buy | Open it. | **Salt** (500 g, under its 1 kg level) as 1 pack, from the supplier it was last received from. A week of expected sales also asks for flour in whole packs of Pembe. |
+| Operations, What to buy | Waste 250 gloves as *Other*. | Gloves at 50 each are under the 100 you keep, so it asks for a box. *Make orders* raises one Purchase Order per supplier. |
+| Operations, Prep list | After a few days of sales, open tomorrow's list. | It shows what to make (the cake) and what is short. |
+
+### 13F. Menus, meal plans and courses
+
+| Where | Do | Expect |
+|---|---|---|
+| Menus | Look at the menus at different times. | Breakfast is offered before 11:00, not after. The Weekend special does not show on a weekday. |
+| Menus, Dishes | Change Masala chai's price once. | It changes on all three menus where it sits. |
+| Meal plans | Open Office lunch. | 750 a delivery day; the card says **Every delivery day: Masala chai** and each day's other dish. A customer with the plan sees Monday's Beef stew & ugali. |
+| Courses, Recipes | Open the Chocolate cake (set to public). | Copying it gives a lesson with the ingredients in grams and millilitres and the five steps. Change the recipe in Menus, then *Update the copy* takes the fresh version. |
+
+### 13G. Packaging, tips and currency
+What to expect is written under each of sections 9 to 11.
 
 ## 14. Which automated test asserts which figure
 
