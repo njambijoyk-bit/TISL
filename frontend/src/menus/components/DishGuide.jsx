@@ -228,11 +228,9 @@ export default function DishGuide({ dish: given, data, onClose, onDone, onChoice
                 <SelectInput id="guide-station" value={station} onChange={(e) => setStation(e.target.value)}><option value="">The default station</option>{data.stations.map((st) => <option key={st.id} value={st.id}>{st.name}</option>)}</SelectInput>
               </Field>
             )}
-            {data.chefs && data.chefs.length > 0 && (
-              <Field label="A dish by" htmlFor="guide-chef" hint="The chef is named on the menu if they are shown on the chefs page.">
-                <SelectInput id="guide-chef" value={chef} onChange={(e) => setChef(e.target.value)}><option value="">No one in particular</option>{data.chefs.map((c) => <option key={c.id} value={c.id}>{c.name}</option>)}</SelectInput>
-              </Field>
-            )}
+            <Field label="Made by (chef)" htmlFor="guide-chef" hint={data.chefs === null ? 'Chefs are switched on by database script 141_menus_chefs.sql.' : data.chefs.length === 0 ? 'No chefs yet: add them under Menus, Chefs, then choose one here.' : 'The chef is named on the menu if they are shown on the chefs page.'}>
+              <SelectInput id="guide-chef" value={chef} disabled={!data.chefs || data.chefs.length === 0} onChange={(e) => setChef(e.target.value)}><option value="">No one in particular</option>{(data.chefs ?? []).map((c) => <option key={c.id} value={c.id}>{c.name}</option>)}</SelectInput>
+            </Field>
             <Field label="Made to order: notice needed (hours)" htmlFor="guide-lead" hint="For a cake or anything customers ask for ahead. Empty: an ordinary dish. Dishes with a notice appear under Cakes & catering."><NumberInput id="guide-lead" min="0" max="2000" value={lead} onChange={(e) => setLead(e.target.value)} /></Field>
             <Field label="Order on the menu" htmlFor="guide-sort" hint="Smaller numbers come first."><NumberInput id="guide-sort" min="0" value={sort} onChange={(e) => setSort(e.target.value)} /></Field>
           </div>
