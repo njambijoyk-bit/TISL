@@ -229,7 +229,7 @@ export default function Dishes() {
       {modal?.modifiers && <DishModifiersModal dish={modal.modifiers} onClose={() => setModal(null)} onDone={() => load()} />}
       {modal?.guide && data && <DishGuide dish={modal.guide} data={data} onClose={() => { setModal(null); load(); }} onDone={done} onChoices={(d) => { setModal({ options: d }); load(); }} />}
       {labels && <LabelPrint items={labels} onClose={() => setLabels(null)} />}
-      {modal && !modal.options && !modal.makeup && !modal.guide && !modal.modifiers && !modal.packaging && data && <DishModal dish={modal.dish} data={data} onClose={() => setModal(null)} onDone={done} />}
+      {modal && 'dish' in modal && data && <DishModal dish={modal.dish} data={data} onClose={() => setModal(null)} onDone={done} />}
     </AdminLayout>
   );
 }

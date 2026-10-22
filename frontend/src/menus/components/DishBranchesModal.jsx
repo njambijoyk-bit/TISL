@@ -66,6 +66,36 @@ export function DishBranchesSection({ dish, onDone }) {
   );
 }
 
+/**
+ * The branches on the dish's own form: tick the branches that serve it and, where a branch charges something else, type the price there. An empty price is the dish's own, so a branch inherits
+ * what is typed above. `branches` is [{id, name}], `rows` [{location_id, is_available, price}].
+ */
+export function BranchPriceRows({ branches, rows, setRows, price }) {
+  if (!branches || branches.length < 2) return null;
+  const patch = (id, p) => setRows((xs) => xs.map((x) => (x.location_id === id ? { ...x, ...p } : x)));
+
+  return (
+    <fieldset data-testid="branch-price-rows" style={{ border: `1px solid ${colors.tint(0.12)}`, borderRadius: 10, padding: 12, margin: 0 }}>
+      <legend style={{ fontSize: '0.74rem', fontWeight: 700, color: colors.textMuted, padding: '0 6px' }}>Served at, and price there</legend>
+      <div style={{ display: 'grid', gap: 6 }}>
+        {rows.map((r) => {
+          const b = branches.find((x) => x.id === r.location_id);
+
+          return (
+            <div key={r.location_id} data-testid="branch-price-row" style={{ display: 'grid', gridTemplateColumns: '1fr 150px', gap: 10, alignItems: 'center', opacity: r.is_available ? 1 : 0.6 }}>
+              <label style={{ display: 'flex', gap: 6, alignItems: 'center', fontSize: '0.84rem' }}>
+                <input type="checkbox" aria-label={`Served at ${b?.name}`} checked={r.is_available} onChange={(e) => patch(r.location_id, { is_available: e.target.checked })} /> <strong>{b?.name}</strong>
+              </label>
+              <NumberInput aria-label={`Price at ${b?.name}`} min="0" step="any" placeholder={price === '' ? 'the dish price' : money(price)} value={r.price} disabled={!r.is_available} onChange={(e) => patch(r.location_id, { price: e.target.value })} />
+            </div>
+          );
+        })}
+      </div>
+      <div style={{ fontSize: '0.72rem', color: colors.textFaint, marginTop: 6 }}>Every branch charges the price above unless you type one of its own. Untick a branch that does not serve the dish. The price of each size at a branch is set later, with the Branches button on the dish.</div>
+    </fieldset>
+  );
+}
+
 /** Menus, Dishes, Branches. */
 export default function DishBranchesModal({ dish, onClose, onDone }) {
   return (

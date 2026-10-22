@@ -31,7 +31,7 @@ class MenusDishController extends Controller
         $rows = Dish::with('menuRecipe')->orderBy('sort_order')->orderBy('name')->get()->map(fn (Dish $d) => $this->row($d, $location))->values();
 
         return response()->json([
-            'dishes' => $rows, 'sections' => $this->sections(), 'location_id' => $location, 'settings' => MenusSettings::all(), 'settings_ready' => MenusSettings::ready(),
+            'dishes' => $rows, 'sections' => $this->sections(), 'branches_ready' => \App\Services\Menus\DishBranches::installed(), 'location_id' => $location, 'settings' => MenusSettings::all(), 'settings_ready' => MenusSettings::ready(),
             'allergens' => FoodTags::allergens(), 'tags' => FoodTags::tags(), 'diets' => DietBadges::LABELS,
             'chefs' => \App\Services\Menus\ChefService::installed() ? \App\Models\Menus\Chef::where('is_active', true)->orderBy('display_name')->get(['id', 'display_name as name']) : null,
             'stations' => \App\Services\Menus\KitchenService::installed() ? \App\Models\Menus\Station::where('is_active', true)->orderBy('sort_order')->orderBy('name')->get(['id', 'name']) : null,
@@ -46,11 +46,18 @@ class MenusDishController extends Controller
         $d = $request->validate([
             'name' => 'required|string|max:150', 'price' => 'nullable|numeric|min:0', 'description' => 'nullable|string|max:3000', 'photo' => 'nullable|string|max:255', 'prep_minutes' => 'nullable|integer|min:0|max:6000', 'lead_hours' => 'nullable|integer|min:0|max:2000',
             'sort_order' => 'nullable|integer|min:0|max:9999', 'is_active' => 'nullable|boolean', 'station_id' => 'nullable|integer', 'chef_id' => 'nullable|integer', 'currency_id' => 'nullable|integer',
-            'allergens' => 'nullable|array', 'allergens.*' => 'string|max:20', 'tags' => 'nullable|array', 'tags.*' => 'string|max:20', 'section_ids' => 'nullable|array', 'section_ids.*' => 'integer',
+            'allergens' => 'nullable|array', 'allergens.*' => 'string|max:20', 'tags' => 'nullable|array', 'tags.*' => 'string|max:20', 'section_ids' => 'nullable|array', 'section_ids.*' => 'integer', 'branches' => 'nullable|array', 'branches.*.location_id' => 'required|integer', 'branches.*.is_available' => 'nullable|boolean', 'branches.*.price' => 'nullable|numeric|min:0',
         ]);
 
         return $this->guard(function () use ($d, $id, $request) {
-            $dish = $this->dishes->save($d, $id, $request->user()?->id);
+            $dish = DB::transaction(function () use ($d, $id, $request) {
+                $dish = $this->dishes->save($d, $id, $request->user()?->id);
+                if (! empty($d['branches'])) {   // which branches serve it and what they charge there, set with the dish (the price of each size is on the Branches box)
+                    app(\App\Services\Menus\DishBranches::class)->save($dish, array_map(fn ($b) => array_intersect_key($b, array_flip(['location_id', 'is_available', 'price'])), $d['branches']), true);
+                }
+
+                return $dish;
+            });
 
             return response()->json(['message' => 'Dish saved.', 'dish' => $this->row($dish->load('menuRecipe'), null)], $id === null ? 201 : 200);
         });

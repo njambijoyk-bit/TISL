@@ -125,4 +125,18 @@ class MenusDishBranchesTest extends TestCase
         $this->assertNull($dishesOf($this->other), 'not on the menu at a branch that does not serve it');
         $this->assertNotNull($dishesOf(1));
     }
+
+    public function test_the_dish_form_sets_the_branches_with_the_dish_and_keeps_the_size_prices_a_branch_has(): void
+    {
+        $this->save([['location_id' => $this->other, 'is_available' => true, 'size_prices' => [$this->jumbo => 450]]]);
+        $res = app(MenusDishController::class)->save(Request::create('/x', 'PUT', ['name' => 'Chips', 'price' => 300, 'branches' => [['location_id' => $this->other, 'is_available' => true, 'price' => 340], ['location_id' => 1, 'is_available' => false]]]), $this->dish->id);
+        $this->assertSame(200, $res->getStatusCode(), $res->getContent());
+        $this->assertSame([340.0, 450.0], [DishBranches::price($this->dish, $this->other), app(DishSelection::class)->resolve($this->dish, $this->jumbo, [], $this->other)['unit_price']], 'the price changed, the size price stayed');
+        $this->assertFalse(DishBranches::available($this->dish, 1));
+        $new = app(MenusDishController::class)->save(Request::create('/x', 'POST', ['name' => 'Soup', 'price' => 200, 'branches' => [['location_id' => $this->other, 'is_available' => false]]]));
+        $soup = Dish::where('name', 'Soup')->first();
+        $this->assertSame(201, $new->getStatusCode(), $new->getContent());
+        $this->assertFalse(DishBranches::available($soup, $this->other), 'a new dish is set up with its branches in one go');
+        $this->assertTrue(app(MenusDishController::class)->index(Request::create('/x', 'GET'))->getData(true)['branches_ready']);
+    }
 }

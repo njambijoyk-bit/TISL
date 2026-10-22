@@ -94,10 +94,12 @@ class DishBranches
     /**
      * Set what each branch in the list does with the dish. A branch that serves the dish at its own prices has no row. Branches not in the list are left as they are.
      *
+     * `$keepSizes`: leave each branch's size prices as they are, for a caller that does not send them.
+     *
      * @param array<int, array{location_id?: mixed, is_available?: mixed, price?: mixed, size_prices?: mixed}> $rows
      * @return array<string, mixed> show() as it now is
      */
-    public function save(Dish $dish, array $rows): array
+    public function save(Dish $dish, array $rows, bool $keepSizes = false): array
     {
         if (! self::installed()) {
             throw new BooksException('Run database script 226_menus_dish_branches.sql first: until then every branch serves every dish at its price.');
@@ -126,6 +128,10 @@ class DishBranches
                     throw new BooksException("{$name}: a price can not be less than nothing.");
                 }
                 $size[(int) $serving] = round((float) $p, 2);
+            }
+            if ($keepSizes) {   // the dish form does not show the size prices: what a branch has stays
+                $had = DB::table('menus_dish_branches')->where('dish_id', $dish->id)->where('location_id', $loc)->value('size_prices');
+                $size = $had ? array_map('floatval', json_decode((string) $had, true) ?: []) : [];
             }
             $clean[$loc] = ['is_available' => (bool) ($r['is_available'] ?? true), 'price' => $price, 'size_prices' => $size];
         }

@@ -10,12 +10,12 @@ import { btnGhost, btnPrimary, colors } from '../../_shared/theme/tokens';
 import useMakeup from '../lib/useMakeup';
 import { ModifiersSection } from './DishModifiers';
 import { CondimentsSection, PackagingRulesSection } from './PackagingRules';
-import { DishBranchesSection } from './DishBranchesModal';
+import { BranchPriceRows } from './DishBranchesModal';
 import { AudienceSection, SizesSection, SlotsSection } from './DishMakeupModal';
 import SectionPicker from './SectionPicker';
 
 const small = { ...btnGhost, padding: '4px 10px', fontSize: '0.72rem' };
-const STEPS = ['The dish', 'Sizes', 'What is in it', 'What comes with it', 'Modifiers', 'Packaging', 'Branches'];
+const STEPS = ['The dish', 'Sizes', 'What is in it', 'What comes with it', 'Modifiers', 'Packaging'];
 const INCLUDED = 'Included';
 
 /** Make a side, with its recipe, while setting up a dish: a name, how it is made, and the amount of each ingredient for one serving. */
@@ -132,7 +132,6 @@ function Steps({ dish, step, setStep, onClose, onDone, onChoices }) {
           </div>
         </div>
       )}
-      {step === 6 && <div data-testid="guide-branches"><DishBranchesSection dish={dish} /></div>}
       <div style={{ display: 'flex', gap: 8, justifyContent: 'flex-end', marginTop: 4 }}>
         <button type="button" style={small} onClick={onClose}>Cancel</button>
         {step > 1 && <button type="button" style={small} onClick={() => setStep(step - 1)}>Back</button>}
@@ -162,15 +161,22 @@ export default function DishGuide({ dish: given, data, onClose, onDone, onChoice
   const [currency, setCurrency] = useState(given?.currency_id ?? '');
   const [sections, setSections] = useState(given?.section_ids ?? []);
   const [active, setActive] = useState(given?.is_active ?? true);
+  const [branchRows, setBranchRows] = useState((data.branches ?? []).map((b) => ({ location_id: b.id, is_available: true, price: '' })));   // served everywhere at the dish's price until changed
   const [busy, setBusy] = useState(false);
   const [err, setErr] = useState(null);
   const needsLedger = !given?.id && !data.settings.sales_ledger_id;
+
+  useEffect(() => {   // a dish being set up again: what its branches do now
+    if (!given?.id || !data.branches_ready) return;
+    menusAPI.dishBranches(given.id).then((d) => setBranchRows((xs) => xs.map((r) => { const b = d.branches?.find((x) => x.location_id === r.location_id); return b ? { ...r, is_available: b.is_available, price: b.price ?? '' } : r; }))).catch(() => {});
+  }, [given?.id, data.branches_ready]);
 
   const saveBasics = async () => {
     setBusy(true); setErr(null);
     try {
       const res = await menusAPI.saveDish({
         name, price: Number(price), description: description || null, prep_minutes: prep === '' ? null : Number(prep), lead_hours: lead === '' ? null : Number(lead), sort_order: Number(sort) || 0, is_active: active, section_ids: sections,
+        ...(data.branches_ready && branchRows.length > 1 ? { branches: branchRows.map((r) => ({ location_id: r.location_id, is_available: r.is_available, price: r.price === '' ? null : Number(r.price) })) } : {}),
         ...(needsLedger ? { sales_ledger_id: ledger } : {}), ...(data.stations ? { station_id: station === '' ? null : Number(station) } : {}), ...(data.chefs ? { chef_id: chef === '' ? null : Number(chef) } : {}), ...(data.currency_ready ? { currency_id: currency === '' ? null : Number(currency) } : {}),
       }, dish?.id ?? given?.id);
       setDish(res.dish); setStep(1);
@@ -214,6 +220,7 @@ export default function DishGuide({ dish: given, data, onClose, onDone, onChoice
             <Field label="Made to order: notice needed (hours)" htmlFor="guide-lead" hint="For a cake or anything customers ask for ahead. Empty: an ordinary dish. Dishes with a notice appear under Cakes & catering."><NumberInput id="guide-lead" min="0" max="2000" value={lead} onChange={(e) => setLead(e.target.value)} /></Field>
             <Field label="Order on the menu" htmlFor="guide-sort" hint="Smaller numbers come first."><NumberInput id="guide-sort" min="0" value={sort} onChange={(e) => setSort(e.target.value)} /></Field>
           </div>
+          {data.branches_ready && <BranchPriceRows branches={data.branches} rows={branchRows} setRows={setBranchRows} price={price} />}
           <SectionPicker sections={data.sections} value={sections} onChange={setSections} />
           <label style={{ display: 'flex', gap: 6, alignItems: 'center', fontSize: '0.82rem' }}><input type="checkbox" checked={active} onChange={(e) => setActive(e.target.checked)} /> On the menu (untick for a dish that is not served any more)</label>
           <div style={{ display: 'flex', gap: 8, justifyContent: 'flex-end' }}>
