@@ -2,11 +2,11 @@
 
 A small Nairobi kitchen, made so the numbers can be checked by hand. Menus has its own stock: **ingredients** with a base unit, an alternate unit and **variants** (Exe, Pembe, Soko), bought, counted, wasted and used up as ingredients. Dishes are made the way the program now makes them: **recipes of their own, then sides made from them, then dishes made of sides** (with sizes, slots, leaving out and extra), with packaging, tips, a currency and timers on top. Enter it in this order, because each part needs the one before:
 
-**0 setup, 1 ingredients, 2 opening stock, 3 lists and settings, 4 recipes, 5 sides, 6 dishes, 7 menus, 8 meal plan, 9 packaging and condiments, 10 tips, 11 another currency, 12 prepared food, timers, codes and scanning.** Section 13 says what to look for, and section 14 says which automated test asserts which figure.
+**0 setup, 1 ingredients, 2 opening stock, 3 lists and settings, 4 recipes, 5 sides, 6 dishes, 7 menus, 8 meal plan, 9 packaging and condiments.** Section 10 says what to look for, and section 11 says which automated test asserts which figure. Making batches, timers, the till, the floor, orders, tips, another currency and codes are in their own document, `docs/MENUS_SERVICE_TEST_PLAN.md`.
 
-Prices are made up. Run database scripts **181 to 214 and 225** (215 to 224 are the vendor portal and tenders, which Menus does not need), in numerical order, first (each header says what it needs; 190 to 192 are the kinds of ingredient and their accounts, 193 the Menus configuration, 200 to 203 sides and make-up, 205 to 206 leaving out and extra, 207 to 211 packaging and condiments, 212 tips, 213 dish currencies, 214 timers, 225 a recipe line naming its variant) and `php artisan access:seed`.
+Prices are made up. Run database scripts **181 to 214, 225 and 226** (215 to 224 are the vendor portal and tenders, which Menus does not need), in numerical order, first (each header says what it needs; 190 to 192 are the kinds of ingredient and their accounts, 193 the Menus configuration, 200 to 203 sides and make-up, 205 to 206 leaving out and extra, 207 to 211 packaging and condiments, 212 tips, 213 dish currencies, 214 timers, 225 a recipe line naming its variant) and `php artisan access:seed`.
 
-**How the figures were checked.** The automated test `MenusSampleKitchenTest` enters sections 1 to 6 exactly as written below (the ingredients with their variants and stock, the recipes, the sides and the dishes) and asserts the figures marked (test) in section 13: what a portion costs, which variant a sale takes from, what leaving out butter saves, the cake batch, the prices of the Steak sandwich and Burger, the allergens of the dishes. The other figures (prices of sizes and extras, packaging, tips, currencies, timers, codes) are asserted by the tests named in section 14 for the same prices. The whole of this document typed in by hand in the browser has not been run end to end: if a figure does not come out, write it down.
+**How the figures were checked.** The automated test `MenusSampleKitchenTest` enters sections 1 to 6 exactly as written below (the ingredients with their variants and stock, the recipes, the sides and the dishes) and asserts the figures marked (test) in section 10: what a portion costs, which variant a sale takes from, what leaving out butter saves, the cake batch, the prices of the Steak sandwich and Burger, the allergens of the dishes. The other figures (prices of sizes and extras, packaging) are asserted by the tests named in section 11 for the same prices. The whole of this document typed in by hand in the browser has not been run end to end: if a figure does not come out, write it down.
 
 ## 0. Before you start
 - **Units** (Settings, Units): g and kg (mass), ml and L (volume), each (count). Add any that are missing. The alternate unit must be of the same kind as the base unit (kg for g, L for ml).
@@ -32,7 +32,7 @@ Press **New ingredient** once per row of table 1A, then add its variants from ta
 | Purchase account (decides the VAT) | The account the tax on buying this ingredient follows, as a product's purchase account does: **Purchases - exempt** for maize flour, milk and eggs, **Purchases** (VAT-able) for cooking oil and packaged goods, **Purchases - zero rated** for zero-rated goods. Empty uses the one in Menus, Configuration. The stock is still carried on Food Ingredients Inventory and costed before tax. Opening stock is never taxed. |
 | When there are several variants | How the kitchen picks: **the preferred one first** (top of the list, then the next), **the cheapest first**, or **the one that expires first**. |
 | Variant name | The version you buy ("Exe 2 kg"). Variants are listed in order of preference; the arrows move them. |
-| Code (optional) | Your own reference, or the supplier's **barcode** off the crate or bottle. A scanner on the Receive, Count and What to buy screens finds the item by it (section 12). A retail barcode must have its check digit right and nothing else may have the code; a code you replace still scans, marked as an old code. |
+| Code (optional) | Your own reference, or the supplier's **barcode** off the crate or bottle. A scanner on the Receive, Count and What to buy screens finds the item by it (`docs/MENUS_SERVICE_TEST_PLAN.md`, part 8). A retail barcode must have its check digit right and nothing else may have the code; a code you replace still scans, marked as an old code. |
 | Pack holds | How much one pack holds, with the unit beside it (kg, g, L, ml). It lets you receive and count in **packs**: 10 packs of 2 kg is 20 kg. Empty means no pack: you type kg or g instead. |
 | may be used | Untick to keep the stock but never use it in a dish, not even as a substitute. |
 | expires | Receiving it then asks for an expiry date. Expired stock is never used and appears on the Stock page's expiry list. |
@@ -195,7 +195,7 @@ The three lists below are kept under **Menus, Configuration**, below the setting
 | Who a dish is for (audiences) | **Adults**, **Kids** |
 | Prices for leaving out or asking for extra (policies) | **Free** (a free policy, the default one), **Fee 20** (a fixed fee, amount 20), **Ten percent** (a percentage, amount 10) |
 
-Packaging, tips and currency settings are in sections 9 to 11, where they are used.
+Packaging settings are in section 9. Tips and currency settings are in `docs/MENUS_SERVICE_TEST_PLAN.md`.
 
 ## 4. Recipes of their own (Menus, Recipes, *Recipes of their own*)
 
@@ -339,119 +339,11 @@ What to expect (asserted by `MenusPackagingPostingTest` and `MenusPackagingCheck
 - Three **Chips** with the free condiments: **Ketchup 6** and **Mayonnaise 3** allowed. Give 9 ketchup: a warning "9 Ketchup given, 6 allowed", not a block; the shelf loses 9 ketchup (what was given).
 - The kitchen ticket: `PACK: ...` (blue) and `GIVE: ...` (green) lines; Operations, *Packaging* report: orders, asked, given, left off, waived.
 
-## 10. Tips (Menus, Configuration; Menus, Tips)
+## 10. What to look for once sections 1 to 9 are in
 
-- **Menus, Configuration:** tips account empty (the books' Tips Payable). Tips window **At any time** to begin with; for 0af step 4 change it to **Every day between** two times that do not include now, and back.
-- **People:** *Cashier Jo*, *Waiter Wanjiku*, *Manager Mo*, *Viewer* and the owner, as in section 0. Cash must have its cash ledger set (Settings, Payment methods) or the Tips screen offers nothing to pay out of.
-- **Tips to make** (Till, **Take out**, pay in cash): 1. two Burgers, label **Window**, tip **200**, hand over 1,400 (bill 1,160). 2. a tab **Table 4** with one Chips (Medium, 300) paid at the end with tip **50**. 3. one Burger with **no tip**. After 1 and 2, Menus, Tips, *Pending* lists two tips (200 and 50), *Today* the same.
+How to read this section: each table row is one check. **Where** is the screen, **Do** what to press, **Expect** what you should see. "(test)" means an automated test (`MenusSampleKitchenTest` or another, listed in section 11) checks the same figure; the rest is arithmetic or what the screen should say. Shelf figures start from the opening stock in section 2. Making batches, timers, the till, the floor, orders, tips, currencies and codes are tested in `docs/MENUS_SERVICE_TEST_PLAN.md`.
 
-What to expect (asserted by `MenusCounterTest`, `MenusTipsIssueTest` and `MenusTipsReportTest`):
-- A bill of **1,160** (two Burgers, 1,000 + 16%). Tip **100**: Bill 1,160, Tip 100, Total **1,260**. Hand over **1,200**: refused, "the tip can be at most **40.00**". Hand over **1,300**: change **40.00**. The same 1,300 with no tip: change **140.00**.
-- A tip is credited to tips payable on the sale; its line reads like `Tip, MO-000012, Window`. Pending tips never expire.
-- **Issue** the 200 to Waiter Wanjiku out of Cash with the narration "Weekend share": one journal, Dr tips payable 200, Cr Cash 200; it moves from Pending to Today. A second press from another tab says it was already handed over, no second journal.
-- Outside the window: the Issue buttons are greyed and it says when the window opens.
-- Hand a tip to *yourself* as Manager Mo: the box wants a narration. The cashier choosing themselves is refused.
-- **Take back** the 200 with the reason "Wrong person": the journal is cancelled, the tip is Pending again, and it can be handed over again. The *Report* tab then shows Taken back **1**.
-
-## 11. Another currency (Settings, Currencies; Menus, Dishes)
-
-**Read first:** script 213 writes orders in the Menus currency. Leave **Menus, Configuration, Currency empty** (or on the currency you sell in) before you run it.
-
-- **Currencies:** add **USD** with a rate of **130** (1 USD = 130 in the base currency), and **EUR** at 140. For the history test give USD **120** from the first of this month and **135** from tomorrow.
-- **Dishes** (each has a Plate slot with a side made from a one-line recipe of its own, or a ready-to-serve side; *Price currency* is on the dish form once 213 is run): **Imported steak**, price **10**, currency **USD**; **Tart**, price **3.33**, currency **USD**; **Wine**, price **20**, currency **EUR**; **Chapati plate**, price **200**, no currency of its own. Put them on Lunch & dinner, Mains.
-- **Packaging price in a foreign currency:** give the Paper bag **0.04** in **USD** (the Takeaway box stays 15 in the Menus currency).
-
-What to expect (asserted by `MenusDishCurrencyTest` and `MenusPackagingCalcTest`):
-- The Till shows `USD 10.00` on Imported steak. A basket of Imported steak and Chapati plate: Food **1,500** (10 USD at 130 = **1,300**, plus **200**), with the note "Prices in USD are converted at today's rate (1 USD = 130 KES)". The receipt shows `USD 10.00 at 130` under the line.
-- **Rounding:** with USD at **130.456**, one Tart is 3.33 × 130.456 = **434.42** (rounded once, as it is converted); three are **1,303.26**; there is no rounding line.
-- **History:** with USD at 120 on the day, a tab's first Imported steak is **1,200**; add another when the rate is 135 and it is **1,350**, the first stays 1,200; the tab is **2,550** before tax.
-- Imported steak and Wine together: the note lists both USD and EUR with their rates.
-- Paper bag at 0.04 USD on a shilling order: **5.20**. On a USD menu a bag priced at 5 shillings is 0.04.
-- On the Dishes page a dish's margin is worked out in the base currency. Meal plans and Cakes & catering stay in the base currency.
-
-## 12. Prepared food, timers, codes and scanning
-
-How to read this section: each table is a short test. **Do** is what you press or type, **Expect** is what you should see. "(test)" means an automated test checks the same figure (section 14). Do 12B before 12C, 12D and the Beef stew & ugali sale in 13C, because they need the ugali batch.
-
-**Needs:** scripts 198, 199 and 214 run; the **Ugali** recipe saved with its times (section 4); **Chef Wanjiru** added under Menus, Chefs (active; tick *Show on the chefs page* if you like).
-
-### 12A. What "prepared food" means
-Most dishes are **made to order**: the ingredients come off the shelf when the dish is sold. A recipe set to **Made ahead in batches** works the other way: you make a batch first (the ingredients come off the shelf then), the portions sit on a separate **prepared shelf**, and each sale takes a portion from that shelf. In the test data Ugali and Chocolate cake are made ahead; everything else is made to order.
-
-### 12B. Make a batch (Menus, Prepared food, or Menus, Stock, Make a batch)
-
-| # | Do | Expect |
-|---|---|---|
-| 1 | Choose recipe **Ugali**, size **2 kg**. Do not press the button yet. | A table of what the batch takes: for each ingredient what the recipe says, what is really used, what is on the shelf, and the cost. Maize flour 800 g. |
-| 2 | Pick **Chef Wanjiru**, set the start and finish times, press **Make the batch**. | The batch is listed under *Batches made*. Maize flour falls by 800 g (Unga 20,000 g to 19,200 g). 2 kg appears on the prepared shelf. (test) |
-| 3 | Look in Books. | One journal: Dr Prepared Food Inventory, Cr Food Ingredients Inventory, for what the flour cost. |
-| 4 | Make a second batch: **Chocolate cake**, **8** portions. | Flour, sugar, eggs, butter, cocoa, milk and baking powder fall by the batch amounts. The batch costs **553.00**, which is **69.13** a slice. 8 slices are on the prepared shelf. (test) |
-| 5 | Sell **1 Chocolate cake slice** at the till. | The shelf shows 7 slices. Books: Dr Food Cost of Sales, Cr Prepared Food Inventory, 69.13. (test) |
-| 6 | Waste 3 cake slices as *Made too much* (Operations, Waste). | The slices go from the prepared shelf. |
-| 7 | Try to cancel the cake batch after step 5. | Refused: a slice has been sold. Cancelling a batch nobody has sold from works and puts the ingredients back. |
-
-### 12C. Batch timers (Prepared food, **Start a timer**)
-A timer tells the chef how long a batch takes. The recipe gives the time by batch size; a size bigger than every row has no time and you type minutes.
-
-| # | Do | Expect |
-|---|---|---|
-| 1 | Start a timer for Ugali **1 kg**, then **2 kg**, then **5 kg**. | **15**, **20** and **40** minutes. (test) |
-| 2 | Start one for **6 kg**. | No time row fits, so the box asks for minutes: type **45**. |
-| 3 | Start one for 2 kg and type **30** minutes. | 30 is used, not the recipe's 20: typed minutes win. (test) |
-| 4 | Make the 2 kg batch from its timer: Chef Wanjiru, use-by **today + 3 days**. | The timer closes. The batch is timed from when the timer was started. (test) |
-
-### 12D. Ticket timers (Menus, Kitchen)
-A dish with a plating or reheating time on one of its sides gets a countdown on the kitchen ticket. Choma has 5 minutes and Wet fry 4 (section 5).
-
-| # | Do | Expect |
-|---|---|---|
-| 1 | Order a **Steak sandwich**, Jumbo, with the default **Choma**. | The ticket shows **Plate Choma: 5 min**. (test) |
-| 2 | Press **Start** on the ticket. | The countdown runs. When it reaches 0 the ticket goes red and says *over*. |
-| 3 | Order another with **Wet fry** instead. | **Plate Wet fry: 4 min**. (test) |
-| 4 | Add **Kale** (it has no plating time) to either. | Nothing changes. The longest task on the ticket is its timer, not the sum. (test) |
-| 5 | Order a **Chips**. | No ticket timer: nothing on it has a plating time. |
-
-### 12E. Supplier barcodes (Menus, Ingredients, the variant's *Barcode or code* box)
-Type each code on its variant. They all have a correct check digit.
-
-| Variant | Barcode |
-|---|---|
-| Cola, Crate of 24 | `6001234560012` |
-| Cola, Single bottle | `6001234560029` |
-| Fanta, Crate of 24 | `6001234560036` |
-| Bottled water, Pack of 12 | `6001234560043` |
-
-| # | Do | Expect |
-|---|---|---|
-| 1 | Type `6001234567890` on any variant. | Refused: the check digit is wrong. |
-| 2 | Type `6001234560012` on a second variant. | Refused: another item already has that code. |
-
-### 12F. Scanning at the stock screens
-Type the code in the scan box and press Enter, as a scanner would.
-
-| # | Where | Do | Expect |
-|---|---|---|---|
-| 1 | Receive stock | Scan `6001234560012` twice. | Cola crate, quantity **2**. |
-| 2 | Receive stock | Scan `6001234560050` (a valid barcode nothing has). | The screen asks which item it is. |
-| 3 | Count stock | Scan the single bottle three times (`6001234560029`). | Counted **3**. |
-| 4 | Operations, What to buy | Scan the Fanta crate (`6001234560036`). | It is added to the order, by the pack. |
-
-### 12G. Codes and labels (Admin, Codes, with Menus switched on)
-
-| # | Do | Expect |
-|---|---|---|
-| 1 | Open the tabs **Dishes, Recipes, Prepared batches, Ingredient lots, Kitchen stock**. | Every item has a code made from its number: dishes `DSH00000001`, recipes `RCP...`, prepared batches `PBL...`, ingredient lots `ILT...`. (test) |
-| 2 | On Kitchen stock, press *Give a code* on an item that has no barcode. | It gets a code starting `KIT`. (test) |
-| 3 | Print a QR label for **Steak sandwich**, scan it (or paste its link). | The public menu opens at that dish. (test) |
-| 4 | Print the QR for the **Ugali** recipe and open it signed in as staff. | It opens the kitchen card. |
-| 5 | Print the label of the Ugali batch from 12B. | `Made <day> 14:30, Chef Wanjiru` and `Batch ... use by ...`. A batch made without a chef shows only when it was made. |
-| 6 | Give a kitchen item the code `DSH00000001`. | Refused: already used. |
-
-## 13. What to look for once it is in
-
-How to read this section: each table row is one check. **Where** is the screen, **Do** what to press, **Expect** what you should see. "(test)" means an automated test (`MenusSampleKitchenTest` or another, listed in section 14) checks the same figure; the rest is arithmetic or what the screen should say. Shelf figures start from the opening stock in section 2.
-
-### 13A. Stock and set-up checks
+### 10A. Stock and set-up checks
 
 | Where | Do | Expect |
 |---|---|---|
@@ -467,7 +359,7 @@ How to read this section: each table row is one check. **Where** is the screen, 
 | Menus, Allergens | Look at the counts. | **Milk 3** (Milk, Butter, Cheddar cheese), **Wheat / gluten 2** (flour, bun), **Eggs 2** (Eggs, Mayonnaise), **Dairy 3**. Milk says "not vegan, not dairy free"; Wheat / gluten says "not gluten free". |
 | Menus, Allergens | Add a tag Gelatine (section 1); try to remove Milk. | Gelatine is added. Milk is refused while ingredients carry it. |
 
-### 13B. Costs on the Recipes screen (test)
+### 10B. Costs on the Recipes screen (test)
 The cost of one portion, worked out from the prices in section 2.
 
 | Recipe | Cost of one portion |
@@ -481,12 +373,12 @@ The cost of one portion, worked out from the prices in section 2.
 | Chips | 51.20 |
 | Pancakes | 67.71 (flour is Exe at 0.13 a gram, Pembe being empty) |
 | Masala chai | 29.00 |
-| Chocolate cake, one slice | 69.18 on the Recipes screen (shelf average); **69.13** when made, see 12B |
+| Chocolate cake, one slice | 69.18 on the Recipes screen (shelf average); **69.13** when made (service test plan, part 1A) |
 | Ugali | 40.00 a kilogram, so a 250 g plate is 10.00 |
 
 A plate's cost is its sides added together: Beef stew & ugali **203.09** (193.09 + 10.00), Sukuma wiki & ugali **34.98**.
 
-### 13C. Selling (Till or kiosk). Shelf figures are before and after (test unless marked)
+### 10C. Selling (Till or kiosk). Shelf figures are before and after (test unless marked)
 
 | Sell | Expect on the shelf and in Books |
 |---|---|
@@ -497,7 +389,7 @@ A plate's cost is its sides added together: Beef stew & ugali **203.09** (193.09
 | **2 Beef pilau** | Beef 6,000 g to 5,700 g, rice 10,000 g to 9,700 g, all in one recipe. |
 | **3 Mandazi** | Flour 300 g (from Exe), sugar 60 g. |
 | **1 Cheese omelette** | 2 eggs, 20 g of cheese, 10 g of butter. Allergens: eggs and milk. |
-| **2 Beef stew & ugali** (after 12B) | Beef 200 g each, 210.5 g with the waste, 421 g in all, from the shelf. **500 g of ugali from the batch**: 2 kg falls to 1.5 kg. No maize flour is taken at the sale: it was taken when the batch was made (Unga 19,200 g). |
+| **2 Beef stew & ugali** (after the ugali batch of `docs/MENUS_SERVICE_TEST_PLAN.md`, part 1A) | Beef 200 g each, 210.5 g with the waste, 421 g in all, from the shelf. **500 g of ugali from the batch**: 2 kg falls to 1.5 kg. No maize flour is taken at the sale: it was taken when the batch was made (Unga 19,200 g). |
 | **1 Steak sandwich, Jumbo, default Choma** | Price **650**. With Wet fry and Kale: **720** (650 + 50 + 20). With two Eggs as well: **800**. **Kids** size: **350**. |
 | **1 Steak sandwich with a Cola and a Ketchup** (free extras) | Price still 650. The Cola crate (50 each) goes 72 to 71, the cheapest pick; ketchup 3,000 ml to 2,970 ml. |
 | **1 Burger with Extra cheese and No onion** | Price **570** (500, plus 10% of 500 for the cheese, plus 20 for the onion). Plain Burger: 500. Takes **40 g** of Cheddar (20 + 20 extra), no onion, one bun, 120 g of beef. A percentage fee is of the size's price, not the dish's own price. |
@@ -507,7 +399,7 @@ More to check while selling:
 - **Online**, the Menu page shows the Steak sandwich "from 350" with each size's price and who it is for. Choosing **Kids** under *For* hides the Burger (Adults only) and keeps the Steak sandwich and the Chips. A paid extra stops after the third Egg.
 - **A named variant (test):** Masala chai costs 29.00 on Automatic. The copy with the milk set to **Fresh 500 ml** costs **30.60** (200 ml at 0.13 is 26.00, plus 3.00, plus 1.60). Three of them take 600 ml from the 500 ml packs and nothing from the 1 L packs (5,000 ml to 4,400 ml).
 
-### 13D. What a dish tells (test)
+### 10D. What a dish tells (test)
 A dish made of sides gets its allergens, tags and diets from **every side in every slot**, because any of them can end up on the plate. Nobody types them on the dish.
 
 | Dish | Allergens and diets |
@@ -524,7 +416,7 @@ A dish made of sides gets its allergens, tags and diets from **every side in eve
 
 **The shortcut (test):** a new recipe also makes a side of the same name, with the station you chose. Saving the Beef pilau recipe a second time does not make a second side.
 
-### 13E. Waste, counts, branches, expiry and buying
+### 10E. Waste, counts, branches, expiry and buying
 
 | Where | Do | Expect |
 |---|---|---|
@@ -543,7 +435,7 @@ A dish made of sides gets its allergens, tags and diets from **every side in eve
 | Operations, What to buy | Waste 250 gloves as *Other*. | Gloves at 50 each are under the 100 you keep, so it asks for a box. *Make orders* raises one Purchase Order per supplier. |
 | Operations, Prep list | After a few days of sales, open tomorrow's list. | It shows what to make (the cake) and what is short. |
 
-### 13F. Menus, meal plans and courses
+### 10F. Menus, meal plans and courses
 
 | Where | Do | Expect |
 |---|---|---|
@@ -552,23 +444,16 @@ A dish made of sides gets its allergens, tags and diets from **every side in eve
 | Meal plans | Open Office lunch. | 750 a delivery day; the card says **Every delivery day: Masala chai** and each day's other dish. A customer with the plan sees Monday's Beef stew & ugali. |
 | Courses, Recipes | Open the Chocolate cake (set to public). | Copying it gives a lesson with the ingredients in grams and millilitres and the five steps. Change the recipe in Menus, then *Update the copy* takes the fresh version. |
 
-### 13G. Packaging, tips and currency
-What to expect is written under each of sections 9 to 11.
-
-## 14. Which automated test asserts which figure
+## 11. Which automated test asserts which figure
 
 | Figures | Test |
 |---|---|
-| The shortcut (recipe, side and dish in one form; nothing kept when refused; no second side) | `MenusRecipeToPlateTest` |
-| A recipe line naming its variant: what is taken, the cost, top-up by the rule, refusals, what the Recipes screen offers | `MenusRecipeVariantPinTest`, `MenusSampleKitchenTest` |
-| Sections 1 to 6 entered as written: portion costs, Beef stew & ugali taking the stew from the shelf and the ugali from the batch, Pancakes taking Exe and the cheapest milk, No butter, the sixth Chicken pilau refused, Jumbo Chips, the cake batch 553.00 and 69.13, the Steak sandwich 650, 720, 800 and 350, free extras taken off the shelf, the Burger 570 and its stock, the allergens of dishes made of sides | `MenusSampleKitchenTest` |
+| Sections 1 to 6 entered as written: portion costs, Pancakes taking Exe and the cheapest milk, No butter, the sixth Chicken pilau refused, Jumbo Chips, Beef stew & ugali taking the stew from the shelf and the ugali from the batch, the cake batch 553.00 and 69.13, the Steak sandwich 650, 720, 800 and 350, free extras taken off the shelf, the Burger 570 and its stock, the allergens of dishes made of sides, the plate cost of dishes made of sides | `MenusSampleKitchenTest` |
+| The shortcut (recipe and side in one form; nothing kept when refused; no second side) | `MenusRecipeToPlateTest` |
+| A recipe line naming its variant: what is taken, the cost, top-up by the rule, refusals | `MenusRecipeVariantPinTest`, `MenusSampleKitchenTest` |
 | Steak sandwich make-up, Jumbo choma, kale, wet fry | `MenusOrderingMakeupTest`, `MenusDishSelectionTest` |
 | Burger fees kept apart; extra cheese stock | `MenusOrderingModifiersTest`, `MenusDishModifiersTest` |
 | Packaging 4 × 15 = 60; waiver 15 and 40; shelf down 4 and 2; condiments 6 and 3 allowed | `MenusPackagingCheckoutTest`, `MenusPackagingPostingTest`, `MenusPackagingStockTest`, `MenusCondimentsTest` |
-| Tip 100 on 1,160: max 40, change 40, change 140 | `MenusCounterTest` |
-| Hand over, window, own tip, take back, report | `MenusTipsIssueTest`, `MenusTipsReportTest` |
-| USD 10 at 130 = 1,300; 3.33 at 130.456 = 434.42; history 1,200 and 1,350; bag 5.20 and 0.04 | `MenusDishCurrencyTest`, `MenusPackagingCalcTest` |
-| Ugali 20, 15 and 40 minutes; typed minutes win; ticket timer 5 minutes | `MenusPrepTimersTest`, `MenusTicketTimersTest` |
-| Codes DSH, RCP, PBL, ILT, KIT; links; labels; scanning; barcodes | `MenusCodeTypesTest`, `MenusStockScanTest` |
+| Branch availability and prices (script 226) | `MenusDishBranchesTest` |
 
-Not asserted by any test: the opening-stock totals (52,500.00, 46,350.00 and 6,150.00), the ingredient counts per kind, the Stew recipe that holds another recipe, the screens themselves, and the whole document typed in by hand in a browser.
+Not asserted by any test: the opening-stock totals (52,500.00, 46,350.00 and 6,150.00), the ingredient counts per kind, the Stew recipe that holds another recipe, the screens themselves, and the whole document typed in by hand in a browser. The prepared-food, timer, till, floor, order, tip, currency and code figures are listed in `docs/MENUS_SERVICE_TEST_PLAN.md`.
