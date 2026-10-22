@@ -33,11 +33,18 @@ class MenusRecipesController extends Controller
         $location = $request->integer('location_id') ?: (int) ($branches->first()->id ?? 0);
         $with = array_merge(['lines.ingredient.baseUnit', 'lines.ingredient.altUnit', 'steps'], DishRecipes::hasSubLines() ? ['lines.subRecipe.yieldUnit'] : [], DishRecipes::has('yield_unit_id') ? ['yieldUnit'] : [], RecipeTimes::installed() ? ['times'] : []);
         $recipes = DishRecipe::with($with)->whereNotNull('dish_id')->get()->keyBy('dish_id');
+        $madeOf = [];   // dish id => the sides it is made of, for a dish that has no recipe of its own
+        if (\App\Services\Menus\DishMakeup::installed()) {
+            foreach (DB::table('menus_dish_slots as sl')->join('menus_dish_slot_choices as c', 'c.slot_id', '=', 'sl.id')->join('menus_sides as sd', 'sd.id', '=', 'c.side_id')->orderBy('sd.name')->get(['sl.dish_id', 'sd.name']) as $row) {
+                $madeOf[(int) $row->dish_id][$row->name] = $row->name;
+            }
+            $madeOf = array_map('array_values', $madeOf);
+        }
 
         return response()->json([
             'location_id' => $location, 'branches' => $branches, 'installed' => DishRecipes::installed(),
             'dishes' => Dish::orderBy('sort_order')->orderBy('name')->get(['id', 'name', 'is_active'])->map(fn ($d) => [
-                'id' => $d->id, 'name' => $d->name, 'is_active' => (bool) $d->is_active, 'recipe' => ($r = $recipes->get($d->id)) ? $this->row($r, $location) : null,
+                'id' => $d->id, 'name' => $d->name, 'is_active' => (bool) $d->is_active, 'recipe' => ($r = $recipes->get($d->id)) ? $this->row($r, $location) : null, 'made_of' => $madeOf[$d->id] ?? [],
             ])->values(),
             'ingredients' => Ingredient::with(['baseUnit:id,code', 'altUnit:id,code'])->where('is_active', true)->orderBy('name')->get()->filter(fn ($i) => IngredientKinds::allowedInRecipe($i))->map(fn ($i) => ['id' => $i->id, 'name' => $i->name, 'base_unit' => $i->baseUnit?->code, 'alt_unit' => $i->altUnit?->code] + $this->variants($i, $location))->values(),
             'standalone' => DishRecipes::has('name') ? DishRecipe::standalone()->with($with)->orderBy('name')->get()->map(fn (DishRecipe $r) => $this->row($r, $location))->values() : [],

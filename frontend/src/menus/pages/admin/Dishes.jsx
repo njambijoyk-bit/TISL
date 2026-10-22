@@ -186,7 +186,8 @@ export default function Dishes() {
                     <div style={{ marginTop: 3 }}>
                       {!d.is_active && <Pill>Off the menu</Pill>}
                       {d.sold_out_today && <Pill tone="danger">Sold out today</Pill>}
-                      {!d.has_recipe && <Pill tone="warn">No recipe yet</Pill>}
+                      {!d.has_recipe && <Pill tone="warn">Nothing in it yet</Pill>}
+                      {d.made_of_sides && <Pill>Made of {d.sides.join(', ')}</Pill>}
                       {d.made_to_order && <Pill>Made to order</Pill>}
                     </div>
                   </td>

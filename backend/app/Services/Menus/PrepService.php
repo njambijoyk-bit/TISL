@@ -42,11 +42,20 @@ class PrepService
                 continue;
             }
             $r = $recipes[$d->id] ?? null;
+            $plate = ! $r && DishMakeup::installed() ? app(DishInfo::class)->plateSides($d) : collect();   // a dish made of sides is planned by its sides
             $ahead = $r && ! $r->made_to_order;
             $shelf = $ahead ? round($this->dishStock->portionsAhead($d, $locationId), 4) : null;
             $make = $ahead ? max(0.0, $expect - $shelf) : 0.0;
-            $dishes[] = ['dish_id' => $d->id, 'name' => $d->name, 'average' => round($avg, 1), 'booked' => $book, 'expect' => $expect, 'mode' => ! $r ? 'no_recipe' : ($ahead ? 'ahead' : 'to_order'),
+            $dishes[] = ['dish_id' => $d->id, 'name' => $d->name, 'average' => round($avg, 1), 'booked' => $book, 'expect' => $expect, 'mode' => ! $r ? ($plate->isNotEmpty() ? 'sides' : 'no_recipe') : ($ahead ? 'ahead' : 'to_order'),
                 'on_shelf' => $shelf, 'to_make' => $make, 'batches' => $ahead && $make > 0 ? (int) ceil($make / max(0.0001, (float) $r->yield_qty)) : null];
+            foreach ($plate as $side) {   // what the plate as it comes takes: the ingredients of each side made to order (a side made ahead is planned with the prepared food)
+                $qty = $expect * app(Sides::class)->amountFor($side);
+                if ($side->recipe && $side->recipe->is_active && $side->recipe->made_to_order) {
+                    $this->addDemand($need, $side->recipe, $qty);
+                } elseif ($side->ingredient) {
+                    $need[$side->ingredient_id] = round(($need[$side->ingredient_id] ?? 0) + $qty, 4);
+                }
+            }
             if ($r) {
                 $portions = $ahead ? $make : (float) $expect;   // made ahead: only what is still to be made uses ingredients; to order: all of it
                 if ($portions > 0) {

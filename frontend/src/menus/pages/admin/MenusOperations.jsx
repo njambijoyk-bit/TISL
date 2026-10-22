@@ -44,7 +44,7 @@ function Prep({ branch }) {
                 <tbody>
                   {data.dishes.map((d) => (
                     <tr key={d.dish_id} data-dish={d.name}>
-                      <td style={td}><strong>{d.name}</strong> {d.mode === 'no_recipe' && <Pill>No recipe</Pill>}{d.mode === 'to_order' && <Pill>Made to order</Pill>}</td>
+                      <td style={td}><strong>{d.name}</strong> {d.mode === 'no_recipe' && <Pill>Nothing in it yet</Pill>}{d.mode === 'sides' && <Pill>Made of sides</Pill>}{d.mode === 'to_order' && <Pill>Made to order</Pill>}</td>
                       <td style={td}>{num(d.average)}</td><td style={td}>{num(d.booked)}</td><td style={td}><strong>{d.expect}</strong></td>
                       <td style={td}>{d.on_shelf == null ? '—' : num(d.on_shelf)}</td>
                       <td style={td}>{d.mode === 'ahead' ? (d.to_make > 0 ? <strong>{num(d.to_make)}{d.batches ? ` (${d.batches} batch${d.batches === 1 ? '' : 'es'})` : ''}</strong> : 'Enough') : '—'}</td>

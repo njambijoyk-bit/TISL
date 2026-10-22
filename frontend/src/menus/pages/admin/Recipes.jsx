@@ -402,7 +402,7 @@ export default function Recipes() {
               <tbody>{data.dishes.map((d) => (
                 <tr key={d.id} style={d.is_active ? undefined : { opacity: 0.55 }}>
                   <td style={td}><strong>{d.name}</strong></td>
-                  <td style={td}>{d.recipe ? <>{d.recipe.lines.length} line{d.recipe.lines.length === 1 ? '' : 's'} · makes {num(d.recipe.yield_qty, 3)} · {d.recipe.made_to_order ? 'made to order' : 'made ahead'}</> : <span style={{ color: colors.textFaint }}>no recipe yet</span>}</td>
+                  <td style={td}>{d.recipe ? <>{d.recipe.lines.length} line{d.recipe.lines.length === 1 ? '' : 's'} · makes {num(d.recipe.yield_qty, 3)} · {d.recipe.made_to_order ? 'made to order' : 'made ahead'}</> : d.made_of?.length ? <span>Made of {d.made_of.join(', ')} (their recipes, under Sides)</span> : <span style={{ color: colors.textFaint }}>no recipe yet</span>}</td>
                   <td style={{ ...td, textAlign: 'right' }}>{d.recipe?.cost ? <>{num(d.recipe.cost.per_portion)}{!d.recipe.cost.complete && <span title="Some ingredient has never been bought, so its cost is not in this figure" style={{ color: colors.warning }}> *</span>}</> : '—'}</td>
                   <td style={{ ...td, textAlign: 'right' }}>{d.recipe?.portions == null ? '—' : num(Math.floor(d.recipe.portions), 0)}</td>
                   <td style={{ ...td, whiteSpace: 'nowrap' }}>

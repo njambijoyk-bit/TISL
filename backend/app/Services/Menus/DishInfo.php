@@ -108,6 +108,9 @@ class DishInfo
     {
         $price = $dish->price === null ? null : (float) $dish->price;
         $dish->loadMissing('menuRecipe.lines.ingredient');
+        if (DishMakeup::installed() && DishSlot::where('dish_id', $dish->id)->exists()) {   // put together from sides: what the plate as it comes costs
+            return $this->plateMoney($dish, $locationId, $price);
+        }
         $sales = app(SideSales::class);
         $side = $sales->sideFor($dish);
         $recipe = $side?->recipe ?? $dish->menuRecipe;
@@ -118,5 +121,39 @@ class DishInfo
 
         return ['price' => $price, 'cost' => $cost, 'margin' => $inBase !== null && $cost !== null ? round($inBase - $cost, 4) : null,
             'food_cost_pct' => $inBase && $cost !== null ? round($cost / $inBase * 100, 1) : null, 'complete' => (bool) $c['complete']];
+    }
+
+    /**
+     * The sides a dish is served with when nobody changes anything: everything in an always-included slot, and the side marked as the default in the other slots.
+     *
+     * @return \Illuminate\Support\Collection<int, Side>
+     */
+    public function plateSides(Dish $dish): \Illuminate\Support\Collection
+    {
+        $ids = DishSlotChoice::whereIn('slot_id', DishSlot::where('dish_id', $dish->id)->select('id'))->where('is_default', true)->pluck('side_id');
+
+        return Side::with('recipe', 'ingredient')->whereIn('id', $ids)->get();
+    }
+
+    /** The money of a dish made of sides: what the plate as it comes costs (each side's cost for the amount in a serving) and the margin. `complete` is false when a side has no known cost. @return array{price: ?float, cost: ?float, margin: ?float, food_cost_pct: ?float, complete: bool} */
+    private function plateMoney(Dish $dish, int $locationId, ?float $price): array
+    {
+        $sides = app(Sides::class);
+        $cost = 0.0;
+        $complete = true;
+        foreach ($this->plateSides($dish) as $side) {
+            $amount = $sides->amountFor($side);
+            $unit = $side->recipe ? $this->use->cost($side->recipe, $locationId)['per_portion'] : ($side->ingredient ? $this->use->unitCost($side->ingredient, $locationId) : null);
+            if ($unit === null) {
+                $complete = false;
+                continue;
+            }
+            $cost += (float) $unit * $amount;
+        }
+        $cost = $complete || $cost > 0 ? round($cost, 4) : null;
+        $inBase = $price === null ? null : app(MenuMoney::class)->priceInBase($price, $dish);
+
+        return ['price' => $price, 'cost' => $cost, 'margin' => $inBase !== null && $cost !== null ? round($inBase - $cost, 4) : null,
+            'food_cost_pct' => $inBase && $cost !== null ? round($cost / $inBase * 100, 1) : null, 'complete' => $complete && $cost !== null];
     }
 }

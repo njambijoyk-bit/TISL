@@ -376,4 +376,21 @@ class MenusSampleKitchenTest extends TestCase
         }
         $this->assertEqualsCanonicalizing(['eggs', 'milk'], app(\App\Services\Menus\DishInfo::class)->profile($this->dish['Cheese omelette']->fresh())['allergens']);
     }
+
+    public function test_a_dish_made_of_sides_costs_the_plate_as_it_comes_and_is_not_a_dish_without_a_recipe(): void
+    {
+        $info = app(\App\Services\Menus\DishInfo::class);
+        $money = $info->money($this->dish['Beef stew & ugali']->fresh(), 1);
+        $this->assertSame([650.0, 203.09, true], [$money['price'], round($money['cost'], 2), $money['complete']], 'stewed beef 193.09 + 250 g of ugali 10.00');
+        $this->assertEqualsWithDelta(446.91, $money['margin'], 0.01);
+        $this->assertEqualsWithDelta(34.98, $info->money($this->dish['Sukuma wiki & ugali']->fresh(), 1)['cost'], 0.01);
+        $steak = $info->money($this->dish['Steak sandwich']->fresh(), 1);
+        $this->assertEqualsWithDelta(0.0, round($steak['cost'] - ($this->portionCost('Bread') + $this->portionCost('Choma')), 2), 0.011, 'the default plate: the bread and the default protein, Choma; nothing optional');
+        $row = (new \ReflectionMethod(\App\Http\Controllers\Admin\MenusDishController::class, 'row'));
+        $row->setAccessible(true);
+        $out = $row->invoke(app(\App\Http\Controllers\Admin\MenusDishController::class), $this->dish['Beef stew & ugali']->fresh(), null);
+        $this->assertSame([true, true, ['Stewed beef', 'Ugali']], [$out['has_recipe'], $out['made_of_sides'], $out['sides']], 'so the Dishes page does not say "no recipe yet"');
+        $bare = Dish::create(['name' => 'Bare2', 'slug' => 'bare2', 'price' => 10, 'is_active' => true]);
+        $this->assertFalse($row->invoke(app(\App\Http\Controllers\Admin\MenusDishController::class), $bare, null)['has_recipe']);
+    }
 }

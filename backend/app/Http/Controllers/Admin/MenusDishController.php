@@ -4,9 +4,13 @@ namespace App\Http\Controllers\Admin;
 
 use App\Http\Controllers\Controller;
 use App\Models\Menus\Dish;
+use App\Models\Menus\DishSlot;
+use App\Models\Menus\DishSlotChoice;
+use App\Models\Menus\Side;
 use App\Services\Books\BooksException;
 use App\Services\Menus\DietBadges;
 use App\Services\Menus\DishInfo;
+use App\Services\Menus\DishMakeup;
 use App\Services\Menus\DishService;
 use App\Services\Menus\FoodTags;
 use App\Services\Menus\MenusSettings;
@@ -87,11 +91,12 @@ class MenusDishController extends Controller
     {
         $profile = $this->info->profile($d);
         $recipe = $d->menuRecipe;
+        $sides = DishMakeup::installed() ? Side::whereIn('id', DishSlotChoice::whereIn('slot_id', DishSlot::where('dish_id', $d->id)->select('id'))->select('side_id'))->orderBy('name')->pluck('name')->unique()->values()->all() : [];   // what a dish made of sides is made of
 
         return [
             'id' => $d->id, 'name' => $d->name, 'slug' => $d->slug, 'description' => $d->description, 'photo' => $d->photo, 'prep_minutes' => $d->prep_minutes, 'lead_hours' => $d->lead_hours ?? null, 'sort_order' => $d->sort_order, 'is_active' => (bool) $d->is_active,
             'price' => (float) $d->price, 'currency_id' => $d->currency_id ?? null, 'station_id' => $d->station_id, 'chef_id' => $d->chef_id, 'sold_out_today' => (bool) ($d->sold_out_on && $d->sold_out_on->isToday()),
-            'has_recipe' => (bool) $recipe, 'made_to_order' => (bool) ($recipe && $recipe->made_to_order),
+            'has_recipe' => (bool) $recipe || $sides !== [], 'made_of_sides' => $sides !== [] && ! $recipe, 'sides' => $sides, 'made_to_order' => (bool) ($recipe && $recipe->made_to_order),
             'allergens' => $profile['allergens'], 'tags' => $profile['tags'], 'diets' => $profile['diets'], 'info_complete' => $profile['complete'], 'declared' => $profile['declared'],
             'allergens_declared' => $d->allergens_override !== null, 'tags_declared' => $d->tags_override !== null,
         ] + ($location ? ['available' => $this->info->portions($d, $location)] + $this->info->money($d, $location) : []);
