@@ -1009,4 +1009,13 @@ class MenusPlansTest extends TestCase
         $this->subs()->run();
         $this->assertSame(1, $this->noted('membershipNeeded'));
     }
+
+    public function test_the_plan_menu_offers_every_active_dish_including_dishes_that_never_had_a_product(): void
+    {
+        $own = \App\Models\Menus\Dish::create(['name' => 'Beef pilau', 'slug' => 'beef-pilau', 'price' => 650, 'is_active' => true]);   // made through the Dishes screen: no product behind it
+        \App\Models\Menus\Dish::create(['name' => 'Retired', 'slug' => 'retired', 'price' => 1, 'is_active' => false]);
+        $out = app(\App\Http\Controllers\Admin\MenusPlanController::class)->index()->getData(true);
+        $this->assertContains($own->id, array_column($out['dishes'], 'id'));
+        $this->assertNotContains('Retired', array_column($out['dishes'], 'name'));
+    }
 }

@@ -54,7 +54,7 @@ class MenusPlanController extends Controller
         }
 
         return response()->json(['ready' => true, 'plans' => $this->plans->rows($this->scope()), 'days' => Plan::DAYS,
-            'dishes' => Dish::where('is_active', true)->whereNotNull('variant_id')->orderBy('name')->get(['id', 'name'])->map(fn ($d) => ['id' => $d->id, 'name' => $d->name])->values(),
+            'dishes' => Dish::where('is_active', true)->orderBy('name')->get(['id', 'name'])->map(fn ($d) => ['id' => $d->id, 'name' => $d->name])->values(),
             'membership_plans' => \App\Services\Memberships\MemberStanding::on() ? \App\Models\Memberships\Plan::where('status', '!=', 'archived')->orderBy('name')->get(['id', 'name'])->map(fn ($m) => ['id' => $m->id, 'name' => $m->name])->values() : [],
             'locations' => Location::query()->orderBy('name')->get(['id', 'name'])->map(fn ($l) => ['id' => $l->id, 'name' => $l->name])->values()]);
     }

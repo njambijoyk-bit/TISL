@@ -320,7 +320,7 @@ Masala chai sits on three menus on purpose: the same dish can be on several. **P
 **Office lunch**: "A main and a chai, delivered to your desk".
 - Price for each delivery day **750** (the two dishes would cost 800 apart).
 - Menu repeats after **1** week; deliveries Mon to Fri; fewest days a week **3**; skip up to **24** hours before; delivery from 12:00 until 13:00.
-- Day by day (each day: the main plus Masala chai): Monday Beef stew & ugali, Tuesday Chicken pilau, Wednesday Sukuma wiki & ugali, Thursday Beef stew & ugali, Friday Chicken pilau.
+- Day by day (the Menu button on the plan lists every active dish, including ones made through the Dishes screen; each day: the main plus Masala chai): Monday Beef stew & ugali, Tuesday Chicken pilau, Wednesday Sukuma wiki & ugali, Thursday Beef stew & ugali, Friday Chicken pilau.
 - Set the plan Active only when the days are filled in.
 
 ## 9. Packaging and free condiments (Menus, Configuration; Menus, Sides; Menus, Dishes)
