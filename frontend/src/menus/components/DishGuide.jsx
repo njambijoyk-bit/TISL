@@ -11,6 +11,7 @@ import useMakeup from '../lib/useMakeup';
 import { ModifiersSection } from './DishModifiers';
 import { PackagingRulesSection } from './PackagingRules';
 import { AudienceSection, SizesSection, SlotsSection } from './DishMakeupModal';
+import SectionPicker from './SectionPicker';
 
 const small = { ...btnGhost, padding: '4px 10px', fontSize: '0.72rem' };
 const STEPS = ['The dish', 'Sizes', 'What is in it', 'What comes with it', 'Modifiers', 'Packaging'];
@@ -143,6 +144,14 @@ export default function DishGuide({ dish: given, data, onClose, onDone, onChoice
   const [price, setPrice] = useState(given?.price ?? '');
   const [description, setDescription] = useState(given?.description ?? '');
   const [ledger, setLedger] = useState(null);
+  const [prep, setPrep] = useState(given?.prep_minutes ?? '');
+  const [station, setStation] = useState(given?.station_id ?? '');
+  const [chef, setChef] = useState(given?.chef_id ?? '');
+  const [lead, setLead] = useState(given?.lead_hours ?? '');
+  const [sort, setSort] = useState(given?.sort_order ?? 0);
+  const [currency, setCurrency] = useState(given?.currency_id ?? '');
+  const [sections, setSections] = useState(given?.section_ids ?? []);
+  const [active, setActive] = useState(given?.is_active ?? true);
   const [busy, setBusy] = useState(false);
   const [err, setErr] = useState(null);
   const needsLedger = !given?.id && !data.settings.sales_ledger_id;
@@ -150,7 +159,10 @@ export default function DishGuide({ dish: given, data, onClose, onDone, onChoice
   const saveBasics = async () => {
     setBusy(true); setErr(null);
     try {
-      const res = await menusAPI.saveDish({ name, price: Number(price), description: description || null, ...(needsLedger ? { sales_ledger_id: ledger } : {}), ...(given?.id ? { sort_order: given.sort_order, is_active: given.is_active } : {}) }, dish?.id ?? given?.id);
+      const res = await menusAPI.saveDish({
+        name, price: Number(price), description: description || null, prep_minutes: prep === '' ? null : Number(prep), lead_hours: lead === '' ? null : Number(lead), sort_order: Number(sort) || 0, is_active: active, section_ids: sections,
+        ...(needsLedger ? { sales_ledger_id: ledger } : {}), ...(data.stations ? { station_id: station === '' ? null : Number(station) } : {}), ...(data.chefs ? { chef_id: chef === '' ? null : Number(chef) } : {}), ...(data.currency_ready ? { currency_id: currency === '' ? null : Number(currency) } : {}),
+      }, dish?.id ?? given?.id);
       setDish(res.dish); setStep(1);
     } catch (x) { setErr(errMsg(x, 'Could not save the dish')); } finally { setBusy(false); }
   };
@@ -167,8 +179,33 @@ export default function DishGuide({ dish: given, data, onClose, onDone, onChoice
             <Field label="Name" htmlFor="guide-name"><TextInput id="guide-name" maxLength={150} value={name} onChange={(e) => setName(e.target.value)} placeholder="Steak sandwich" /></Field>
             <Field label="Price (before tax)" htmlFor="guide-price" hint="With sizes, each size has its own price on the next step."><NumberInput id="guide-price" min="0" step="any" value={price} onChange={(e) => setPrice(e.target.value)} /></Field>
           </div>
+          {data.currency_ready && (
+            <Field label="Price currency" htmlFor="guide-currency" hint={`Empty: ${data.order_currency?.code ?? 'the Menus currency'}. A dish in another currency is converted at the day's rate when ordered.`}>
+              <SelectInput id="guide-currency" value={currency} onChange={(e) => setCurrency(e.target.value)}>
+                <option value="">{data.order_currency?.code ?? 'The Menus currency'} (the Menus currency)</option>
+                {data.currencies.filter((c) => c.id !== data.order_currency?.id).map((c) => <option key={c.id} value={c.id}>{c.code} {c.name ? `· ${c.name}` : ''}</option>)}
+              </SelectInput>
+            </Field>
+          )}
           {needsLedger && <SalesAccountSelect kind="sales" scope="product" required label="Sales account (it decides the tax)" value={ledger} onChange={setLedger} hint="Set it once for every dish under Menus → Configuration." />}
           <Field label="Description" htmlFor="guide-desc"><TextArea id="guide-desc" rows={3} maxLength={3000} value={description} onChange={(e) => setDescription(e.target.value)} /></Field>
+          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10 }}>
+            <Field label="Takes about (minutes)" htmlFor="guide-prep" hint="How long the kitchen needs for it. Shown to the kitchen and used to tell guests how long to wait."><NumberInput id="guide-prep" min="0" max="6000" value={prep} onChange={(e) => setPrep(e.target.value)} /></Field>
+            {data.stations && data.stations.length > 0 && (
+              <Field label="Made at" htmlFor="guide-station" hint="The kitchen screen that gets this dish. Empty: the station that takes everything else.">
+                <SelectInput id="guide-station" value={station} onChange={(e) => setStation(e.target.value)}><option value="">The default station</option>{data.stations.map((st) => <option key={st.id} value={st.id}>{st.name}</option>)}</SelectInput>
+              </Field>
+            )}
+            {data.chefs && data.chefs.length > 0 && (
+              <Field label="A dish by" htmlFor="guide-chef" hint="The chef is named on the menu if they are shown on the chefs page.">
+                <SelectInput id="guide-chef" value={chef} onChange={(e) => setChef(e.target.value)}><option value="">No one in particular</option>{data.chefs.map((c) => <option key={c.id} value={c.id}>{c.name}</option>)}</SelectInput>
+              </Field>
+            )}
+            <Field label="Made to order: notice needed (hours)" htmlFor="guide-lead" hint="For a cake or anything customers ask for ahead. Empty: an ordinary dish. Dishes with a notice appear under Cakes & catering."><NumberInput id="guide-lead" min="0" max="2000" value={lead} onChange={(e) => setLead(e.target.value)} /></Field>
+            <Field label="Order on the menu" htmlFor="guide-sort" hint="Smaller numbers come first."><NumberInput id="guide-sort" min="0" value={sort} onChange={(e) => setSort(e.target.value)} /></Field>
+          </div>
+          <SectionPicker sections={data.sections} value={sections} onChange={setSections} />
+          <label style={{ display: 'flex', gap: 6, alignItems: 'center', fontSize: '0.82rem' }}><input type="checkbox" checked={active} onChange={(e) => setActive(e.target.checked)} /> On the menu (untick for a dish that is not served any more)</label>
           <div style={{ display: 'flex', gap: 8, justifyContent: 'flex-end' }}>
             <button type="button" style={small} onClick={onClose}>Cancel</button>
             <button type="button" style={{ ...btnPrimary, padding: '6px 16px' }} disabled={busy || !name.trim() || price === '' || (needsLedger && !ledger)} onClick={saveBasics}>{busy ? 'Saving…' : 'Next'}</button>

@@ -7,6 +7,7 @@ import HubHeader, { NoAccess } from '../../../core/components/admin/ui/HubHeader
 import Modal from '../../../core/components/admin/ui/Modal';
 import { CheckboxRow, Field, FormError, FormStack, ModalActions, NumberInput, SelectInput, TextArea, TextInput } from '../../../core/components/admin/ui/Form';
 import SalesAccountSelect from '../../../core/components/admin/tax/SalesAccountSelect';
+import SectionPicker from '../../components/SectionPicker';
 import menusAPI from '../../../_shared/api/menus';
 import useAuthStore from '../../../_shared/store/authStore';
 import { canViewMenus, canManageMenus, hasPermission } from '../../../_shared/lib/roles';
@@ -71,6 +72,7 @@ function DishModal({ dish, data, onClose, onDone }) {
   const [ledger, setLedger] = useState(null);
   const [allergens, setAllergens] = useState(dish?.allergens_declared ? dish.allergens : null);
   const [tags, setTags] = useState(dish?.tags_declared ? dish.tags : null);
+  const [sections, setSections] = useState(dish?.section_ids ?? []);
   const [busy, setBusy] = useState(false);
   const [err, setErr] = useState(null);
   const needsLedger = !dish && !data.settings.sales_ledger_id;
@@ -79,7 +81,7 @@ function DishModal({ dish, data, onClose, onDone }) {
     e.preventDefault(); setBusy(true); setErr(null);
     try {
       const res = await menusAPI.saveDish({
-        name, price: Number(price), description: description || null, prep_minutes: prep === '' ? null : Number(prep), lead_hours: lead === '' ? null : Number(lead), sort_order: Number(sort) || 0, is_active: active,
+        name, price: Number(price), description: description || null, prep_minutes: prep === '' ? null : Number(prep), lead_hours: lead === '' ? null : Number(lead), sort_order: Number(sort) || 0, is_active: active, section_ids: sections,
         ...(needsLedger ? { sales_ledger_id: ledger } : {}), ...(data.stations ? { station_id: station === '' ? null : Number(station) } : {}), ...(data.chefs ? { chef_id: chef === '' ? null : Number(chef) } : {}), ...(data.currency_ready ? { currency_id: currency === '' ? null : Number(currency) } : {}), allergens, tags,
       }, dish?.id);
       toast.success(res.message); onDone();
@@ -116,6 +118,7 @@ function DishModal({ dish, data, onClose, onDone }) {
             <Field label="Made to order: notice needed (hours)" htmlFor="dish-lead" hint="For a cake or anything customers ask for ahead. Empty: an ordinary dish. Dishes with a notice appear under Cakes &amp; catering."><NumberInput id="dish-lead" min="0" max="2000" value={lead} onChange={(e) => setLead(e.target.value)} /></Field>
             <Field label="Order on the menu" htmlFor="dish-sort" hint="Smaller numbers come first."><NumberInput id="dish-sort" min="0" value={sort} onChange={(e) => setSort(e.target.value)} /></Field>
           </div>
+          <SectionPicker sections={data.sections} value={sections} onChange={setSections} />
           <Declare title="Allergens" options={data.allergens} inherited={dish?.allergens ?? []} value={allergens} onChange={setAllergens} />
           <Declare title="What it contains (for diet badges)" options={data.tags} inherited={dish?.tags ?? []} value={tags} onChange={setTags} />
           <CheckboxRow checked={active} onChange={setActive} label="On the menu" description="Switch off a dish that is not served any more. Its sales history stays." />

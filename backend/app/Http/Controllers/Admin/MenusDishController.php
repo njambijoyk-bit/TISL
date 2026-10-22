@@ -31,7 +31,7 @@ class MenusDishController extends Controller
         $rows = Dish::with('menuRecipe')->orderBy('sort_order')->orderBy('name')->get()->map(fn (Dish $d) => $this->row($d, $location))->values();
 
         return response()->json([
-            'dishes' => $rows, 'location_id' => $location, 'settings' => MenusSettings::all(), 'settings_ready' => MenusSettings::ready(),
+            'dishes' => $rows, 'sections' => $this->sections(), 'location_id' => $location, 'settings' => MenusSettings::all(), 'settings_ready' => MenusSettings::ready(),
             'allergens' => FoodTags::allergens(), 'tags' => FoodTags::tags(), 'diets' => DietBadges::LABELS,
             'chefs' => \App\Services\Menus\ChefService::installed() ? \App\Models\Menus\Chef::where('is_active', true)->orderBy('display_name')->get(['id', 'display_name as name']) : null,
             'stations' => \App\Services\Menus\KitchenService::installed() ? \App\Models\Menus\Station::where('is_active', true)->orderBy('sort_order')->orderBy('name')->get(['id', 'name']) : null,
@@ -46,7 +46,7 @@ class MenusDishController extends Controller
         $d = $request->validate([
             'name' => 'required|string|max:150', 'price' => 'nullable|numeric|min:0', 'description' => 'nullable|string|max:3000', 'photo' => 'nullable|string|max:255', 'prep_minutes' => 'nullable|integer|min:0|max:6000', 'lead_hours' => 'nullable|integer|min:0|max:2000',
             'sort_order' => 'nullable|integer|min:0|max:9999', 'is_active' => 'nullable|boolean', 'station_id' => 'nullable|integer', 'chef_id' => 'nullable|integer', 'currency_id' => 'nullable|integer',
-            'allergens' => 'nullable|array', 'allergens.*' => 'string|max:20', 'tags' => 'nullable|array', 'tags.*' => 'string|max:20',
+            'allergens' => 'nullable|array', 'allergens.*' => 'string|max:20', 'tags' => 'nullable|array', 'tags.*' => 'string|max:20', 'section_ids' => 'nullable|array', 'section_ids.*' => 'integer',
         ]);
 
         return $this->guard(function () use ($d, $id, $request) {
@@ -87,6 +87,17 @@ class MenusDishController extends Controller
         return $this->guard(fn () => response()->json(['message' => 'Menus settings saved.', 'settings' => MenusSettings::save($d, $request->user()?->id)]));
     }
 
+    /** Every menu section a dish may be put in, with its menu, for the dish forms. @return array<int, array{id: int, name: string, menu: string}> */
+    private function sections(): array
+    {
+        if (! \Illuminate\Support\Facades\Schema::hasTable('menus_section_dishes') || ! \Illuminate\Support\Facades\Schema::hasTable('menus_sections') || ! \Illuminate\Support\Facades\Schema::hasTable('menus_menus')) {
+            return [];
+        }
+
+        return DB::table('menus_sections as s')->join('menus_menus as m', 'm.id', '=', 's.menu_id')->orderBy('m.sort_order')->orderBy('m.name')->orderBy('s.sort_order')->orderBy('s.id')
+            ->get(['s.id', 's.name', 'm.name as menu'])->map(fn ($r) => ['id' => (int) $r->id, 'name' => $r->name, 'menu' => $r->menu])->all();
+    }
+
     private function row(Dish $d, ?int $location): array
     {
         $profile = $this->info->profile($d);
@@ -96,7 +107,7 @@ class MenusDishController extends Controller
         return [
             'id' => $d->id, 'name' => $d->name, 'slug' => $d->slug, 'description' => $d->description, 'photo' => $d->photo, 'prep_minutes' => $d->prep_minutes, 'lead_hours' => $d->lead_hours ?? null, 'sort_order' => $d->sort_order, 'is_active' => (bool) $d->is_active,
             'price' => (float) $d->price, 'currency_id' => $d->currency_id ?? null, 'station_id' => $d->station_id, 'chef_id' => $d->chef_id, 'sold_out_today' => (bool) ($d->sold_out_on && $d->sold_out_on->isToday()),
-            'has_recipe' => (bool) $recipe || $sides !== [], 'made_of_sides' => $sides !== [] && ! $recipe, 'sides' => $sides, 'made_to_order' => (bool) ($recipe && $recipe->made_to_order),
+            'section_ids' => \Illuminate\Support\Facades\Schema::hasTable('menus_section_dishes') ? DB::table('menus_section_dishes')->where('dish_id', $d->id)->pluck('section_id')->map(fn ($i) => (int) $i)->all() : [], 'has_recipe' => (bool) $recipe || $sides !== [], 'made_of_sides' => $sides !== [] && ! $recipe, 'sides' => $sides, 'made_to_order' => (bool) ($recipe && $recipe->made_to_order),
             'allergens' => $profile['allergens'], 'tags' => $profile['tags'], 'diets' => $profile['diets'], 'info_complete' => $profile['complete'], 'declared' => $profile['declared'],
             'allergens_declared' => $d->allergens_override !== null, 'tags_declared' => $d->tags_override !== null,
         ] + ($location ? ['available' => $this->info->portions($d, $location)] + $this->info->money($d, $location) : []);

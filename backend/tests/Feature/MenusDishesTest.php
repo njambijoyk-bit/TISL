@@ -337,4 +337,31 @@ class MenusDishesTest extends TestCase
         $this->assertSame(200, $c->destroy($id)->status());
         $this->assertSame(0, Dish::count());
     }
+
+    public function test_a_dish_is_put_in_menu_sections_from_its_form_and_the_form_is_told_which(): void
+    {
+        foreach (['menus_menus' => fn ($t) => [$t->id(), $t->string('name'), $t->integer('sort_order')->default(0)], 'menus_sections' => fn ($t) => [$t->id(), $t->unsignedBigInteger('menu_id'), $t->string('name'), $t->integer('sort_order')->default(0)]] as $table => $def) {
+            if (! Schema::hasTable($table)) {
+                Schema::create($table, $def);
+            }
+        }
+        $menu = DB::table('menus_menus')->insertGetId(['name' => 'Lunch']);
+        $mains = DB::table('menus_sections')->insertGetId(['menu_id' => $menu, 'name' => 'Mains']);
+        $drinks = DB::table('menus_sections')->insertGetId(['menu_id' => $menu, 'name' => 'Drinks']);
+        $dish = app(DishService::class)->save(['name' => 'Chai', 'price' => 100, 'section_ids' => [$mains, $drinks]]);
+        $this->assertEqualsCanonicalizing([$mains, $drinks], DB::table('menus_section_dishes')->where('dish_id', $dish->id)->pluck('section_id')->map(fn ($i) => (int) $i)->all());
+        app(DishService::class)->save(['section_ids' => [$drinks]], $dish->id);
+        $this->assertSame([$drinks], DB::table('menus_section_dishes')->where('dish_id', $dish->id)->pluck('section_id')->map(fn ($i) => (int) $i)->all(), 'taken out of the section left unticked');
+        app(DishService::class)->save(['price' => 120], $dish->id);
+        $this->assertSame(1, DB::table('menus_section_dishes')->where('dish_id', $dish->id)->count(), 'a save that does not mention sections leaves them');
+        try {
+            app(DishService::class)->save(['section_ids' => [9999]], $dish->id);
+            $this->fail('saved');
+        } catch (BooksException $e) {
+            $this->assertStringContainsString('menu sections does not exist', $e->getMessage());
+        }
+        $out = app(MenusDishController::class)->index(Request::create('/x', 'GET'))->getData(true);
+        $this->assertSame([['Mains', 'Lunch'], ['Drinks', 'Lunch']], array_map(fn ($s) => [$s['name'], $s['menu']], $out['sections']));
+        $this->assertSame([$drinks], collect($out['dishes'])->firstWhere('name', 'Chai')['section_ids']);
+    }
 }

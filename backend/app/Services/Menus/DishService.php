@@ -77,9 +77,26 @@ class DishService
                 $dish->chef_id = $chef?->id;
             }
             $dish->save();
+            if (array_key_exists('section_ids', $d) && Schema::hasTable('menus_section_dishes')) {
+                $this->sections($dish, (array) $d['section_ids']);
+            }
 
             return $dish->fresh();
         });
+    }
+
+    /** Put the dish in exactly these menu sections (Mains, Drinks...): taken out of the others, added at the end of the ones it was not in. */
+    private function sections(Dish $dish, array $ids): void
+    {
+        $ids = array_values(array_unique(array_map('intval', $ids)));
+        if ($ids && \App\Models\Menus\MenuSection::whereIn('id', $ids)->count() !== count($ids)) {
+            throw new BooksException('One of the menu sections does not exist any more.');
+        }
+        DB::table('menus_section_dishes')->where('dish_id', $dish->id)->whereNotIn('section_id', $ids)->delete();
+        $have = DB::table('menus_section_dishes')->where('dish_id', $dish->id)->pluck('section_id')->map(fn ($i) => (int) $i)->all();
+        foreach (array_diff($ids, $have) as $sectionId) {
+            DB::table('menus_section_dishes')->insert(['section_id' => $sectionId, 'dish_id' => $dish->id, 'sort_order' => (int) DB::table('menus_section_dishes')->where('section_id', $sectionId)->max('sort_order') + 1]);
+        }
     }
 
     /** "86": not available today whatever the stock says, or available again. */
