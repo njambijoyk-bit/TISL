@@ -11,13 +11,14 @@ namespace App\Services\Access;
  */
 class Catalog
 {
-    public const VERSION = 18;
+    public const VERSION = 19;
 
     /** The key of the owner role: the one role that holds every permission, including ones added later. It cannot be changed or deleted. */
     public const OWNER = 'super_admin';
 
     /** Permissions added after version 1, by the version that added them. The seeder gives a new permission to the built-in roles that hold it by default once, and never again (an admin may take it back). */
     public const ADDED = [
+        19 => ['bulkimport.core', 'bulkimport.ecommerce', 'bulkimport.menus', 'bulkimport.memberships', 'bulkimport.events', 'bulkimport.courses', 'bulkimport.campaigns', 'bulkimport.careers', 'bulkimport.projects', 'bulkimport.listings', 'bulkimport.accommodations', 'bulkimport.extras'],
         18 => ['tenders.view', 'tenders.manage', 'prequalification.view', 'prequalification.manage', 'vendors.portal'],
         17 => ['menus.configure', 'menus.tips.view', 'menus.tips.issue', 'menus.tips.issue_self', 'menus.tips.reverse', 'menus.packaging.waive'],
         16 => ['units.view', 'units.manage'],
@@ -220,6 +221,18 @@ class Catalog
         'tenders.manage'    => ['extras', 'Purchases', 'Post, change, close and email tender notices and their files', true],
         'prequalification.view'      => ['extras', 'Purchases', 'See which vendors are pre-qualified', false],
         'prequalification.manage'    => ['extras', 'Purchases', 'Record who is pre-qualified, with the reason', true],
+        'bulkimport.core' => [null, 'Data import', 'Bulk import Core (customers, employees...) data from CSV, JSON, XML, Excel or Markdown files', true],
+        'bulkimport.ecommerce' => ['ecommerce', 'Data import', 'Bulk import E-commerce data from CSV, JSON, XML, Excel or Markdown files', true],
+        'bulkimport.menus' => ['menus', 'Data import', 'Bulk import Menus data from CSV, JSON, XML, Excel or Markdown files', true],
+        'bulkimport.memberships' => ['memberships', 'Data import', 'Bulk import Memberships data from CSV, JSON, XML, Excel or Markdown files', true],
+        'bulkimport.events' => ['events', 'Data import', 'Bulk import Events data from CSV, JSON, XML, Excel or Markdown files', true],
+        'bulkimport.courses' => ['courses', 'Data import', 'Bulk import Courses data from CSV, JSON, XML, Excel or Markdown files', true],
+        'bulkimport.campaigns' => ['campaigns', 'Data import', 'Bulk import Campaigns data from CSV, JSON, XML, Excel or Markdown files', true],
+        'bulkimport.careers' => ['careers', 'Data import', 'Bulk import Careers data from CSV, JSON, XML, Excel or Markdown files', true],
+        'bulkimport.projects' => ['projects', 'Data import', 'Bulk import Projects data from CSV, JSON, XML, Excel or Markdown files', true],
+        'bulkimport.listings' => ['listings', 'Data import', 'Bulk import Listings data from CSV, JSON, XML, Excel or Markdown files', true],
+        'bulkimport.accommodations' => ['accommodations', 'Data import', 'Bulk import Accommodations data from CSV, JSON, XML, Excel or Markdown files', true],
+        'bulkimport.extras' => ['extras', 'Data import', 'Bulk import Extras data from CSV, JSON, XML, Excel or Markdown files', true],
         'calendar.team'     => [null, 'People', 'See the team calendar and other people\'s calendars', false],
         'attendance.manage' => [null, 'People', 'Mark and verify attendance and set the attendance rules', true],
         'attendance.arbitrate' => [null, 'People', 'Settle attendance disputes, see who reported, mark your own day', true],

@@ -237,6 +237,7 @@ const StaffResources     = lazy(() => import('./core/pages/admin/calendar/StaffR
 const PosSelfPage         = lazy(() => import('./extras/pages/public/PosSelfPage'));
 const PosTill             = lazy(() => import('./extras/pages/admin/pos/PosTill'));
 const PosStations         = lazy(() => import('./extras/pages/admin/pos/PosStations'));
+const BulkImportPage = lazy(() => import('./extras/pages/admin/bulk-import/BulkImportPage'));
 const EngagementSettings = lazy(() => import('./extras/pages/admin/EngagementSettings'));
 const ServiceSettings    = lazy(() => import('./ecommerce/pages/admin/ServiceSettings'));
 const Quotes             = lazy(() => import('./core/pages/admin/quotations/QuotationsPage'));
@@ -1326,6 +1327,7 @@ function App() {
               <Route path="/admin/service-settings" element={<ProtectedRoute requireAdmin permission="catalogue.view"><ServiceSettings /></ProtectedRoute>} />
               <Route path="/admin/pos" element={<ProtectedRoute requireAdmin permission="pos.sell"><ModuleRoute module="extras" redirectTo="/admin"><PosTill /></ModuleRoute></ProtectedRoute>} />
               <Route path="/admin/pos/stations" element={<ProtectedRoute requireAdmin permission="pos.manage"><ModuleRoute module="extras" redirectTo="/admin"><PosStations /></ModuleRoute></ProtectedRoute>} />
+              <Route path="/admin/bulk-import" element={<ProtectedRoute requireAdmin permission="bulkimport.core,bulkimport.ecommerce,bulkimport.menus,bulkimport.memberships,bulkimport.events,bulkimport.courses,bulkimport.campaigns,bulkimport.careers,bulkimport.projects,bulkimport.listings,bulkimport.accommodations,bulkimport.extras"><ModuleRoute module="extras" redirectTo="/admin"><BulkImportPage /></ModuleRoute></ProtectedRoute>} />
               <Route path="/admin/settings/engagement" element={<ProtectedRoute requireAdmin permission="engagement.settings"><ModuleRoute module="extras" redirectTo="/admin"><EngagementSettings /></ModuleRoute></ProtectedRoute>} />
 
               {/* Categories Routes */}

@@ -1655,6 +1655,15 @@ Route::middleware('auth:sanctum')->group(function () {
             foreach (['submit','withdraw','approve','reject','hide','unhide'] as $a) { Route::post("/{id}/$a", [$c,$a])->whereNumber('id'); }
         });
 
+        // Bulk import engine (Extras): each thing needs its own module on AND bulkimport.<module>, checked in the controller
+        Route::prefix('bulk-import')->middleware(['module:extras', 'permission:bulkimport.core,bulkimport.ecommerce,bulkimport.menus,bulkimport.memberships,bulkimport.events,bulkimport.courses,bulkimport.campaigns,bulkimport.careers,bulkimport.projects,bulkimport.listings,bulkimport.accommodations,bulkimport.extras'])->group(function () {
+            $c = \App\Http\Controllers\Admin\BulkImportController::class;
+            Route::get('/', [$c, 'index']);
+            Route::get('/{key}/template/{format}', [$c, 'template'])->where(['key' => '[a-z_]+\.[a-z_]+', 'format' => '[a-z]+']);
+            Route::post('/{key}/preview', [$c, 'preview'])->where('key', '[a-z_]+\.[a-z_]+')->middleware('throttle:30,1');
+            Route::post('/{key}/import', [$c, 'import'])->where('key', '[a-z_]+\.[a-z_]+')->middleware('throttle:30,1');
+        });
+
         // Engagement Engine settings (Extras): admin and super admin, checked in the controller
         Route::prefix('engagement')->middleware('module:extras')->group(function () {
             $c = \App\Http\Controllers\Api\EngagementSettingsController::class;
