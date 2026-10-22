@@ -5,6 +5,7 @@ import AdminLayout from '../../../_shared/components/layout/AdminLayout';
 import HubHeader, { NoAccess } from '../../../core/components/admin/ui/HubHeader';
 import Modal from '../../../core/components/admin/ui/Modal';
 import { Field, FormStack, ModalActions, NumberInput, SelectInput, TextArea, TextInput } from '../../../core/components/admin/ui/Form';
+import DishChips from '../../components/DishChips';
 import menusAPI from '../../../_shared/api/menus';
 import useAuthStore from '../../../_shared/store/authStore';
 import { canViewMenus, canManageMenus } from '../../../_shared/lib/roles';
@@ -72,13 +73,16 @@ function PlanForm({ plan, data, onClose, onDone }) {
 
 function MenuGrid({ plan, data, onClose, onDone }) {
   const cell = (w, d) => plan.menu.find((m) => m.week_no === w && m.weekday === d)?.dishes.map((x) => x.id) ?? [];
-  const [grid, setGrid] = useState(() => { const g = {}; for (let w = 1; w <= plan.cycle_weeks; w += 1) plan.delivery_weekdays.forEach((d) => { g[`${w}-${d}`] = cell(w, d); }); return g; });
+  const keys = [];
+  for (let w = 1; w <= plan.cycle_weeks; w += 1) plan.delivery_weekdays.forEach((d) => keys.push([w, d]));
+  // what goes out on every delivery day (found again when the menu is reopened: the dishes every day has), and what each day has besides
+  const [every, setEvery] = useState(() => (keys.length > 1 ? cell(...keys[0]).filter((id) => keys.every(([w, d]) => cell(w, d).includes(id))) : []));
+  const [grid, setGrid] = useState(() => { const g = {}; keys.forEach(([w, d]) => { g[`${w}-${d}`] = cell(w, d).filter((id) => !(keys.length > 1 && keys.every(([w2, d2]) => cell(w2, d2).includes(id)))); }); return g; });
   const [busy, setBusy] = useState(false);
-  const setCell = (key, i, id) => setGrid((g) => { const list = [...(g[key] ?? [])]; if (id === '') list.splice(i, 1); else list[i] = Number(id); return { ...g, [key]: list.filter((x, k, a) => a.indexOf(x) === k) }; });
   const save = async () => {
     setBusy(true);
     try {
-      const r = await menusAPI.savePlanMenu(plan.id, Object.entries(grid).map(([k, ids]) => { const [w, d] = k.split('-').map(Number); return { week_no: w, weekday: d, dish_ids: ids }; }));
+      const r = await menusAPI.savePlanMenu(plan.id, Object.entries(grid).map(([k, ids]) => { const [w, d] = k.split('-').map(Number); return { week_no: w, weekday: d, dish_ids: [...every, ...ids.filter((x) => !every.includes(x))] }; }));
       toast.success(r.message); onDone();
     } catch (e) { toast.error(errMsg(e, 'Could not save the menu'), { duration: 8000 }); } finally { setBusy(false); }
   };
@@ -86,6 +90,11 @@ function MenuGrid({ plan, data, onClose, onDone }) {
   return (
     <Modal title={`Menu · ${plan.name}`} subtitle="The dishes that go out each delivery day. A day with no dish is not delivered that week." onClose={onClose} width={900} footer={<ModalActions onCancel={onClose} onSubmit={save} submitLabel="Save menu" busy={busy} />}>
       <div style={{ display: 'grid', gap: 16 }} data-testid="menu-grid">
+        <section aria-label="Every delivery day" data-testid="menu-every" style={{ ...card, padding: 10, display: 'grid', gap: 6 }}>
+          <strong style={{ fontSize: '0.84rem' }}>Every delivery day</strong>
+          <span style={{ fontSize: '0.74rem', color: colors.textMuted }}>A dish that goes out every day (a drink, bread): pick it once here and it is put on each delivery day of every week when you save. Take it off here to take it off every day.</span>
+          <DishChips dishes={data.dishes} value={every} onChange={setEvery} label="every delivery day" addLabel="Add dishes for every day" />
+        </section>
         {Array.from({ length: plan.cycle_weeks }, (_, i) => i + 1).map((w) => (
           <section key={w} aria-label={`Week ${w}`}>
             {plan.cycle_weeks > 1 && <h3 style={{ margin: '0 0 6px', fontSize: '0.88rem', fontWeight: 800 }}>Week {w}</h3>}
@@ -97,12 +106,7 @@ function MenuGrid({ plan, data, onClose, onDone }) {
                 return (
                   <div key={key} style={{ ...card, padding: 8, display: 'grid', gap: 4, alignContent: 'start' }}>
                     <strong style={{ fontSize: '0.78rem' }}>{DAYS.find((x) => x[0] === d)[1]}</strong>
-                    {[...list, ''].map((id, i) => (
-                      <SelectInput key={i} aria-label={`Week ${w} ${DAYS.find((x) => x[0] === d)[1]} dish ${i + 1}`} value={id} onChange={(e) => setCell(key, i, e.target.value)} style={{ fontSize: '0.78rem' }}>
-                        <option value="">{i < list.length ? 'Remove' : 'Add a dish…'}</option>
-                        {data.dishes.map((x) => <option key={x.id} value={x.id}>{x.name}</option>)}
-                      </SelectInput>
-                    ))}
+                    <DishChips dishes={data.dishes} value={list} onChange={(ids) => setGrid((g) => ({ ...g, [key]: ids }))} label={`Week ${w} ${DAYS.find((x) => x[0] === d)[1]}`} addLabel="Add dishes" />
                   </div>
                 );
               })}

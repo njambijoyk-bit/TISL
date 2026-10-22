@@ -306,7 +306,7 @@ Needs two branches (Settings, Branches), say **Main** and **Westlands**.
 - **Operations**: prep list for tomorrow, record waste, what to buy (in packs, then "Make orders").
 - **Make a batch** of a made-ahead dish (the cake) on the Stock page, sell a slice, and try to cancel the batch.
 - **Courses, recipes and notes**: "Copy a recipe from Menus" for a recipe set to "May be shown on the website and in courses".
-- **Meal plans**, **Cakes and catering** (quote, deposit, status), **Rota** (shifts, days off, swaps, overtime, clock in at the door).
+- **Meal plans** (Edit the menu: each day shows its dishes as chips with *Add dishes*, a searchable checkbox list; the *Every delivery day* box at the top adds a dish to every day of every week on Save), **Cakes and catering** (quote, deposit, status), **Rota** (shifts, days off, swaps, overtime, clock in at the door).
 
 ## When you find a problem
 For each one write: **where** (screen), **what you did**, **what you expected**, **what happened**, and a screenshot if it is visual. A one-line note is enough; I will fix them in batches.
