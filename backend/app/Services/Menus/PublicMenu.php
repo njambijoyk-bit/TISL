@@ -25,7 +25,7 @@ class PublicMenu
                 'id' => $m->id, 'name' => $m->name, 'slug' => $m->slug, 'description' => $m->description, 'serves' => MenuSchedule::words($m), 'serving_now' => MenuSchedule::serving($m, $now),
                 'sections' => $m->sections->map(fn ($s) => [
                     'id' => $s->id, 'name' => $s->name, 'description' => $s->description,
-                    'dishes' => $s->dishes->where('is_active', true)->map(fn (Dish $d) => $dishes[$d->id] ??= $this->dish($d, $location))->values()->all(),
+                    'dishes' => $s->dishes->where('is_active', true)->filter(fn (Dish $d) => DishBranches::available($d, $location))->map(fn (Dish $d) => $dishes[$d->id] ??= $this->dish($d, $location))->values()->all(),
                 ])->filter(fn ($s) => $s['dishes'])->values()->all(),
             ];
         })->filter(fn ($m) => $m['sections'])->values()->all();
@@ -57,7 +57,7 @@ class PublicMenu
 
         return [
             'id' => $d->id, 'name' => $d->name, 'slug' => $d->slug, 'description' => $d->description, 'photo' => $d->photo, 'prep_minutes' => $d->prep_minutes,
-            'price' => (float) $d->price, 'price_incl' => $this->inclusive($d), 'currency' => $this->currencyOf($d),
+            'price' => $here = (float) DishBranches::price($d, $location), 'price_incl' => $this->inclusive($d, $here), 'currency' => $this->currencyOf($d),
             'available' => $portions > 0, 'sold_out_today' => (bool) ($d->sold_out_on && $d->sold_out_on->isToday()),
             'allergens' => $profile['allergens'], 'diets' => $profile['diets'], 'info_complete' => $profile['complete'],
             'options' => $this->options($d), 'chef' => $this->chefName($d), 'makeup' => $this->makeup($d, $location), 'modifiers' => $this->modifiers($d),
@@ -97,7 +97,11 @@ class PublicMenu
         $m = app(DishMakeup::class)->show($d);
         $stock = app(SideStock::class);
         $sides = \App\Models\Menus\Side::with('recipe', 'ingredient', 'amounts')->whereIn('id', collect($m['slots'])->flatMap(fn ($s) => array_column($s['choices'], 'side_id'))->all())->get()->keyBy('id');
-        $servings = array_map(fn ($s) => ['id' => $s['serving_id'], 'name' => $s['serving'], 'price' => $s['price'], 'price_incl' => $this->inclusive($d, $s['price'])], $m['servings']);
+        $servings = array_map(function ($s) use ($d, $location) {
+            $price = DishBranches::sizePrice((int) $d->id, (int) $s['serving_id'], $location, (float) $s['price']);   // the price of the size at this branch
+
+            return ['id' => $s['serving_id'], 'name' => $s['serving'], 'price' => $price, 'price_incl' => $this->inclusive($d, $price)];
+        }, $m['servings']);
 
         return [
             'servings' => $servings,

@@ -86,6 +86,9 @@ class MenuOrderService
             if (! $dish || ! $dish->is_active) {
                 throw new BooksException('One of the dishes is not available any more.');
             }
+            if (! DishBranches::available($dish, (int) $location->id)) {
+                throw new BooksException("{$dish->name} is not served at {$location->name}.");
+            }
             if (! in_array((int) $dish->id, $onMenu, true)) {
                 throw new BooksException("{$dish->name} is not on the menu at that time.");
             }
@@ -99,7 +102,7 @@ class MenuOrderService
             $uses = $p['uses'];
             $feeBase = (float) $base;   // what a percentage fee is of: the price of the size chosen
             if (DishSelection::applies($dish)) {
-                $sel = app(DishSelection::class)->resolve($dish, $w['serving_id'] ?? null, $w['picks'] ?? []);
+                $sel = app(DishSelection::class)->resolve($dish, $w['serving_id'] ?? null, $w['picks'] ?? [], (int) $location->id);
                 $base = $sel['unit_price'];
                 $feeBase = (float) $sel['base_price'];
                 $made = app(DishSelection::class)->orderLine($sel);

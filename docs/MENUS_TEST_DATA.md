@@ -313,7 +313,7 @@ Every dish is **made of sides**, put in **slots**. A dish has its own price (bef
 | Bakery | all seven | all day (leave the hours empty) | **Cakes**: Chocolate cake slice |
 | Weekend special | Sat, Sun | 12:00 to 16:00 | **Sunday roast**: Chicken pilau, Chips |
 
-Masala chai sits on three menus on purpose: the same dish can be on several. A dish is put under a section on its own form (the guided New dish, or Edit): tick the sections in **On the menu, under** instead of editing the menu, and untick one to take the dish out of it. A dish under no section is on no menu. The currency dishes of section 11 go on Lunch & dinner, Mains.
+Masala chai sits on three menus on purpose: the same dish can be on several. **Per branch:** every dish is shared by all branches. For the branch tests (script 226) add a second branch, **Westlands**, and on **Chips** (Branches) give Westlands a price of **350** and Jumbo **450**; then switch **Cheese omelette** off at Westlands. Main keeps 300, 400 and serves everything. A dish is put under a section on its own form (the guided New dish, or Edit): tick the sections in **On the menu, under** instead of editing the menu, and untick one to take the dish out of it. A dish under no section is on no menu. The currency dishes of section 11 go on Lunch & dinner, Mains.
 
 ## 8. A meal plan (Menus, Meal plans)
 

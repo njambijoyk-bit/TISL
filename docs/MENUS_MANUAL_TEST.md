@@ -253,6 +253,21 @@ On Menus, Tips press the **Report** tab. 1) The tiles show Taken, Handed over, W
 ## 0am. Scanning at the stock screens and supplier barcodes (Steps 9.4 and 9.5, no script)
 1) Menus, Ingredients: on a variant (say Coke 500ml, pack of 24) type a real supplier barcode in **Barcode or code**: a barcode with a wrong check digit is refused, a code another item has is refused. Save. 2) Menus, Stock, **Receive stock**: under the search is **Or scan what came in**: scan (or type) that barcode and Enter: the item is on the receipt; scan it again: its quantity goes up by one. 3) Scan a barcode nothing has: a box asks *Which item is it?*; pick the item: the code is kept and the item is added; scan it again and it is found at once. 4) **Count the shelf** (Menus, Stock, Count): **Count by scanning**: each scan counts one more of that item, in the unit of its row, and takes you to the row. 5) Menus, Operations, **What to buy**: **Add something by scanning**: the item appears under *Added by scanning* with its own quantity (by the pack when it has a pack size); an item the shelf already asks for is ticked instead; make the orders: the added item is on the purchase order. 6) Change the barcode of a variant: a crate with the old label still scans and is counted as that item, with a note that it is an old code. 7) Scan the label of an ingredient lot (`ILT...`): it finds the item the lot is of. 8) Scan a dish's code (`DSH...`) at a count: it says it is a dish and that the screen does not use it.
 
+
+## 0an. Dishes per branch (after script 226)
+Needs two branches (Settings, Branches), say **Main** and **Westlands**.
+1. Menus, Dishes, **Chips**, **Branches**: a table with each branch, whether it serves the dish, the price there and the price of each size there (Medium, Jumbo). All served, all prices empty, the dish's own price shown greyed in each box. Expect nothing to differ yet.
+2. Give Westlands **Price here 350** and **Jumbo here 450**; save. Pick Westlands at the top of Dishes: Chips shows 350 with "here; 300 elsewhere". Pick Main: 300.
+3. Till at Westlands: Chips Medium is 350 and Jumbo 450. At Main: 300 and 400. The kiosk and the public menu for each branch show the same.
+4. Untick **Served** for Chips at Westlands; save. Dishes at Westlands says *Not served at this branch* and Can serve 0; Chips has gone from the menu, the till and the kiosk there, and an order that still holds it is refused with "Chips is not served at Westlands." At Main nothing changed.
+5. Tick it again and clear the prices; save: the dish is back at its own prices. Before script 226 the Branches box says to run it.
+6. Meal plans and Cakes & catering are not affected: they stay at the dish's own price in the base currency.
+
+## 0ao. Adding a chef by role
+1. Menus, Chefs, **Add a chef**: above the staff box there are checkboxes, one for each role staff hold (Kitchen, Floor...). Tick *Kitchen*: the staff box lists everyone who holds it (with their roles); someone whose role has run out is not listed.
+2. Tick *Floor* as well: both roles' staff are listed. Type three letters in the box: the list narrows. Pick one: the box shows their name and *Name shown to guests* is filled in (you can change it).
+3. Untick every role and type one letter: nothing is listed; type two: staff are found by name or email as before. A person who is already a chef is not offered again.
+
 ## 1. Recipes, allergens, dishes and menus (manager)
 1. **Recipes**: make a recipe for a dish (amounts in g or kg, waste %, method steps, how many portions a batch makes). Expect: cost per portion shows, and "can make" counts portions from the shelf. Watch: does the allergen from an ingredient show where you would look for it?
 2. **Allergens** (G, then A): add a tag, rename it, change what it rules out and try to remove one that is in use. Expect: the dish badges follow at once, and a clear refusal for the one in use.

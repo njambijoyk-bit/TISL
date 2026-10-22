@@ -79,7 +79,7 @@ class DishInfo
      */
     public function portions(Dish $dish, int $locationId): float
     {
-        if (! $dish->is_active || ($dish->sold_out_on && $dish->sold_out_on->isToday())) {
+        if (! $dish->is_active || ($dish->sold_out_on && $dish->sold_out_on->isToday()) || ! DishBranches::available($dish, $locationId)) {   // switched off, sold out today, or not served at this branch
             return 0.0;
         }
         if (DishSelection::applies($dish) && DishSlot::where('dish_id', $dish->id)->exists()) {   // it is put together from sides: as many as the sides on the shelf allow
@@ -106,7 +106,7 @@ class DishInfo
     /** The price (before tax) and what the dish costs to make, and the margin. @return array{price: ?float, cost: ?float, margin: ?float, food_cost_pct: ?float, complete: bool} */
     public function money(Dish $dish, int $locationId): array
     {
-        $price = $dish->price === null ? null : (float) $dish->price;
+        $price = DishBranches::price($dish, $locationId);   // the dish's price, or the one it has at this branch (script 226)
         $dish->loadMissing('menuRecipe.lines.ingredient');
         if (DishMakeup::installed() && DishSlot::where('dish_id', $dish->id)->exists()) {   // put together from sides: what the plate as it comes costs
             return $this->plateMoney($dish, $locationId, $price);

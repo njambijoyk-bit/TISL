@@ -29,25 +29,27 @@ class DishSelection
     }
 
     /**
+     * `$locationId`: the branch it is sold at, whose prices apply.
+     *
      * @param array<int|string, mixed> $picks
      * @return array{dish_id: int, serving: ?array{id: int, name: string}, base_price: float, upcharge: float, unit_price: float,
      *               lines: array<int, array<string, mixed>>, sides: array<int, array<string, mixed>>, uses: array<int, array<string, mixed>>}
      */
-    public function resolve(Dish $dish, ?int $servingId, array $picks = []): array
+    public function resolve(Dish $dish, ?int $servingId, array $picks = [], ?int $locationId = null): array
     {
         if (! DishMakeup::installed()) {
             throw new BooksException('Run database script 202_menus_dish_makeup.sql first.');
         }
         $servings = DishServing::with('serving')->where('dish_id', $dish->id)->get();
         $serving = null;
-        $base = (float) $dish->price;
+        $base = DishBranches::price($dish, $locationId) ?? 0.0;   // the price at this branch when it has one of its own (script 226)
         if ($servings->isNotEmpty()) {
             if (! $servingId) {
                 throw new BooksException("Choose a size for {$dish->name}.");
             }
             $row = $servings->firstWhere('serving_id', $servingId) ?? throw new BooksException("{$dish->name} is not sold in that size.");
             $serving = ['id' => (int) $row->serving_id, 'name' => (string) ($row->serving?->name ?? '')];
-            $base = (float) $row->price;
+            $base = DishBranches::sizePrice((int) $dish->id, (int) $row->serving_id, $locationId, (float) $row->price);
         } elseif ($servingId) {
             throw new BooksException("{$dish->name} is sold in one size.");
         }

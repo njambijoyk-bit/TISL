@@ -56,6 +56,20 @@ class MenusDishController extends Controller
         });
     }
 
+    /** The branches and what each does with the dish: served or not, its price there, the price of each size there. */
+    public function branches(int $id): JsonResponse
+    {
+        return response()->json(app(\App\Services\Menus\DishBranches::class)->show(Dish::findOrFail($id)));
+    }
+
+    /** Body: branches[{location_id, is_available, price?, size_prices?: {serving id: price}}]. */
+    public function saveBranches(Request $request, int $id): JsonResponse
+    {
+        $d = $request->validate(['branches' => 'present|array|max:200', 'branches.*.location_id' => 'required|integer', 'branches.*.is_available' => 'nullable|boolean', 'branches.*.price' => 'nullable|numeric|min:0', 'branches.*.size_prices' => 'nullable|array', 'branches.*.size_prices.*' => 'nullable|numeric|min:0']);
+
+        return $this->guard(fn () => response()->json(['message' => 'Branches saved.'] + app(\App\Services\Menus\DishBranches::class)->save(Dish::findOrFail($id), $d['branches'])));
+    }
+
     /** Body: sold_out (bool). */
     public function soldOut(Request $request, int $id): JsonResponse
     {
@@ -107,7 +121,7 @@ class MenusDishController extends Controller
         return [
             'id' => $d->id, 'name' => $d->name, 'slug' => $d->slug, 'description' => $d->description, 'photo' => $d->photo, 'prep_minutes' => $d->prep_minutes, 'lead_hours' => $d->lead_hours ?? null, 'sort_order' => $d->sort_order, 'is_active' => (bool) $d->is_active,
             'price' => (float) $d->price, 'currency_id' => $d->currency_id ?? null, 'station_id' => $d->station_id, 'chef_id' => $d->chef_id, 'sold_out_today' => (bool) ($d->sold_out_on && $d->sold_out_on->isToday()),
-            'section_ids' => \Illuminate\Support\Facades\Schema::hasTable('menus_section_dishes') ? DB::table('menus_section_dishes')->where('dish_id', $d->id)->pluck('section_id')->map(fn ($i) => (int) $i)->all() : [], 'has_recipe' => (bool) $recipe || $sides !== [], 'made_of_sides' => $sides !== [] && ! $recipe, 'sides' => $sides, 'made_to_order' => (bool) ($recipe && $recipe->made_to_order),
+            'section_ids' => \Illuminate\Support\Facades\Schema::hasTable('menus_section_dishes') ? DB::table('menus_section_dishes')->where('dish_id', $d->id)->pluck('section_id')->map(fn ($i) => (int) $i)->all() : [], 'branch_price' => $location ? \App\Services\Menus\DishBranches::price($d, $location) : null, 'branch_available' => ! $location || \App\Services\Menus\DishBranches::available($d, $location), 'has_recipe' => (bool) $recipe || $sides !== [], 'made_of_sides' => $sides !== [] && ! $recipe, 'sides' => $sides, 'made_to_order' => (bool) ($recipe && $recipe->made_to_order),
             'allergens' => $profile['allergens'], 'tags' => $profile['tags'], 'diets' => $profile['diets'], 'info_complete' => $profile['complete'], 'declared' => $profile['declared'],
             'allergens_declared' => $d->allergens_override !== null, 'tags_declared' => $d->tags_override !== null,
         ] + ($location ? ['available' => $this->info->portions($d, $location)] + $this->info->money($d, $location) : []);

@@ -234,4 +234,32 @@ class MenusChefsTest extends TestCase
         $this->chefs()->delete($c);
         $this->assertSame([0, 0, null], [Chef::count(), ChefCert::count(), $d->fresh()->chef_id]);
     }
+
+    public function test_staff_can_be_found_by_the_roles_they_hold_and_a_search_narrows_them(): void
+    {
+        Schema::create('roles', function ($t) { $t->id(); $t->string('key'); $t->string('name'); $t->string('kind')->default('staff'); $t->boolean('is_active')->default(true); $t->integer('sort_order')->default(0); });
+        Schema::create('user_roles', function ($t) { $t->id(); $t->unsignedBigInteger('user_id'); $t->unsignedBigInteger('role_id'); $t->dateTime('starts_at')->nullable(); $t->dateTime('expires_at')->nullable(); });
+        $ref = new \ReflectionProperty(\App\Services\Access\Authorizer::class, 'ready');
+        $ref->setAccessible(true);
+        $ref->setValue(null, null);
+        $kitchen = DB::table('roles')->insertGetId(['key' => 'kitchen', 'name' => 'Kitchen']);
+        $floor = DB::table('roles')->insertGetId(['key' => 'floor', 'name' => 'Floor']);
+        $portal = DB::table('roles')->insertGetId(['key' => 'customer', 'name' => 'Customer', 'kind' => 'portal']);
+        $wanjiru = $this->user('Wanjiru Kamau');
+        $baraka = $this->user('Baraka Otieno');
+        $ann = $this->user('Ann Mutua');
+        $gone = $this->user('Old Cook');
+        foreach ([[$wanjiru->id, $kitchen], [$baraka->id, $kitchen], [$ann->id, $floor], [$gone->id, $kitchen]] as [$u, $r]) {
+            DB::table('user_roles')->insert(['user_id' => $u, 'role_id' => $r, 'expires_at' => $u === $gone->id ? now()->subDay() : null]);
+        }
+        $this->assertSame(['Floor', 'Kitchen'], array_column($this->chefs()->roles(), 'name'), 'only the roles staff hold, not the portal ones');
+        $this->assertSame(['Baraka Otieno', 'Wanjiru Kamau'], array_column($this->chefs()->candidates('', [$kitchen]), 'name'), 'the whole role with no typing; a role that has run out does not count');
+        $this->assertSame(['Ann Mutua', 'Baraka Otieno', 'Wanjiru Kamau'], array_column($this->chefs()->candidates('', [$kitchen, $floor]), 'name'));
+        $this->assertSame(['Wanjiru Kamau'], array_column($this->chefs()->candidates('wanji', [$kitchen]), 'name'));
+        $this->assertSame([], $this->chefs()->candidates('ann', [$kitchen]), 'Ann is not in the ticked role');
+        $this->assertSame([['Kitchen']], [$this->chefs()->candidates('wanji', [$kitchen])[0]['roles']]);
+        $this->chefs()->save(['user_id' => $wanjiru->id]);
+        $this->assertSame(['Baraka Otieno'], array_column($this->chefs()->candidates('', [$kitchen]), 'name'), 'a chef already is not offered again');
+        $ref->setValue(null, null);
+    }
 }

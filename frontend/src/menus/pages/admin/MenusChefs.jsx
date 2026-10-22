@@ -20,12 +20,20 @@ function ChefForm({ chef, stations, canPay, onClose, onDone }) {
     pay_mode: chef?.pay_mode ?? 'salary', shift_rate: chef?.shift_rate ?? '', hour_rate: chef?.hour_rate ?? '' });
   const [q, setQ] = useState('');
   const [found, setFound] = useState([]);
+  const [roles, setRoles] = useState([]);   // the roles staff hold, as checkboxes
+  const [ticked, setTicked] = useState([]);
+  const [open, setOpen] = useState(false);
+  const [chosen, setChosen] = useState('');
   const [busy, setBusy] = useState(false);
   useEffect(() => {
-    if (chef || q.trim().length < 2) { setFound([]); return undefined; }
-    const t = setTimeout(() => { menusAPI.chefCandidates(q).then((r) => setFound(r.users)).catch(() => setFound([])); }, 250);
+    if (chef) return;
+    menusAPI.chefCandidates('', []).then((r) => setRoles(r.roles ?? [])).catch(() => setRoles([]));
+  }, [chef]);
+  useEffect(() => {
+    if (chef || (ticked.length === 0 && q.trim().length < 2)) { setFound([]); return undefined; }
+    const t = setTimeout(() => { menusAPI.chefCandidates(q, ticked).then((r) => setFound(r.users)).catch(() => setFound([])); }, 250);
     return () => clearTimeout(t);
-  }, [q, chef]);
+  }, [q, ticked, chef]);
   const toggle = (id) => setF((x) => ({ ...x, station_ids: x.station_ids.includes(id) ? x.station_ids.filter((s) => s !== id) : [...x.station_ids, id] }));
   const save = async () => {
     setBusy(true);
@@ -40,10 +48,34 @@ function ChefForm({ chef, stations, canPay, onClose, onDone }) {
     <Modal title={chef ? `Edit ${chef.display_name}` : 'Add a chef'} onClose={onClose} width={600} footer={<ModalActions onCancel={onClose} onSubmit={save} submitLabel="Save chef" busy={busy} disabled={!f.user_id} />}>
       <FormStack>
         {!chef && (
-          <Field label="Member of staff" htmlFor="chef-find" hint={f.user_id ? 'Chosen.' : 'Type at least two letters of their name or email.'}>
-            <TextInput id="chef-find" value={q} onChange={(e) => setQ(e.target.value)} placeholder="Search staff" />
-            {found.length > 0 && <ul style={{ listStyle: 'none', margin: '6px 0 0', padding: 0, display: 'grid', gap: 4 }}>{found.map((u) => <li key={u.id}><button type="button" onClick={() => { setF((x) => ({ ...x, user_id: u.id, display_name: x.display_name || u.name })); setQ(`${u.name} (${u.email ?? ''})`); setFound([]); }} style={{ ...btnGhost, width: '100%', textAlign: 'left' }}>{u.name} · {u.email}</button></li>)}</ul>}
-          </Field>
+          <>
+            {roles.length > 0 && (
+              <fieldset data-testid="chef-roles" style={{ border: 'none', margin: 0, padding: 0, display: 'flex', gap: 14, flexWrap: 'wrap', fontSize: '0.86rem' }}>
+                <legend style={{ fontSize: '0.72rem', fontWeight: 800, color: colors.textMuted, marginBottom: 4 }}>Staff with these roles (tick to list them below)</legend>
+                {roles.map((r) => (
+                  <label key={r.id} style={{ display: 'flex', gap: 6, alignItems: 'center' }}>
+                    <input type="checkbox" aria-label={`Role ${r.name}`} checked={ticked.includes(r.id)} onChange={(e) => { setTicked((xs) => (e.target.checked ? [...xs, r.id] : xs.filter((x) => x !== r.id))); setOpen(true); }} /> {r.name}
+                  </label>
+                ))}
+              </fieldset>
+            )}
+            <Field label="Member of staff" htmlFor="chef-find" hint={f.user_id ? `Chosen: ${chosen}.` : ticked.length ? 'Pick from the list or type to narrow it.' : 'Tick a role above, or type at least two letters of their name or email.'}>
+              <div style={{ position: 'relative' }}>
+                <TextInput id="chef-find" role="combobox" aria-expanded={open && found.length > 0} aria-controls="chef-find-list" autoComplete="off" value={q} onFocus={() => setOpen(true)} onChange={(e) => { setQ(e.target.value); setOpen(true); }} placeholder="Search staff" />
+                {open && found.length > 0 && (
+                  <ul id="chef-find-list" role="listbox" data-testid="chef-found" style={{ listStyle: 'none', margin: '4px 0 0', padding: 4, display: 'grid', gap: 2, maxHeight: 220, overflowY: 'auto', border: `1px solid ${colors.tint(0.15)}`, borderRadius: 8, background: 'var(--surface, #fff)' }}>
+                    {found.map((u) => (
+                      <li key={u.id} role="option" aria-selected={f.user_id === u.id}>
+                        <button type="button" style={{ ...btnGhost, width: '100%', textAlign: 'left', padding: '6px 8px', fontSize: '0.82rem' }} onClick={() => { setF((x) => ({ ...x, user_id: u.id, display_name: x.display_name || u.name })); setChosen(u.name); setQ(u.name); setOpen(false); }}>
+                          <strong>{u.name}</strong> <span style={{ color: colors.textFaint }}>{u.email}{u.roles?.length ? ` · ${u.roles.join(', ')}` : ''}</span>
+                        </button>
+                      </li>
+                    ))}
+                  </ul>
+                )}
+              </div>
+            </Field>
+          </>
         )}
         <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10 }}>
           <Field label="Name shown to guests" htmlFor="chef-name"><TextInput id="chef-name" maxLength={80} value={f.display_name} onChange={(e) => setF({ ...f, display_name: e.target.value })} placeholder="Chef Wanjiru" /></Field>

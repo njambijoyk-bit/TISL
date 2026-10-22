@@ -33,16 +33,45 @@ class ChefService
     {
     }
 
-    /** Staff who could be made chefs: found by name or email, not chefs already. @return array<int, array{id: int, name: string, email: ?string}> */
-    public function candidates(string $q): array
+    /** The roles staff hold, to narrow the search for a chef by. @return array<int, array{id: int, name: string}> */
+    public function roles(): array
     {
-        $q = trim($q);
-        if (mb_strlen($q) < 2) {
+        if (! \App\Services\Access\Authorizer::ready()) {
             return [];
         }
 
-        return User::query()->whereNotIn('id', Chef::pluck('user_id'))->where(fn ($w) => $w->where('name', 'like', "%{$q}%")->orWhere('email', 'like', "%{$q}%"))->orderBy('name')->limit(15)->get(['id', 'name', 'email'])
-            ->map(fn ($u) => ['id' => (int) $u->id, 'name' => $u->name, 'email' => $u->email])->all();
+        return \App\Models\Access\Role::where('kind', 'staff')->where('is_active', true)->orderBy('sort_order')->orderBy('name')->get(['id', 'name'])->map(fn ($r) => ['id' => (int) $r->id, 'name' => $r->name])->all();
+    }
+
+    /**
+     * Staff who could be made chefs, not chefs already: by name or email, and/or by the roles they hold now (any of `$roleIds`). With roles ticked the whole of those roles is listed (a few
+     * letters narrow it); with none, at least two letters are needed.
+     *
+     * @param int[] $roleIds
+     * @return array<int, array{id: int, name: string, email: ?string, roles: string[]}>
+     */
+    public function candidates(string $q, array $roleIds = []): array
+    {
+        $q = trim($q);
+        $roleIds = array_values(array_filter(array_map('intval', $roleIds)));
+        if ($roleIds && ! \App\Services\Access\Authorizer::ready()) {
+            $roleIds = [];
+        }
+        if (! $roleIds && mb_strlen($q) < 2) {
+            return [];
+        }
+        $users = User::query()->whereNotIn('id', Chef::pluck('user_id'));
+        if ($roleIds) {
+            $users->whereIn('id', fn ($s) => $s->select('ur.user_id')->from('user_roles as ur')->join('roles as r', 'r.id', '=', 'ur.role_id')->whereIn('r.id', $roleIds)->where('r.is_active', 1)
+                ->where(fn ($w) => $w->whereNull('ur.starts_at')->orWhere('ur.starts_at', '<=', now()))->where(fn ($w) => $w->whereNull('ur.expires_at')->orWhere('ur.expires_at', '>', now())));
+        }
+        if ($q !== '') {
+            $users->where(fn ($w) => $w->where('name', 'like', "%{$q}%")->orWhere('email', 'like', "%{$q}%"));
+        }
+        $found = $users->orderBy('name')->limit($roleIds ? 100 : 15)->get(['id', 'name', 'email']);
+        $held = $found->isEmpty() || ! \App\Services\Access\Authorizer::ready() ? collect() : DB::table('user_roles as ur')->join('roles as r', 'r.id', '=', 'ur.role_id')->whereIn('ur.user_id', $found->pluck('id'))->where('r.is_active', 1)->get(['ur.user_id', 'r.name'])->groupBy('user_id');
+
+        return $found->map(fn ($u) => ['id' => (int) $u->id, 'name' => $u->name, 'email' => $u->email, 'roles' => ($held[$u->id] ?? collect())->pluck('name')->unique()->values()->all()])->all();
     }
 
     /** @param array{user_id?: int, display_name?: string, title?: ?string, bio?: ?string, photo?: ?string, station_ids?: ?array, is_instructor?: bool, is_public?: bool, is_active?: bool, sort_order?: int} $d */

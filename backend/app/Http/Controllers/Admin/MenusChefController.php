@@ -47,7 +47,7 @@ class MenusChefController extends Controller
 
     public function candidates(Request $request): JsonResponse
     {
-        return $this->guard(fn () => response()->json(['users' => $this->chefs->candidates((string) $request->query('q', ''))]));
+        return $this->guard(fn () => response()->json(['users' => $this->chefs->candidates((string) $request->query('q', ''), (array) $request->query('roles', [])), 'roles' => $this->chefs->roles()]));
     }
 
     private function canPay(Request $request): bool

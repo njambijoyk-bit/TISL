@@ -19,6 +19,7 @@ import DishMakeupBuild from '../../components/DishMakeupBuild';
 import DishMakeupModal from '../../components/DishMakeupModal';
 import DishModifiersModal from '../../components/DishModifiers';
 import DishPackagingModal from '../../components/PackagingRules';
+import DishBranchesModal from '../../components/DishBranchesModal';
 import DishOptionsModal from '../../components/DishOptionsModal';
 import { AllergenChips, DietChips, Pill } from '../../components/FoodChips';
 import { useMenusBranch } from '../../lib/menusBranch';
@@ -188,12 +189,13 @@ export default function Dishes() {
                     <div style={{ marginTop: 3 }}>
                       {!d.is_active && <Pill>Off the menu</Pill>}
                       {d.sold_out_today && <Pill tone="danger">Sold out today</Pill>}
+                      {d.branch_available === false && <Pill tone="warn">Not served at this branch</Pill>}
                       {!d.has_recipe && <Pill tone="warn">Nothing in it yet</Pill>}
                       {d.made_of_sides && <Pill>Made of {d.sides.join(', ')}</Pill>}
                       {d.made_to_order && <Pill>Made to order</Pill>}
                     </div>
                   </td>
-                  <td style={{ ...td, textAlign: 'right' }}>{d.currency_id && data.currencies ? `${data.currencies.find((c) => c.id === d.currency_id)?.code ?? ''} ` : ''}{money(d.price)}</td>
+                  <td style={{ ...td, textAlign: 'right' }}>{d.currency_id && data.currencies ? `${data.currencies.find((c) => c.id === d.currency_id)?.code ?? ''} ` : ''}{money(d.branch_price ?? d.price)}{d.branch_price != null && Number(d.branch_price) !== Number(d.price) && <div style={{ fontSize: '0.7rem', color: colors.textFaint }}>here; {money(d.price)} elsewhere</div>}</td>
                   <td style={{ ...td, textAlign: 'right' }}>{d.cost == null ? <span style={{ color: colors.textFaint }}>—</span> : <>{money(d.cost)}<div style={{ fontSize: '0.7rem', color: colors.textFaint }}>{money(d.margin)} · {d.food_cost_pct}% food cost{d.complete ? '' : ' (some costs unknown)'}</div></>}</td>
                   <td style={{ ...td, textAlign: 'right' }} data-testid="available">{d.available == null ? '—' : d.available}</td>
                   <td style={td}>
@@ -207,6 +209,7 @@ export default function Dishes() {
                     {canWrite && <button type="button" style={small} onClick={() => setModal({ modifiers: d })}>Modifiers</button>}
                     {canWrite && <button type="button" style={small} onClick={() => setModal({ packaging: d })}>Packaging</button>}
                     {canWrite && <button type="button" style={small} onClick={() => setModal({ guide: d })}>Guided</button>}
+                    {canWrite && <button type="button" style={small} onClick={() => setModal({ branches: d })}>Branches</button>}
                     {hasPermission(user, 'codes.print') && <button type="button" style={small} aria-label={`Print the QR label for ${d.name}`} onClick={() => setLabels([{ type: 'dish', id: d.id, label: d.name }])}>QR</button>}
                     <Link to="/admin/menus/recipes" style={{ ...small, display: 'inline-block', textDecoration: 'none' }}>Recipe</Link>
                     {canWrite && <button type="button" style={small} onClick={() => toggleSoldOut(d)}>{d.sold_out_today ? 'Available again' : 'Sold out today'}</button>}
@@ -221,6 +224,7 @@ export default function Dishes() {
       </div>
       {modal?.options && <DishOptionsModal dish={modal.options} onClose={() => setModal(null)} onDone={done} />}
       {modal?.makeup && <DishMakeupModal dish={modal.makeup} onClose={() => setModal(null)} onDone={done} />}
+      {modal?.branches && <DishBranchesModal dish={modal.branches} onClose={() => setModal(null)} onDone={load} />}
       {modal?.packaging && <DishPackagingModal dish={modal.packaging} onClose={() => setModal(null)} />}
       {modal?.modifiers && <DishModifiersModal dish={modal.modifiers} onClose={() => setModal(null)} onDone={() => load()} />}
       {modal?.guide && data && <DishGuide dish={modal.guide} data={data} onClose={() => { setModal(null); load(); }} onDone={done} onChoices={(d) => { setModal({ options: d }); load(); }} />}
