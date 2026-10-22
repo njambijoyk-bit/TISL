@@ -9,12 +9,13 @@ import { errMsg } from '../../_shared/store/helpers/apiState';
 import { btnGhost, btnPrimary, colors } from '../../_shared/theme/tokens';
 import useMakeup from '../lib/useMakeup';
 import { ModifiersSection } from './DishModifiers';
-import { PackagingRulesSection } from './PackagingRules';
+import { CondimentsSection, PackagingRulesSection } from './PackagingRules';
+import { DishBranchesSection } from './DishBranchesModal';
 import { AudienceSection, SizesSection, SlotsSection } from './DishMakeupModal';
 import SectionPicker from './SectionPicker';
 
 const small = { ...btnGhost, padding: '4px 10px', fontSize: '0.72rem' };
-const STEPS = ['The dish', 'Sizes', 'What is in it', 'What comes with it', 'Modifiers', 'Packaging'];
+const STEPS = ['The dish', 'Sizes', 'What is in it', 'What comes with it', 'Modifiers', 'Packaging', 'Branches'];
 const INCLUDED = 'Included';
 
 /** Make a side, with its recipe, while setting up a dish: a name, how it is made, and the amount of each ingredient for one serving. */
@@ -122,7 +123,16 @@ function Steps({ dish, step, setStep, onClose, onDone, onChoices }) {
           <div style={{ color: colors.textFaint, fontSize: '0.76rem' }}>This saves what you have done so far and opens the choices.</div>
         </div>
       )}
-      {step === 5 && <div data-testid="guide-packaging"><PackagingRulesSection owner="dish" id={dish.id} name={dish.name} /></div>}
+      {step === 5 && (
+        <div data-testid="guide-packaging" style={{ display: 'grid', gap: 14 }}>
+          <PackagingRulesSection owner="dish" id={dish.id} name={dish.name} />
+          <div data-testid="guide-condiments">
+            <h3 style={{ margin: '0 0 6px', fontSize: '0.9rem', fontWeight: 800 }}>Free condiments</h3>
+            <CondimentsSection dish={dish} />
+          </div>
+        </div>
+      )}
+      {step === 6 && <div data-testid="guide-branches"><DishBranchesSection dish={dish} /></div>}
       <div style={{ display: 'flex', gap: 8, justifyContent: 'flex-end', marginTop: 4 }}>
         <button type="button" style={small} onClick={onClose}>Cancel</button>
         {step > 1 && <button type="button" style={small} onClick={() => setStep(step - 1)}>Back</button>}

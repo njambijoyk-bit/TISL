@@ -10,8 +10,8 @@ const th = { textAlign: 'left', padding: '6px 8px', fontSize: '0.68rem', textTra
 const td = { padding: '6px 8px', fontSize: '0.82rem', borderTop: `1px solid ${colors.tint(0.06)}`, verticalAlign: 'middle' };
 const money = (n) => Number(n).toLocaleString('en-KE', { maximumFractionDigits: 2 });
 
-/** Menus, Dishes, Branches: whether each branch serves the dish and what it charges there. A dish is shared by every branch; an empty price keeps the dish's own. */
-export default function DishBranchesModal({ dish, onClose, onDone }) {
+/** What each branch does with a dish: whether it serves it and what it charges there. A dish is shared by every branch; an empty price keeps the dish's own. Used by the Branches box and the guided set-up. */
+export function DishBranchesSection({ dish, onDone }) {
   const [data, setData] = useState(null);
   const [rows, setRows] = useState([]);
   const [busy, setBusy] = useState(false);
@@ -30,7 +30,7 @@ export default function DishBranchesModal({ dish, onClose, onDone }) {
   };
 
   return (
-    <Modal title={`Branches: ${dish.name}`} onClose={onClose} width={820}>
+    <div>
       <FormError message={err} />
       {!data ? <p role="status" style={{ margin: 0 }}>{err ? '' : 'Loading…'}</p> : !data.ready ? (
         <p role="status" style={{ margin: 0, fontSize: '0.82rem', color: colors.textMuted }}>Run database script 226_menus_dish_branches.sql first: until then every branch serves every dish at its price.</p>
@@ -57,12 +57,23 @@ export default function DishBranchesModal({ dish, onClose, onDone }) {
             </table>
           </div>
           {rows.length === 0 && <p style={{ margin: 0, fontSize: '0.8rem', color: colors.textFaint }}>There is only the one branch you can use, so nothing differs.</p>}
-          <div style={{ display: 'flex', gap: 8, justifyContent: 'flex-end' }}>
-            <button type="button" style={{ ...btnGhost, padding: '6px 14px' }} onClick={onClose}>Close</button>
+          <div>
             <button type="button" style={{ ...btnPrimary, padding: '6px 16px', opacity: busy ? 0.6 : 1 }} disabled={busy} onClick={save}>{busy ? 'Saving…' : 'Save branches'}</button>
           </div>
         </div>
       )}
+    </div>
+  );
+}
+
+/** Menus, Dishes, Branches. */
+export default function DishBranchesModal({ dish, onClose, onDone }) {
+  return (
+    <Modal title={`Branches: ${dish.name}`} onClose={onClose} width={820}>
+      <DishBranchesSection dish={dish} onDone={onDone} />
+      <div style={{ display: 'flex', justifyContent: 'flex-end', marginTop: 10 }}>
+        <button type="button" style={{ ...btnGhost, padding: '6px 14px' }} onClick={onClose}>Close</button>
+      </div>
     </Modal>
   );
 }
