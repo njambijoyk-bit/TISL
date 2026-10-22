@@ -91,19 +91,13 @@ function RecipeModal({ dish, options, onClose, onDone }) {
   const [visibility, setVisibility] = useState(r?.visibility ?? 'internal');
   const [note, setNote] = useState(r?.note ?? '');
   const [name, setName] = useState(dish.name ?? '');
-  const [also, setAlso] = useState('recipe');   // recipe | side | dish: how far the shortcut goes
-  const [dishPrice, setDishPrice] = useState('');
+  const [notSimple, setNotSimple] = useState(false);   // a new recipe also makes its side unless it is ticked as not a simple meal (a base, a marinade)
   const [station, setStation] = useState('');
   const [sideAmount, setSideAmount] = useState('1');
   const [sideSizes, setSideSizes] = useState([]);
   const [sideTask, setSideTask] = useState('');
   const [sideNote, setSideNote] = useState('');
   const [sidePack, setSidePack] = useState([]);
-  const [dishDesc, setDishDesc] = useState('');
-  const [dishPrep, setDishPrep] = useState('');
-  const [dishSizes, setDishSizes] = useState([]);
-  const [dishAud, setDishAud] = useState([]);
-  const [dishPack, setDishPack] = useState([]);
   const [busy, setBusy] = useState(false);
   const [err, setErr] = useState(null);
   const unitLabel = dish.standalone ? (options.units ?? []).find((u) => String(u.id) === String(yieldUnit))?.code ?? 'portions' : 'portions';
@@ -116,8 +110,8 @@ function RecipeModal({ dish, options, onClose, onDone }) {
   const packOut = (rows) => rows.filter((r) => r.item_id).map((r) => ({ item_id: Number(r.item_id), scope: r.scope, quantity: Number(r.quantity) || 1, compulsory: r.compulsory, charged: r.charged, receipt: r.receipt }));
   const sizesOut = (rows, key) => rows.filter((r) => r.serving_id && r.value !== '').map((r) => ({ serving_id: Number(r.serving_id), [key]: Number(r.value) }));
   const sideDetails = () => ({ base_amount: sideAmount === '' ? 1 : Number(sideAmount), amounts: sizesOut(sideSizes, 'amount'), task_minutes: sideTask === '' ? null : Number(sideTask), note: sideNote || null, packaging: packOut(sidePack) });
-  const dishDetails = () => ({ description: dishDesc || null, prep_minutes: dishPrep === '' ? null : Number(dishPrep), servings: sizesOut(dishSizes, 'price'), audience_ids: dishAud, packaging: packOut(dishPack) });
 
+  const makesSide = Boolean(dish.standalone && !dish.id && options.plate_installed && !notSimple);   // only a new recipe of its own
   const go = async (e) => {
     e.preventDefault(); setBusy(true); setErr(null);
     try {
@@ -127,7 +121,7 @@ function RecipeModal({ dish, options, onClose, onDone }) {
         steps: steps.map((s) => ({ body: s.body, minutes: s.minutes === '' ? null : Number(s.minutes) })),
         ...(options.times_installed ? { times: times.filter((t) => t.up_to !== '' || t.minutes !== '').map((t) => ({ up_to: t.up_to === '' ? 0 : Number(t.up_to), minutes: t.minutes === '' ? 0 : Number(t.minutes) })) } : {}),
       };
-      const res = dish.standalone ? await menusAPI.saveRecipeBook({ ...payload, name, ...(also !== 'recipe' ? { also_side: true, also_dish: also === 'dish', dish_price: also === 'dish' ? Number(dishPrice) : null, station_id: station === '' ? null : Number(station), side_details: sideDetails(), ...(also === 'dish' ? { dish_details: dishDetails() } : {}) } : {}) }, dish.id) : await menusAPI.saveStockRecipe(dish.id, payload);
+      const res = dish.standalone ? await menusAPI.saveRecipeBook({ ...payload, name, ...(makesSide ? { also_side: true, station_id: station === '' ? null : Number(station), side_details: sideDetails() } : {}) }, dish.id) : await menusAPI.saveStockRecipe(dish.id, payload);
       toast.success(res.message); onDone();
     } catch (x) { setErr(errMsg(x, 'Could not save the recipe')); } finally { setBusy(false); }
   };
@@ -255,18 +249,16 @@ function RecipeModal({ dish, options, onClose, onDone }) {
             </div>
             <button type="button" style={{ ...small, marginTop: 8 }} onClick={() => setSteps((xs) => [...xs, { key: `s${++key.current}`, body: '', minutes: '' }])}><Plus size={12} /> Add a step</button>
           </div>
-          {dish.standalone && options.plate_installed && (
-            <div data-testid="recipe-also" style={{ display: 'grid', gridTemplateColumns: '2fr 1fr 1fr', gap: 10, alignItems: 'end' }}>
-              <Field label="After saving" htmlFor="rc-also" hint="For a simple item, skip typing it three times: the side and the dish get the same name, and the dish is one plate holding that side. A recipe that already has a side keeps it.">
-                <SelectInput id="rc-also" value={also} onChange={(e) => setAlso(e.target.value)}>
-                  <option value="recipe">Just the recipe</option>
-                  <option value="side">Also make it a side</option>
-                  <option value="dish">Also make it a side and a dish</option>
-                </SelectInput>
-              </Field>
-              {also === 'dish' && <Field label="Dish price" htmlFor="rc-price" hint="before tax"><NumberInput id="rc-price" min="0" step="any" required value={dishPrice} onChange={(e) => setDishPrice(e.target.value)} /></Field>}
-              {also !== 'recipe' && (
-                <Field label="Station" htmlFor="rc-station" hint="who makes it">
+          {dish.standalone && !dish.id && options.plate_installed && (
+            <div data-testid="recipe-also" style={{ display: 'grid', gridTemplateColumns: '2fr 1fr', gap: 10, alignItems: 'end' }}>
+              <div>
+                <label style={{ display: 'flex', gap: 6, alignItems: 'center', fontSize: '0.82rem', fontWeight: 700 }}>
+                  <input type="checkbox" aria-label="Not a simple meal" checked={notSimple} onChange={(e) => setNotSimple(e.target.checked)} /> Not a simple meal: save only the recipe
+                </label>
+                <div style={{ fontSize: '0.72rem', color: colors.textFaint, marginTop: 3 }}>Saving a recipe also makes a side of the same name, so it is ready to put on a plate. Tick this for a base, a marinade or anything that is only part of something else.</div>
+              </div>
+              {!notSimple && (
+                <Field label="Station" htmlFor="rc-station" hint="who makes the side">
                   <SelectInput id="rc-station" value={station} onChange={(e) => setStation(e.target.value)}>
                     <option value="">None yet</option>
                     {(options.stations ?? []).map((st) => <option key={st.id} value={String(st.id)}>{st.name}</option>)}
@@ -275,7 +267,7 @@ function RecipeModal({ dish, options, onClose, onDone }) {
               )}
             </div>
           )}
-          {dish.standalone && options.plate_installed && also !== 'recipe' && (
+          {makesSide && (
             <div data-testid="also-side" style={{ display: 'grid', gap: 10, padding: 10, border: `1px solid ${colors.tint(0.1)}`, borderRadius: 8 }}>
               <div style={{ fontSize: '0.78rem', fontWeight: 800 }}>The side: {name || 'this recipe'}</div>
               <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 2fr', gap: 10 }}>
@@ -287,28 +279,8 @@ function RecipeModal({ dish, options, onClose, onDone }) {
               <PackRows label="Side packaging" rows={sidePack} setRows={setSidePack} items={options.packaging_items ?? []} />
             </div>
           )}
-          {dish.standalone && options.plate_installed && also === 'dish' && (
-            <div data-testid="also-dish" style={{ display: 'grid', gap: 10, padding: 10, border: `1px solid ${colors.tint(0.1)}`, borderRadius: 8 }}>
-              <div style={{ fontSize: '0.78rem', fontWeight: 800 }}>The dish: {name || 'this recipe'}</div>
-              <div style={{ display: 'grid', gridTemplateColumns: '3fr 1fr', gap: 10 }}>
-                <Field label="Description" htmlFor="rc-dishdesc"><TextInput id="rc-dishdesc" maxLength={3000} value={dishDesc} onChange={(e) => setDishDesc(e.target.value)} /></Field>
-                <Field label="Takes about (minutes)" htmlFor="rc-dishprep"><NumberInput id="rc-dishprep" min="0" value={dishPrep} onChange={(e) => setDishPrep(e.target.value)} /></Field>
-              </div>
-              <SizeRows label="Price for a size" rows={dishSizes} setRows={setDishSizes} servings={options.lists?.servings ?? []} valueLabel="Price" testid="also-dish-sizes" />
-              {(options.lists?.audiences ?? []).length > 0 && (
-                <div data-testid="also-audiences">
-                  <div style={{ fontSize: '0.72rem', fontWeight: 700, color: colors.textMuted, marginBottom: 4 }}>Who it is for (none ticked: everyone)</div>
-                  <div style={{ display: 'flex', gap: 14, flexWrap: 'wrap', fontSize: '0.8rem' }}>
-                    {options.lists.audiences.map((a) => <label key={a.id} style={{ display: 'flex', gap: 5, alignItems: 'center' }}><input type="checkbox" checked={dishAud.includes(a.id)} onChange={(e) => setDishAud((xs) => (e.target.checked ? [...xs, a.id] : xs.filter((x) => x !== a.id)))} /> {a.name}</label>)}
-                  </div>
-                </div>
-              )}
-              <PackRows label="Dish packaging" rows={dishPack} setRows={setDishPack} items={options.packaging_items ?? []} />
-              <p style={{ margin: 0, fontSize: '0.74rem', color: colors.textFaint }}>The dish is one plate holding the side. More slots, extras and free condiments are added afterwards under Menus, Dishes.</p>
-            </div>
-          )}
           <Field label="Note (optional)"><TextInput aria-label="Note" maxLength={255} value={note} onChange={(e) => setNote(e.target.value)} /></Field>
-          <ModalActions onCancel={onClose} submitLabel="Save recipe" busy={busy} disabled={!lines.some((l) => l.ref && Number(l.quantity) > 0) || (dish.standalone && !name.trim()) || (also === 'dish' && dishPrice === '')} />
+          <ModalActions onCancel={onClose} submitLabel="Save recipe" busy={busy} disabled={!lines.some((l) => l.ref && Number(l.quantity) > 0) || (dish.standalone && !name.trim())} />
         </FormStack>
       </form>
     </Modal>
@@ -407,7 +379,7 @@ export default function Recipes() {
                   <td style={{ ...td, textAlign: 'right' }}>{d.recipe?.portions == null ? '—' : num(Math.floor(d.recipe.portions), 0)}</td>
                   <td style={{ ...td, whiteSpace: 'nowrap' }}>
                     {d.recipe && <button type="button" style={small} onClick={() => setParams({ card: d.recipe.id })}>Kitchen card</button>}
-                    {canWrite && data.installed && <button type="button" style={small} onClick={() => setModal({ dish: d })}>{d.recipe ? 'Edit recipe' : 'Write recipe'}</button>}
+                    {canWrite && data.installed && (d.recipe || !d.made_of?.length) && <button type="button" style={small} onClick={() => setModal({ dish: d })}>{d.recipe ? 'Edit recipe' : 'Write recipe'}</button>}
                     {canWrite && d.recipe && <button type="button" style={small} onClick={() => remove(d)}>Remove</button>}
                   </td>
                 </tr>

@@ -90,6 +90,16 @@ class MenusRecipeToPlateTest extends TestCase
         $this->assertStringNotContainsString('the side', $res->getData(true)['message']);
     }
 
+    public function test_a_side_of_the_same_name_already_there_refuses_the_save_in_words(): void
+    {
+        $other = app(\App\Services\Menus\DishRecipes::class)->saveStandalone($this->body('Base'));
+        app(\App\Services\Menus\Sides::class)->save(['name' => 'Beef pilau', 'recipe_id' => $other->id]);
+        $res = $this->saveRecipe($this->body('Beef pilau', ['also_side' => true]));
+        $this->assertSame(422, $res->getStatusCode());
+        $this->assertStringContainsString('Not a simple meal', $res->getData(true)['message']);
+        $this->assertSame([1, 1], [DishRecipe::standalone()->count(), Side::count()], 'only the recipe and side that were there');
+    }
+
     public function test_a_refusal_leaves_nothing_behind(): void
     {
         $this->saveRecipe($this->body('Beef pilau', ['also_dish' => true, 'dish_price' => 600]));

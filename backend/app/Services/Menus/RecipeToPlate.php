@@ -41,6 +41,9 @@ class RecipeToPlate
         return DB::transaction(function () use ($recipe, $o, $wantDish, $userId) {
             $made = [];
             $side = Side::where('recipe_id', $recipe->id)->first();
+            if (! $side && Side::whereRaw('LOWER(name) = ?', [mb_strtolower($recipe->name)])->exists()) {
+                throw new BooksException("There is already a side called {$recipe->name}, so nothing was saved. Tick \"Not a simple meal\" to save only the recipe, or give the recipe another name.");
+            }
             if (! $side) {
                 $sd = (array) ($o['side_details'] ?? []);
                 $side = $this->sides->save(['name' => $recipe->name, 'recipe_id' => $recipe->id, 'station_id' => $o['station_id'] ?? null] + array_intersect_key($sd, array_flip(['base_amount', 'amounts', 'task_minutes', 'note', 'unit_id'])));
