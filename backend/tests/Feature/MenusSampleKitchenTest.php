@@ -121,9 +121,9 @@ class MenusSampleKitchenTest extends TestCase
     /** section 4 of the data: the recipes of their own. The dishes' recipes of the old data became these. */
     private function recipes(): void
     {
-        $this->recipeOf('Beef stew & ugali', 1, [['Beef', 200, 5], ['Onions', 60], ['Tomatoes', 100], ['Cooking oil', 20], ['Salt', 3], ['Maize flour', 150]]);
-        $this->recipeOf('Chicken pilau', 1, [['Rice', 150], ['Chicken', 180], ['Onions', 50], ['Cooking oil', 25], ['Tomatoes', 40], ['Salt', 3]]);
-        $this->recipeOf('Sukuma wiki & ugali', 1, [['Kale', 150, 10], ['Onions', 40], ['Tomatoes', 50], ['Cooking oil', 15], ['Maize flour', 150], ['Salt', 2]]);
+        $this->recipeOf('Stewed beef', 1, [['Beef', 200, 5], ['Onions', 60], ['Tomatoes', 100], ['Cooking oil', 20], ['Salt', 3]], ['prep_minutes' => 10, 'cook_minutes' => 90, 'steps' => [['body' => 'Brown the beef in the oil.', 'minutes' => 10], ['body' => 'Add the onions, tomatoes and salt and cook down.', 'minutes' => 10], ['body' => 'Cover and simmer until the beef is tender.', 'minutes' => 70]]]);
+        $this->recipeOf('Chicken pilau', 1, [['Rice', 150], ['Chicken', 180], ['Onions', 50], ['Cooking oil', 25], ['Tomatoes', 40], ['Salt', 3]], ['prep_minutes' => 15, 'cook_minutes' => 40, 'steps' => [['body' => 'Fry the onions in the oil until golden.', 'minutes' => 8], ['body' => 'Add the chicken, tomatoes and salt and brown.', 'minutes' => 12], ['body' => 'Stir in the rice and water, cover and cook until dry.', 'minutes' => 20]]]);
+        $this->recipeOf('Sukuma wiki', 1, [['Kale', 150, 10], ['Onions', 40], ['Tomatoes', 50], ['Cooking oil', 15], ['Salt', 2]], ['prep_minutes' => 5, 'cook_minutes' => 10, 'steps' => [['body' => 'Fry the onions and tomatoes in the oil.', 'minutes' => 5], ['body' => 'Add the chopped kale and salt and cook until soft.', 'minutes' => 5]]]);
         $this->recipeOf('Chips', 1, [['Potatoes', 300, 15], ['Cooking oil', 60], ['Salt', 2]]);
         $this->recipeOf('Pancakes', 1, [['Wheat flour', 120], ['Eggs', 1], ['Milk', 150], ['Sugar', 15], ['Butter', 10, 0, ['removable' => true]], ['Cooking oil', 10]]);
         $this->recipeOf('Masala chai', 1, [['Milk', 200], ['Tea leaves', 5], ['Sugar', 10]]);
@@ -144,7 +144,7 @@ class MenusSampleKitchenTest extends TestCase
     private function sides(): void
     {
         $svc = app(Sides::class);
-        foreach (['Beef stew & ugali', 'Chicken pilau', 'Sukuma wiki & ugali', 'Pancakes', 'Masala chai', 'Chocolate cake', 'Bread', 'Choma', 'Wet fry', 'Kale', 'Egg', 'Burger'] as $n) {
+        foreach (['Stewed beef', 'Chicken pilau', 'Sukuma wiki', 'Pancakes', 'Masala chai', 'Chocolate cake', 'Bread', 'Choma', 'Wet fry', 'Kale', 'Egg', 'Burger'] as $n) {
             $this->side[$n] = $svc->save(['name' => $n, 'recipe_id' => $this->recipe[$n]])->id;
         }
         $this->side['Chips'] = $svc->save(['name' => 'Chips', 'recipe_id' => $this->recipe['Chips'], 'base_amount' => 1, 'amounts' => [['serving_id' => $this->jumbo, 'amount' => 1.5]]])->id;
@@ -166,9 +166,9 @@ class MenusSampleKitchenTest extends TestCase
     /** section 6 of the data. */
     private function dishes(): void
     {
-        $this->plate('Beef stew & ugali', 650, 'Beef stew & ugali');
+        $this->plate('Beef stew & ugali', 650, 'Stewed beef', ['slots' => [['name' => 'Main', 'kind' => 'fixed', 'choices' => [['side_id' => $this->side['Stewed beef']]]], ['name' => 'Starch', 'kind' => 'fixed', 'choices' => [['side_id' => $this->side['Ugali']]]]]]);
         $this->plate('Chicken pilau', 600, 'Chicken pilau');
-        $this->plate('Sukuma wiki & ugali', 250, 'Sukuma wiki & ugali');
+        $this->plate('Sukuma wiki & ugali', 250, 'Sukuma wiki', ['slots' => [['name' => 'Main', 'kind' => 'fixed', 'choices' => [['side_id' => $this->side['Sukuma wiki']]]], ['name' => 'Starch', 'kind' => 'fixed', 'choices' => [['side_id' => $this->side['Ugali']]]]]]);
         $this->plate('Pancakes', 350, 'Pancakes');
         $this->plate('Masala chai', 150, 'Masala chai');
         $this->plate('Chocolate cake slice', 400, 'Chocolate cake');
@@ -212,8 +212,8 @@ class MenusSampleKitchenTest extends TestCase
     public function test_what_a_portion_of_each_recipe_costs(): void
     {
         $this->assertSame(
-            ['Beef stew & ugali' => 208.09, 'Chicken pilau' => 163.57, 'Sukuma wiki & ugali' => 39.98, 'Chips' => 51.20, 'Pancakes' => 67.71, 'Masala chai' => 29.00],
-            collect(['Beef stew & ugali', 'Chicken pilau', 'Sukuma wiki & ugali', 'Chips', 'Pancakes', 'Masala chai'])->mapWithKeys(fn ($r) => [$r => $this->portionCost($r)])->all(),
+            ['Stewed beef' => 193.09, 'Chicken pilau' => 163.57, 'Sukuma wiki' => 24.98, 'Chips' => 51.20, 'Pancakes' => 67.71, 'Masala chai' => 29.00],
+            collect(['Stewed beef', 'Chicken pilau', 'Sukuma wiki', 'Chips', 'Pancakes', 'Masala chai'])->mapWithKeys(fn ($r) => [$r => $this->portionCost($r)])->all(),
         );
     }
 
@@ -337,5 +337,14 @@ class MenusSampleKitchenTest extends TestCase
         $this->assertSame(650.0, $sel['unit_price'], 'free extras cost nothing');
         DB::transaction(fn () => app(DishStock::class)->apply($this->sale([['dish' => $d, 'qty' => 1, 'uses' => $sel['uses']]]), null));
         $this->assertSame([71.0, 6.0, 2970.0], [$this->left('Crate of 24'), $this->left('Single bottle'), $this->left('Ketchup bottle 1 L')], 'the cheapest Cola (the crate, 50 each) and 30 ml of ketchup');
+    }
+
+    public function test_a_beef_stew_and_ugali_takes_the_stew_from_the_shelf_and_the_ugali_from_the_batch_made_ahead(): void
+    {
+        app(PrepProduction::class)->run(DishRecipe::find($this->recipe['Ugali']), 1, 2.0, ['date' => '2026-10-17']);
+        $this->assertSame(19200.0, $this->left('Unga 2 kg'), '800 g of maize flour for the 2 kg batch');
+        $this->sell('Beef stew & ugali', 2);
+        $this->assertSame([1.5, 19200.0], [(float) PrepLot::first()->qty_left, $this->left('Unga 2 kg')], '2 x 250 g of ugali from the batch (1.5 kg of the 2 kg left), and no more flour: the stew has none');
+        $this->assertEqualsWithDelta(6000 - 2 * 200 / 0.95, $this->left('Stewing meat 1 kg'), 0.01);
     }
 }

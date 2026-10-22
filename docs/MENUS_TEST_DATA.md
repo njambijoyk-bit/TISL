@@ -199,35 +199,39 @@ Packaging, tips and currency settings are in sections 9 to 11, where they are us
 
 ## 4. Recipes of their own (Menus, Recipes, *Recipes of their own*)
 
-A recipe is written once and is not a dish. Quantities are for one portion unless the table says "one batch makes". **Waste %** is added back: 5% on 200 g means 210.5 g is taken from the shelf. The cost on the Recipes screen is worked out from the prices in section 2 (a pack's price divided by what it holds; where an ingredient has several variants on the shelf it is the quantity-weighted average of what is there, so cooking oil is about 0.32 a ml and milk about 0.122).
+**The rule: one recipe for each thing that is cooked in its own pot.** Ugali, stewed beef and sukuma wiki are cooked separately, so each is a recipe of its own, and a plate that has them is made of the three sides (section 6). Things cooked together in one pot are **one** recipe: the rice and the chicken of a pilau are one recipe, not two. The same ingredient may be in several recipes (beef is in the stewed beef, the Choma, the Wet fry and the Burger) because each is prepared differently and in its own amount; stock is counted per ingredient, so beef is taken from the shelf by what each recipe uses.
+
+Quantities are for one portion unless the table says "one batch makes". **Waste %** is added back: 5% on 200 g means 210.5 g is taken from the shelf. The cost on the Recipes screen is worked out from the prices in section 2 (a pack's price divided by what it holds; where an ingredient has several variants on the shelf it is the quantity-weighted average of what is there, so cooking oil is about 0.32 a ml and milk about 0.122).
+
+**What to fill in on every recipe.** Besides the lines: *How it is made* (made to order or in batches), *One batch makes* (with its unit), **Prep minutes** and **Cook minutes** (what the kitchen is told to expect), and the **method steps**, each step with its own minutes. Where the length depends on how much is made (ugali), add **Times**: up to this amount, this many minutes. Open each recipe and check that the steps, their minutes and the prep and cook times are shown on the recipe card.
 
 **Made to order** (selling it uses the ingredients; "How it is made" is "Made to order", the default). The last column is the cost of one portion on the Recipes screen (asserted by `MenusSampleKitchenTest`).
 
-| Recipe | One batch makes | Lines (amount, waste) | Cost per portion |
-|---|---|---|---|
-| Beef stew & ugali | 1 | Beef 200 g (5%), Onions 60 g, Tomatoes 100 g, Cooking oil 20 ml, Salt 3 g, Maize flour 150 g | 208.09 |
-| Chicken pilau | 1 | Rice 150 g, Chicken 180 g, Onions 50 g, Cooking oil 25 ml, Tomatoes 40 g, Salt 3 g | 163.57 |
-| Sukuma wiki & ugali | 1 | Kale 150 g (10%), Onions 40 g, Tomatoes 50 g, Cooking oil 15 ml, Maize flour 150 g, Salt 2 g | 39.98 |
-| Chips | 1 | Potatoes 300 g (15% peeling waste), Cooking oil 60 ml, Salt 2 g | 51.20 |
-| Pancakes | 1 | Wheat flour 120 g, Eggs 1, Milk 150 ml, Sugar 15 g, **Butter 10 g, tick *may be left out***, Cooking oil 10 ml | 67.71 (the flour is Exe at 0.13 a gram, Pembe being empty) |
-| Masala chai | 1 | Milk 200 ml, Tea leaves 5 g, Sugar 10 g | 29.00 |
-| Bread | 1 | Wheat flour 60 g | |
-| Choma | 1 | Beef 150 g, Salt 2 g | |
-| Wet fry | 1 | Beef 120 g, Onions 30 g, Cooking oil 15 ml | |
-| Kale | 1 | Kale 100 g, Onions 20 g | named *Kale*, like the ingredient: a recipe and an ingredient may share a name |
-| Egg | 1 | Eggs 1 | |
-| Ketchup portion | 1 | Tomato ketchup 30 ml | |
-| Mayo portion | 1 | Mayonnaise 20 ml | |
-| Burger | 1 | Burger bun 1, Beef 120 g, **Cheddar cheese 20 g (tick *may be left out* and *may be asked for extra*)**, **Onions 10 g (tick *may be left out* only)**, Cooking oil 5 ml | |
-| Tomato and onion base | **2 kg** (counted in Kilogram) | Onions 400 g, Tomatoes 600 g | |
-| Stew | 4 | the recipe *Tomato and onion base* 1 kg; Beef 800 g | a recipe inside a recipe is taken whole: the base has no leave-out ticks |
+| Recipe | Lines (amount, waste) | Prep / cook | Method steps (minutes) | Cost per portion |
+|---|---|---|---|---|
+| Stewed beef | Beef 200 g (5%), Onions 60 g, Tomatoes 100 g, Cooking oil 20 ml, Salt 3 g | 10 / 90 min | 1 Brown the beef in the oil (10). 2 Add the onions, tomatoes and salt and cook down (10). 3 Cover and simmer until the beef is tender (70). | 193.09 |
+| Chicken pilau (rice and chicken in one pot) | Rice 150 g, Chicken 180 g, Onions 50 g, Cooking oil 25 ml, Tomatoes 40 g, Salt 3 g | 15 / 40 min | 1 Fry the onions in the oil until golden (8). 2 Add the chicken, tomatoes and salt and brown (12). 3 Stir in the rice and water, cover and cook until dry (20). | 163.57 |
+| Sukuma wiki | Kale 150 g (10%), Onions 40 g, Tomatoes 50 g, Cooking oil 15 ml, Salt 2 g | 5 / 10 min | 1 Fry the onions and tomatoes in the oil (5). 2 Add the chopped kale and salt and cook until soft (5). | 24.98 |
+| Chips | Potatoes 300 g (15% peeling waste), Cooking oil 60 ml, Salt 2 g | 10 / 12 min | 1 Peel, cut and dry the potatoes (10). 2 Fry until golden (12). | 51.20 |
+| Pancakes | Wheat flour 120 g, Eggs 1, Milk 150 ml, Sugar 15 g, **Butter 10 g, tick *may be left out***, Cooking oil 10 ml | 5 / 10 min | 1 Whisk the batter (5). 2 Fry in the oil and butter (10). | 67.71 (the flour is Exe at 0.13 a gram, Pembe being empty) |
+| Masala chai | Milk 200 ml, Tea leaves 5 g, Sugar 10 g | 2 / 5 min | 1 Boil the milk with the tea leaves (5). 2 Sweeten and strain (1). | 29.00 |
+| Bread | Wheat flour 60 g | | | |
+| Choma | Beef 150 g, Salt 2 g | | 1 Grill over the coals (15). | |
+| Wet fry | Beef 120 g, Onions 30 g, Cooking oil 15 ml | | | |
+| Kale | Kale 100 g, Onions 20 g | | | named *Kale*, like the ingredient: a recipe and an ingredient may share a name |
+| Egg | Eggs 1 | | | |
+| Ketchup portion | Tomato ketchup 30 ml | | | |
+| Mayo portion | Mayonnaise 20 ml | | | |
+| Burger | Burger bun 1, Beef 120 g, **Cheddar cheese 20 g (tick *may be left out* and *may be asked for extra*)**, **Onions 10 g (tick *may be left out* only)**, Cooking oil 5 ml | | | |
+| Tomato and onion base (2 kg, counted in Kilogram) | Onions 400 g, Tomatoes 600 g | | | |
+| Stew (4 portions) | the recipe *Tomato and onion base* 1 kg; Beef 800 g | | | a recipe inside a recipe is taken whole: the base has no leave-out ticks |
 
 **Made ahead** ("How it is made" is "Made ahead in batches"; a batch is made and its portions go on the prepared shelf).
 
 | Recipe | One batch makes | Lines for the whole batch | Notes |
 |---|---|---|---|
+| Ugali | **2 kg** (counted in Kilogram) | Maize flour 800 g | Cost **40.00** a kilogram, so a 250 g plate is **10.00**. **Times:** up to 1 kg 15 min, up to 2 kg 20 min, up to 5 kg 40 min. Method: 1 Boil the water (5 min). 2 Stir in the flour (20 min). Make a batch before you sell a plate that has ugali (section 13D): the plates take it from the batch. |
 | Chocolate cake | **8** portions, prep 20 min, cook 40 min | Wheat flour 300 g, Sugar 250 g, Eggs 4, Butter 200 g, Cocoa 60 g, Milk 200 ml, Baking powder 10 g | The Recipes screen says **69.18** a slice (the shelf average); making the batch costs **553.00**, which is **69.13** a slice, because it takes the flour from Exe and the milk from the 1 L packs. Method: 1 Cream the butter and sugar. 2 Beat in the eggs. 3 Fold in flour, cocoa and baking powder, loosen with milk. 4 Bake at 170 degrees for 40 minutes. 5 Cool and cut into 8. Set "Who may see it" to "May be shown on the website and in courses" to test copying it to Courses. |
-| Ugali | **2 kg** (counted in Kilogram) | Maize flour 800 g | Cost **40.00** a kilogram. **Times:** up to 1 kg 15 min, up to 2 kg 20 min, up to 5 kg 40 min. Method: 1 Boil the water (5 min). 2 Stir in the flour (20 min). |
 
 Open **Chips** and **Ugali** and check the "one batch makes" unit. Open **Pancakes**: the butter line shows its *may be left out* tick, the others do not.
 
@@ -235,13 +239,13 @@ Open **Chips** and **Ugali** and check the "one batch makes" unit. Open **Pancak
 
 A side is one thing a plate is made of. It is made from **a recipe**, or from **one ready-to-serve ingredient** (a Cola); an ingredient of the kind Cooking ingredient (flour, beef) is not offered as a side, it is not sold as it is. *Amounts* are in the side's own unit: "in a serving" is the amount for any size that has none of its own.
 
-**The sides of the classic dishes.** Each of the old dishes is now a side of the same name made from the recipe of the same name, one serving each:
+**The sides of the classic dishes.** Each pot is a side made from the recipe of the same name, one serving each (Ugali is in the next table, it is the starch of two dishes):
 
 | Side | Made from | In a serving | Jumbo | Kids | Plating or reheating (minutes) |
 |---|---|---|---|---|---|
-| Beef stew & ugali | recipe Beef stew & ugali | 1 | | | |
+| Stewed beef | recipe Stewed beef | 1 | | | |
 | Chicken pilau | recipe Chicken pilau | 1 | | | |
-| Sukuma wiki & ugali | recipe Sukuma wiki & ugali | 1 | | | |
+| Sukuma wiki | recipe Sukuma wiki | 1 | | | |
 | Pancakes | recipe Pancakes | 1 | | | |
 | Masala chai | recipe Masala chai | 1 | | | |
 | Chocolate cake | recipe Chocolate cake (a slice is 1 portion of the 8) | 1 | | | |
@@ -267,13 +271,13 @@ A side is one thing a plate is made of. It is made from **a recipe**, or from **
 
 Every dish is **made of sides**, put in **slots**. A dish has its own price (before tax); "Made at" is the station. A slot is **always included** (fixed), **choose one**, **choose any**, a **free extra** or a **paid extra**. A dish sold in sizes has a price for each size; a size that has none of its own is not sold.
 
-**The classic dishes** (each has one slot, **Plate**, always included, holding the side of the same name):
+**The classic dishes.** Each has one slot, **Plate**, always included, holding the side of the same name, except the two with ugali, which have two slots, **Main** and **Starch**, both always included:
 
 | Dish | Price | Takes about | Made at | Description |
 |---|---|---|---|---|
-| Beef stew & ugali | 650 | 20 min | Hot kitchen | Slow-cooked beef in tomato and onion gravy with ugali |
+| Beef stew & ugali | 650 | 20 min | Hot kitchen | *Main:* Stewed beef. *Starch:* Ugali. Slow-cooked beef in tomato and onion gravy with ugali |
 | Chicken pilau | 600 | 25 min | Hot kitchen | Spiced rice with chicken |
-| Sukuma wiki & ugali | 250 | 10 min | Hot kitchen | Sautéed kale with ugali |
+| Sukuma wiki & ugali | 250 | 10 min | Hot kitchen | *Main:* Sukuma wiki. *Starch:* Ugali. Sautéed kale with ugali |
 | Chips | 300 | 12 min | Hot kitchen | *Sizes:* **Medium 300**, **Jumbo 400** (a Jumbo takes 1.5 portions of the Chips side). Replaces the old "Large +100" choice. |
 | Pancakes | 350 | 10 min | Pastry | Three pancakes with butter and sugar. Under *Leaving out and extra*, **Butter, leave out** with the policy **Free**. |
 | Masala chai | 150 | 5 min | Bar | Milk tea with spice |
@@ -376,11 +380,12 @@ What to expect (asserted by `MenusDishCurrencyTest` and `MenusPackagingCalcTest`
 ### 13B. What a dish tells (test)
 A dish made of sides inherits its allergens, tags and diets from **every side in every slot**, because any of them can end up on the plate. Nobody types them on the dish.
 - Pancakes show **wheat, eggs and milk** (tags gluten, egg, dairy).
-- Beef stew & ugali shows no allergens, the tag meat, and cannot be shown vegetarian. Sukuma wiki & ugali shows no allergens and can be shown vegetarian.
+- Beef stew & ugali shows no allergens, the tag meat, and cannot be shown vegetarian. Sukuma wiki & ugali shows no allergens and can be shown vegetarian (the dish takes them from its Sukuma wiki and Ugali sides).
 - The Steak sandwich shows **wheat** (bread) and **eggs** (the egg side, the mayonnaise), even though a guest takes only one protein. The Burger shows **wheat** and **milk**. A dish with a Cola side is complete (a ready-to-serve ingredient says what it is). A dish with no recipe and no sides is unknown and claims no diet.
 
 ### 13C. Selling
-- **Portion costs on the Recipes screen (test):** Beef stew 208.09, Chicken pilau 163.57, Sukuma wiki 39.98, Chips 51.20, Pancakes 67.71, Masala chai 29.00, one slice of cake 69.18, a kilogram of Ugali 40.00.
+- **Portion costs on the Recipes screen (test):** Stewed beef 193.09, Chicken pilau 163.57, Sukuma wiki 24.98, Chips 51.20, Pancakes 67.71, Masala chai 29.00, one slice of cake 69.18, a kilogram of Ugali 40.00 (a 250 g plate 10.00). So a Beef stew & ugali plate costs 203.09 and a Sukuma wiki & ugali plate 34.98.
+- **Beef stew & ugali (test):** after making the Ugali batch (13D), sell 2: the beef comes from the shelf (200 g each, 210.5 g with the waste, so 421 g in all) and **500 g of ugali from the batch** (2 kg falls to 1.5 kg); no maize flour is taken at the sale, because it was taken when the batch was made (800 g, so Unga goes from 20,000 g to 19,200 g).
 - **Three Pancakes (test):** the Till or kiosk sells them; the flour comes out of **Exe** (360 g, so Exe goes from 20,000 g to 19,640 g, because Pembe is empty); Soko stays at 5,000 g (it is switched off as a substitute); eggs go from 120 to 117; the milk (150 ml × 3 = 450 ml) comes from the 1 L packs because milk is set to "the cheapest first" (19,550 ml left, the 500 ml packs untouched); butter goes from 1,250 g to 1,220 g. Books gets one journal: Dr Food Cost of Sales, Cr Food Ingredients Inventory.
 - **Three Pancakes with No butter (test):** the butter stays at 1,250 g (10 g a pancake saved); the rest of the pancake is still made (flour 19,640 g).
 - **Chicken pilau (test):** sell 5, the sixth is refused ("Not enough Chicken: need 180 g, have 100.", 1 kg holds five portions of 180 g) and the till shows the dish as sold out. Cancel one of the five sales and the chicken comes back.
@@ -391,6 +396,7 @@ A dish made of sides inherits its allergens, tags and diets from **every side in
 - A ticket for the Steak sandwich in Jumbo shows `Jumbo`, then `- Bread`, `- Choma`, `- Egg x2`.
 
 ### 13D. Making ahead (test)
+- **Ugali first:** Menus, Stock, Make a batch (or Prepared food): Ugali, **2 kg**, which is 8 plates of 250 g. The maize flour falls by 800 g and 2 kg appears on the prepared shelf. Do this before selling the two dishes with ugali.
 - Menus, Stock, Make a batch: Chocolate cake, 8 portions. The flour, sugar, eggs, butter, cocoa, milk and baking powder fall by the batch quantities; the batch costs **553.00**, and 8 slices appear on the prepared shelf at **69.13** each (the till can sell 8). Nothing else is booked until the slices are sold. Selling a slice takes it from the shelf (7 left). Cancelling the batch is refused once any slice is sold.
 - The journals: the batch is Dr Prepared Food Inventory, Cr Food Ingredients Inventory; selling a slice is Dr Food Cost of Sales, Cr Prepared Food Inventory.
 
@@ -415,7 +421,7 @@ What to expect is written under each of sections 9 to 12.
 
 | Figures | Test |
 |---|---|
-| Sections 1 to 6 entered as written: portion costs, Pancakes taking Exe and the cheapest milk, No butter, the sixth Chicken pilau refused, Jumbo Chips, the cake batch 553.00 and 69.13, the Steak sandwich 650, 720, 800 and 350, free extras taken off the shelf, the Burger 570 and its stock, the allergens of dishes made of sides | `MenusSampleKitchenTest` |
+| Sections 1 to 6 entered as written: portion costs, Beef stew & ugali taking the stew from the shelf and the ugali from the batch, Pancakes taking Exe and the cheapest milk, No butter, the sixth Chicken pilau refused, Jumbo Chips, the cake batch 553.00 and 69.13, the Steak sandwich 650, 720, 800 and 350, free extras taken off the shelf, the Burger 570 and its stock, the allergens of dishes made of sides | `MenusSampleKitchenTest` |
 | Steak sandwich make-up, Jumbo choma, kale, wet fry | `MenusOrderingMakeupTest`, `MenusDishSelectionTest` |
 | Burger fees kept apart; extra cheese stock | `MenusOrderingModifiersTest`, `MenusDishModifiersTest` |
 | Packaging 4 × 15 = 60; waiver 15 and 40; shelf down 4 and 2; condiments 6 and 3 allowed | `MenusPackagingCheckoutTest`, `MenusPackagingPostingTest`, `MenusPackagingStockTest`, `MenusCondimentsTest` |
