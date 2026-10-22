@@ -267,6 +267,7 @@ Needs two branches (Settings, Branches), say **Main** and **Westlands**.
 1. Menus, Chefs, **Add a chef**: above the staff box there are checkboxes, one for each role staff hold (Kitchen, Floor...). Tick *Kitchen*: the staff box lists everyone who holds it (with their roles); someone whose role has run out is not listed.
 2. Tick *Floor* as well: both roles' staff are listed. Type three letters in the box: the list narrows. Pick one: the box shows their name and *Name shown to guests* is filled in (you can change it).
 3. Untick every role and type one letter: nothing is listed; type two: staff are found by name or email as before. A person who is already a chef is not offered again.
+4. **Courses module**: with Courses switched off (Module Center) the chef form has no *Teaches (for Courses)* box, the chefs list and the public chefs page do not say "Teaches", and a recipe's *Who may see it* reads "May be shown on the website". Switch Courses on and they all come back.
 
 ## 1. Recipes, allergens, dishes and menus (manager)
 1. **Recipes**: make a recipe for a dish (amounts in g or kg, waste %, method steps, how many portions a batch makes). Expect: cost per portion shows, and "can make" counts portions from the shelf. Watch: does the allergen from an ingredient show where you would look for it?

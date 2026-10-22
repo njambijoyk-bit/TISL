@@ -5,9 +5,11 @@ import { ChefHat } from 'lucide-react';
 import Header from '../../../_shared/components/layout/Header';
 import Footer from '../../../_shared/components/layout/Footer';
 import menusPublicAPI from '../../../_shared/api/menusPublic';
+import useCoursesOn from '../../lib/useCoursesOn';
 
 /** The chefs a guest may meet: name, title, a few words about them, the stations they work and a few of their dishes. */
 export default function ChefsPage() {
+  const coursesOn = useCoursesOn();
   const [chefs, setChefs] = useState(null);
   const [error, setError] = useState(false);
   useEffect(() => { menusPublicAPI.chefs().then((r) => setChefs(r.chefs)).catch(() => setError(true)); }, []);
@@ -27,7 +29,7 @@ export default function ChefsPage() {
               {c.photo ? <img src={c.photo} alt={c.name} loading="lazy" style={{ width: '100%', height: 220, objectFit: 'cover' }} /> : <div style={{ height: 120, display: 'grid', placeItems: 'center', background: 'color-mix(in srgb, var(--color-primary-500) 10%, transparent)' }}><ChefHat size={44} aria-hidden="true" /></div>}
               <div style={{ padding: 16, display: 'grid', gap: 6 }}>
                 <h2 style={{ margin: 0, fontSize: '1.2rem', fontWeight: 800 }}>{c.name}</h2>
-                {c.title && <p style={{ margin: 0, fontWeight: 700, color: 'var(--color-primary-600)', fontSize: '0.88rem' }}>{c.title}{c.instructor ? ' · Teaches' : ''}</p>}
+                {c.title && <p style={{ margin: 0, fontWeight: 700, color: 'var(--color-primary-600)', fontSize: '0.88rem' }}>{c.title}{coursesOn && c.instructor ? ' · Teaches' : ''}</p>}
                 {c.bio && <p style={{ margin: 0, fontSize: '0.9rem', lineHeight: 1.55, color: 'var(--text-secondary)' }}>{c.bio}</p>}
                 {c.stations.length > 0 && <p style={{ margin: 0, fontSize: '0.8rem', color: 'var(--text-tertiary)' }}>Works at: {c.stations.join(', ')}</p>}
                 {c.dishes.length > 0 && <p style={{ margin: 0, fontSize: '0.8rem' }}><strong>Dishes:</strong> {c.dishes.join(', ')}</p>}

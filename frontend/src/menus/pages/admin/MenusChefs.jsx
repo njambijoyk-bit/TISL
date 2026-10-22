@@ -11,10 +11,12 @@ import { canViewMenus, canManageMenus } from '../../../_shared/lib/roles';
 import { errMsg } from '../../../_shared/store/helpers/apiState';
 import { btnGhost, btnPrimary, card, colors } from '../../../_shared/theme/tokens';
 import { Pill } from '../../components/FoodChips';
+import useCoursesOn from '../../lib/useCoursesOn';
 
 const STANDING = { valid: ['ok', 'Valid'], expiring: ['warn', 'Runs out soon'], expired: ['danger', 'Has run out'], none: ['neutral', 'No end date'] };
 
 function ChefForm({ chef, stations, canPay, onClose, onDone }) {
+  const coursesOn = useCoursesOn();
   const [f, setF] = useState({ user_id: chef?.user_id ?? '', display_name: chef?.display_name ?? '', title: chef?.title ?? '', bio: chef?.bio ?? '', photo: chef?.photo ?? '', station_ids: chef?.station_ids ?? [],
     is_instructor: chef?.is_instructor ?? false, is_public: chef?.is_public ?? false, is_active: chef?.is_active ?? true, sort_order: chef?.sort_order ?? 0,
     pay_mode: chef?.pay_mode ?? 'salary', shift_rate: chef?.shift_rate ?? '', hour_rate: chef?.hour_rate ?? '' });
@@ -91,7 +93,7 @@ function ChefForm({ chef, stations, canPay, onClose, onDone }) {
         )}
         <div style={{ display: 'flex', gap: 16, flexWrap: 'wrap', fontSize: '0.86rem' }}>
           <label style={{ display: 'flex', gap: 6, alignItems: 'center' }}><input type="checkbox" checked={f.is_public} onChange={(e) => setF({ ...f, is_public: e.target.checked })} /> Show on the chefs page</label>
-          <label style={{ display: 'flex', gap: 6, alignItems: 'center' }}><input type="checkbox" checked={f.is_instructor} onChange={(e) => setF({ ...f, is_instructor: e.target.checked })} /> Teaches (for Courses)</label>
+          {coursesOn && <label style={{ display: 'flex', gap: 6, alignItems: 'center' }}><input type="checkbox" checked={f.is_instructor} onChange={(e) => setF({ ...f, is_instructor: e.target.checked })} /> Teaches (for Courses)</label>}
           <label style={{ display: 'flex', gap: 6, alignItems: 'center' }}><input type="checkbox" checked={f.is_active} onChange={(e) => setF({ ...f, is_active: e.target.checked })} /> Working here</label>
         </div>
         {canPay && (
@@ -136,6 +138,7 @@ function CertForm({ chef, cert, kinds, onClose, onDone }) {
 
 /** Menus → Chefs: the kitchen's people. Who is on duty now, their stations, the certificates they hold (with a warning before one runs out) and what guests see of them. */
 export default function MenusChefs() {
+  const coursesOn = useCoursesOn();
   const user = useAuthStore((s) => s.user);
   const canEdit = canManageMenus(user);
   const [data, setData] = useState(null);
@@ -175,7 +178,7 @@ export default function MenusChefs() {
                       {c.on_duty && <Pill tone="ok"><UserCheck size={11} aria-hidden="true" /> On duty</Pill>}
                       {c.rostered_today && <Pill tone="neutral">Rota today {c.rostered_today}</Pill>}
                       {c.is_public ? <Pill tone="ok">Shown to guests</Pill> : <Pill>Not shown</Pill>}
-                      {c.is_instructor && <Pill>Teaches</Pill>}
+                      {coursesOn && c.is_instructor && <Pill>Teaches</Pill>}
                       {!c.is_active && <Pill tone="danger">Not working here</Pill>}
                       {c.stations.map((s) => <Pill key={s}>{s}</Pill>)}
                       {c.dishes > 0 && <Pill>{c.dishes} dish{c.dishes === 1 ? '' : 'es'}</Pill>}

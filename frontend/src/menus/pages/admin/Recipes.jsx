@@ -5,6 +5,7 @@ import AdminLayout from '../../../_shared/components/layout/AdminLayout';
 import HubHeader, { NoAccess } from '../../../core/components/admin/ui/HubHeader';
 import Modal from '../../../core/components/admin/ui/Modal';
 import { Field, FormError, FormStack, ModalActions, NumberInput, SelectInput, TextArea, TextInput } from '../../../core/components/admin/ui/Form';
+import useCoursesOn from '../../lib/useCoursesOn';
 import menusAPI from '../../../_shared/api/menus';
 import useAuthStore from '../../../_shared/store/authStore';
 import { canViewMenus, canManageMenus, hasPermission } from '../../../_shared/lib/roles';
@@ -77,6 +78,7 @@ function PackRows({ label, rows, setRows, items }) {
 }
 
 function RecipeModal({ dish, options, onClose, onDone }) {
+  const coursesOn = useCoursesOn();
   const r = dish.recipe;
   const key = useRef(0);
   const mk = (l) => ({ key: `k${++key.current}`, ref: l?.recipe_id ? `r:${l.recipe_id}` : l?.ingredient_id ? `i:${l.ingredient_id}` : '', quantity: l?.quantity ?? '', unit: l?.unit ?? 'base', waste_pct: l?.waste_pct ?? '', item_id: l?.item_id ? String(l.item_id) : '', removable: Boolean(l?.removable), extra_allowed: Boolean(l?.extra_allowed) });
@@ -233,7 +235,7 @@ function RecipeModal({ dish, options, onClose, onDone }) {
             <Field label="Prep (minutes)"><NumberInput aria-label="Prep minutes" min="0" value={prep} onChange={(e) => setPrep(e.target.value)} /></Field>
             <Field label="Cook (minutes)"><NumberInput aria-label="Cook minutes" min="0" value={cook} onChange={(e) => setCook(e.target.value)} /></Field>
             <Field label="Who may see it">
-              <SelectInput aria-label="Who may see it" value={visibility} onChange={(e) => setVisibility(e.target.value)}>{Object.entries(options.visibility).map(([k, v]) => <option key={k} value={k}>{v}</option>)}</SelectInput>
+              <SelectInput aria-label="Who may see it" value={visibility} onChange={(e) => setVisibility(e.target.value)}>{Object.entries(options.visibility).map(([k, v]) => <option key={k} value={k}>{coursesOn ? v : v.replace(' and in courses', '')}</option>)}</SelectInput>
             </Field>
           </div>
 
