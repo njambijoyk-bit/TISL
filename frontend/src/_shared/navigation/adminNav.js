@@ -218,6 +218,7 @@ export const ADMIN_NAV = [
           { title: 'Staff & resources', path: '/admin/resources', perm: 'resources.manage' },
         ],
       },
+      { id: 'bulk-import', title: 'Bulk import', icon: PackagePlus, color: '#0d9488', path: '/admin/bulk-import', module: MODULES.EXTRAS, perm: ['bulkimport.core', 'bulkimport.ecommerce', 'bulkimport.menus', 'bulkimport.memberships', 'bulkimport.events', 'bulkimport.courses', 'bulkimport.campaigns', 'bulkimport.careers', 'bulkimport.projects', 'bulkimport.listings', 'bulkimport.accommodations', 'bulkimport.extras'], keywords: 'import csv json xml excel xlsx markdown upload ingredients recipes products services hampers bulk' },
       { id: 'assets', title: 'Assets', icon: Boxes, color: '#c2410c', path: '/admin/assets', also: ['/admin/inventory'], perm: 'inventory.view', keywords: 'furniture equipment laptops issued loaned repairs depreciation register' },
       { id: 'analytics', title: 'Site analytics', icon: TrendingUp, color: '#0ea5e9', path: '/admin/settings/analytics', perm: 'analytics.view', keywords: 'visitors traffic' },
       { id: 'attendance', title: 'Attendance', icon: IdCardLanyard, color: '#eab308', path: '/admin/attendance', keywords: 'sign in clock staff present absent late verify dispute' },
