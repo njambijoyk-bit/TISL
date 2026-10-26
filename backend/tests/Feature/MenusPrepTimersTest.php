@@ -148,4 +148,17 @@ class MenusPrepTimersTest extends TestCase
         $this->fails(fn () => $this->timers()->cancel(999), 'could not be found');
         $this->assertSame(1, PrepTimer::count());
     }
+
+    public function test_a_recipe_with_no_times_by_size_uses_its_prep_and_cook_minutes_and_rows_still_win(): void
+    {
+        $this->on();
+        $flour = (int) DB::table('menus_ingredients')->where('name', 'Maize flour')->value('id');
+        $chai = app(DishRecipes::class)->saveStandalone(['name' => 'Masala chai', 'yield_qty' => 1, 'prep_minutes' => 2, 'cook_minutes' => 5, 'lines' => [['ingredient_id' => $flour, 'quantity' => 10]]]);
+        $this->assertSame(7, $this->timers()->start($chai, 1, 3.0, [], null, $this->at)->expected_minutes, 'no rows: prep 2 + cook 5, for a batch of any size');
+        $this->assertSame(12, $this->timers()->start($chai, 1, 3.0, ['minutes' => 12], null, $this->at)->expected_minutes, 'typed minutes still win');
+        $u = $this->ugali(['prep_minutes' => 2, 'cook_minutes' => 5]);
+        $this->assertSame(20, $this->timers()->start($u, 1, 2.0, [], null, $this->at)->expected_minutes, 'rows win over prep and cook');
+        $none = app(DishRecipes::class)->saveStandalone(['name' => 'Plain', 'yield_qty' => 1, 'lines' => [['ingredient_id' => $flour, 'quantity' => 10]]]);
+        $this->assertNull(app(\App\Services\Menus\RecipeTimes::class)->expected($none, 1.0), 'no rows and no prep or cook: no estimate');
+    }
 }

@@ -7,7 +7,10 @@ use App\Models\UnitOfMeasure;
 use App\Services\Books\BooksException;
 use Illuminate\Support\Facades\Schema;
 
-/** How long a batch of a recipe is expected to take, by its size: the smallest row that is big enough. A batch bigger than every row has no estimate. */
+/**
+ * How long a batch of a recipe is expected to take, by its size: the smallest row that is big enough. A batch bigger than every row has no estimate. A recipe with no rows at all uses its prep
+ * and cook minutes for a batch of any size.
+ */
 class RecipeTimes
 {
     public const MAX_ROWS = 12;
@@ -67,8 +70,9 @@ class RecipeTimes
      */
     public function expected(DishRecipe $r, float $amount, ?UnitOfMeasure $in = null): ?int
     {
+        $own = ((int) $r->prep_minutes) + ((int) $r->cook_minutes);   // a recipe with no times by size takes its prep and cook minutes, whatever the size
         if (! self::installed()) {
-            return null;
+            return $own > 0 ? $own : null;
         }
         if ($in && $r->yield_unit_id && (int) $in->id !== (int) $r->yield_unit_id) {
             $own = $r->yieldUnit;
@@ -76,6 +80,9 @@ class RecipeTimes
                 throw new BooksException("This recipe is counted in {$own?->name}: write the batch in that or in a unit that measures the same.");
             }
             $amount = $in->convertTo($own, $amount);
+        }
+        if (! $r->times()->exists()) {
+            return $own > 0 ? $own : null;
         }
         $row = $r->times()->where('up_to_qty', '>=', round($amount, 4))->orderBy('up_to_qty')->first();
 
