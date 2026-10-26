@@ -51,12 +51,20 @@ function ItemSearch({ variants, onPick }) {
   );
 }
 
-export default function ReceiveIngredients({ data, locationId, onClose, onDone }) {
+export default function ReceiveIngredients({ data, locationId, onClose, onDone, initialLines = null, intro = null, alt = null }) {
   const variants = useMemo(() => data.ingredients.filter((i) => i.is_active).flatMap((i) => i.variants.filter((v) => v.is_active).map((v) => ({
     id: v.id, name: v.name, ingredient: i.name, pack_size_base: v.pack_size_base, track_expiry: v.track_expiry, base_unit: i.base_unit, alt_unit: i.alt_unit, alt_factor: i.alt_factor ?? 1, book_cost: v.book_cost,
   }))), [data]);
   const [h, setH] = useState({ loc: String(locationId), date: new Date().toLocaleDateString('en-CA'), supplier: '', method: '', invoice: '', ref: '', due: '', note: '' });
-  const [lines, setLines] = useState([]);
+  // lines filled in beforehand (what a batch is short of): the first variant of each ingredient, in packs when it has them, rounded up
+  const [lines, setLines] = useState(() => (initialLines ?? []).flatMap((s) => {
+    const v = variants.find((x) => data.ingredients.find((i) => i.id === s.ingredient_id)?.variants.some((y) => y.id === x.id));
+    if (!v) return [];
+    const unit = v.pack_size_base ? 'pack' : 'base';
+    const quantity = unit === 'pack' ? Math.ceil(Number(s.quantity) / v.pack_size_base - 1e-9) : Math.ceil(Number(s.quantity) * 1000) / 1000;
+
+    return [{ key: key(), v, quantity, unit, rate: suggest(v, unit), rate_auto: suggest(v, unit) !== '', discount: '', batch_no: '', expiry_date: '' }];
+  }));
   const [preview, setPreview] = useState(null);
   const [previewErr, setPreviewErr] = useState(null);
   const [busy, setBusy] = useState(false);
@@ -99,6 +107,8 @@ export default function ReceiveIngredients({ data, locationId, onClose, onDone }
   return (
     <Modal title="Receive stock" onClose={onClose} width={1040}>
       <form onSubmit={go} style={{ display: 'grid', gap: 14 }}>
+        {intro && <p role="status" data-testid="restock-intro" style={{ margin: 0, fontSize: '0.8rem', fontWeight: 700 }}>{intro}</p>}
+        {alt && <div><button type="button" style={{ ...btnGhost, padding: '4px 10px', fontSize: '0.76rem' }} onClick={alt.onClick}>{alt.label}</button></div>}
         <p style={{ margin: 0, fontSize: '0.8rem', color: colors.textMuted }}>Stock you buy{data.currency?.code ? ` (prices in ${data.currency.code})` : ''}. It goes on the branch's shelf at the cost you enter, and is owed to the supplier (or paid for at once). The tax follows each ingredient's purchase account.</p>
         <div style={{ ...card, padding: 14, display: 'grid', gridTemplateColumns: 'repeat(auto-fit,minmax(190px,1fr))', gap: 12 }}>
           <div>

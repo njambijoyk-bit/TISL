@@ -12,6 +12,7 @@ import { errMsg } from '../../../_shared/store/helpers/apiState';
 import { btnGhost, btnPrimary, card, colors } from '../../../_shared/theme/tokens';
 import { useMenusBranch } from '../../lib/menusBranch';
 import PreparedReports from '../../components/PreparedReports';
+import RestockShort from '../../components/RestockShort';
 
 /**
  * Menus → Prepared food: food cooked ahead from a recipe of its own (ugali, a stew base). Making a batch uses the ingredients the chef really used, puts what came out on the shelf and books the
@@ -100,7 +101,7 @@ function StartTimer({ data, location, onClose, onDone }) {
   );
 }
 
-function MakeBatch({ data, location, initial = null, onClose, onDone }) {
+function MakeBatch({ data, location, initial = null, canRestock = false, onClose, onDone }) {
   const [recipeId, setRecipeId] = useState(initial?.recipe_id ? String(initial.recipe_id) : '');
   const [size, setSize] = useState(initial?.planned ? String(initial.planned) : '');
   const [preview, setPreview] = useState(null);
@@ -113,6 +114,8 @@ function MakeBatch({ data, location, initial = null, onClose, onDone }) {
   const [expiry, setExpiry] = useState('');
   const [note, setNote] = useState('');
   const [cut, setCut] = useState([]);
+  const [restock, setRestock] = useState(false);   // the box that restocks what is short
+  const [fresh, setFresh] = useState(0);   // bumped after restocking so the shelf figures are read again
   const [busy, setBusy] = useState(false);
   const [err, setErr] = useState(null);
   const key = useRef(`${Date.now()}-${Math.random().toString(36).slice(2, 10)}`);
@@ -126,7 +129,7 @@ function MakeBatch({ data, location, initial = null, onClose, onDone }) {
         .then(setPreview).catch((e) => setErr(errMsg(e, 'Could not work out the batch')));
     }, 350);
     return () => clearTimeout(t);
-  }, [recipeId, size, location]);
+  }, [recipeId, size, location, fresh]);
 
   const go = async (e) => {
     e.preventDefault(); setBusy(true); setErr(null);
@@ -176,6 +179,12 @@ function MakeBatch({ data, location, initial = null, onClose, onDone }) {
                   </tr>
                 ))}</tbody>
               </table>
+              {preview.inputs.some((i) => i.short > 0) && (
+                <div role="alert" data-testid="batch-short" style={{ margin: '10px 0 0', padding: '10px 12px', borderRadius: 8, background: colors.dangerBg, color: colors.danger, fontSize: '0.8rem', display: 'flex', gap: 10, alignItems: 'center', flexWrap: 'wrap' }}>
+                  <span style={{ flex: 1 }}>{preview.inputs.filter((i) => i.short > 0).map((i) => `${i.name} (short ${num(i.short, 3)} ${i.unit})`).join(', ')}. A batch is never made from stock that is not there.</span>
+                  {canRestock && <button type="button" style={{ ...btnPrimary, padding: '5px 14px', fontSize: '0.78rem' }} onClick={() => setRestock(true)}>Restock what is short</button>}
+                </div>
+              )}
               {preview.cost != null && <p style={{ margin: '8px 0 0', fontSize: '0.78rem', color: colors.textMuted }}>About {num(preview.cost)} for the batch{!preview.complete ? ' (an ingredient that has never been bought is not counted)' : ''}.</p>}
             </div>
           )}
@@ -209,6 +218,7 @@ function MakeBatch({ data, location, initial = null, onClose, onDone }) {
           <ModalActions onCancel={onClose} submitLabel="Make the batch" busy={busy} disabled={!recipeId || !(Number(size) > 0)} />
         </FormStack>
       </form>
+      {restock && preview && <RestockShort short={preview.inputs.filter((x) => x.short > 0)} locationId={location} onClose={() => setRestock(false)} onDone={() => { setRestock(false); setFresh((n) => n + 1); }} />}
     </Modal>
   );
 }
@@ -421,7 +431,7 @@ export default function MenusPrepared() {
         )}
         {data?.ready && <PreparedReports location={loc || String(data.location_id)} recipes={data.recipes} />}
       </div>
-      {modal?.kind === 'make' && data && <MakeBatch data={data} location={loc || String(data.location_id)} initial={modal.timer ?? null} onClose={() => setModal(null)} onDone={(lotId) => { setModal(null); load(); if (lotId && canPrint) toast((t) => (<span>The batch is on the shelf. <button type="button" onClick={() => { toast.dismiss(t.id); setLabels([{ type: 'prep_lot', id: lotId, label: 'The batch you made' }]); }} style={{ fontWeight: 800, textDecoration: 'underline', cursor: 'pointer', background: 'none', border: 'none' }}>Print its label</button></span>), { duration: 12000 }); }} />}
+      {modal?.kind === 'make' && data && <MakeBatch data={data} location={loc || String(data.location_id)} initial={modal.timer ?? null} canRestock={canWrite} onClose={() => setModal(null)} onDone={(lotId) => { setModal(null); load(); if (lotId && canPrint) toast((t) => (<span>The batch is on the shelf. <button type="button" onClick={() => { toast.dismiss(t.id); setLabels([{ type: 'prep_lot', id: lotId, label: 'The batch you made' }]); }} style={{ fontWeight: 800, textDecoration: 'underline', cursor: 'pointer', background: 'none', border: 'none' }}>Print its label</button></span>), { duration: 12000 }); }} />}
       {modal?.kind === 'timer' && data && <StartTimer data={data} location={loc || String(data.location_id)} onClose={() => setModal(null)} onDone={(list) => { setModal(null); setTimers(list); }} />}
       {labels && <LabelPrint items={labels} onClose={() => setLabels(null)} />}
       {modal?.kind === 'waste' && data && <WriteOff data={data} location={loc || String(data.location_id)} recipe={modal.recipe} onClose={() => setModal(null)} onDone={() => { setModal(null); load(); }} />}

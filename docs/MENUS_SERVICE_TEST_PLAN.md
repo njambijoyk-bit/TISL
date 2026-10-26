@@ -50,6 +50,20 @@ Sign in as each in a different browser (or a private window).
 | 6 | Waste 3 cake slices as *Made too much* (Operations, Waste). | The slices leave the prepared shelf. |
 | 7 | Try to cancel the cake batch now. | Refused: a slice has been sold. A batch nobody has sold from can be cancelled and puts the ingredients back. |
 
+### 1A-2. A batch with something short (restocking from the batch box)
+A batch is never made from stock that is not there, so the shelf can not go negative. Instead the box helps you restock.
+
+| # | Do | Expect |
+|---|---|---|
+| 1 | With **no milk on the shelf** (or after using it up), choose **Chocolate cake**, 8 portions. | The Milk row says `0 mL (short 200)` in red, and a red strip names what is short: "Milk (short 200 ml). A batch is never made from stock that is not there." with a button **Restock what is short**. |
+| 2 | Press **Make the batch** anyway. | Refused: "Not enough Milk: need 200 mL, have 0." Nothing is used. |
+| 3 | Press **Restock what is short**. | **Receive stock** opens on top, already holding a line for Milk: the first variant, in packs (200 ml short is **1 pack** of Fresh 1 L), at its usual cost. A line says what is short. |
+| 4 | Choose the supplier (or how it was paid), change the pack count if you want more, press **Post purchase**. | A Purchase voucher is posted and the milk is on the shelf. You are back in the batch box and the Milk row now shows what is on the shelf with no red strip. |
+| 5 | Press **Make the batch**. | It is made as in 1A. |
+| 6 | Repeat 1 to 3, then press **It is already on the shelf: count it instead**. | **Count what is short** opens with only the Milk rows (all its variants). Type what is really there and **Save**: a stock count is saved at the last cost, the difference goes to the stock adjustment, and you are back in the batch box. |
+| 7 | In the count box press **Receive it as a purchase instead**. | You are back on Receive stock. |
+| 8 | Look for *Opening stock*. | It is not offered here: it is for the first day only. |
+
 ### 1B. Batch timers (Prepared food, **Start a timer**)
 A timer tells the chef how long a batch takes. The recipe gives the time by batch size (Ugali: up to 1 kg 15 minutes, up to 2 kg 20, up to 5 kg 40).
 
