@@ -13,7 +13,7 @@ import { canViewMenus, canManageMenus, hasPermission } from '../../../_shared/li
 import { useSearchParams } from 'react-router-dom';
 import LabelPrint from '../../components/LabelPrint';
 import { errMsg } from '../../../_shared/store/helpers/apiState';
-import { btnGhost, card, colors } from '../../../_shared/theme/tokens';
+import { btnGhost, btnPrimary, card, colors } from '../../../_shared/theme/tokens';
 import { useMenusBranch } from '../../lib/menusBranch';
 
 /**
@@ -91,6 +91,7 @@ function RecipeModal({ dish, options, onClose, onDone }) {
   const [times, setTimes] = useState((r?.times ?? []).map((t) => ({ key: `t${++key.current}`, up_to: t.up_to, minutes: t.minutes })));
   const [prep, setPrep] = useState(r?.prep_minutes ?? '');
   const [cook, setCook] = useState(r?.cook_minutes ?? '');
+  const [screen, setScreen] = useState(1);   // 1: what it is made of; 2: the method, times and the rest
   const [timesOpen, setTimesOpen] = useState(true);   // the time by batch size starts open; the arrow folds it away
   // prep and cook follow the steps (by the words in them) until someone types their own figure; a recipe saved with figures that differ from its steps keeps them
   const fromMethod = fromSteps(r ? (r.steps ?? []).map((x) => ({ body: x.body, minutes: x.minutes ?? '' })) : []);
@@ -128,7 +129,9 @@ function RecipeModal({ dish, options, onClose, onDone }) {
 
   const makesSide = Boolean(dish.standalone && options.plate_installed && (dish.id ? (own || addSide) : !notSimple));   // a new recipe of its own, or one being edited that has a side (or is given one now)
   const go = async (e) => {
-    e.preventDefault(); setBusy(true); setErr(null);
+    e.preventDefault();
+    if (screen === 1) { setScreen(2); return; }   // Enter on the first screen goes on to the next, it does not save
+    setBusy(true); setErr(null);
     try {
       const payload = {
         yield_qty: Number(yieldQty), ...(dish.standalone ? { yield_unit_id: yieldUnit === '' ? null : Number(yieldUnit) } : {}), made_to_order: order, note: note || null, visibility, prep_minutes: prep === '' ? null : Number(prep), cook_minutes: cook === '' ? null : Number(cook),
@@ -146,6 +149,13 @@ function RecipeModal({ dish, options, onClose, onDone }) {
       <form onSubmit={go}>
         <FormStack>
           <FormError message={err} />
+          <ol data-testid="recipe-screens" style={{ display: 'flex', gap: 6, flexWrap: 'wrap', listStyle: 'none', margin: 0, padding: 0, fontSize: '0.74rem' }}>
+            {['Ingredients', 'Method and details'].map((t, i) => (
+              <li key={t} aria-current={screen === i + 1 ? 'step' : undefined} style={{ padding: '3px 10px', borderRadius: 999, border: `1px solid ${colors.tint(screen === i + 1 ? 0.5 : 0.15)}`, fontWeight: screen === i + 1 ? 800 : 500 }}>{i + 1}. {t}</li>
+            ))}
+          </ol>
+          {screen === 1 && (
+            <>
           {dish.standalone && <Field label="Name of the recipe" htmlFor="rc-name" hint="A recipe of its own is not a dish: a tomato and onion base, a marinade. Dishes can be made from it later."><TextInput id="rc-name" required maxLength={120} value={name} onChange={(e) => setName(e.target.value)} /></Field>}
           <div style={{ display: 'grid', gridTemplateColumns: '1fr 2fr', gap: 10 }}>
             {dish.standalone ? (
@@ -220,6 +230,10 @@ function RecipeModal({ dish, options, onClose, onDone }) {
             {options.flags_installed && !order && <p style={{ margin: '8px 0 0', fontSize: '0.76rem', color: colors.textFaint }}>A recipe made ahead in batches cannot lose an ingredient once it is cooked, so nothing can be left out or added to. Make it to order to allow that.</p>}
           </div>
 
+            </>
+          )}
+          {screen === 2 && (
+            <>
           {!options.times_installed ? (
             <p role="status" data-testid="recipe-times-missing" style={{ margin: 0, fontSize: '0.78rem', color: colors.textMuted }}>Time by batch size: run database script 196_menus_recipe_times.sql to add it here.</p>
           ) : (
@@ -331,7 +345,15 @@ function RecipeModal({ dish, options, onClose, onDone }) {
             </div>
           )}
           <Field label="Note (optional)"><TextInput aria-label="Note" maxLength={255} value={note} onChange={(e) => setNote(e.target.value)} /></Field>
-          <ModalActions onCancel={onClose} submitLabel="Save recipe" busy={busy} disabled={!lines.some((l) => l.ref && Number(l.quantity) > 0) || (dish.standalone && !name.trim())} />
+            </>
+          )}
+          <div style={{ display: 'flex', gap: 8, justifyContent: 'flex-end', marginTop: 4 }}>
+            <button type="button" style={{ ...btnGhost, padding: '8px 16px' }} onClick={onClose}>Cancel</button>
+            {screen === 2 && <button type="button" style={{ ...btnGhost, padding: '8px 16px' }} onClick={() => setScreen(1)}>Back</button>}
+            {screen === 1
+              ? <button type="submit" style={{ ...btnPrimary, padding: '8px 18px' }} disabled={!lines.some((l) => l.ref && Number(l.quantity) > 0) || (dish.standalone && !name.trim())}>Next</button>
+              : <button type="submit" style={{ ...btnPrimary, padding: '8px 18px', opacity: busy ? 0.6 : 1 }} disabled={busy || !lines.some((l) => l.ref && Number(l.quantity) > 0) || (dish.standalone && !name.trim())}>{busy ? 'Saving…' : 'Save recipe'}</button>}
+          </div>
         </FormStack>
       </form>
     </Modal>
