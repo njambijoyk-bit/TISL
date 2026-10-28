@@ -11,20 +11,18 @@ import StockMovement from './StockMovement';
 import ReportFrame from '../reports/ReportFrame';
 import TrialBalanceView from '../reports/TrialBalanceView';
 import StatementView from '../reports/StatementView';
+import DayBookView from '../reports/DayBookView';
 import { hasPermission } from '../../../../_shared/lib/roles';
 import costCentresAPI from '../../../../_shared/api/costCentres';
 import locationsAPI from '../../../../_shared/api/locations';
 
 const REPORTS = [
-  { id: 'day-book', label: 'Day book', range: true },
+  { id: 'engine-day-book', label: 'Day book', custom: true, engine: 'day-book' },
   { id: 'ledger', label: 'Ledger statement', range: true },
   { id: 'engine-trial-balance', label: 'Trial balance', custom: true, engine: 'trial-balance' },
   { id: 'engine-profit-loss', label: 'Profit & loss', custom: true, engine: 'profit-loss' },
   { id: 'engine-balance-sheet', label: 'Balance sheet', custom: true, engine: 'balance-sheet' },
-  { id: 'trial-balance', label: 'Trial balance (old)', range: true },
-  { id: 'profit-loss', label: 'Profit & loss (old)', range: true },
   { id: 'profit-loss-by-cost-centre', label: 'Profit & loss by cost centre', range: true, byCostCentre: true },
-  { id: 'balance-sheet', label: 'Balance sheet (old)', asOf: true },
   { id: 'receivables', label: 'Receivables ageing', asOf: true },
   { id: 'payables', label: 'Payables ageing', asOf: true },
   { id: 'tax-return', label: 'Tax return', range: true },
@@ -76,6 +74,15 @@ function View(props) {
       <ViewBody {...props} />
     </>
   );
+}
+
+const ENGINE_ALIAS = { 'day-book': 'engine-day-book', 'trial-balance': 'engine-trial-balance', 'profit-loss': 'engine-profit-loss', 'balance-sheet': 'engine-balance-sheet' };
+
+/** The screen of each report on the engine. */
+function EngineView({ engine, result }) {
+  if (engine === 'trial-balance') return <TrialBalanceView result={result} />;
+  if (engine === 'day-book') return <DayBookView result={result} />;
+  return <StatementView result={result} />;
 }
 
 function ViewBody({ id, data, nav, onRefresh }) {
@@ -307,7 +314,8 @@ export default function ReportsTab() {
   const nav = useNavigate();
   const [params, setParams] = useSearchParams();
   const visible = REPORTS.filter((r) => !r.permission || hasPermission(null, r.permission));
-  const id = visible.some((r) => r.id === params.get('report')) ? params.get('report') : 'day-book';
+  const asked = ENGINE_ALIAS[params.get('report')] ?? params.get('report');   // links from elsewhere still say 'day-book', 'trial-balance'...
+  const id = visible.some((r) => r.id === asked) ? asked : 'engine-day-book';
   const def = visible.find((r) => r.id === id);
   const [from, setFrom] = useState(yearStart());
   const [to, setTo] = useState(today());
@@ -356,7 +364,7 @@ export default function ReportsTab() {
           </button>
         ))}
       </div>
-      {def.engine && <ReportFrame key={def.engine} reportKey={def.engine}>{(r) => (def.engine === 'trial-balance' ? <TrialBalanceView result={r} /> : <StatementView result={r} />)}</ReportFrame>}
+      {def.engine && <ReportFrame key={def.engine} reportKey={def.engine}>{(r) => <EngineView engine={def.engine} result={r} />}</ReportFrame>}
       {def.custom && !def.engine && <StockMovement />}
       {!def.custom && <div style={{ display: 'flex', gap: 10, alignItems: 'center', flexWrap: 'wrap', marginBottom: 14 }}>
         {id === 'ledger' && (

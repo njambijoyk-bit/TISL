@@ -361,7 +361,7 @@ All four were answered by the owner on 28 Oct and are in the decisions log (18 t
 - **Parity check:** for several periods and as-of dates, every ledger's figures and every total match the old reports to the cent, or the difference is a listed audit finding.
 - Then switch the screen to the new versions.
 - **Done when** parity is signed off by the owner and the old three are off the screen.
-- **Status: built, awaiting your sign-off.** Backend: `ProfitLossReport`, `BalanceSheetReport`, `StatementBuilder`, the trial balance group view, comparisons (previous period / same period last year, and as-of for the balance sheet), month-by-month P&L, retained earnings split into previous years and this year, loose ledgers shown apart but counted. Parity tests (same books, old versus new, to the cent) pass on SQLite and MariaDB. Frontend: `StatementView` (fold/unfold, comparison with change and %, month columns, margins, notes), a By ledger / By group switch on the trial balance, the report options in `ReportFrame`. The Reports screen now opens the new Trial balance, P&L and Balance sheet; the old ones stay beside them labelled "(old)" until you sign off, and P&L by cost centre stays old for now.
+- **Status: done.** Signed off by the owner; the old trial balance, P&L and balance sheet are off the screen (their code goes in Step 12). Details of what was built: Backend: `ProfitLossReport`, `BalanceSheetReport`, `StatementBuilder`, the trial balance group view, comparisons (previous period / same period last year, and as-of for the balance sheet), month-by-month P&L, retained earnings split into previous years and this year, loose ledgers shown apart but counted. Parity tests (same books, old versus new, to the cent) pass on SQLite and MariaDB. Frontend: `StatementView` (fold/unfold, comparison with change and %, month columns, margins, notes), a By ledger / By group switch on the trial balance, the report options in `ReportFrame`. The Reports screen now opens the new Trial balance, P&L and Balance sheet; the old ones stay beside them labelled "(old)" until you sign off, and P&L by cost centre stays old for now.
 
 ### Step 6. The existing reports on the engine (the eight, money flow, and the stock journal and stock reports)
 
@@ -379,6 +379,9 @@ In this order, each with its own parity check against the old report:
 10. Stock reports (summary, location summary, query, monthly and movements drill-downs, dashboard data), ported line by line the same way
 
 **Done when** each audit finding listed against these reports in the appendix is closed.
+
+**Progress:**
+- 6.1 Day book: done and tested (both views, cost centre and branch on the entry lines, identifiers, paging with an all-pages total, export of every row, old-versus-new parity). Awaiting the owner's look on real data.
 
 ### Step 7. Closing balances and year-end close
 

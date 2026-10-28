@@ -29,7 +29,7 @@ trait CreatesBooksLedgerWorld
         Carbon::setTestNow('2026-10-28 12:00:00');
         \App\Services\Books\Engine\LedgerBalances::forget();
 
-        foreach (['payment_attempts', 'voucher_tenders', 'payment_methods', 'voucher_instruments', 'voucher_entries', 'vouchers', 'cost_centres', 'financial_years', 'ledgers', 'ledger_groups', 'statements', 'currencies'] as $table) {
+        foreach (['payment_attempts', 'voucher_tenders', 'payment_methods', 'voucher_instruments', 'voucher_entries', 'vouchers', 'voucher_types', 'cost_centres', 'financial_years', 'ledgers', 'ledger_groups', 'statements', 'currencies'] as $table) {
             Schema::dropIfExists($table);   // a real database keeps its tables between tests (the in-memory one starts empty)
         }
         Schema::create('currencies', function ($t) { $t->id(); $t->string('code'); $t->string('name')->nullable(); $t->boolean('is_base')->default(false); $t->decimal('conversion_rate', 18, 8)->default(1); $t->timestamps(); });
@@ -51,8 +51,9 @@ trait CreatesBooksLedgerWorld
         Schema::create('vouchers', function ($t) {
             $t->id(); $t->unsignedBigInteger('voucher_type_id')->nullable(); $t->string('voucher_number'); $t->date('date'); $t->string('status')->default('posted'); $t->unsignedBigInteger('location_id')->nullable();
             $t->unsignedBigInteger('cost_centre_id')->nullable(); $t->unsignedBigInteger('currency_id')->nullable(); $t->decimal('exchange_rate', 18, 8)->default(1); $t->decimal('total_amount', 15, 2)->default(0);
-            $t->decimal('base_total', 15, 2)->default(0); $t->string('reference_no')->nullable(); $t->string('supplier_invoice_no')->nullable(); $t->timestamps();
+            $t->decimal('base_total', 15, 2)->default(0); $t->string('reference_no')->nullable(); $t->string('supplier_invoice_no')->nullable(); $t->unsignedBigInteger('party_ledger_id')->nullable(); $t->text('narration')->nullable(); $t->timestamps();
         });
+        Schema::create('voucher_types', function ($t) { $t->id(); $t->string('code'); $t->string('name'); $t->string('base_type'); $t->timestamps(); });
         Schema::create('voucher_entries', function ($t) {
             $t->id(); $t->unsignedBigInteger('voucher_id'); $t->unsignedBigInteger('ledger_id'); $t->string('side', 1); $t->decimal('amount', 15, 2); $t->decimal('base_amount', 15, 2);
             $t->unsignedBigInteger('cost_centre_id')->nullable(); $t->unsignedBigInteger('location_id')->nullable(); $t->integer('line_no')->default(1);
@@ -98,6 +99,8 @@ trait CreatesBooksLedgerWorld
 
         DB::table('ledgers')->where('id', 12)->update(['statement_id' => 12]);
 
+        DB::table('voucher_types')->insert([['id' => 1, 'code' => 'JV', 'name' => 'Journal', 'base_type' => 'journal'], ['id' => 2, 'code' => 'SI', 'name' => 'Sales invoice', 'base_type' => 'sales'], ['id' => 3, 'code' => 'MEMO', 'name' => 'Memorandum', 'base_type' => 'memorandum']]);
+
         // [number, date, status, currency, total, base_total, location, cost centre, [[ledger, side, amount, base, entry cost centre, entry location], ...]]
         foreach ([
             ['V1', '2026-01-10', 'posted', 1, 100000, 100000, 1, 10, [[1, 'D', 100000, 100000, 10, 1], [4, 'C', 100000, 100000, 10, 1]]],
@@ -113,11 +116,14 @@ trait CreatesBooksLedgerWorld
             ['V11', '2026-09-15', 'posted', 1, 800, 800, 2, 11, [[1, 'D', 800, 800, 11, 2], [11, 'C', 800, 800, 11, 2]]],
             ['V12', '2026-10-01', 'posted', 1, 300, 300, 1, 10, [[12, 'D', 300, 300, 10, 1], [1, 'C', 300, 300, 10, 1]]],   // bank charges: moved to Finance costs by a ledger of its own line (below)
         ] as [$no, $date, $status, $cur, $total, $base, $loc, $cc, $entries]) {
-            $vid = DB::table('vouchers')->insertGetId(['voucher_number' => $no, 'date' => $date, 'status' => $status, 'currency_id' => $cur, 'total_amount' => $total, 'base_total' => $base, 'location_id' => $loc, 'cost_centre_id' => $cc, 'exchange_rate' => $cur === 2 ? 130 : 1, 'created_at' => $now, 'updated_at' => $now]);
+            $vid = DB::table('vouchers')->insertGetId(['voucher_type_id' => $no === 'V1' ? 2 : 1, 'party_ledger_id' => $no === 'V1' ? 3 : null, 'narration' => $no === 'V1' ? 'Sale to the customer' : null, 'voucher_number' => $no, 'date' => $date, 'status' => $status, 'currency_id' => $cur, 'total_amount' => $total, 'base_total' => $base, 'location_id' => $loc, 'cost_centre_id' => $cc, 'exchange_rate' => $cur === 2 ? 130 : 1, 'created_at' => $now, 'updated_at' => $now]);
             foreach ($entries as $i => [$ledger, $side, $amt, $b, $ecc, $eloc]) {
                 DB::table('voucher_entries')->insert(['voucher_id' => $vid, 'ledger_id' => $ledger, 'side' => $side, 'amount' => $amt, 'base_amount' => $b, 'cost_centre_id' => $ecc, 'location_id' => $eloc, 'line_no' => $i + 1]);
             }
         }
+
+        // a memorandum is a note, not a transaction (the day book leaves it out)
+        DB::table('vouchers')->insert(['voucher_type_id' => 3, 'voucher_number' => 'MEMO1', 'date' => '2026-02-01', 'status' => 'posted', 'currency_id' => 1, 'total_amount' => 0, 'base_total' => 0, 'created_at' => $now, 'updated_at' => $now]);
 
         // the cost-centre dimension is on in these books; the branch filter and the cost-centre service stand in for the real ones
         $this->app->instance(CostCentreService::class, new class extends CostCentreService {

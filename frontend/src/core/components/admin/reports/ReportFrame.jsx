@@ -28,15 +28,16 @@ export default function ReportFrame({ reportKey, children }) {
   const [result, setResult] = useState(null);
   const [error, setError] = useState(null);
   const [loading, setLoading] = useState(false);
-  const [f, setF] = useState({ from: '', to: '', compare: 'none', locId: '', ccId: '', opts: {} });
+  const [f, setF] = useState({ from: '', to: '', compare: 'none', locId: '', ccId: '', opts: {}, page: 1 });
   const ran = useRef(null);   // the filters the figures on screen were run for
   const seq = useRef(0);
+  const ranState = useRef(null);   // the filter values the figures on screen were run with
   const [branches, setBranches] = useState([]);
   const [ccOpts, setCcOpts] = useState({ ready: false, data: [] });
 
   const params = useCallback((x) => ({
     ...(x.from ? { from: x.from } : {}), ...(x.to ? { to: x.to } : {}), ...(x.compare && x.compare !== 'none' ? { compare: x.compare } : {}),
-    ...(x.locId ? { location_id: x.locId } : {}), ...(x.ccId ? { cost_centre_id: x.ccId } : {}), ...(x.opts ?? {}),
+    ...(x.locId ? { location_id: x.locId } : {}), ...(x.ccId ? { cost_centre_id: x.ccId } : {}), ...(x.opts ?? {}), ...(x.page > 1 ? { page: x.page } : {}),
   }), []);
 
   const run = useCallback(async (x) => {
@@ -44,6 +45,7 @@ export default function ReportFrame({ reportKey, children }) {
     setLoading(true); setError(null);
     try {
       const r = await booksAPI.engineReport(reportKey, params(x));
+      ranState.current = x;
       if (mine !== seq.current) return;
       setResult(r);
       ran.current = JSON.stringify(params(x));
@@ -56,7 +58,7 @@ export default function ReportFrame({ reportKey, children }) {
     } finally { if (mine === seq.current) setLoading(false); }
   }, [reportKey, params]);
 
-  useEffect(() => { setResult(null); run({ from: '', to: '', compare: 'none', locId: '', ccId: '', opts: {} }); setF((x) => ({ ...x, opts: {}, compare: 'none' })); }, [reportKey]);   // eslint-disable-line react-hooks/exhaustive-deps
+  useEffect(() => { setResult(null); run({ from: '', to: '', compare: 'none', locId: '', ccId: '', opts: {}, page: 1 }); setF((x) => ({ ...x, opts: {}, compare: 'none', page: 1 })); }, [reportKey]);   // eslint-disable-line react-hooks/exhaustive-deps
   useEffect(() => {
     costCentresAPI.options().then(setCcOpts).catch(() => {});
     locationsAPI.getAdmin().then((l) => setBranches((l.locations ?? []).filter((x) => x.is_active !== false))).catch(() => {});
@@ -64,6 +66,7 @@ export default function ReportFrame({ reportKey, children }) {
 
   // the answer of another report (left over for a moment after switching reports) is never drawn with this report's view
   const current = result?.report?.key === reportKey ? result : null;
+  const ranFilters = () => ({ ...f, ...(ranState.current ?? {}) });
   const rep = current?.report;
   const asOf = rep?.kind === 'asof';
   const stale = current && ran.current !== JSON.stringify(params(f));
@@ -93,7 +96,7 @@ export default function ReportFrame({ reportKey, children }) {
             {Object.entries(o.choices).map(([v, label]) => <option key={v} value={v}>{label}</option>)}
           </select>
         ))}
-        <button type="button" style={{ ...btnPrimary, opacity: loading ? 0.6 : 1 }} disabled={loading} onClick={() => run(f)}>{loading ? 'Running…' : 'Run'}</button>
+        <button type="button" style={{ ...btnPrimary, opacity: loading ? 0.6 : 1 }} disabled={loading} onClick={() => { setF((x) => ({ ...x, page: 1 })); run({ ...f, page: 1 }); }}>{loading ? 'Running…' : 'Run'}</button>
         <span style={{ flex: 1 }} />
         {rep && <ExportMenu onExport={(format) => booksAPI.exportEngineReport(reportKey, { ...params(f), format })} />}
       </div>
@@ -106,6 +109,13 @@ export default function ReportFrame({ reportKey, children }) {
 
       {fmt.report_header && <p style={{ margin: '0 0 10px', fontSize: '0.8rem', color: colors.textMuted }}>{fmt.report_header}</p>}
       {!current ? (loading ? <p style={{ color: colors.textMuted }}>Running…</p> : null) : children(current)}
+      {current?.data?.paging?.pages > 1 && (
+        <div style={{ display: 'flex', alignItems: 'center', gap: 10, justifyContent: 'center', marginTop: 12, fontSize: '0.78rem', color: colors.textMuted }}>
+          <button type="button" style={filterStyle} disabled={loading || current.data.paging.page <= 1} onClick={() => { const page = current.data.paging.page - 1; setF((x) => ({ ...x, page })); run({ ...ranFilters(), page }); }}>Previous</button>
+          <span>Page {current.data.paging.page} of {current.data.paging.pages} · {current.data.paging.total} rows</span>
+          <button type="button" style={filterStyle} disabled={loading || current.data.paging.page >= current.data.paging.pages} onClick={() => { const page = current.data.paging.page + 1; setF((x) => ({ ...x, page })); run({ ...ranFilters(), page }); }}>Next</button>
+        </div>
+      )}
       {current && fmt.report_footer && <p style={{ margin: '12px 0 0', fontSize: '0.75rem', color: colors.textFaint }}>{fmt.report_footer}</p>}
     </div>
   );

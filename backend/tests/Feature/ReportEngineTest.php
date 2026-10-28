@@ -214,7 +214,7 @@ class ReportEngineTest extends TestCase
 
     public function test_the_catalogue_lists_only_what_the_person_may_run(): void
     {
-        $this->assertSame(['trial-balance', 'profit-loss', 'balance-sheet'], array_column($this->engine()->catalogue($this->person(['books.view'])), 'key'));
+        $this->assertSame(['trial-balance', 'profit-loss', 'balance-sheet', 'day-book'], array_column($this->engine()->catalogue($this->person(['books.view'])), 'key'));
         $this->assertSame([], $this->engine()->catalogue($this->person(['stock.view'])));
     }
 

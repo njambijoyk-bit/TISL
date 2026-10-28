@@ -6,6 +6,7 @@ use App\Models\User;
 use App\Services\Access\Authorizer;
 use App\Services\Access\BranchFilter;
 use App\Services\Books\Engine\Reports\BalanceSheetReport;
+use App\Services\Books\Engine\Reports\DayBookReport;
 use App\Services\Books\Engine\Reports\ProfitLossReport;
 use App\Services\Books\Engine\Reports\TrialBalanceReport;
 use App\Services\Books\ReportSettings;
@@ -24,6 +25,7 @@ final class ReportEngine
         TrialBalanceReport::class,
         ProfitLossReport::class,
         BalanceSheetReport::class,
+        DayBookReport::class,
     ];
 
     /** The display settings a screen needs to draw every amount the same way. */
@@ -128,6 +130,7 @@ final class ReportEngine
         $def = $this->find($key);
         abort_unless(app(Authorizer::class)->allows($user, $def->permission()), 403, 'You do not have the permission to run this report.');
         $scope = $this->scopeFor($def, $input);
+        $input['_export'] = true;   // a file holds every row, not a page
 
         return [$def->table($def->run($scope, $input), $scope), $def->key()];
     }
