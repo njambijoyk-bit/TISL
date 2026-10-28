@@ -1,22 +1,17 @@
 # Books reports: rebuild plan
 
-Status: **plan only, no code written.** Agreed with the owner on 28 Oct 2026. Lives next to the other `*_PLAN.md` files.
+Status: **plan only, no code written.** Agreed with the owner, 28 Oct 2026. Companion document: `docs/BOOKS_REPORTS_AUDIT.md` (findings on the existing reports, each referred to here by its number, e.g. *audit E1*).
 
 ---
 
-## 1. Goal and scope
+## 1. Principles
 
-Rebuild the financial side of Books Reports so it behaves like a financial institution's books: statements built from a proper classification, year-end closing balances, a full reconciliation hub, a health check, and (in Extras) visual reports.
-
-| Area | Decision |
-|---|---|
-| **Rebuild** | Trial balance, Profit & loss (and by cost centre), Balance sheet, Reconciliation |
-| **New** | Statement of changes in equity, Cash flow statement, Year-end close with closing balances, Bank / M-Pesa / cash reconciliation, Books health panel |
-| **Audit, then harmonise (not redesign)** | Day book, Ledger statement, Receivables ageing, Payables ageing, Tax return, Withholding certificates, Ratio analysis, Stock movement |
-| **Config** | A new **Reports** tab in Books Settings |
-| **Visuals** | Extras module only. Core stays tables. |
-
-Everything stays in **Core** except the visual reports page.
+1. **One new report engine.** Every report, rebuilt or existing, moves onto it. No fix is applied to the old report code; every audit finding is solved inside the engine.
+2. **Nothing found by a hardcoded name.** Groups, ledgers and statement lines are found by id or by a stable code. Anything a report needs to know about the chart (ratio inputs, money accounts, reconcilable groups) is a setting.
+3. **One rule each** for dates, currency, branches and cost centres, applied the same way in every report.
+4. **Old and new run side by side** until the new figures match the old to the cent (or the difference is an audit finding, explained). Only then does the screen switch over and the old code retire.
+5. **Core and Extras.** Books and every report stay in Core. Only the visual reports page is Extras.
+6. **Every change to the database** goes through a numbered SQL script in the repo style (PART A read-only check, PART B change, PART C result check).
 
 ---
 
@@ -24,95 +19,64 @@ Everything stays in **Core** except the visual reports page.
 
 | # | Decision |
 |---|---|
-| 1 | A `statements` table (tree) plus a `statement_id` column on `ledger_groups` and on `ledgers`. |
-| 2 | A new ledger copies its group's statement on creation; the creation form can change it. |
-| 3 | Raw SQL inserts and empty values fall back to the group's statement in reports; the health panel lists them. |
-| 4 | Changing a statement line is its own permission in the catalogue (`books.statements`), assigned by default to **super admin and senior accountant** and grantable to any role. |
-| 5 | "Closing balance" = each ledger's balance at year end, stored when the year is closed. |
-| 6 | **Nothing is hardcoded to bank or M-Pesa.** In the Reports settings, the admin chooses which **ledger groups** can be reconciled. Every ledger in a chosen group is reconcilable by default; a single ledger can be switched off. Any ledger in the books can be reconcilable (even Sundry Debtors, if the admin chooses). |
-| 7 | **Initial setting:** Cash-in-hand and Bank Accounts. That covers bank, M-Pesa and cash today. Because the reconcilable set is configurable, the engine must handle any ledger type (see section 7). |
-| 8 | Charts live only in Extras. Core report pages stay tables, with a "View visually" button. |
-| 9 | Reconciliations and the year-end close need a **second approver** by default. Whether they do is a setting in the Reports settings, changeable only by someone holding a dedicated permission (default: super admin alone, grantable to other roles). |
-| 10 | The suspense account is one of the ledgers chosen in Books → Settings → Default ledgers. Its statement line follows its group (or its own override). Any balance on it is flagged by the health panel. |
-| 11 | Reconciliation matches on **recognizer identifiers** carried by each transaction (voucher number, M-Pesa reference, cheque number and dates, transfer reference). See section 7. |
-| 13 | **Day book:** general view shows each voucher once with an expandable cost-centre split; a cost-centre view shows each allocation; totals never count a voucher per cost centre. All reports filter on entry lines. |
-| 14 | **Ageing:** unapplied credits (credit and debit notes with no invoice, on-account receipts and payments) are shown in a separate section, not as unpaid bills, with a net line comparable to the ledger balance. |
-| 12 | **Deferred until all Books work is done:** the `.wnkjap` export and import for reports (other companies' books), and the backup engine, both need updating for the new tables and columns. |
+| 1 | A `statements` table (tree), with a `statement_id` column on `ledger_groups` and on `ledgers`. |
+| 2 | A new ledger copies its group's statement line when created; the creation form can change it. A new subgroup copies its parent's. |
+| 3 | Ledgers with no statement line (raw SQL inserts) fall back to their group's in reports, and are listed by the health panel. |
+| 4 | Changing a statement line is its own permission, `books.statements`, assigned by default to super admin and senior accountant, grantable to any role. |
+| 5 | "Closing balance" = each ledger's balance at the end of a financial year, stored when the year is closed. |
+| 6 | Nothing is hardcoded to bank, M-Pesa or cash. The Reports settings list the reconcilable ledger groups; every ledger in them is reconcilable unless switched off. Any group can be added (even Sundry Debtors). |
+| 7 | Initial reconcilable groups: Cash-in-hand and Bank Accounts. |
+| 8 | Reconciliation matches on the identifiers each transaction carries: voucher number, reference number, cheque number and dates, transfer reference, M-Pesa code. |
+| 9 | Reconciliations and the year-end close need a second approver by default. Whether they do is a setting, changeable only with `books.reports.approval` (default: super admin alone, grantable). |
+| 10 | The suspense account is chosen on Books Settings → Default ledgers. Any balance on it is flagged. |
+| 11 | Charts live only in Extras. Core report pages stay tables, with a "View visually" button. |
+| 12 | Day book: a general view (each voucher once, expandable cost-centre split) and a cost-centre view (each allocation). Totals never count a voucher once per cost centre. |
+| 13 | Ageing: unapplied credits (credit and debit notes with no invoice, on-account receipts and payments) are a separate section, not unpaid bills, with a net line comparable to the ledger balance. |
+| 14 | Ratio analysis inputs (current assets, cash, bank, overdraft, debtors, creditors, stock, capital, loans, sales, purchases) are set in Reports settings, not hardcoded. |
+| 15 | No quick fixes to the old reports. All audit findings are delivered by the new engine. |
+| 16 | Deferred until all Books work is done: the `.wnkjap` export and import, and the backup engine. |
 
 ---
 
-## 3. The statements table
+## 3. Data model
 
-A self-referencing tree. Reports roll up through it; ledgers and groups attach to its `line` rows.
+### 3.1 `statements`
+
+Self-referencing tree. Ledgers and groups attach to its `line` rows; reports roll up through it.
 
 | Column | Purpose |
 |---|---|
 | `id`, `parent_id` | The tree. Roots: Balance Sheet, Income Statement. |
-| `code` (unique) | Stable key reports use, e.g. `BS.CA.CASH`, `IS.COGS`. |
+| `code` (unique) | Stable key used by reports and settings, e.g. `BS.CA.CASH`, `IS.COGS`. |
 | `name` | Label on the report; editable. |
-| `kind` | `heading` (groups rows, takes no ledgers) or `line` (leaf ledgers post to). |
-| `nature` | The one nature a line accepts: asset, liability, income, expense. Equity lines use `liability` (capital sits there today). |
+| `kind` | `heading` (groups rows, takes no ledgers) or `line` (ledgers post to it). |
+| `nature` | The one nature a line accepts: asset, liability, income, expense. Equity lines use `liability`. |
 | `normal_side` | Dr or Cr, for sign display. |
+| `cash_flow_category` | Operating, investing, financing, or cash (added in Step 8). |
 | `sort_order`, `is_system`, `is_active` | System rows can be renamed, not deleted. |
 
-**Default tree (three levels at most; editable in the Reports settings tab):**
+**Default tree** (three levels at most; editable in Reports settings):
 
-- Balance sheet
-  - Assets: Non-current (property and equipment, investments); Current (inventory, trade receivables, cash and bank, other current assets)
+- **Balance sheet**
+  - Assets
+    - Non-current: property and equipment; investments; other non-current assets
+    - Current: inventory; trade receivables; cash and bank; other current assets
   - Equity: owner or share capital; reserves and retained earnings
-  - Liabilities: Non-current (long-term loans); Current (trade payables, short-term borrowings, taxes payable, provisions and other)
-- Income statement: revenue, cost of sales, other income, operating expenses, finance income, finance costs, income tax
+  - Liabilities
+    - Non-current: long-term loans
+    - Current: trade payables; short-term borrowings; taxes payable; provisions and other; other current liabilities; suspense (to be cleared)
+- **Income statement:** revenue; cost of sales; other income; operating expenses; finance income; finance costs; income tax
 
-Gross profit, operating profit and net profit are computed by the report engine from section codes, not stored.
+Gross profit, operating profit and net profit are computed by the engine from section codes, not stored.
 
-### New columns
+### 3.2 New columns
 
 - `ledger_groups.statement_id`: nullable FK → `statements.id`, indexed, `ON DELETE RESTRICT`.
 - `ledgers.statement_id`: same.
+- Rules: copy on create (decision 2), fallback to the group (decision 3), a line must accept the nature of the ledger's group (refused on save otherwise). When a group's line changes, the screen offers to move the group's ledgers that still match the old line; ledgers with their own choice stay.
+- `ledger_groups.affects_gross_profit` stays until Step 12, then retires.
 
-### Rules
-
-- **On create:** a ledger gets its group's statement; a subgroup gets its parent's. The form pre-fills it and may change it. The Ledger model's create hook covers every Laravel path (`create`, `firstOrCreate`, `LedgerService::ensure`).
-- **Safety net:** many numbered SQL scripts insert ledgers directly. Reports use the ledger's value, else the group's. The health panel lists ledgers with no value.
-- **Group's statement changed later:** the screen asks whether to apply it to the group's ledgers that still match the old value. Ledgers with their own choice are untouched.
-- **Validation:** a line must accept the nature of the group the ledger sits in; a mismatch is refused on save.
-- **Permission:** changing a statement line on a ledger or group, and editing the statements tree, needs a new permission `books.statements`, held by super admin and the senior accountant role.
-- `ledger_groups.affects_gross_profit` stays during the transition, then is retired once reports read the tree.
-
-### Starting data: script `227_statements.sql`
-
-Follows the repo style: PART A read-only check, PART B change, PART C result check.
-
-- Creates the table and columns, seeds the tree, fills groups by name with a nature fallback. Anything it cannot map is listed, never guessed.
-- **First step before writing it:** list the live `ledger_groups`. The default chart is not seeded by any script in the repo.
-- **Live chart received (28 Oct):** 39 groups, no duplicate names. The exact mapping is the second table below; the first is superseded.
-- Earlier, approximate mapping (Tally-style chart):
-
-| Existing group | Statement line |
-|---|---|
-| Fixed Assets | Non-current assets |
-| Investments | Investments |
-| Bank Accounts, Cash-in-hand | Cash and bank |
-| Sundry Debtors | Trade receivables |
-| Stock-in-hand | Inventory |
-| Deposits, Loans & Advances | Other current assets |
-| Capital Account, Reserves & Surplus | Equity |
-| Sundry Creditors | Trade payables |
-| Duties & Taxes | Taxes payable |
-| Provisions | Provisions and other |
-| Sales Accounts | Revenue |
-| Purchase Accounts, Direct Expenses | Cost of sales |
-| Direct Incomes, Indirect Incomes | Other income |
-| Indirect Expenses and subgroups | Operating expenses |
-
-Loans are the awkward case, since part of a loan can fall due within a year. That is what the per-ledger override is for.
-
-### Exact mapping from the live chart
-
-The live chart has 14 top-level groups plus subgroups. Two adjustments to the tree above:
-
-- Add **Other non-current assets** (for "Misc. Expenses (Asset)") and a **Suspense (to be cleared)** line under current liabilities.
-- Mapping **Direct Incomes to Revenue**, not Other income, so gross profit stays exactly as it is today. Those groups all have `affects_gross_profit = 1`.
+### 3.3 Mapping from the live chart (39 groups, 189 ledgers, checked 28 Oct)
 
 | Live group (id) | Statement line |
 |---|---|
@@ -126,229 +90,332 @@ The live chart has 14 top-level groups plus subgroups. Two adjustments to the tr
 | Sundry Creditors (22) | Trade payables |
 | Auction Deposits (38), Service Deposits & Pass-through (41), Statutory Payroll Liabilities (42) | Other current liabilities |
 | Suspense A/c (8) | Suspense (to be cleared) |
-| Fixed Assets (4) | Property and equipment (accumulated depreciation ledgers sit here too) |
+| Fixed Assets (4) | Property and equipment |
 | Investments (5) | Investments |
 | Misc. Expenses (Asset) (7) | Other non-current assets |
-| Current Assets (6) | Other current assets |
+| Current Assets (6), Deposits (Asset) (25), Loans & Advances (Asset) (26) | Other current assets |
 | Bank Accounts (23), Cash-in-hand (24) | Cash and bank |
-| Deposits (Asset) (25), Loans & Advances (Asset) (26) | Other current assets |
 | Stock-in-hand (27) | Inventory |
 | Sundry Debtors (28) | Trade receivables |
-| Sales Accounts (9), Service Income (39), Service Fees (40), Direct Incomes (11), Shipping & Delivery (31) | Revenue |
+| Sales Accounts (9), Service Income (39), Service Fees (40), Direct Incomes (11), Shipping & Delivery (31) | Revenue (keeps today's gross profit exactly) |
 | Purchase Accounts (10), Direct Expenses (12) | Cost of sales |
 | Indirect Incomes (13), Auction Charges (37) | Other income |
 | Indirect Expenses (14), Employee Benefits / Payroll Expenses (43) | Operating expenses |
 
-Notes:
+Ledger overrides set at the start: Bank Charges (208) and Exchange Loss (160) → Finance costs; Interest Income (163) and Exchange Gain (159) → Finance income.
 
-- The chart has **no group for finance costs or income tax**. Bank charges, interest and exchange losses sit under Indirect Expenses today, so they map to Operating expenses until either new subgroups are made or those ledgers get their own statement line.
-- Tax ledgers under Duties & Taxes net input against output: a debit balance (VAT to reclaim) shows as a negative amount in Taxes payable, as Tally does.
-- Suspense A/c has nature `liability`. A debit balance there shows as a negative on its line; either way it is flagged by the health panel.
+Facts from the live ledgers the build must respect:
 
-### Check against the live ledgers (189 ledgers, received 28 Oct)
+- Ledgers sit directly in primary groups (e.g. Gift Vouchers Liability in Current Liabilities); they take the group's line.
+- Contra ledgers (Sales Returns, Service Returns, Purchase Returns) show as reductions inside their line.
+- Near-duplicates exist (Discounts Allowed / Discount Allowed, Rounding Off / Rounding); same line, flagged by the health panel.
+- Only two ledgers carry opening balances (Main Bank Account 50,000 Dr, Payroll acc 4,000,000 Dr) with nothing opposite: a 4,050,000 opening difference today.
+- M-Pesa sits under Bank Accounts with no `mobile_kind`; Cash and Driver Cash have no `cash_kind`. Ledger fields cannot be trusted alone to tell bank, M-Pesa and cash apart.
 
-Every ledger sits in a group the mapping above covers, so none would be left unmapped. What the ledger list adds:
+### 3.4 Other new tables (designed in their step)
 
-- **Ledgers sit directly in primary groups.** Current Liabilities holds Gift Vouchers Liability, Loyalty Points Liability, Salaries Payable and Menu Tips Payable; Current Assets holds Withholding Tax Receivable. They take the group's line (Other current liabilities, Other current assets), which is right.
-- **Cost of sales is well populated.** Direct Expenses holds Cost of Goods Sold, Cost of Services, Job Materials Cost, Stock Loss, Food Cost of Sales, Food Waste, Kitchen Supplies and Delivery Expenses. All map to Cost of sales.
-- **Contra ledgers** (Sales Returns, Service Returns, Purchase Returns) sit in their income or purchase group and show as reductions inside Revenue and Cost of sales.
-- **Per-ledger overrides to set at the start:** Bank Charges and Exchange Loss to *Finance costs*; Interest Income and Exchange Gain to *Finance income*. They sit in Indirect Expenses and Indirect Incomes today.
-- **Opening Stock Balance** is a ledger under Capital Account, so it lands in Equity.
-- **Near-duplicates:** *Discounts Allowed* and *Discount Allowed*, and *Rounding Off* and *Rounding*, both exist (settings keep a separate default for each). They map to the same line, so statements are unaffected, but the health panel should flag such pairs.
-- **Opening balances:** only two ledgers have one, Main Bank Account (50,000 Dr) and Payroll acc (4,000,000 Dr), with nothing opposite. Today's trial balance therefore carries a 4,050,000 "Difference in opening balances". It looks like test data, but the year-end close must refuse to carry balances forward while this difference exists.
-
----
-
-## 4. One shared report engine
-
-Every report, rebuilt or existing, uses the same layer.
-
-- Period or as-of date; comparison with the previous period or year; variance and variance %.
-- Drill-down: statement line → group → ledger → voucher.
-- Filters: branch and cost centre, with the existing "limited to your branches" banner.
-- Currency: base currency and the restated-vouchers note (`RestatedBase`).
-- Export and print through `ExportService`.
-- Data comes from one movement query, so the trial balance, P&L and balance sheet cannot disagree.
-- The Extras visuals call these same endpoints, so a chart can never disagree with its table.
-
----
-
-## 5. Year-end close and closing balances
-
-- **Closing balance** = a ledger's balance at the end of a financial year, stored in a new table (ledger, financial year, closing Dr/Cr in base currency, **the statement line at that moment**).
-- Saving the statement line means reclassifying a ledger later does not silently change a closed year. A deliberate re-map is labelled "reclassified".
-- **Non-posting, like Tally:** balance-sheet ledgers carry forward as the next year's opening; income and expense ledgers reset; profit moves to retained earnings. There are no closing journals to reverse.
-- Reports read the latest closing balance plus movement since, which fixes slow balance sheets.
-- **Close wizard:** a checklist first (depreciation run, accruals, stock valuation, unreconciled items, draft vouchers), then prepare, then approve, then lock via `PeriodGuard`.
-- **Reopening** a closed year needs a permission, a reason, and an audit entry (`VoucherAuditLog`).
-- **Approval:** the preparer cannot approve their own close.
-- A closed report can be frozen "as at close" with prepared-by and reviewed-by names, for board packs.
-
----
-
-## 6. Rebuilt statements
-
-| Report | What it becomes |
-|---|---|
-| Trial balance | Ledger view and group view; adjusted trial balance; clear explanation of any opening difference |
-| Profit & loss | Sections from the statements tree; gross and net margin; month-by-month columns; by cost centre kept |
-| Balance sheet | Assets, Liabilities, Equity; current and non-current; retained earnings split into prior years and this year |
-| **Changes in equity (new)** | Opening equity, plus profit, less drawings and distributions, equals closing equity |
-| **Cash flow (new)** | Indirect method, plus a direct-method cash book. Needs a `cash_flow_category` on the mapping, added when this report is built. |
-
----
-
-## 7. Reconciliation hub
-
-One generic engine: a **source** (an imported statement or a register) against the **books**, with statuses, match tolerance, sign-off and lock. Each type is an adapter.
-
-**What can be reconciled is configuration, not code.**
-
-- Reports settings holds a list of **reconcilable ledger groups**. Every ledger in those groups (including subgroups) is reconcilable by default; the admin can switch an individual ledger off.
-- Initially: Cash-in-hand and Bank Accounts.
-- An admin may add any group, for example Sundry Debtors (a customer-statement reconciliation) or a loan group (a lender statement). So the engine cannot assume the account is a bank:
-  - **Account kind decides the source adapter, and it already exists on each ledger.** Ledgers carry `bank_name` and `account_number` (bank), `mobile_kind` (till, paybill, send) with `mobile_number` (M-Pesa), and `cash_kind` (till, petty, driver, undeposited). So the adapter is picked from the ledger's own fields: bank statement import, M-Pesa statement import, cash count, or a generic "counter-party statement" import for anything else. Cash-in-hand and Bank Accounts both have `behaviour = bank` in the live chart.
-  - **The live data does not set these fields reliably.** *M-Pesa* sits under Bank Accounts with a bank name and account number and **no** `mobile_kind`. *Cash* and *Driver Cash* have no `cash_kind` (only *petty cash* has one). So the field values cannot be trusted alone.
-  - **Order used to decide the kind:** the kind set explicitly in Reports settings; else the kind of the payment method that posts to the ledger (`payment_methods.kind`: cash, mobile_money, bank, card, other); else the ledger's own fields; else bank for a bank-behaviour group.
-  - The Reports settings screen shows the guessed kind for each reconcilable ledger so the admin can correct it, and the setup is not complete until each one is confirmed.
-  - **Sign and meaning flip by nature:** a bank is an asset, a lender or supplier statement is a liability, so "statement balance vs book balance" and the direction of unmatched items are worked out from the ledger's nature.
-  - **Party ledgers** (debtors, creditors) match on bill references and invoice numbers rather than amounts and dates alone.
-  - A ledger with no adapter configured still gets manual matching.
-
-**Recognizer identifiers.** Each match uses identifiers the transaction already carries. Most already exist in the data and just need to be shown and matched:
-
-| Identifier | Where it lives today | Used for |
+| Table | Step | Holds |
 |---|---|---|
-| Voucher number | `vouchers.voucher_number` | Every type |
-| Reference number | `vouchers.reference_no`, `supplier_invoice_no` | Bills and invoices |
-| Cheque number, instrument date, bank name, deposited-on and cleared-on dates, status | `voucher_instruments` (`number`, `instrument_date`, `bank_name`, `deposited_on`, `cleared_on`, `status`) | Cheques: payments and receipts record how they were paid |
-| Transfer or deposit reference | `voucher_instruments.reference` | Bank transfers, slips |
-| M-Pesa transaction code | `voucher_tenders.reference` and `payment_attempts.receipt_number` | M-Pesa matching |
-| Payment method and ledger | `voucher_tenders`, `payment_methods` | Which account the money went through |
+| `report_settings` | 3 | Every Reports setting (one row per key, typed value, who changed it and when) |
+| `ledger_year_balances` | 7 | Per ledger and financial year: closing Dr/Cr in base currency and the statement line at that moment |
+| `year_closes` | 7 | Each close: prepared by, approved by, checklist results, reopen history |
+| `recon_*` (sessions, imports, lines, matches) | 9 | Reconciliation sessions, imported statement lines, matches, sign-off |
 
-- Payments and receipts paid by cheque must carry the cheque number and dates, so the bank side can match on them. A cheque stays "outstanding" until its `cleared_on` date or a matched statement line.
-- The ledger statement, day book and reconciliation screens will show these identifiers.
-- Gap to confirm during the audit: whether every payment and receipt form captures them consistently.
+---
 
-| Type | Behaviour |
+## 4. The report engine
+
+The engine is a set of backend services plus one screen frame. Every report is a definition on top of it.
+
+### 4.1 One balance and movement service
+
+Replaces `LedgerService::balance()` and the private `movement()` copies in `BooksReportService` and `ComplianceReportService`.
+
+- **Dated:** every figure takes an as-of or from–to; nothing silently means "today" (*audit E1, E2, E3*).
+- **Branch-aware:** applies the person's branch limit the same way everywhere, so comparisons never mix limited and unlimited figures (*audit A2*).
+- **Dimensions on entry lines:** cost centre and branch filters always use `voucher_entries` (*audit A1*). The header's cost centre is a default, not a filter.
+- **One currency rule:** `RestatedBase` everywhere, including stock movement and money flow (*audit H3, M2*).
+- **Starts from stored closing balances** once a year is closed, so it never scans all history (*audit A5, C1*).
+
+### 4.2 One screen frame
+
+- **Filter bar:** period or as-of, comparison (previous period or year), branch, cost centre, and a **Run** button. Nothing re-runs on each keystroke (*audit S2, S3*).
+- **Default period** is the current financial year from `financial_years`, never 1 January (*audit A4, S1*).
+- **Banners** come from the engine's result, so every report shows "limited to your branches", "filtered" and "restated" when they apply (*audit A3, H6*).
+- **Drill-down everywhere:** statement line → group → ledger → voucher; ageing party → bills → voucher (*audit D5, S5*).
+- **Identifiers** shown wherever a transaction appears: voucher number, reference, cheque number and dates, M-Pesa code, narration, and the other side of the entry (*audit A7, B4, C3, C4, F3*).
+- **Amounts** shown as "1,000.00 Dr / Cr" with the number format from settings (*audit C5*); foreign amounts always carry their currency code, totals always in base (*audit F4*).
+- **Pickers** for ledgers and items are searchable (*audit C6*).
+- **Paging** for long lists (*audit A5*).
+- **Empty state** wording fits the report (*audit S4*).
+- **Export and print** for every report, including detail rows (*audit D6, H6*).
+
+### 4.3 Chart lookups
+
+- Groups and ledgers are found by id or statement code, never by name (*audit A6, G1, G2, M1*).
+- Where a report needs a set of accounts (ratio inputs, money accounts, reconcilable groups), it reads the setting from Step 3.
+
+---
+
+## 5. Reports catalogue
+
+### 5.1 Rebuilt
+
+| Report | Built as |
 |---|---|
-| Control accounts (exists) | Keep the current checks; add drill-down to unmatched items. |
-| **Bank** | Every ledger in a reconcilable group (initially Bank Accounts). Import the statement, auto-match by amount, date and reference, match the rest by hand. Track outstanding cheques (`InstrumentService`) and deposits in transit. Post bank charges and interest as journals. Proof: statement balance + deposits in transit − outstanding cheques = book balance. |
-| **M-Pesa** | Match the portal statement against confirmed `PaymentAttempt` receipts and the M-Pesa ledger, by receipt number. Flags paid-not-booked, booked-not-paid, duplicates, reversals, fees, and settlement to the bank. |
-| Cash | Till counts (over/short) and petty cash floats. |
-| Clearing accounts | Any ledger marked clearing or suspense should net to zero over time. |
+| Trial balance | Ledger view and group view; opening, debit, credit, closing; adjusted trial balance; clear "Difference in opening balances" |
+| Profit & loss | Sections from the statements tree; gross, operating and net profit; margins; month-by-month columns; by cost centre kept |
+| Balance sheet | Assets, Liabilities, Equity; current and non-current; retained earnings split into prior years and this year |
+| Changes in equity (new) | Opening equity + profit − drawings and distributions = closing equity |
+| Cash flow (new) | Indirect method from `cash_flow_category`; plus a direct-method cash book from money flow |
+| Reconciliation | The hub in section 6 |
 
-Script 78 dropped an earlier reconciliation-sessions feature. Read its history before designing the new tables.
+### 5.2 Moved onto the engine (behaviour kept, findings solved)
+
+| Report | What changes |
+|---|---|
+| Day book | General and cost-centre views (decision 12); narration and identifiers; paging |
+| Ledger statement | Particulars and narration columns; Dr/Cr balances; identifiers; starts from stored closing balances; searchable picker |
+| Receivables and payables ageing | Buckets from settings (*audit D1*); bill-date or due-date toggle (*D4*); unapplied credits section (decision 13); bills listed and clickable; credit-note direction fixed after a test case (*D2, H4*) |
+| Tax return | Dated, branch-aware closing figure and brought forward (*E1–E4*); supplies split on screen (*E5*); correct labels (*E6*) |
+| Withholding certificates | Base amounts with currency shown (*F4*); "awaiting" scope as decided (*F2*); identifiers |
+| Ratio analysis | Inputs from settings (decision 14); equity includes retained earnings once closing exists (*G4*); reuses the engine's figures instead of recomputing (*G5*) |
+| Stock movement | Renamed or widened (decision needed, Step 0); restated currency; export; banner |
+| Money flow (Cash page) | Money accounts from settings; transfers shown separately and out of the totals (*M3*); split tenders attributed (*M4*) |
+
+---
+
+## 6. Reconciliation hub
+
+One engine: a **source** (imported statement or register) against the **books**, with statuses, match tolerance, sign-off and lock. Each source type is an adapter.
+
+- **What is reconcilable** is configuration (decisions 6, 7). Any ledger nature works: direction and sign are worked out from the ledger's nature.
+- **Adapter per ledger**, decided in this order: the kind set in Reports settings; else the kind of the payment method posting to it (`payment_methods.kind`); else the ledger's own fields (`bank_name`, `mobile_kind`, `cash_kind`); else bank for a bank-behaviour group. The settings screen shows the guess; setup is not complete until each is confirmed.
+- **Adapters:** bank statement import (column mapping per bank); M-Pesa portal statement import; cash count (`CashCountService`, petty cash floats); counter-party statement import (debtors, creditors, lenders), matched on bill references and invoice numbers; manual matching for anything else.
+- **Matching** on the identifiers in decision 8, which already exist: `vouchers.voucher_number`, `reference_no`, `supplier_invoice_no`; `voucher_instruments` (cheque number, instrument date, bank, deposited-on, cleared-on, status, transfer reference); `voucher_tenders.reference` and `payment_attempts.receipt_number` (M-Pesa).
+- **Bank proof:** statement balance + deposits in transit − outstanding cheques = book balance. Bank charges and interest found on the statement are posted as journals from the screen.
+- **M-Pesa flags:** paid but not booked, booked but not paid, duplicates, reversals, fees, settlement to the bank.
+- **Control-account checks** (gift vouchers, loyalty points, withholding, stock, receivables, payables, trial balance) move onto the engine, with drill-down to unmatched items.
+- **Approval:** preparer and approver are different people when the rule is on (decision 9).
+- **History:** script 78 dropped an earlier reconciliation-sessions feature; read why before designing the `recon_*` tables.
+
+---
+
+## 7. Year-end close and closing balances
+
+- **Non-posting, like Tally:** balance-sheet ledgers carry forward as next year's opening; income and expense ledgers reset; profit moves to retained earnings.
+- **Stored per ledger** in `ledger_year_balances`, with the statement line at that moment, so later reclassification never silently changes a closed year (a deliberate re-map is labelled "reclassified").
+- **Checklist before closing:** opening difference is zero (today it is 4,050,000); depreciation run; accruals; stock valuation; no draft vouchers; reconciliations signed off; suspense cleared or explained.
+- **Prepare → approve → lock** via `PeriodGuard`. Reopening needs `books.period`, a reason and an audit entry.
+- **Frozen report packs:** a closed year's statements can be saved "as at close" with prepared-by and reviewed-by names.
 
 ---
 
 ## 8. Books health panel
 
-One page of pass/fail checks, each drilling down. Includes: trial balance and balance sheet balanced; draft vouchers in the period; entries back-dated into a closed period; negative cash, bank or stock; ledgers with no statement; balance on the suspense account; restated vouchers; unreconciled bank and M-Pesa items.
+Pass/fail checks, each drilling down: trial balance and balance sheet balanced; opening difference; draft vouchers in the period; entries back-dated into a closed period; negative cash, bank or stock; ledgers with no statement line; balance on the suspense account; near-duplicate ledgers; restated vouchers; unreconciled items; reconcilable ledgers whose kind is not confirmed.
 
 ---
 
 ## 9. Books Settings → Reports tab
 
-- Decimals, units (thousands), zero balances, negative-number format
-- Default comparison and default group depth
-- Ageing buckets (fixed in code today)
-- Reconciliation match tolerance and date window
-- Which ledgers count as cash and bank
-- Statements tree editor (needs `books.statements`)
-- Report header, footer and signatories
-- **Reconcilable ledger groups** (initially Cash-in-hand and Bank Accounts), with a switch to disable any single ledger
-- The account kind per reconcilable ledger (taken from its bank, mobile and cash fields; changeable here)
-- **Second-approver rule** for reconciliation and for the year-end close (default: required). Changing it needs `books.reports.approval`.
+| Section | Settings | Permission |
+|---|---|---|
+| Display | Decimals, units (thousands), zero balances, negative format, default comparison, default group depth, header, footer, signatories | `books.reports.format` |
+| Ageing | Bucket boundaries | `books.reports.format` |
+| Statements | The statements tree editor | `books.statements` |
+| Ratio inputs | For each ratio input, the statement lines or groups (by id) it adds up. Defaults come from the statements tree (current assets = the Current assets heading, and so on) | `books.reports.format` |
+| Money accounts | The groups whose ledgers count as cash and bank for money flow and the cash flow statement | `books.reports.reconcile_setup` |
+| Reconciliation | Reconcilable groups; switch off single ledgers; confirm each ledger's kind; M-Pesa paybill or till; match tolerance and date window | `books.reports.reconcile_setup` |
+| Approvals | Second-approver rule for reconciliation and for the year-end close | `books.reports.approval` |
 
-Each part of this tab has its own permission (section 12), so access can be given a section at a time.
-
-The suspense ledger is chosen on the existing Default ledgers tab.
+Seeing the tab needs `books.reports.settings`. The suspense ledger stays on the Default ledgers tab.
 
 ---
 
-## 10. The eight existing reports
+## 10. Permissions
 
-1. **Audit first.** List bugs and inconsistencies; agree each fix with the owner before changing anything.
-2. Give all of them the same filter bar, drill-down, export and banners.
-3. Receivables and payables ageing get charts (via Extras).
+How the catalogue works (`Catalog.php`): each permission has a module, group, description and a sensitive flag. `OWNER_ONLY` lists what the owner (super admin) holds by default and the admin role does not; custom roles can still be granted them.
+
+| Permission | Meaning | Default holders |
+|---|---|---|
+| `books.statements` | Change a ledger's or group's statement line; edit the tree | Super admin, senior accountant |
+| `books.reports.settings` | See the Reports settings tab | Super admin, admin, senior accountant |
+| `books.reports.format` | Display, ageing and ratio-input settings | Super admin, senior accountant |
+| `books.reports.reconcile_setup` | Money accounts and reconciliation setup | Super admin (owner-only) |
+| `books.reports.approval` | Change the second-approver rule | Super admin (owner-only) |
+| `books.reconcile` | Prepare a reconciliation | Senior accountant and above |
+| `books.reconcile.approve` | Approve someone else's reconciliation | Senior accountant and above, never the preparer |
+| `books.close.prepare` | Prepare the year-end close | Senior accountant |
+| `books.period` (exists) | Approve the close; reopen a closed year | Super admin (owner-only) |
+
+Kept as they are: `books.view`, `books.post`, `books.review`.
 
 ---
 
 ## 11. Extras visuals
 
-- A new Extras "Visual reports" page. It reads the core endpoints; the licence check is enforced on the server, not only in the page.
+- An Extras "Visual reports" page reading the engine's endpoints; the licence check is enforced on the server as well as in the page.
 - **Page states:**
-  - **Not licensed:** invite them to license Extras, with a sneak peek built from **sample data** (never the client's real data).
-  - **Licensed but off:** a cheeky message with a button to Module Center for people holding `system.modules`, and "ask an admin" for everyone else.
-  - **Active:** the real charts.
-- The frontend module store only knows the *active* list today, so it needs a small addition to tell "unlicensed" from "licensed but off".
-- Charts from the Tally dashboard: cumulative cash line; daily money in and out; per-account bars (bank, cash, M-Pesa); expense donut and group-hierarchy treemap; top customers; sales against purchases (cash and credit); composition treemap; outstanding build-up; ageing bars and bubble chart; activity calendar heatmap.
-- New for statements: profit waterfall; assets against liabilities and equity; monthly profit trend; reconciliation status.
-- Built with `recharts` (already installed). Heatmap and waterfall are small custom components.
+  - Not licensed: invitation to license Extras, with a sneak peek built from **sample data** (never real data).
+  - Licensed but off: a cheeky message, with a button to Module Center for holders of `system.modules` and "ask an admin" for everyone else.
+  - Active: the real charts.
+- The module store only knows the *active* list today; it needs to tell "not licensed" from "licensed but off".
+- Charts: cumulative cash line; daily money in and out; per-account bars; expense donut and group-hierarchy treemap; top customers; sales against purchases (cash and credit); composition treemap; outstanding build-up; ageing bars and bubble chart; activity calendar heatmap; profit waterfall; assets against liabilities and equity; monthly profit trend; reconciliation status.
+- Built with `recharts` (installed); heatmap and waterfall are small custom components.
 
 ---
 
-## 12. Permissions
+## 12. Steps to follow
 
-Existing: `books.view`, `books.post`, `books.review` (review and reconcile), `books.period` (lock periods and close years; **owner-only**).
+Each step lists what is built, how it is checked, and when it is done. A step starts only when the one before is done, except where noted.
 
-How the catalogue works (`Catalog.php`): each permission has a module, group, description and a "sensitive" flag. `OWNER_ONLY` lists what the owner holds by default and the admin role does not; custom roles can still be granted those. Roles list their permissions, and a few have amount-limited approvals.
+### Step 0. Close the open decisions
 
-Proposed additions, to confirm when building:
+Before any code. Recommendations given; the owner decides.
 
-| Permission | Meaning | Default holders |
-|---|---|---|
-| `books.statements` | Change the statement line on a ledger or group, and edit the statements tree | Super admin, senior accountant |
-| `books.reports.settings` | See the Reports settings tab | Super admin, admin, senior accountant |
-| `books.reports.format` | Change display settings (decimals, units, ageing buckets, headers, signatories) | Super admin, senior accountant |
-| `books.reports.reconcile_setup` | Choose reconcilable groups, disable ledgers, set account kinds | Super admin (owner-only) |
-| `books.reports.approval` | Change the second-approver rule for reconciliation and year-end close | **Super admin alone** (owner-only), grantable |
-| `books.reconcile` | Prepare a reconciliation | Senior accountant and above |
-| `books.reconcile.approve` | Approve someone else's reconciliation | Senior accountant and above, never the preparer |
-| `books.close.prepare` | Prepare the year-end close | Senior accountant |
-| `books.period` (exists) | Approve the close and reopen a closed year; stays owner-only | Super admin |
-| `books.reports.export` | Export and print reports, if finer control than `books.view` is wanted | To decide |
+| Decision | Recommendation |
+|---|---|
+| Stock movement: rename to "Trade by party and item", or widen to real stock in/out (journals, transfers, wastage, delivery notes)? (*audit H2*) | Rename now; real stock in/out is a separate report later |
+| Money flow: show transfers between own accounts separately and leave them out of the totals? (*M3*) | Yes |
+| Withholding "awaiting certificate": only the period's, or all outstanding? (*F2*) | All outstanding, with the period's shown separately |
+| Credit-note direction in ageing (*D2, H4*) | Decide from a test case in Step 6 |
 
-The `*.reports.reconcile_setup`, `*.approval` and `books.period` permissions go in `OWNER_ONLY`. The approval keys already used for journals and refunds are an alternative place for the reconcile and close approvals, if amount limits are wanted.
+**Done when** each has an answer written into the decisions log.
 
-Existing permissions kept: `books.view`, `books.post`, `books.review`.
+### Step 1. Statements schema: script `227_statements.sql`
+
+- Create `statements` and seed the default tree (3.1).
+- Add `statement_id` to `ledger_groups` and `ledgers` (3.2).
+- Fill groups from the mapping (3.3) by id; set the four ledger overrides; copy each group's line onto its ledgers.
+- PART A lists the live groups and ledgers; PART C lists anything unmapped (expected: none) and counts per line.
+- **Check:** run on a copy of the database; PART C shows every ledger mapped; re-running changes nothing.
+- **Done when** the owner has reviewed the script and its result on the copy.
+
+### Step 2. Permissions
+
+- Add the permissions in section 10 to `Catalog.php`, with default holders; owner-only ones into `OWNER_ONLY`.
+- **Check:** each default role holds exactly what the table says; a custom role can be granted each one.
+- **Done when** the Access screens show them correctly.
+
+### Step 3. Reports settings
+
+- `report_settings` table and service; the Reports tab (section 9) with each section behind its permission.
+- Ratio inputs default from the statements tree; money accounts and reconcilable groups default to Bank Accounts and Cash-in-hand (by id).
+- Every change is logged (who, what, when), including turning the approval rule off.
+- **Check:** each section is hidden or read-only without its permission; defaults appear on a fresh install.
+- **Done when** every setting the later steps need can be saved and read.
+
+### Step 4. Engine core
+
+- The balance and movement service (4.1); the screen frame (4.2); chart lookups (4.3); export; identifier lookup from vouchers, instruments, tenders and payment attempts.
+- Statement line on the ledger and group forms (decision 2), with the nature check.
+- Old reports untouched.
+- **Check:** unit tests for dates, branch limits, cost-centre lines and currency restating; the balance service agrees with today's `LedgerService::balance()` for company-wide, undated cases.
+- **Done when** a report can be defined on the engine with filters, banners, drill-down and export working.
+
+### Step 5. Trial balance, P&L and balance sheet on the engine
+
+- Build the three on the engine, plus the group views and comparisons.
+- **Parity check:** for several periods and as-of dates, every ledger's figures and every total match the old reports to the cent, or the difference is a listed audit finding.
+- Then switch the screen to the new versions.
+- **Done when** parity is signed off by the owner and the old three are off the screen.
+
+### Step 6. The eight existing reports on the engine
+
+In this order, each with its own parity check against the old report:
+
+1. Day book (both views; decision 12)
+2. Ledger statement
+3. Receivables and payables ageing (buckets from settings, unapplied credits, drill-down). **First** write a test case with a credit note and a debit note that have no invoice, to settle the direction (*D2*).
+4. Tax return
+5. Withholding certificates
+6. Ratio analysis (inputs from settings)
+7. Stock movement (as decided in Step 0)
+8. Money flow on the Cash page (transfers and split tenders; a test case for a 600 cash + 400 M-Pesa sale first, *M4*)
+
+**Done when** each audit finding listed against these reports in the appendix is closed.
+
+### Step 7. Closing balances and year-end close
+
+- `ledger_year_balances`, `year_closes`; the close wizard (section 7); retained earnings on the balance sheet; the changes-in-equity statement.
+- The engine reads stored closing balances plus movement since.
+- **Check:** close a test year; next year's opening equals last year's closing for every balance-sheet ledger; income and expense ledgers start at zero; the balance sheet balances; reopen and re-close gives the same result.
+- **Done when** a year can be prepared, approved (second person when the rule is on), locked and reopened with an audit trail.
+
+### Step 8. Cash flow statement
+
+- Add `cash_flow_category` to the statements tree with defaults; the indirect-method statement; the direct-method cash book from money flow.
+- **Check:** opening cash + net cash flow = closing cash, for several periods.
+- **Done when** it agrees with the cash and bank balances.
+
+### Step 9. Reconciliation hub
+
+- Read why script 78 dropped the old feature, then design the `recon_*` tables.
+- Build the engine and adapters in this order: control-account checks (moved from today's report), bank, M-Pesa, cash, counter-party.
+- **Check:** a test bank statement and a test M-Pesa statement reconcile to the proof in section 6; a preparer cannot approve their own session.
+- **Done when** Cash-in-hand and Bank Accounts ledgers can be reconciled, signed off and locked.
+
+### Step 10. Books health panel
+
+- The checks in section 8, each drilling down.
+- **Done when** every check can be made to fail on test data and shows where.
+
+### Step 11. Extras visuals
+
+- The gating shell (three page states, module store change) can start any time after Step 4.
+- Charts follow as their engine endpoints exist (Steps 5, 6, 8, 9).
+- **Check:** with Extras unlicensed, licensed-but-off and active, the page shows the right state and the server refuses data when not active.
+- **Done when** every chart in section 11 draws from the engine.
+
+### Step 12. Retire the old code
+
+- Remove the old report methods, the private `movement()` copies, name-based group lookups, and `affects_gross_profit` (after confirming nothing else reads it).
+- **Done when** nothing calls the old code and every test passes.
+
+### Step 13. Later: other companies' books and backups
+
+- Update the `.wnkjap` export and import (`imports.export`, `imports.view`) for the new tables and columns; check `docs/WNKJAP_FORMAT.md` version rules first.
+- Update `ModuleTables` so the backup claims and restores every new table.
 
 ---
 
-## 13. Order of work
-
-1. **Read-only audit:** the eight existing reports, the history of the dropped reconciliation, and the live chart of accounts.
-2. **Foundations:** statements table and columns, shared engine, closing balances, Reports settings tab.
-3. **Rebuilt statements**, then changes in equity and cash flow.
-4. **Reconciliation hub**, then the health panel.
-5. **Harmonise** the eight existing reports.
-6. **Extras visuals.** The gating shell can start early, in parallel.
-
----
-
-## 14. Risks and edge cases
+## 13. Risks and edge cases
 
 - Placeholder lines such as "Difference in opening balances" need a home on the statements.
-- System ledgers (`is_system`) may need their statement locked.
+- System ledgers (`is_system`) may need their statement line locked.
 - Income and expense ledgers with opening balances.
 - Moving a ledger to another group keeps its own statement choice.
-- The backup module's table map (`ModuleTables`) needs the new tables.
+- A reconcilable group can hold ledgers of different natures.
+- Making a group reconcilable after years of history: the first session starts from an agreed opening position.
+- Bank statement formats vary; the importer needs a column-mapping step per bank.
 - Anything reading `nature` today (dashboard, ratio analysis) is unaffected, since `nature` does not change.
-- Closed years use the mapping saved at close; deliberate re-maps must be visible.
-- Bank statement formats vary by bank; the importer needs a column-mapping step per bank.
-- A reconcilable group can hold ledgers of different natures; the engine works out direction and sign per ledger.
-- Making a group reconcilable after years of history means the first session starts from an agreed opening position, not from zero.
-- Turning the second-approver rule off must itself be audited (who, when).
 
 ---
 
-## 15. Later, once all Books work is done
+## Appendix: audit findings and where they are solved
 
-Not part of this build; written down so it is not forgotten.
-
-- Update the **`.wnkjap` export and import** (`imports.export`, `imports.view`) so other companies' books carry the statements table, the new ledger and group columns, closing balances and reconciliation records.
-- Update the **backup engine** (`ModuleTables`) to claim every new table, so none shows as unassigned and all are restored.
-- Check the `docs/WNKJAP_FORMAT.md` version rules before changing the file format.
-
-The audit of the eight existing reports is in `docs/BOOKS_REPORTS_AUDIT.md`.
+| Audit item | Solved in |
+|---|---|
+| A1, B1 | Step 4 (entry-line dimensions), Step 6.1 (day book views) |
+| A2, E1, E2, E3, E4 | Step 4 (dated, branch-aware balance service), Step 6.4 |
+| A3, H6 | Step 4 (banners from the engine) |
+| A4, S1, H1, M5, G3 | Step 4 (financial-year default) |
+| A5, C1 | Step 4 (paging), Step 7 (stored closing balances) |
+| A6, G1, G2, M1 | Step 3 (settings), Step 4 (lookups by id) |
+| A7, B4, C3, C4, F3 | Step 4 (identifiers, narration, particulars) |
+| B2 | Kept as labelled |
+| C2 | Step 4 (banner wording) |
+| C5, F4 | Step 4 (amount display) |
+| C6 | Step 4 (searchable pickers) |
+| D1, D4, D5, D6 | Step 3 (buckets), Step 6.3 |
+| D2, D3, H4 | Step 6.3 (test case, then unapplied credits) |
+| E5, E6 | Step 6.4 |
+| F2 | Step 0, Step 6.5 |
+| G4 | Step 7 (retained earnings) |
+| G5, G6 | Step 6.6 |
+| H2 | Step 0, Step 6.7 |
+| H3, M2 | Step 4 (one currency rule) |
+| H5 | Step 6.7 |
+| M3, M4 | Step 0, Step 6.8 |
+| S2, S3, S4, S5 | Step 4 (screen frame) |
