@@ -5,6 +5,8 @@ namespace App\Services\Books\Engine;
 use App\Models\User;
 use App\Services\Access\Authorizer;
 use App\Services\Access\BranchFilter;
+use App\Services\Books\Engine\Reports\BalanceSheetReport;
+use App\Services\Books\Engine\Reports\ProfitLossReport;
 use App\Services\Books\Engine\Reports\TrialBalanceReport;
 use App\Services\Books\ReportSettings;
 use App\Services\Books\RestatedBase;
@@ -20,6 +22,8 @@ final class ReportEngine
     /** @var array<int, class-string<ReportDefinition>> */
     private const DEFINITIONS = [
         TrialBalanceReport::class,
+        ProfitLossReport::class,
+        BalanceSheetReport::class,
     ];
 
     /** The display settings a screen needs to draw every amount the same way. */
@@ -61,7 +65,7 @@ final class ReportEngine
         $out = [];
         foreach ($this->definitions() as $d) {
             if ($access->allows($user, $d->permission())) {
-                $out[] = ['key' => $d->key(), 'title' => $d->title(), 'kind' => $d->kind(), 'filters' => $d->filters(), 'supports_comparison' => $d->supportsComparison()];
+                $out[] = ['key' => $d->key(), 'title' => $d->title(), 'kind' => $d->kind(), 'filters' => $d->filters(), 'supports_comparison' => $d->supportsComparison(), 'options' => $d->options()];
             }
         }
 
@@ -83,9 +87,14 @@ final class ReportEngine
         $mode = (string) ($input['compare'] ?? 'none');
         if ($mode !== 'none' && $mode !== '') {
             abort_unless($def->supportsComparison(), 422, 'This report cannot be compared with another period.');
-            abort_unless($def->kind() === 'range' && $scope->from && $scope->to, 422, 'A comparison needs a period.');
             try {
-                $other = ReportPeriod::compare($mode, $scope->from, $scope->to);
+                if ($def->kind() === 'asof') {   // one date: a year earlier, or the end of the previous period
+                    $date = ReportPeriod::compareDate($mode, (string) $scope->to);
+                    $other = ['from' => null, 'to' => $date];
+                } else {
+                    abort_unless($scope->from && $scope->to, 422, 'A comparison needs a period.');
+                    $other = ReportPeriod::compare($mode, $scope->from, $scope->to);
+                }
             } catch (InvalidArgumentException $e) {
                 abort(422, $e->getMessage());
             }
@@ -93,9 +102,9 @@ final class ReportEngine
         }
 
         return [
-            'report' => ['key' => $def->key(), 'title' => $def->title(), 'kind' => $def->kind(), 'filters' => $def->filters(), 'supports_comparison' => $def->supportsComparison()],
+            'report' => ['key' => $def->key(), 'title' => $def->title(), 'kind' => $def->kind(), 'filters' => $def->filters(), 'supports_comparison' => $def->supportsComparison(), 'options' => $def->options()],
             'scope' => [
-                'from' => $scope->from, 'to' => $scope->to, 'location_id' => $scope->locationId, 'cost_centre_id' => ! empty($input['cost_centre_id']) ? (int) $input['cost_centre_id'] : null,
+                'from' => $scope->from, 'to' => $scope->to, 'location_id' => $scope->locationId, 'cost_centre_id' => ! empty($input['cost_centre_id']) && in_array('cost_centre', $def->filters(), true) ? (int) $input['cost_centre_id'] : null,
                 'default_period' => ReportPeriod::current(),
             ],
             'format' => $this->format(),
@@ -135,7 +144,13 @@ final class ReportEngine
         }
         abort_if($from !== null && $from > $to, 422, 'The start date is after the end date.');
 
-        return Scope::fromInput(['from' => $from, 'to' => $to, 'cost_centre_id' => $input['cost_centre_id'] ?? null, 'location_id' => $input['location_id'] ?? null], $def->area());
+        $offered = $def->filters();   // a filter the report does not offer is ignored, so the banners never claim a filter that was not applied
+
+        return Scope::fromInput([
+            'from' => $from, 'to' => $to,
+            'cost_centre_id' => in_array('cost_centre', $offered, true) ? ($input['cost_centre_id'] ?? null) : null,
+            'location_id' => in_array('branch', $offered, true) ? ($input['location_id'] ?? null) : null,
+        ], $def->area());
     }
 
     private function format(): array

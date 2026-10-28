@@ -96,6 +96,33 @@ final class ReportPeriod
         };
     }
 
+    /**
+     * The date an as-of report is compared with: a year earlier, or the previous period's end. When the date is the last day of a month the
+     * previous period ends on the last day of the month before; otherwise it is the same day a month earlier (or the month's last day when
+     * that month is shorter).
+     */
+    public static function compareDate(string $mode, string $to): ?string
+    {
+        $d = self::day($to);
+
+        return match ($mode) {
+            'previous_year' => self::yearBack($d),
+            'previous_period' => $d->format('Y-m-d') === $d->modify('last day of this month')->format('Y-m-d')
+                ? $d->modify('first day of this month')->modify('-1 day')->format('Y-m-d')
+                : self::monthBack($d),
+            'none', '' => null,
+            default => throw new InvalidArgumentException("There is no comparison called {$mode}."),
+        };
+    }
+
+    private static function monthBack(DateTimeImmutable $d): string
+    {
+        $first = $d->modify('first day of this month')->modify('-1 month');
+        $day = min((int) $d->format('d'), (int) $first->modify('last day of this month')->format('d'));
+
+        return $first->format('Y-m-') . str_pad((string) $day, 2, '0', STR_PAD_LEFT);
+    }
+
     private static function yearBack(DateTimeImmutable $d): string
     {
         $back = $d->modify('-1 year');

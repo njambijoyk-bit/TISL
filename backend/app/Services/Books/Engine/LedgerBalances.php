@@ -105,6 +105,66 @@ final class LedgerBalances
     }
 
     /**
+     * What each ledger moved in each month of a period (same rules as movement()).
+     *
+     * @param  int[]|null  $ledgerIds
+     * @return array<int, array<string, array{dr: float, cr: float}>> by ledger id, then 'YYYY-MM'
+     */
+    public function movementByMonth(Scope $scope, ?string $from, ?string $to, ?array $ledgerIds = null): array
+    {
+        $b = RestatedBase::entry();
+        $q = RestatedBase::join(DB::table('voucher_entries as e')->join('vouchers as v', 'v.id', '=', 'e.voucher_id'))
+            ->where('v.status', Voucher::POSTED)
+            ->selectRaw("e.ledger_id, SUBSTR(v.date, 1, 7) AS ym, SUM(CASE WHEN e.side='D' THEN {$b} ELSE 0 END) AS dr, SUM(CASE WHEN e.side='C' THEN {$b} ELSE 0 END) AS cr")
+            ->groupBy('e.ledger_id', DB::raw('SUBSTR(v.date, 1, 7)'));
+        if ($ledgerIds !== null) {
+            $q->whereIn('e.ledger_id', $ledgerIds ?: [0]);
+        }
+        if ($from) {
+            $q->where('v.date', '>=', $from);
+        }
+        if ($to) {
+            $q->where('v.date', '<=', $to);
+        }
+        if ($scope->costCentreIds !== null) {
+            $q->whereIn('e.cost_centre_id', $scope->costCentreIds);
+        }
+        if ($scope->locationId !== null) {
+            $q->where('e.location_id', $scope->locationId);
+        }
+        app(BranchFilter::class)->apply($q, 'v.location_id', $scope->area, 'engine');
+        $out = [];
+        foreach ($q->get() as $r) {
+            $out[(int) $r->ledger_id][(string) $r->ym] = ['dr' => (float) $r->dr, 'cr' => (float) $r->cr];
+        }
+
+        return $out;
+    }
+
+    /** The first day of the financial year a date falls in; the first of January of its year when no financial year covers it. */
+    public function yearStart(string $date): string
+    {
+        $start = DB::table('financial_years')->where('start_date', '<=', $date)->where('end_date', '>=', $date)->orderByDesc('start_date')->value('start_date');
+
+        return $start ? substr((string) $start, 0, 10) : substr($date, 0, 4) . '-01-01';
+    }
+
+    /**
+     * The ledger groups, for views that add ledgers up by group.
+     *
+     * @return array<int, array{id: int, parent_id: ?int, name: string, nature: string}> by id, in the order of the chart
+     */
+    public function groups(): array
+    {
+        $out = [];
+        foreach (DB::table('ledger_groups')->orderBy('sort_order')->orderBy('name')->get(['id', 'parent_id', 'name', 'nature']) as $g) {
+            $out[(int) $g->id] = ['id' => (int) $g->id, 'parent_id' => $g->parent_id ? (int) $g->parent_id : null, 'name' => $g->name, 'nature' => $g->nature];
+        }
+
+        return $out;
+    }
+
+    /**
      * One ledger's balance as of a date: its opening balance plus every posted entry up to and including that date.
      * Unlike the old LedgerService::balance(), the person's branch limit applies.
      */

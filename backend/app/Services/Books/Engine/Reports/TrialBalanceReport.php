@@ -44,9 +44,50 @@ final class TrialBalanceReport extends ReportDefinition
         }
 
         return [
+            'groups' => $this->groups($t['rows']),
             'rows' => $rows, 'total_debit' => round($tDr, 2), 'total_credit' => round($tCr, 2), 'balanced' => abs($tDr - $tCr) < 0.01,
             'opening_difference' => $diff, 'opening_balances' => $diff != 0.0 ? $openings['rows'] : [], 'filtered' => $filtered,
         ];
+    }
+
+    /**
+     * The same figures added up by ledger group: every group that holds a ledger with something in it, with the groups above it, each carrying the
+     * total of everything under it, in the order of the chart. A ledger's own row is not repeated here.
+     *
+     * @param  array<int, array>  $ledgerRows  the ledger rows (without the placeholder)
+     * @return array<int, array>
+     */
+    private function groups(array $ledgerRows): array
+    {
+        $groups = app(LedgerBalances::class)->groups();
+        $sum = [];
+        foreach ($ledgerRows as $r) {
+            $id = $r['group_id'];
+            for ($guard = 0; $id && isset($groups[$id]) && $guard < 20; $guard++, $id = $groups[$id]['parent_id']) {
+                $sum[$id] ??= ['opening' => 0.0, 'debit' => 0.0, 'credit' => 0.0, 'closing' => 0.0];
+                foreach (['opening', 'debit', 'credit', 'closing'] as $k) {
+                    $sum[$id][$k] += $r[$k];
+                }
+            }
+        }
+        $children = [];
+        foreach ($groups as $g) {
+            $children[$g['parent_id'] ?? 0][] = $g['id'];
+        }
+        $out = [];
+        $walk = function (int $parent, int $depth) use (&$walk, &$out, $children, $groups, $sum) {
+            foreach ($children[$parent] ?? [] as $id) {
+                if (! isset($sum[$id])) {
+                    continue;
+                }
+                $out[] = ['group_id' => $id, 'parent_id' => $groups[$id]['parent_id'], 'group' => $groups[$id]['name'], 'depth' => $depth, 'nature' => $groups[$id]['nature'],
+                    'opening' => round($sum[$id]['opening'], 2), 'debit' => round($sum[$id]['debit'], 2), 'credit' => round($sum[$id]['credit'], 2), 'closing' => round($sum[$id]['closing'], 2)];
+                $walk($id, $depth + 1);
+            }
+        };
+        $walk(0, 0);
+
+        return $out;
     }
 
     public function table(array $data, Scope $scope): array

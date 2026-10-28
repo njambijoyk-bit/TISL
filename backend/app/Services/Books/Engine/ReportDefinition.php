@@ -44,6 +44,15 @@ abstract class ReportDefinition
     }
 
     /**
+     * Choices the screen offers besides the dates, drawn as drop-downs and sent back with the request: a list of
+     * ['key' => ..., 'label' => ..., 'choices' => [value => label], 'default' => value].
+     */
+    public function options(): array
+    {
+        return [];
+    }
+
+    /**
      * Work the report out. The scope carries the dates (a range report has both; an as-of report has `to`) and the filters.
      *
      * @param  array<string, mixed>  $options  anything else the screen sent (a ledger id, a switch)

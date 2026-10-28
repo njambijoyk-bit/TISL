@@ -79,6 +79,20 @@ class ReportPeriodTest extends TestCase
         $this->assertSame(['none', 'previous_period', 'previous_year'], ReportPeriod::COMPARISONS);
     }
 
+    public function test_an_as_of_date_is_compared_with_a_year_earlier_or_the_previous_period_end(): void
+    {
+        $this->assertSame('2025-10-28', ReportPeriod::compareDate('previous_year', '2026-10-28'));
+        $this->assertSame('2023-02-28', ReportPeriod::compareDate('previous_year', '2024-02-29'));
+        $this->assertSame('2026-09-30', ReportPeriod::compareDate('previous_period', '2026-10-31'), 'a month end goes to the previous month end');
+        $this->assertSame('2026-02-28', ReportPeriod::compareDate('previous_period', '2026-03-31'));
+        $this->assertSame('2024-02-29', ReportPeriod::compareDate('previous_period', '2024-03-31'), 'a leap February');
+        $this->assertSame('2026-09-28', ReportPeriod::compareDate('previous_period', '2026-10-28'), 'any other day goes back a month');
+        $this->assertSame('2026-02-28', ReportPeriod::compareDate('previous_period', '2026-03-30'), 'clamped to the shorter month');
+        $this->assertSame('2025-12-15', ReportPeriod::compareDate('previous_period', '2026-01-15'), 'across a year end');
+        $this->assertNull(ReportPeriod::compareDate('none', '2026-10-28'));
+        $this->assertNull(ReportPeriod::compareDate('', '2026-10-28'));
+    }
+
     public function test_bad_input_is_refused_not_guessed(): void
     {
         foreach ([
@@ -86,6 +100,7 @@ class ReportPeriodTest extends TestCase
             fn () => ReportPeriod::previousPeriod('2026-03-31', '2026-03-01'),
             fn () => ReportPeriod::sameLastYear('2026-02-30', '2026-03-01'),
             fn () => ReportPeriod::defaultFor([], 'yesterday'),
+            fn () => ReportPeriod::compareDate('last_quarter', '2026-10-28'),
         ] as $i => $call) {
             try {
                 $call();

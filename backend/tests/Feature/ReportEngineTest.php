@@ -132,8 +132,8 @@ class ReportEngineTest extends TestCase
 
     public function test_a_balance_follows_the_branch_limit_where_the_old_one_did_not(): void
     {
-        $this->limitedTo = [2];   // branch 2 only: cash moved by V2 (-40,000) on top of the 50,000 opening
-        $this->assertEquals(10000.00, app(LedgerBalances::class)->balance(1, '2026-12-31'));
+        $this->limitedTo = [2];   // branch 2 only: cash moved by V2 (-40,000) and V11 (+800) on top of the 50,000 opening
+        $this->assertEquals(10800.00, app(LedgerBalances::class)->balance(1, '2026-12-31'));
         $this->assertNotEquals(app(LedgerBalances::class)->balance(1, '2026-12-31'), app(LedgerService::class)->balance(1, '2026-12-31'), 'the old function ignored the limit, which is why figures taken from it did not agree with the reports');
     }
 
@@ -214,7 +214,7 @@ class ReportEngineTest extends TestCase
 
     public function test_the_catalogue_lists_only_what_the_person_may_run(): void
     {
-        $this->assertSame(['trial-balance'], array_column($this->engine()->catalogue($this->person(['books.view'])), 'key'));
+        $this->assertSame(['trial-balance', 'profit-loss', 'balance-sheet'], array_column($this->engine()->catalogue($this->person(['books.view'])), 'key'));
         $this->assertSame([], $this->engine()->catalogue($this->person(['stock.view'])));
     }
 
