@@ -214,7 +214,7 @@ function RecipeModal({ dish, options, onClose, onDone }) {
           ) : (
             <div data-testid="recipe-times">
               <div style={{ fontSize: '0.74rem', fontWeight: 700, color: colors.textMuted, marginBottom: 2 }}>Time by batch size</div>
-              <div style={{ fontSize: '0.72rem', color: colors.textFaint, marginBottom: 6 }}>A batch is timed by the smallest row that is big enough. A batch bigger than every row has no estimate.</div>
+              <div style={{ fontSize: '0.72rem', color: colors.textFaint, marginBottom: 6 }}>This is what the batch timers use. A batch is timed by the smallest row that is big enough; a batch bigger than every row is worked out from the two biggest rows. With no rows, the timers use prep plus cook below, for a batch of any size.</div>
               <div style={{ display: 'grid', gap: 8 }}>
                 {times.map((t, i) => (
                   <div key={t.key} style={{ display: 'grid', gridTemplateColumns: 'auto 110px auto 100px auto auto', gap: 8, alignItems: 'center', fontSize: '0.82rem' }}>
@@ -232,8 +232,8 @@ function RecipeModal({ dish, options, onClose, onDone }) {
           )}
 
           <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 2fr', gap: 10 }}>
-            <Field label="Prep (minutes)"><NumberInput aria-label="Prep minutes" min="0" value={prep} onChange={(e) => setPrep(e.target.value)} /></Field>
-            <Field label="Cook (minutes)"><NumberInput aria-label="Cook minutes" min="0" value={cook} onChange={(e) => setCook(e.target.value)} /></Field>
+            <Field label="Prep (minutes)" hint="Shown on the kitchen card. Also the batch time when there are no rows above."><NumberInput aria-label="Prep minutes" min="0" value={prep} onChange={(e) => setPrep(e.target.value)} /></Field>
+            <Field label="Cook (minutes)" hint="Prep plus cook is the batch time when there are no rows above."><NumberInput aria-label="Cook minutes" min="0" value={cook} onChange={(e) => setCook(e.target.value)} /></Field>
             <Field label="Who may see it">
               <SelectInput aria-label="Who may see it" value={visibility} onChange={(e) => setVisibility(e.target.value)}>{Object.entries(options.visibility).map(([k, v]) => <option key={k} value={k}>{coursesOn ? v : v.replace(' and in courses', '')}</option>)}</SelectInput>
             </Field>
