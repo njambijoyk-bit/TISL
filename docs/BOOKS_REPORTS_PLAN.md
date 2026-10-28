@@ -61,7 +61,7 @@ A self-referencing tree. Reports roll up through it; ledgers and groups attach t
   - Assets: Non-current (property and equipment, investments); Current (inventory, trade receivables, cash and bank, other current assets)
   - Equity: owner or share capital; reserves and retained earnings
   - Liabilities: Non-current (long-term loans); Current (trade payables, short-term borrowings, taxes payable, provisions and other)
-- Income statement: revenue, cost of sales, other income, operating expenses, finance costs, income tax
+- Income statement: revenue, cost of sales, other income, operating expenses, finance income, finance costs, income tax
 
 Gross profit, operating profit and net profit are computed by the report engine from section codes, not stored.
 
@@ -145,6 +145,18 @@ Notes:
 - Tax ledgers under Duties & Taxes net input against output: a debit balance (VAT to reclaim) shows as a negative amount in Taxes payable, as Tally does.
 - Suspense A/c has nature `liability`. A debit balance there shows as a negative on its line; either way it is flagged by the health panel.
 
+### Check against the live ledgers (189 ledgers, received 28 Oct)
+
+Every ledger sits in a group the mapping above covers, so none would be left unmapped. What the ledger list adds:
+
+- **Ledgers sit directly in primary groups.** Current Liabilities holds Gift Vouchers Liability, Loyalty Points Liability, Salaries Payable and Menu Tips Payable; Current Assets holds Withholding Tax Receivable. They take the group's line (Other current liabilities, Other current assets), which is right.
+- **Cost of sales is well populated.** Direct Expenses holds Cost of Goods Sold, Cost of Services, Job Materials Cost, Stock Loss, Food Cost of Sales, Food Waste, Kitchen Supplies and Delivery Expenses. All map to Cost of sales.
+- **Contra ledgers** (Sales Returns, Service Returns, Purchase Returns) sit in their income or purchase group and show as reductions inside Revenue and Cost of sales.
+- **Per-ledger overrides to set at the start:** Bank Charges and Exchange Loss to *Finance costs*; Interest Income and Exchange Gain to *Finance income*. They sit in Indirect Expenses and Indirect Incomes today.
+- **Opening Stock Balance** is a ledger under Capital Account, so it lands in Equity.
+- **Near-duplicates:** *Discounts Allowed* and *Discount Allowed*, and *Rounding Off* and *Rounding*, both exist (settings keep a separate default for each). They map to the same line, so statements are unaffected, but the health panel should flag such pairs.
+- **Opening balances:** only two ledgers have one, Main Bank Account (50,000 Dr) and Payroll acc (4,000,000 Dr), with nothing opposite. Today's trial balance therefore carries a 4,050,000 "Difference in opening balances". It looks like test data, but the year-end close must refuse to carry balances forward while this difference exists.
+
 ---
 
 ## 4. One shared report engine
@@ -196,6 +208,9 @@ One generic engine: a **source** (an imported statement or a register) against t
 - Initially: Cash-in-hand and Bank Accounts.
 - An admin may add any group, for example Sundry Debtors (a customer-statement reconciliation) or a loan group (a lender statement). So the engine cannot assume the account is a bank:
   - **Account kind decides the source adapter, and it already exists on each ledger.** Ledgers carry `bank_name` and `account_number` (bank), `mobile_kind` (till, paybill, send) with `mobile_number` (M-Pesa), and `cash_kind` (till, petty, driver, undeposited). So the adapter is picked from the ledger's own fields: bank statement import, M-Pesa statement import, cash count, or a generic "counter-party statement" import for anything else. Cash-in-hand and Bank Accounts both have `behaviour = bank` in the live chart.
+  - **The live data does not set these fields reliably.** *M-Pesa* sits under Bank Accounts with a bank name and account number and **no** `mobile_kind`. *Cash* and *Driver Cash* have no `cash_kind` (only *petty cash* has one). So the field values cannot be trusted alone.
+  - **Order used to decide the kind:** the kind set explicitly in Reports settings; else the kind of the payment method that posts to the ledger (`payment_methods.kind`: cash, mobile_money, bank, card, other); else the ledger's own fields; else bank for a bank-behaviour group.
+  - The Reports settings screen shows the guessed kind for each reconcilable ledger so the admin can correct it, and the setup is not complete until each one is confirmed.
   - **Sign and meaning flip by nature:** a bank is an asset, a lender or supplier statement is a liability, so "statement balance vs book balance" and the direction of unmatched items are worked out from the ledger's nature.
   - **Party ledgers** (debtors, creditors) match on bill references and invoice numbers rather than amounts and dates alone.
   - A ledger with no adapter configured still gets manual matching.
