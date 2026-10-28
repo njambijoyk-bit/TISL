@@ -215,7 +215,13 @@ class MenusRecipeBookTest extends TestCase
         $this->assertSame(15, $t->expected($r, 1), 'up to 1 kg includes 1 kg');
         $this->assertSame(20, $t->expected($r, 1.5));
         $this->assertSame(40, $t->expected($r, 5));
-        $this->assertNull($t->expected($r, 5.5), 'bigger than the biggest row: no estimate');
+        $this->assertSame(43, $t->expected($r, 5.5), 'bigger than the biggest row: grown the way it grows between the two biggest rows (20 min for 3 kg more)');
+        $est = $t->estimate($r, 6);
+        $this->assertSame([47, true, 'worked out from 2 kg (20 min) and 5 kg (40 min)'], [$est['minutes'], $est['estimated'], $est['basis']]);
+        $this->assertFalse($t->estimate($r, 3)['estimated'], 'a size a row covers is not an estimate');
+        $one = $this->ugali([['up_to' => 2, 'minutes' => 20]], $r->id);   // the same recipe with a single row
+        $this->assertSame(50, $t->expected($one, 5), 'a single row is scaled in proportion: 20 min for 2 kg is 50 for 5 kg');
+        $this->assertSame(20, $t->expected($one, 2));
     }
 
     public function test_an_amount_written_in_another_unit_is_converted(): void

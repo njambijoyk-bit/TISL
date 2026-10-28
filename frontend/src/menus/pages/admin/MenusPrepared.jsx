@@ -65,6 +65,7 @@ function StartTimer({ data, location, onClose, onDone }) {
   const [chef, setChef] = useState('');
   const [note, setNote] = useState('');
   const [expected, setExpected] = useState(undefined);
+  const [basis, setBasis] = useState(null);   // how a size no time row covers was worked out
   const [busy, setBusy] = useState(false);
   const [err, setErr] = useState(null);
   const recipe = data.recipes.find((r) => String(r.id) === String(recipeId));
@@ -72,7 +73,7 @@ function StartTimer({ data, location, onClose, onDone }) {
   useEffect(() => {
     setExpected(undefined);
     if (!recipeId || !(Number(size) > 0)) return undefined;
-    const t = setTimeout(() => { menusAPI.preparedPreview({ recipe_id: recipeId, location_id: location, qty: Number(size) }).then((p) => setExpected(p.expected_minutes ?? null)).catch(() => setExpected(null)); }, 350);
+    const t = setTimeout(() => { menusAPI.preparedPreview({ recipe_id: recipeId, location_id: location, qty: Number(size) }).then((p) => { setExpected(p.expected_minutes ?? null); setBasis(p.expected_estimated ? p.expected_basis : null); }).catch(() => { setExpected(null); setBasis(null); }); }, 350);
     return () => clearTimeout(t);
   }, [recipeId, size, location]);
 
@@ -91,7 +92,7 @@ function StartTimer({ data, location, onClose, onDone }) {
           <FormError message={err} />
           <Field label="Recipe" htmlFor="pt-recipe"><SelectInput id="pt-recipe" required value={recipeId} onChange={(e) => setRecipeId(e.target.value)}><option value="">Choose a recipe</option>{data.recipes.filter((r) => r.active).map((r) => <option key={r.id} value={r.id}>{r.name}</option>)}</SelectInput></Field>
           <Field label={`Batch size${recipe ? ` (${recipe.unit})` : ''}`} htmlFor="pt-size"><NumberInput id="pt-size" required min="0.0001" step="any" value={size} onChange={(e) => setSize(e.target.value)} /></Field>
-          <Field label="Minutes" htmlFor="pt-min" hint={expected === undefined ? 'The recipe\'s own time for this size is used when there is one: its time by batch size, or else its prep and cook minutes.' : expected === null ? 'The recipe has no time for this size: type how long it takes.' : `The recipe says ${expected} minutes for this size. Type a number to use another.`}><NumberInput id="pt-min" min="1" max="6000" value={minutes} onChange={(e) => setMinutes(e.target.value)} /></Field>
+          <Field label="Minutes" htmlFor="pt-min" hint={expected === undefined ? 'The recipe\'s own time for this size is used when there is one: its time by batch size, or else its prep and cook minutes.' : expected === null ? 'The recipe has no time for this size: type how long it takes.' : basis ? `About ${expected} minutes for this size, ${basis}. Type a number to use another.` : `The recipe says ${expected} minutes for this size. Type a number to use another.`}><NumberInput id="pt-min" min="1" max="6000" value={minutes} onChange={(e) => setMinutes(e.target.value)} /></Field>
           <Field label="What it is doing (optional)" htmlFor="pt-note"><TextInput id="pt-note" maxLength={120} placeholder="Simmer" value={note} onChange={(e) => setNote(e.target.value)} /></Field>
           {data.chefs.length > 0 && <Field label="Chef (optional)" htmlFor="pt-chef"><SelectInput id="pt-chef" value={chef} onChange={(e) => setChef(e.target.value)}><option value="">Nobody in particular</option>{data.chefs.map((c) => <option key={c.id} value={c.id}>{c.name}</option>)}</SelectInput></Field>}
           <ModalActions onCancel={onClose} submitLabel="Start the clock" busy={busy} disabled={!recipeId || !(Number(size) > 0) || (expected === null && minutes === '')} />
@@ -165,7 +166,7 @@ function MakeBatch({ data, location, initial = null, canRestock = false, onClose
           {preview && (
             <div data-testid="batch-preview">
               <div style={{ fontSize: '0.74rem', fontWeight: 700, color: colors.textMuted, marginBottom: 6 }}>
-                What it takes{preview.expected_minutes != null ? ` · expected ${preview.expected_minutes} minutes` : ' · no time set for a batch this size'}
+                What it takes{preview.expected_minutes != null ? ` · expected ${preview.expected_estimated ? 'about ' : ''}${preview.expected_minutes} minutes` : ' · no time set for a batch this size'}
               </div>
               <table style={{ width: '100%', borderCollapse: 'collapse' }}>
                 <thead><tr><th style={th}>Ingredient</th><th style={{ ...th, textAlign: 'right' }}>Recipe says</th><th style={{ ...th, textAlign: 'right' }}>Really used</th><th style={{ ...th, textAlign: 'right' }}>On the shelf</th><th style={{ ...th, textAlign: 'right' }}>Cost</th></tr></thead>

@@ -69,7 +69,7 @@ class PrepProduction
         }
         usort($inputs, fn ($a, $b) => strcmp($a['name'], $b['name']));
 
-        return ['planned' => $planned, 'unit' => $r->yieldUnit?->code ?? 'portions', 'expected_minutes' => $this->times->expected($r, $planned), 'inputs' => $inputs,
+        return ['planned' => $planned, 'unit' => $r->yieldUnit?->code ?? 'portions', 'expected_minutes' => ($est = $this->times->estimate($r, $planned))['minutes'], 'expected_estimated' => $est['estimated'], 'expected_basis' => $est['basis'], 'inputs' => $inputs,
             'cost' => $inputs ? round($total, 2) : null, 'complete' => $complete && $inputs !== [], 'short' => $short];
     }
 

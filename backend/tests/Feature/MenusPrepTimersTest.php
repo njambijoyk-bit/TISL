@@ -89,11 +89,13 @@ class MenusPrepTimersTest extends TestCase
         $this->assertSame([1.0, 15], [(float) $small->planned_qty, $small->expected_minutes]);
     }
 
-    public function test_a_batch_bigger_than_every_time_needs_the_minutes_typed_and_what_is_typed_wins(): void
+    public function test_a_batch_bigger_than_every_time_is_worked_out_and_what_is_typed_wins(): void
     {
         $this->on();
         $r = $this->ugali();
-        $this->fails(fn () => $this->timers()->start($r, 1, 5.0, [], null, $this->at), 'type how many minutes');
+        $this->assertSame(35, $this->timers()->start($r, 1, 5.0, [], null, $this->at)->expected_minutes, 'worked out from 1 kg (15) and 2 kg (20): 5 min a kg more');
+        $none = app(DishRecipes::class)->saveStandalone(['name' => 'Plain', 'yield_qty' => 1, 'lines' => [['ingredient_id' => (int) DB::table('menus_ingredients')->where('name', 'Maize flour')->value('id'), 'quantity' => 10]]]);
+        $this->fails(fn () => $this->timers()->start($none, 1, 5.0, [], null, $this->at), 'type how many minutes');
         $this->assertSame(45, $this->timers()->start($r, 1, 5.0, ['minutes' => 45], null, $this->at)->expected_minutes);
         $this->assertSame(30, $this->timers()->start($r, 1, 2.0, ['minutes' => 30], null, $this->at)->expected_minutes, 'typed beats the recipe\'s 20');
         $this->fails(fn () => $this->timers()->start($r, 1, 2.0, ['minutes' => 0], null, $this->at), 'between 1 and 6000');

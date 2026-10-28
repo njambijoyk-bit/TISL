@@ -71,7 +71,7 @@ A timer tells the chef how long a batch takes. The recipe gives the time by batc
 |---|---|---|
 | 1 | Start a timer for Ugali **1 kg**, then **2 kg**, then **5 kg**. | **15**, **20** and **40** minutes. (test) |
 | 1b | Start a timer for **Masala chai** (prep 2, cook 5, no times by size), any size. | It says **7 minutes**: a recipe with no rows by size uses its prep plus cook minutes. A recipe that has rows (Ugali) always uses its rows, even if it also has prep and cook minutes. (test) |
-| 2 | Start one for **6 kg**. | No row fits, so the button stays off until you type minutes: type **45**. |
+| 2 | Start one for **6 kg** (bigger than every row: 1 kg 15, 2 kg 20, 5 kg 40). | It is worked out, not left blank: **47 minutes**, with the hint "About 47 minutes for this size, worked out from 2 kg (20 min) and 5 kg (40 min). Type a number to use another." The minutes grow the way they do between the two biggest rows (6.67 a kg more). In *Make a batch* it reads "expected about 47 minutes". (test) |
 | 3 | Start one for 2 kg and type **30**. | 30 is used, not the recipe's 20: typed minutes win. (test) |
 | 4 | Add *Simmer* as what it is doing and start the clock. | It appears under **On the stove** as `simmer: Ugali`, with the size, the minutes and when it will be ready, and counts down. |
 | 5 | Let one run past its time (or start one with 1 minute). | It turns red and counts up: `over`. |

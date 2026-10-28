@@ -215,7 +215,8 @@ class MenusPreparedTest extends TestCase
         $big = $this->prep()->preview($r, 1, 40);
         $this->assertTrue($big['short']);
         $this->assertGreaterThan(0, $big['inputs'][0]['short']);
-        $this->assertNull($big['expected_minutes'], 'bigger than every time row');
+        $this->assertSame([210, true], [$big['expected_minutes'], $big['expected_estimated']], 'bigger than every time row: worked out from the two biggest (5 min a kg more)');
+        $this->assertStringContainsString('worked out from 1 kg (15 min) and 2 kg (20 min)', $big['expected_basis']);
     }
 
     public function test_the_page_lists_recipes_with_what_is_on_the_shelf_and_the_batches_made(): void
