@@ -28,6 +28,46 @@ class AccessCatalogTest extends TestCase
         $this->assertNotContains('units.manage', $roles['sales_rep']['permissions']);
     }
 
+    /** The books reports rebuild (docs/BOOKS_REPORTS_PLAN.md, section 10): who holds the new permissions by default. */
+    public function test_the_reports_permissions_are_held_as_the_plan_says(): void
+    {
+        $new = ['books.statements', 'books.reports.settings', 'books.reports.format', 'books.reports.reconcile_setup', 'books.reports.approval', 'books.reconcile', 'books.reconcile.approve', 'books.close.prepare'];
+        $this->assertSame($new, Catalog::ADDED[20], 'all eight arrive together, in catalogue version 20');
+        $this->assertSame(20, Catalog::VERSION);
+        $roles = Catalog::roles();
+        foreach ($new as $k) {
+            $this->assertArrayHasKey($k, Catalog::PERMISSIONS);
+            $this->assertNull(Catalog::PERMISSIONS[$k][0], "{$k} is Core, not a paid module");
+            $this->assertSame('books', Catalog::areaOf($k), "{$k} follows the books branch limit");
+            $this->assertSame('*', $roles['super_admin']['permissions']);
+            $this->assertSame(20, Catalog::since($k));
+        }
+
+        // senior accountant: the statements permission and the day-to-day reports ones; never the two the owner keeps
+        $senior = $roles['senior_accountant']['permissions'];
+        foreach (['books.statements', 'books.reports.settings', 'books.reports.format', 'books.reconcile', 'books.reconcile.approve', 'books.close.prepare'] as $k) {
+            $this->assertContains($k, $senior, "senior accountant holds {$k} by default");
+        }
+        foreach (['books.reports.reconcile_setup', 'books.reports.approval', 'books.period'] as $k) {
+            $this->assertNotContains($k, $senior, "senior accountant must not hold {$k} by default");
+        }
+
+        // the owner alone may change the setup and the second-approver rule; admin does not hold them by default
+        foreach (['books.statements', 'books.reports.format', 'books.reports.reconcile_setup', 'books.reports.approval', 'books.close.prepare'] as $k) {
+            $this->assertContains($k, Catalog::OWNER_ONLY, "{$k} is held by the owner by default");
+            $this->assertNotContains($k, $roles['admin']['permissions']);
+        }
+        foreach (['books.reports.settings', 'books.reconcile', 'books.reconcile.approve'] as $k) {
+            $this->assertNotContains($k, Catalog::OWNER_ONLY);
+            $this->assertContains($k, $roles['admin']['permissions']);
+        }
+
+        // nobody else gets them unless the owner grants them
+        foreach (['manager', 'finance', 'logistics', 'sales_rep', 'cashier', 'chef', 'driver'] as $r) {
+            $this->assertSame([], array_values(array_intersect($new, $roles[$r]['permissions'])), "{$r} holds none of them by default");
+        }
+    }
+
     public function test_every_permission_a_route_names_exists(): void
     {
         $src = (string) file_get_contents(__DIR__ . '/../../routes/api.php');

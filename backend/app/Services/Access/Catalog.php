@@ -11,13 +11,14 @@ namespace App\Services\Access;
  */
 class Catalog
 {
-    public const VERSION = 19;
+    public const VERSION = 20;
 
     /** The key of the owner role: the one role that holds every permission, including ones added later. It cannot be changed or deleted. */
     public const OWNER = 'super_admin';
 
     /** Permissions added after version 1, by the version that added them. The seeder gives a new permission to the built-in roles that hold it by default once, and never again (an admin may take it back). */
     public const ADDED = [
+        20 => ['books.statements', 'books.reports.settings', 'books.reports.format', 'books.reports.reconcile_setup', 'books.reports.approval', 'books.reconcile', 'books.reconcile.approve', 'books.close.prepare'],
         19 => ['bulkimport.core', 'bulkimport.ecommerce', 'bulkimport.menus', 'bulkimport.memberships', 'bulkimport.events', 'bulkimport.courses', 'bulkimport.campaigns', 'bulkimport.careers', 'bulkimport.projects', 'bulkimport.listings', 'bulkimport.accommodations', 'bulkimport.extras'],
         18 => ['tenders.view', 'tenders.manage', 'prequalification.view', 'prequalification.manage', 'vendors.portal'],
         17 => ['menus.configure', 'menus.tips.view', 'menus.tips.issue', 'menus.tips.issue_self', 'menus.tips.reverse', 'menus.packaging.waive'],
@@ -96,6 +97,14 @@ class Catalog
         'books.post'        => [null, 'Books', 'Create, edit and cancel vouchers', true],
         'books.review'      => [null, 'Books', 'Review and reconcile what others posted', true],
         'books.period'      => [null, 'Books', 'Lock periods and close financial years', true],
+        'books.statements'  => [null, 'Books', 'Change which financial statement line a ledger or ledger group reports under, and edit the statements tree', true],
+        'books.reports.settings' => [null, 'Books', 'Open the Reports settings tab', false],
+        'books.reports.format' => [null, 'Books', 'Change how reports look and are worked out: decimals, units, ageing buckets, ratio inputs, headers and signatories', true],
+        'books.reports.reconcile_setup' => [null, 'Books', 'Choose which ledger groups can be reconciled and how, and which accounts count as cash and bank in reports', true],
+        'books.reports.approval' => [null, 'Books', 'Change whether reconciliations and the year-end close need a second approver', true],
+        'books.reconcile'   => [null, 'Books', 'Prepare a reconciliation of a bank, mobile-money, cash or other account', true],
+        'books.reconcile.approve' => [null, 'Books', 'Approve a reconciliation that someone else prepared', true],
+        'books.close.prepare' => [null, 'Books', 'Prepare the year-end close for approval', true],
         'stock.view'        => [null, 'Stock', 'See stock, batches, transfers and counts', false],
         'stock.manage'      => [null, 'Stock', 'Receive, adjust, transfer, count and write off stock', true],
         'stock.settings'    => [null, 'Stock', 'Change the stock and expiry rules', true],
@@ -276,7 +285,7 @@ class Catalog
     ];
 
     /** What the admin role does not hold by default (the owner holds everything, and builds roles that hold these). Admin gets everything else. */
-    public const OWNER_ONLY = ['system.modules', 'system.devtools', 'system.restore', 'access.roles', 'books.period', 'payroll.run', 'currency.base',
+    public const OWNER_ONLY = ['system.modules', 'system.devtools', 'system.restore', 'access.roles', 'books.period', 'books.statements', 'books.reports.format', 'books.reports.reconcile_setup', 'books.reports.approval', 'books.close.prepare', 'payroll.run', 'currency.base',
         'vault.settings', 'algorithm.run', 'projects.purge', 'tickets.purge', 'users.purge',
         'books.writeoff', 'books.bounce', 'verification.override', 'attendance.arbitrate', 'hr.purge', 'projects.moderate', 'campaigns.purge', 'driver.app',
         'vault.bypass', 'ai.keys', 'settings.delete', 'mimi.routing', 'notifications.keys.purge', 'payments.keys', 'security.manage'];
@@ -336,7 +345,7 @@ class Catalog
                 'approvals' => ['journal.approve' => null, 'purchase.approve' => null, 'refund.approve' => null, 'campaign.publish' => null], 'sort' => 20],
             'senior_accountant' => ['name' => 'Senior accountant', 'kind' => 'staff', 'min_clearance' => 4, 'scope_type' => 'global', 'data_scope' => 'all', 'module' => null, 'acts_as' => [],
                 'description' => 'Sees every branch for the books. Posts and reviews. Cannot change security, roles or the modules.', 'modules' => ['*'],
-                'permissions' => array_merge(self::STAFF, ['books.view', 'books.post', 'books.review', 'payroll.run', 'stock.view', 'stock.manage', 'inventory.view', 'vendors.view', 'vendors.manage', 'tenders.view', 'tenders.manage', 'prequalification.view', 'credit.act',
+                'permissions' => array_merge(self::STAFF, ['books.view', 'books.post', 'books.review', 'books.statements', 'books.reports.settings', 'books.reports.format', 'books.reconcile', 'books.reconcile.approve', 'books.close.prepare', 'payroll.run', 'stock.view', 'stock.manage', 'inventory.view', 'vendors.view', 'vendors.manage', 'tenders.view', 'tenders.manage', 'prequalification.view', 'credit.act',
                     'campaigns.build', 'catalogue.pricelists', 'menus.view', 'menus.manage', 'menus.configure', 'menus.tips.view', 'menus.tips.reverse', 'tax.view', 'tax.manage', 'currency.manage', 'currency.base', 'inventory.accounting',
                     'promos.manage', 'projects.use', 'analytics.view', 'books.writeoff', 'books.bounce', 'books.pettycash', 'quotes.write', 'verification.manage', 'hr.view', 'loyalty.grant',
                     'loyalty.deduct', 'loyalty.export', 'catalogue.publish', 'engagement.view', 'customers.view', 'customers.manage', 'credit.view', 'quotes.view', 'catalogue.view', 'catalogue.edit', 'tickets.manage', 'costcentres.view', 'costcentres.manage', 'imports.view']),

@@ -315,6 +315,8 @@ All four were answered by the owner on 28 Oct and are in the decisions log (18 t
 
 ### Step 2. Permissions
 
+**Status: built** in `Catalog.php` (version 20), with the default-holders snapshot test and a new test for these eight updated. Note for the owner: `books.close.prepare` is held by the senior accountant and the owner, not by admin (the plan's table said "senior accountant"); admin can be granted it from the role builder.
+
 - Add the permissions in section 10 to `Catalog.php`, with default holders; owner-only ones into `OWNER_ONLY`.
 - **Check:** each default role holds exactly what the table says; a custom role can be granted each one.
 - **Done when** the Access screens show them correctly.

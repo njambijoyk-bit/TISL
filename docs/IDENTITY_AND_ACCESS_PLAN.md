@@ -172,6 +172,26 @@ The sidebar, tabs, routes and buttons follow the same permissions. **A menu entr
 - Branch limits do not cover customers' own statements and credit (a customer's balance is the whole business's), cash counts and petty cash (their tills are ledgers, not branches), held stock, the catalogue, delivery or HR. Those follow with cost centres, which give every ledger line and till a branch.
 - A branch-limited person's balance sheet and trial balance show opening balances for the whole business with only their branches' movements. They are labelled; company-wide totals need someone with every branch.
 
+## Books reports permissions (built, catalogue version 20)
+
+Eight new Core permissions for the books reports rebuild (`docs/BOOKS_REPORTS_PLAN.md`, section 10). All follow the books branch limit.
+
+| Permission | Holds it by default |
+|---|---|
+| `books.statements` (change a ledger's or group's statement line; edit the statements tree) | Owner, senior accountant |
+| `books.reports.settings` (open the Reports settings tab) | Owner, admin, senior accountant |
+| `books.reports.format` (decimals, units, ageing buckets, ratio inputs, headers, signatories) | Owner, senior accountant |
+| `books.reports.reconcile_setup` (which ledger groups can be reconciled; cash and bank accounts for reports) | Owner only |
+| `books.reports.approval` (turn the second-approver rule for reconciliations and the year-end close on or off) | Owner only |
+| `books.reconcile` (prepare a reconciliation) | Owner, admin, senior accountant |
+| `books.reconcile.approve` (approve someone else's reconciliation) | Owner, admin, senior accountant |
+| `books.close.prepare` (prepare the year-end close) | Owner, senior accountant |
+
+- `books.statements`, `books.reports.format`, `books.reports.reconcile_setup`, `books.reports.approval` and `books.close.prepare` are in `OWNER_ONLY`, so admin does not hold them by default; the owner can grant any of them to any role from the role builder. The senior accountant holds the first, second and last two of these through its own list.
+- Approving the year-end close and reopening a closed year stay with `books.period` (owner only).
+- A new permission is given once, on the upgrade, to the built-in roles that hold it by default; an admin may take it back.
+- Nothing checks these yet: the screens and routes that use them arrive in later steps of the plan. Until then they only appear in the role builder.
+
 ## Rollout from here
 
 **R4: employment link.** When employees reach the cost-centre plan, the default branch comes from the employee's location, departments and cost centres attach, and grants can target cost centres and companies.
