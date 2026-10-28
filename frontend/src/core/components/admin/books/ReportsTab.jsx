@@ -8,6 +8,9 @@ import { card, colors } from '../../../../_shared/theme/tokens';
 import { ExportMenu } from './booksUi';
 import { money, filterStyle, yearStart, today } from './booksFmt';
 import StockMovement from './StockMovement';
+import ReportFrame from '../reports/ReportFrame';
+import TrialBalanceView from '../reports/TrialBalanceView';
+import { hasPermission } from '../../../../_shared/lib/roles';
 import costCentresAPI from '../../../../_shared/api/costCentres';
 import locationsAPI from '../../../../_shared/api/locations';
 
@@ -25,6 +28,8 @@ const REPORTS = [
   { id: 'ratio-analysis', label: 'Ratio analysis', range: true },
   { id: 'reconciliation', label: 'Reconciliation', asOf: true },
   { id: 'stock-movement', label: 'Stock movement', custom: true },   // draws itself: it starts from a ledger or an item
+  // reports built on the new engine (docs/BOOKS_REPORTS_PLAN.md, step 4): shown beside the old ones, to those who may open the Reports settings, until step 5 switches over
+  { id: 'engine-trial-balance', label: 'Trial balance (new)', custom: true, engine: 'trial-balance', permission: 'books.reports.settings' },
 ];
 
 const th = { padding: '8px 12px', fontSize: '0.65rem', fontWeight: 700, color: colors.textFaint, textAlign: 'left', whiteSpace: 'nowrap' };
@@ -299,8 +304,9 @@ function ViewBody({ id, data, nav, onRefresh }) {
 export default function ReportsTab() {
   const nav = useNavigate();
   const [params, setParams] = useSearchParams();
-  const id = REPORTS.some((r) => r.id === params.get('report')) ? params.get('report') : 'day-book';
-  const def = REPORTS.find((r) => r.id === id);
+  const visible = REPORTS.filter((r) => !r.permission || hasPermission(null, r.permission));
+  const id = visible.some((r) => r.id === params.get('report')) ? params.get('report') : 'day-book';
+  const def = visible.find((r) => r.id === id);
   const [from, setFrom] = useState(yearStart());
   const [to, setTo] = useState(today());
   // Alt+C: what the profit and loss, balance sheet or trial balance says, on the dates shown
@@ -341,14 +347,15 @@ export default function ReportsTab() {
   return (
     <div>
       <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap', marginBottom: 14 }}>
-        {REPORTS.map((r) => (
+        {visible.map((r) => (
           <button key={r.id} type="button" onClick={() => { const p = new URLSearchParams(params); p.set('report', r.id); setParams(p, { replace: true }); }}
             style={{ ...filterStyle, cursor: 'pointer', fontWeight: r.id === id ? 700 : 500, background: r.id === id ? colors.tint(0.1) : 'var(--surface-card, #fff)', color: r.id === id ? colors.primaryDeep : colors.text }}>
             {r.label}
           </button>
         ))}
       </div>
-      {def.custom && <StockMovement />}
+      {def.engine && <ReportFrame reportKey={def.engine}>{(r) => <TrialBalanceView result={r} />}</ReportFrame>}
+      {def.custom && !def.engine && <StockMovement />}
       {!def.custom && <div style={{ display: 'flex', gap: 10, alignItems: 'center', flexWrap: 'wrap', marginBottom: 14 }}>
         {id === 'ledger' && (
           <select value={ledgerId} onChange={(e) => setLedgerId(e.target.value)} style={{ ...filterStyle, minWidth: 220 }} aria-label="Ledger">

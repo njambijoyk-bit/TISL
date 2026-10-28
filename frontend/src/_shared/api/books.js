@@ -102,6 +102,9 @@ const booksAPI = {
   loyaltyTrueUp: () => send('post', '/admin/books/reconciliation/loyalty-true-up'),
   refreshStockUnits: () => send('post', '/admin/books/reconciliation/stock-refresh'),
   exportReport: (name, params) => saveBlob(`/admin/books/reports/${name}`, params, `${name}.${params.format}`),
+  // the report engine (every report on it): run one, or download it as a file
+  engineReport: (key, params) => get(`/admin/reports/${key}`, params),
+  exportEngineReport: (key, params) => saveBlob(`/admin/reports/${key}`, params, `${key}.${params.format}`),
 
   // masters
   groups: () => get('/admin/books/groups'),
@@ -128,6 +131,7 @@ const booksAPI = {
   settings: () => get('/admin/books/settings'),
 
   // Reports settings (Books -> Configuration -> Reports) and the statements tree
+  statementLines: () => get('/admin/books/statement-lines'),
   reportSettings: () => get('/admin/books/report-settings'),
   saveReportSettings: (section, values) => send('put', `/admin/books/report-settings/${section}`, { values }),
   reportSettingsLog: (params) => get('/admin/books/report-settings/log', params),

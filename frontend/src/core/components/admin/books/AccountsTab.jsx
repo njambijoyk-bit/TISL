@@ -3,6 +3,9 @@ import { useNavigate } from 'react-router-dom';
 import { Plus, ChevronRight, ChevronDown, Lock, FileText, Download, Table2, LayoutList, LayoutGrid, Network } from 'lucide-react';
 import toast from 'react-hot-toast';
 import booksAPI from '../../../../_shared/api/books';
+import { hasPermission } from '../../../../_shared/lib/roles';
+import useStatementLines from './useStatementLines';
+import StatementLineField from './StatementLineField';
 import { errMsg, fieldErrors } from '../../../../_shared/store/helpers/apiState';
 import Modal from '../ui/Modal';
 import { Field, TextInput, NumberInput, SelectInput, TextArea, FormGrid, FormStack, ModalActions, FormError, CheckboxRow } from '../ui/Form';
@@ -65,9 +68,19 @@ function LedgerForm({ ledger, groups, defaultGroupId, onClose, onSaved }) {
     charge_kind: ledger?.settings?.charge_kind ?? 'other', timing: ledger?.settings?.timing ?? 'on_win', refundable: ledger?.settings?.refundable ?? false,
     default_on: ledger?.settings?.default_on ?? false, free_days: ledger?.settings?.free_days ?? 0, tax_follows: ledger?.settings?.tax_follows ?? 'own',
     delivery_tax_rate_id: ledger?.settings?.tax_rate_id ?? '',
+    statement_id: '',   // '' follows the group's line; set below for a ledger that has its own
   });
   // The group decides which fields exist (Tally: the group carries the behaviour).
   const behaviour = flat(groups).find((g) => String(g.id) === String(f.group_id))?.behaviour ?? 'standard';
+  const chosenGroup = flat(groups).find((g) => String(g.id) === String(f.group_id));
+  const stmt = useStatementLines();
+  const canChangeLine = hasPermission(null, 'books.statements');
+  // a ledger on a line of its own shows that line; one on its group's line shows "follows the group"
+  useEffect(() => {
+    if (!editing || !stmt.ready) return;
+    const groupLine = flat(groups).find((g) => g.id === ledger.group_id)?.statement_id ?? null;
+    setF((x) => ({ ...x, statement_id: ledger.statement_id && ledger.statement_id !== groupLine ? String(ledger.statement_id) : '' }));
+  }, [stmt.ready]);   // eslint-disable-line react-hooks/exhaustive-deps
   const rated = behaviour === 'tax' || behaviour === 'delivery';
   const expense = behaviour === 'delivery' && f.side === 'expense';
   const trading = behaviour === 'sales' || behaviour === 'purchase';
@@ -90,11 +103,15 @@ function LedgerForm({ ledger, groups, defaultGroupId, onClose, onSaved }) {
   const [errs, setErrs] = useState({});
   const [err, setErr] = useState(null);
   const set = (k) => (v) => setF((x) => ({ ...x, [k]: v }));
+  // an own line that does not fit the nature of a newly chosen group is dropped (the ledger then follows that group)
+  useEffect(() => { if (f.statement_id && stmt.byId[Number(f.statement_id)]?.nature !== chosenGroup?.nature) setF((x) => ({ ...x, statement_id: '' })); }, [f.group_id]);   // eslint-disable-line react-hooks/exhaustive-deps
   const submit = async (e) => {
     e.preventDefault(); setBusy(true); setErrs({}); setErr(null);
     try {
       const blank = (v) => (v === '' ? null : v);
       const body = { ...f, currency_id: blank(f.currency_id) };
+      // the statement line is only sent by someone who may choose it; for everyone else the server keeps what is there (or follows the group)
+      if (stmt.ready && canChangeLine) body.statement_id = f.statement_id === '' ? null : Number(f.statement_id); else delete body.statement_id;
       if ((rated && !expense) || charging) {
         ['rate_type', 'rate_value', 'valid_from', 'valid_until', 'min_amount', 'max_amount', 'free_above', 'transit_days'].forEach((k) => { body[k] = blank(f[k]); });
       } else {
@@ -129,6 +146,10 @@ function LedgerForm({ ledger, groups, defaultGroupId, onClose, onSaved }) {
               {flat(groups).map((g) => <option key={g.id} value={g.id}>{'  '.repeat(g.depth)}{g.name}</option>)}
             </SelectInput>
           </Field>
+          {stmt.ready && (
+            <StatementLineField lines={stmt.lines} nature={chosenGroup?.nature} inheritedId={chosenGroup?.statement_id ?? null} inheritedFrom="its group"
+              value={f.statement_id} onChange={set('statement_id')} canChange={canChangeLine} error={errs.statement_id} />
+          )}
           {taxed && (
             <>
               <Field label="Tax on this account *" error={errs.tax_nature || errs.tax_rate_ledger_id} hint={behaviour === 'sales'
@@ -322,11 +343,15 @@ function GroupForm({ groups, parentId, onClose, onSaved }) {
   const [name, setName] = useState('');
   const [parent, setParent] = useState(parentId ?? '');
   const [behaviour, setBehaviour] = useState('');
+  const [line, setLine] = useState('');
+  const stmt = useStatementLines();
+  const canChangeLine = hasPermission(null, 'books.statements');
+  const parentGroup = flat(groups).find((g) => String(g.id) === String(parent));
   const [busy, setBusy] = useState(false);
   const [err, setErr] = useState(null);
   const submit = async (e) => {
     e.preventDefault(); setBusy(true); setErr(null);
-    try { await booksAPI.createGroup({ name, parent_id: parent, behaviour: behaviour || undefined }); toast.success('Group added'); onSaved(); onClose(); }
+    try { await booksAPI.createGroup({ name, parent_id: parent, behaviour: behaviour || undefined, ...(stmt.ready && canChangeLine ? { statement_id: line === '' ? null : Number(line) } : {}) }); toast.success('Group added'); onSaved(); onClose(); }
     catch (x) { setErr(errMsg(x, 'Could not add the group')); }
     finally { setBusy(false); }
   };
@@ -342,6 +367,10 @@ function GroupForm({ groups, parentId, onClose, onSaved }) {
               {flat(groups).map((g) => <option key={g.id} value={g.id}>{'  '.repeat(g.depth)}{g.name}</option>)}
             </SelectInput>
           </Field>
+          {stmt.ready && (
+            <StatementLineField lines={stmt.lines} nature={parentGroup?.nature} inheritedId={parentGroup?.statement_id ?? null} inheritedFrom="the group above"
+              value={line} onChange={setLine} canChange={canChangeLine} />
+          )}
           <Field label="Behaves as" hint="Leave as inherited unless this group holds tax or delivery ledgers.">
             <SelectInput value={behaviour} onChange={(e) => setBehaviour(e.target.value)}>
               <option value="">Same as its parent</option><option value="standard">Ordinary accounts</option><option value="tax">Duties &amp; taxes (rates)</option><option value="delivery">Shipping &amp; delivery (charges)</option><option value="sales">Sales accounts (tax nature)</option><option value="purchase">Purchase accounts (tax nature)</option><option value="bank">Bank / cash</option><option value="charge">Auction charges (fees, deposits)</option>
@@ -354,8 +383,44 @@ function GroupForm({ groups, parentId, onClose, onSaved }) {
   );
 }
 
+/** The statement line a group's ledgers report under: shown to everyone, changed by people with books.statements. */
+function GroupLine({ group, stmt, canChange, onSaved }) {
+  const own = group.statement_id ? String(group.statement_id) : '';
+  const [value, setValue] = useState(own);
+  const [move, setMove] = useState(true);
+  const [busy, setBusy] = useState(false);
+  useEffect(() => { setValue(own); }, [group.id, own]);
+  const current = stmt.byId[group.statement_id]?.name;
+  if (!canChange) return <p style={{ margin: '2px 0 0', fontSize: '0.72rem', color: colors.textFaint }}>Reports under: {current ?? 'not set'}</p>;
+  const save = async () => {
+    setBusy(true);
+    try {
+      const r = await booksAPI.updateGroup(group.id, { statement_id: value === '' ? null : Number(value), apply_to_members: move });
+      const n = (r.statement?.moved_ledgers ?? 0) + (r.statement?.moved_groups ?? 0);
+      toast.success(n ? `Saved. ${r.statement.moved_ledgers} ledger${r.statement.moved_ledgers === 1 ? '' : 's'} and ${r.statement.moved_groups} subgroup${r.statement.moved_groups === 1 ? '' : 's'} moved with it.` : 'Saved');
+      onSaved(r.statement?.statement_id ?? null);
+    } catch (e) { toast.error(errMsg(e, 'Could not save the statement line')); } finally { setBusy(false); }
+  };
+  const offered = stmt.lines.filter((l) => l.nature === group.nature);
+  return (
+    <div style={{ margin: '8px 0 0', display: 'flex', gap: 8, flexWrap: 'wrap', alignItems: 'center', fontSize: '0.75rem' }}>
+      <label htmlFor="group-statement-line" style={{ color: colors.textFaint }}>Reports under</label>
+      <SelectInput id="group-statement-line" value={value} onChange={(e) => setValue(e.target.value)} style={{ width: 'auto', minWidth: 220, padding: '5px 8px' }}>
+        {group.parent_id && <option value="">Follow the group above</option>}
+        {offered.map((l) => <option key={l.id} value={l.id}>{l.path ? `${l.path} › ` : ''}{l.name}</option>)}
+      </SelectInput>
+      <label style={{ display: 'inline-flex', gap: 5, alignItems: 'center', color: colors.textMuted }}>
+        <input type="checkbox" checked={move} onChange={(e) => setMove(e.target.checked)} style={{ accentColor: colors.primary }} /> Move its ledgers that are on the old line
+      </label>
+      <button type="button" style={{ ...btnGhost, padding: '4px 10px' }} disabled={busy || value === own} onClick={save}>{busy ? 'Saving…' : 'Save'}</button>
+    </div>
+  );
+}
+
 export default function AccountsTab({ canWrite }) {
   const nav = useNavigate();
+  const stmt = useStatementLines();
+  const canChangeLine = hasPermission(null, 'books.statements');
   const [groups, setGroups] = useState([]);
   const [sel, setSel] = useState(null);
   const [open, setOpen] = useState({});
@@ -430,6 +495,7 @@ export default function AccountsTab({ canWrite }) {
     { key: 'name', label: 'Ledger', render: (l) => <strong style={{ color: colors.primary, fontWeight: 600 }}>{l.name}{!l.is_active && <span style={{ color: colors.textFaint, fontWeight: 400 }}> · off</span>}</strong> },
     { key: 'group', label: 'Group', render: (l) => l.group?.name },
     { key: 'nature', label: 'Nature', render: (l) => NATURE[l.group?.nature] },
+    ...(stmt.ready ? [{ key: 'line', label: 'Statement line', render: (l) => stmt.byId[l.statement_id]?.name ?? <span style={{ color: colors.textFaint }}>—</span> }] : []),
     { key: 'tax', label: 'Tax', render: (l) => ({ taxable: 'VAT-able', zero_rated: 'Zero-rated', exempt: 'Exempt', out_of_scope: 'Out of scope' }[l.tax_nature] ?? (['sales', 'purchase', 'charge'].includes(l.group?.behaviour) ? 'Not set' : '')) },
     { key: 'rate', label: 'Rate', align: 'right', render: (l) => (l.tax_rate_ledger?.rate_value != null && (l.tax_nature === 'taxable' || l.tax_nature === 'zero_rated') ? `${Number(l.tax_rate_ledger.rate_value)}%` : l.rate_type && l.rate_value != null ? (l.rate_type === 'percent' ? `${Number(l.rate_value)}%` : `${Number(l.rate_value).toLocaleString()}${l.rate_type === 'per_day' ? '/day' : ''}`) : '—') },
     { key: 'opening', label: 'Opening', align: 'right', render: (l) => Number(l.opening_balance) ? `${Number(l.opening_balance).toLocaleString()} ${l.opening_side === 'C' ? 'Cr' : 'Dr'}` : '—' },
@@ -467,6 +533,7 @@ export default function AccountsTab({ canWrite }) {
           <div>
             <p style={{ margin: 0, fontWeight: 700, color: colors.primary }}>{sel ? sel.name : 'All ledgers'}</p>
             {sel && <p style={{ margin: 0, fontSize: '0.72rem', color: colors.textFaint }}>{NATURE[sel.nature]} · includes subgroups</p>}
+            {sel && stmt.ready && <GroupLine group={sel} stmt={stmt} canChange={canChangeLine} onSaved={(line) => { setSel((x) => (x ? { ...x, statement_id: line } : x)); loadGroups(); loadLedgers(); }} />}
           </div>
           <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap', alignItems: 'center' }}>
             <div role="group" aria-label="Layout" style={{ display: 'inline-flex', overflow: 'hidden', borderRadius: 8, border: `1.5px solid ${colors.tint(0.2)}` }}>
