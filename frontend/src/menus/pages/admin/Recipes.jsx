@@ -7,6 +7,7 @@ import Modal from '../../../core/components/admin/ui/Modal';
 import { Field, FormError, FormStack, ModalActions, NumberInput, SelectInput, TextArea, TextInput } from '../../../core/components/admin/ui/Form';
 import useCoursesOn from '../../lib/useCoursesOn';
 import { fromSteps, KEYWORDS } from '../../lib/stepMinutes';
+import scrollTop from '../../lib/scrollTop';
 import menusAPI from '../../../_shared/api/menus';
 import useAuthStore from '../../../_shared/store/authStore';
 import { canViewMenus, canManageMenus, hasPermission } from '../../../_shared/lib/roles';
@@ -92,6 +93,7 @@ function RecipeModal({ dish, options, onClose, onDone }) {
   const [times, setTimes] = useState((r?.times ?? []).map((t) => ({ key: `t${++key.current}`, up_to: t.up_to, minutes: t.minutes })));
   const [prep, setPrep] = useState(r?.prep_minutes ?? '');
   const [cook, setCook] = useState(r?.cook_minutes ?? '');
+  const topRef = useRef(null);
   const [screen, setScreen] = useState(1);   // 1: what it is made of; 2: the method, times and the rest
   const [timesOpen, setTimesOpen] = useState(true);   // the time by batch size starts open; the arrow folds it away
   // prep and cook follow the steps (by the words in them) until someone types their own figure; a recipe saved with figures that differ from its steps keeps them
@@ -112,6 +114,11 @@ function RecipeModal({ dish, options, onClose, onDone }) {
   const [addSide, setAddSide] = useState(false);   // editing a recipe that has no side: tick to make one
   const [busy, setBusy] = useState(false);
   const [err, setErr] = useState(null);
+  const shown = useRef(false);
+  useEffect(() => {   // a new screen starts at its top, not wherever the last one was scrolled to
+    if (shown.current) scrollTop(topRef.current);
+    shown.current = true;
+  }, [screen]);
   const auto = fromSteps(steps);
   useEffect(() => {
     if (!prepOwn) setPrep(auto.prep > 0 ? String(auto.prep) : '');
@@ -150,7 +157,7 @@ function RecipeModal({ dish, options, onClose, onDone }) {
       <form onSubmit={go}>
         <FormStack>
           <FormError message={err} />
-          <ol data-testid="recipe-screens" style={{ display: 'flex', gap: 18, flexWrap: 'wrap', listStyle: 'none', margin: 0, padding: 0, fontSize: '0.8rem', borderBottom: `1px solid ${colors.tint(0.12)}` }}>
+          <ol ref={topRef} data-testid="recipe-screens" style={{ scrollMarginTop: 0, display: 'flex', gap: 18, flexWrap: 'wrap', listStyle: 'none', margin: 0, padding: 0, fontSize: '0.8rem', borderBottom: `1px solid ${colors.tint(0.12)}` }}>
             {['Ingredients', 'Method and details'].map((t, i) => (
               <li key={t} aria-current={screen === i + 1 ? 'step' : undefined} style={{ padding: '4px 2px 6px', marginBottom: -1, fontWeight: screen === i + 1 ? 800 : 500, color: screen === i + 1 ? colors.primary : colors.textMuted, borderBottom: `2px solid ${screen === i + 1 ? colors.primary : 'transparent'}` }}>{i + 1}. {t}</li>
             ))}

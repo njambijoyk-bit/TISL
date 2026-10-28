@@ -8,6 +8,7 @@ import menusAPI from '../../_shared/api/menus';
 import { errMsg } from '../../_shared/store/helpers/apiState';
 import { btnGhost, btnPrimary, colors } from '../../_shared/theme/tokens';
 import useMakeup from '../lib/useMakeup';
+import scrollTop from '../lib/scrollTop';
 import { ModifiersSection } from './DishModifiers';
 import { CondimentsSection, PackagingRulesSection } from './PackagingRules';
 import { BranchPriceRows } from './DishBranchesModal';
@@ -165,6 +166,12 @@ function Steps({ dish, step, setStep, onClose, onDone, onChoices }) {
 export default function DishGuide({ dish: given, data, onClose, onDone, onChoices }) {
   const [dish, setDish] = useState(given?.id ? given : null);
   const [step, setStep] = useState(0);
+  const topRef = useRef(null);
+  const shown = useRef(false);
+  useEffect(() => {   // each step starts at its top
+    if (shown.current) scrollTop(topRef.current);
+    shown.current = true;
+  }, [step]);
   const [name, setName] = useState(given?.name ?? '');
   const [price, setPrice] = useState(given?.price ?? '');
   const [description, setDescription] = useState(given?.description ?? '');
@@ -201,7 +208,7 @@ export default function DishGuide({ dish: given, data, onClose, onDone, onChoice
 
   return (
     <Modal title={dish ? `Set up ${dish.name}` : 'Guided set-up: new dish'} onClose={onClose} width={860}>
-      <ol data-testid="guide-steps" style={{ display: 'flex', gap: 6, flexWrap: 'wrap', listStyle: 'none', margin: '0 0 12px', padding: 0, fontSize: '0.74rem' }}>
+      <ol ref={topRef} data-testid="guide-steps" style={{ display: 'flex', gap: 6, flexWrap: 'wrap', listStyle: 'none', margin: '0 0 12px', padding: 0, fontSize: '0.74rem' }}>
         {STEPS.map((s, i) => <li key={s} aria-current={i === step ? 'step' : undefined} style={{ padding: '3px 10px', borderRadius: 999, border: `1px solid ${colors.tint(i === step ? 0.5 : 0.15)}`, fontWeight: i === step ? 800 : 500 }}>{i + 1}. {s}</li>)}
       </ol>
       {step === 0 ? (
