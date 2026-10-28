@@ -35,6 +35,8 @@ Everything stays in **Core** except the visual reports page.
 | 9 | Reconciliations and the year-end close need a **second approver** by default. Whether they do is a setting in the Reports settings, changeable only by someone holding a dedicated permission (default: super admin alone, grantable to other roles). |
 | 10 | The suspense account is one of the ledgers chosen in Books → Settings → Default ledgers. Its statement line follows its group (or its own override). Any balance on it is flagged by the health panel. |
 | 11 | Reconciliation matches on **recognizer identifiers** carried by each transaction (voucher number, M-Pesa reference, cheque number and dates, transfer reference). See section 7. |
+| 13 | **Day book:** general view shows each voucher once with an expandable cost-centre split; a cost-centre view shows each allocation; totals never count a voucher per cost centre. All reports filter on entry lines. |
+| 14 | **Ageing:** unapplied credits (credit and debit notes with no invoice, on-account receipts and payments) are shown in a separate section, not as unpaid bills, with a net line comparable to the ledger balance. |
 | 12 | **Deferred until all Books work is done:** the `.wnkjap` export and import for reports (other companies' books), and the backup engine, both need updating for the new tables and columns. |
 
 ---
@@ -83,7 +85,8 @@ Follows the repo style: PART A read-only check, PART B change, PART C result che
 
 - Creates the table and columns, seeds the tree, fills groups by name with a nature fallback. Anything it cannot map is listed, never guessed.
 - **First step before writing it:** list the live `ledger_groups`. The default chart is not seeded by any script in the repo.
-- Likely mapping (Tally-style chart):
+- **Live chart received (28 Oct):** 39 groups, no duplicate names. The exact mapping is the second table below; the first is superseded.
+- Earlier, approximate mapping (Tally-style chart):
 
 | Existing group | Statement line |
 |---|---|
@@ -103,6 +106,44 @@ Follows the repo style: PART A read-only check, PART B change, PART C result che
 | Indirect Expenses and subgroups | Operating expenses |
 
 Loans are the awkward case, since part of a loan can fall due within a year. That is what the per-ledger override is for.
+
+### Exact mapping from the live chart
+
+The live chart has 14 top-level groups plus subgroups. Two adjustments to the tree above:
+
+- Add **Other non-current assets** (for "Misc. Expenses (Asset)") and a **Suspense (to be cleared)** line under current liabilities.
+- Mapping **Direct Incomes to Revenue**, not Other income, so gross profit stays exactly as it is today. Those groups all have `affects_gross_profit = 1`.
+
+| Live group (id) | Statement line |
+|---|---|
+| Capital Account (1) | Owner or share capital |
+| Reserves & Surplus (16) | Reserves and retained earnings |
+| Loans (Liability) (2), Secured Loans (18), Unsecured Loans (19) | Long-term loans (override per ledger for any part due within a year) |
+| Bank OD Accounts (17) | Short-term borrowings |
+| Current Liabilities (3) | Other current liabilities |
+| Duties & Taxes (20), Value Added Tax (32), Withholding tax (36) | Taxes payable |
+| Provisions (21) | Provisions and other |
+| Sundry Creditors (22) | Trade payables |
+| Auction Deposits (38), Service Deposits & Pass-through (41), Statutory Payroll Liabilities (42) | Other current liabilities |
+| Suspense A/c (8) | Suspense (to be cleared) |
+| Fixed Assets (4) | Property and equipment (accumulated depreciation ledgers sit here too) |
+| Investments (5) | Investments |
+| Misc. Expenses (Asset) (7) | Other non-current assets |
+| Current Assets (6) | Other current assets |
+| Bank Accounts (23), Cash-in-hand (24) | Cash and bank |
+| Deposits (Asset) (25), Loans & Advances (Asset) (26) | Other current assets |
+| Stock-in-hand (27) | Inventory |
+| Sundry Debtors (28) | Trade receivables |
+| Sales Accounts (9), Service Income (39), Service Fees (40), Direct Incomes (11), Shipping & Delivery (31) | Revenue |
+| Purchase Accounts (10), Direct Expenses (12) | Cost of sales |
+| Indirect Incomes (13), Auction Charges (37) | Other income |
+| Indirect Expenses (14), Employee Benefits / Payroll Expenses (43) | Operating expenses |
+
+Notes:
+
+- The chart has **no group for finance costs or income tax**. Bank charges, interest and exchange losses sit under Indirect Expenses today, so they map to Operating expenses until either new subgroups are made or those ledgers get their own statement line.
+- Tax ledgers under Duties & Taxes net input against output: a debit balance (VAT to reclaim) shows as a negative amount in Taxes payable, as Tally does.
+- Suspense A/c has nature `liability`. A debit balance there shows as a negative on its line; either way it is flagged by the health panel.
 
 ---
 
@@ -154,7 +195,7 @@ One generic engine: a **source** (an imported statement or a register) against t
 - Reports settings holds a list of **reconcilable ledger groups**. Every ledger in those groups (including subgroups) is reconcilable by default; the admin can switch an individual ledger off.
 - Initially: Cash-in-hand and Bank Accounts.
 - An admin may add any group, for example Sundry Debtors (a customer-statement reconciliation) or a loan group (a lender statement). So the engine cannot assume the account is a bank:
-  - **Account kind decides the source adapter:** bank statement import, M-Pesa statement import, cash count, or a generic "counter-party statement" import.
+  - **Account kind decides the source adapter, and it already exists on each ledger.** Ledgers carry `bank_name` and `account_number` (bank), `mobile_kind` (till, paybill, send) with `mobile_number` (M-Pesa), and `cash_kind` (till, petty, driver, undeposited). So the adapter is picked from the ledger's own fields: bank statement import, M-Pesa statement import, cash count, or a generic "counter-party statement" import for anything else. Cash-in-hand and Bank Accounts both have `behaviour = bank` in the live chart.
   - **Sign and meaning flip by nature:** a bank is an asset, a lender or supplier statement is a liability, so "statement balance vs book balance" and the direction of unmatched items are worked out from the ledger's nature.
   - **Party ledgers** (debtors, creditors) match on bill references and invoice numbers rather than amounts and dates alone.
   - A ledger with no adapter configured still gets manual matching.
@@ -202,7 +243,7 @@ One page of pass/fail checks, each drilling down. Includes: trial balance and ba
 - Statements tree editor (needs `books.statements`)
 - Report header, footer and signatories
 - **Reconcilable ledger groups** (initially Cash-in-hand and Bank Accounts), with a switch to disable any single ledger
-- M-Pesa paybill or till details, and the account kind per reconcilable group (bank, M-Pesa, cash, counter-party)
+- The account kind per reconcilable ledger (taken from its bank, mobile and cash fields; changeable here)
 - **Second-approver rule** for reconciliation and for the year-end close (default: required). Changing it needs `books.reports.approval`.
 
 Each part of this tab has its own permission (section 12), so access can be given a section at a time.
