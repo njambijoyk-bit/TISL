@@ -7,6 +7,7 @@ use App\Services\Access\Authorizer;
 use App\Services\Access\BranchFilter;
 use App\Services\Books\Engine\Reports\BalanceSheetReport;
 use App\Services\Books\Engine\Reports\DayBookReport;
+use App\Services\Books\Engine\Reports\LedgerStatementReport;
 use App\Services\Books\Engine\Reports\ProfitLossReport;
 use App\Services\Books\Engine\Reports\TrialBalanceReport;
 use App\Services\Books\ReportSettings;
@@ -26,6 +27,7 @@ final class ReportEngine
         ProfitLossReport::class,
         BalanceSheetReport::class,
         DayBookReport::class,
+        LedgerStatementReport::class,
     ];
 
     /** The display settings a screen needs to draw every amount the same way. */

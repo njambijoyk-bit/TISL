@@ -382,6 +382,7 @@ In this order, each with its own parity check against the old report:
 
 **Progress:**
 - 6.1 Day book: done and tested (both views, cost centre and branch on the entry lines, identifiers, paging with an all-pages total, export of every row, old-versus-new parity). Awaiting the owner's look on real data.
+- 6.2 Ledger statement: done and tested (opening by one sum instead of loading history, paging with the running balance carried across pages, particulars naming the other side, narration and identifiers, Dr/Cr balances, searchable ledger picker, per-currency totals kept, notes for branch-limited and filtered openings; parity with the old statement on SQLite and MariaDB). The ledger links from the chart of accounts and the trial balance open it. Starting from stored closing balances comes with Step 7.
 
 ### Step 7. Closing balances and year-end close
 

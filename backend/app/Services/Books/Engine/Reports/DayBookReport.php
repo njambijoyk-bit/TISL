@@ -5,6 +5,7 @@ namespace App\Services\Books\Engine\Reports;
 use App\Models\Books\Voucher;
 use App\Models\Books\VoucherType;
 use App\Services\Access\BranchFilter;
+use App\Services\Books\Engine\Identifiers;
 use App\Services\Books\Engine\LedgerBalances;
 use App\Services\Books\Engine\ReportDefinition;
 use App\Services\Books\Engine\Scope;
@@ -195,35 +196,14 @@ final class DayBookReport extends ReportDefinition
     }
 
     /**
-     * What identifies the payment of each voucher: cheque number and date, transfer or slip number, the reference a tender carries (an M-Pesa code).
+     * What identifies each voucher's payment: cheque number and date, transfer or slip number, the reference a tender carries (an M-Pesa code).
      *
      * @param  int[]  $ids
      * @return array<int, string[]>
      */
     private function identifiers(array $ids): array
     {
-        $out = [];
-        if (! $ids) {
-            return $out;
-        }
-        if (Schema::hasTable('voucher_instruments')) {
-            foreach (DB::table('voucher_instruments')->whereIn('voucher_id', $ids)->get(['voucher_id', 'type', 'number', 'instrument_date', 'reference']) as $i) {
-                $bits = array_filter([ucfirst(str_replace('_', ' ', (string) $i->type)), $i->number, $i->instrument_date ? '(' . substr((string) $i->instrument_date, 0, 10) . ')' : null, $i->reference ? 'ref ' . $i->reference : null]);
-                if ($i->number || $i->reference) {
-                    $out[(int) $i->voucher_id][] = implode(' ', $bits);
-                }
-            }
-        }
-        if (Schema::hasTable('voucher_tenders')) {
-            foreach (DB::table('voucher_tenders')->whereIn('voucher_id', $ids)->whereNotNull('reference')->where('reference', '!=', '')->get(['voucher_id', 'reference']) as $t) {
-                $out[(int) $t->voucher_id][] = 'Payment ref ' . $t->reference;
-            }
-        }
-        foreach (DB::table('vouchers')->whereIn('id', $ids)->whereNotNull('reference_no')->where('reference_no', '!=', '')->get(['id', 'reference_no']) as $v) {
-            $out[(int) $v->id][] = 'Ref ' . $v->reference_no;
-        }
-
-        return $out;
+        return array_map(fn ($e) => Identifiers::labels($e), (new Identifiers())->forVouchers($ids));
     }
 
     public function table(array $data, Scope $scope): array

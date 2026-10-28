@@ -56,7 +56,7 @@ trait CreatesBooksLedgerWorld
         Schema::create('voucher_types', function ($t) { $t->id(); $t->string('code'); $t->string('name'); $t->string('base_type'); $t->timestamps(); });
         Schema::create('voucher_entries', function ($t) {
             $t->id(); $t->unsignedBigInteger('voucher_id'); $t->unsignedBigInteger('ledger_id'); $t->string('side', 1); $t->decimal('amount', 15, 2); $t->decimal('base_amount', 15, 2);
-            $t->unsignedBigInteger('cost_centre_id')->nullable(); $t->unsignedBigInteger('location_id')->nullable(); $t->integer('line_no')->default(1);
+            $t->unsignedBigInteger('cost_centre_id')->nullable(); $t->unsignedBigInteger('location_id')->nullable(); $t->integer('line_no')->default(1); $t->text('narration')->nullable();
         });
         Schema::create('voucher_instruments', function ($t) {
             $t->id(); $t->unsignedBigInteger('voucher_id'); $t->unsignedBigInteger('ledger_id')->nullable(); $t->string('direction')->nullable(); $t->string('type')->nullable(); $t->string('number')->nullable();

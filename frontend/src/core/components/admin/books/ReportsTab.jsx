@@ -12,13 +12,14 @@ import ReportFrame from '../reports/ReportFrame';
 import TrialBalanceView from '../reports/TrialBalanceView';
 import StatementView from '../reports/StatementView';
 import DayBookView from '../reports/DayBookView';
+import LedgerStatementView from '../reports/LedgerStatementView';
 import { hasPermission } from '../../../../_shared/lib/roles';
 import costCentresAPI from '../../../../_shared/api/costCentres';
 import locationsAPI from '../../../../_shared/api/locations';
 
 const REPORTS = [
   { id: 'engine-day-book', label: 'Day book', custom: true, engine: 'day-book' },
-  { id: 'ledger', label: 'Ledger statement', range: true },
+  { id: 'engine-ledger', label: 'Ledger statement', custom: true, engine: 'ledger-statement' },
   { id: 'engine-trial-balance', label: 'Trial balance', custom: true, engine: 'trial-balance' },
   { id: 'engine-profit-loss', label: 'Profit & loss', custom: true, engine: 'profit-loss' },
   { id: 'engine-balance-sheet', label: 'Balance sheet', custom: true, engine: 'balance-sheet' },
@@ -76,12 +77,13 @@ function View(props) {
   );
 }
 
-const ENGINE_ALIAS = { 'day-book': 'engine-day-book', 'trial-balance': 'engine-trial-balance', 'profit-loss': 'engine-profit-loss', 'balance-sheet': 'engine-balance-sheet' };
+const ENGINE_ALIAS = { 'day-book': 'engine-day-book', ledger: 'engine-ledger', 'trial-balance': 'engine-trial-balance', 'profit-loss': 'engine-profit-loss', 'balance-sheet': 'engine-balance-sheet' };
 
 /** The screen of each report on the engine. */
 function EngineView({ engine, result }) {
   if (engine === 'trial-balance') return <TrialBalanceView result={result} />;
   if (engine === 'day-book') return <DayBookView result={result} />;
+  if (engine === 'ledger-statement') return <LedgerStatementView result={result} />;
   return <StatementView result={result} />;
 }
 
@@ -364,7 +366,7 @@ export default function ReportsTab() {
           </button>
         ))}
       </div>
-      {def.engine && <ReportFrame key={def.engine} reportKey={def.engine}>{(r) => <EngineView engine={def.engine} result={r} />}</ReportFrame>}
+      {def.engine && <ReportFrame key={def.engine + (params.get('ledger') ?? '')} reportKey={def.engine} initialOpts={def.engine === 'ledger-statement' && params.get('ledger') ? { ledger_id: params.get('ledger') } : {}}>{(r) => <EngineView engine={def.engine} result={r} />}</ReportFrame>}
       {def.custom && !def.engine && <StockMovement />}
       {!def.custom && <div style={{ display: 'flex', gap: 10, alignItems: 'center', flexWrap: 'wrap', marginBottom: 14 }}>
         {id === 'ledger' && (

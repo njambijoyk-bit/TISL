@@ -89,4 +89,37 @@ final class Identifiers
 
         return $out;
     }
+
+    /**
+     * One voucher's identifiers as short lines for a screen or a file ("Cheque 000123 (2026-02-20)", "M-Pesa Till ref QGH1A2B3C4"). The voucher's own number
+     * is left out: every report shows it already.
+     *
+     * @param  array  $entry  one value of forVouchers()
+     * @return string[]
+     */
+    public static function labels(array $entry): array
+    {
+        $out = [];
+        foreach ($entry['instruments'] ?? [] as $i) {
+            if ($i['number'] || $i['reference']) {
+                $out[] = implode(' ', array_filter([ucfirst(str_replace('_', ' ', (string) $i['type'])), $i['number'], $i['instrument_date'] ? '(' . $i['instrument_date'] . ')' : null, $i['reference'] ? 'ref ' . $i['reference'] : null]));
+            }
+        }
+        foreach ($entry['tenders'] ?? [] as $t) {
+            if ($t['reference'] !== null && $t['reference'] !== '') {
+                $out[] = ($t['method'] ?: 'Payment') . ' ref ' . $t['reference'];
+            }
+        }
+        foreach ($entry['receipts'] ?? [] as $r) {
+            $out[] = 'Receipt ' . $r;
+        }
+        if (! empty($entry['reference_no'])) {
+            $out[] = 'Ref ' . $entry['reference_no'];
+        }
+        if (! empty($entry['supplier_invoice_no'])) {
+            $out[] = 'Supplier invoice ' . $entry['supplier_invoice_no'];
+        }
+
+        return $out;
+    }
 }

@@ -7,6 +7,7 @@ import { errMsg } from '../../../../_shared/store/helpers/apiState';
 import { btnPrimary, card, colors } from '../../../../_shared/theme/tokens';
 import { ExportMenu } from '../books/booksUi';
 import { filterStyle } from '../books/booksFmt';
+import LedgerPicker from './LedgerPicker';
 
 /**
  * The frame every report on the engine sits in, so they all filter, warn, drill and export the same way.
@@ -24,11 +25,11 @@ const Note = ({ children, tone = 'warning' }) => (
   <div role="note" style={{ ...card, padding: '8px 12px', marginBottom: 10, fontSize: '0.76rem', color: tone === 'warning' ? colors.warningText : colors.textMuted }}>{children}</div>
 );
 
-export default function ReportFrame({ reportKey, children }) {
+export default function ReportFrame({ reportKey, initialOpts = {}, children }) {
   const [result, setResult] = useState(null);
   const [error, setError] = useState(null);
   const [loading, setLoading] = useState(false);
-  const [f, setF] = useState({ from: '', to: '', compare: 'none', locId: '', ccId: '', opts: {}, page: 1 });
+  const [f, setF] = useState({ from: '', to: '', compare: 'none', locId: '', ccId: '', opts: initialOpts, page: 1 });
   const ran = useRef(null);   // the filters the figures on screen were run for
   const seq = useRef(0);
   const ranState = useRef(null);   // the filter values the figures on screen were run with
@@ -58,7 +59,7 @@ export default function ReportFrame({ reportKey, children }) {
     } finally { if (mine === seq.current) setLoading(false); }
   }, [reportKey, params]);
 
-  useEffect(() => { setResult(null); run({ from: '', to: '', compare: 'none', locId: '', ccId: '', opts: {}, page: 1 }); setF((x) => ({ ...x, opts: {}, compare: 'none', page: 1 })); }, [reportKey]);   // eslint-disable-line react-hooks/exhaustive-deps
+  useEffect(() => { setResult(null); run({ from: '', to: '', compare: 'none', locId: '', ccId: '', opts: initialOpts, page: 1 }); setF((x) => ({ ...x, opts: initialOpts, compare: 'none', page: 1 })); }, [reportKey]);   // eslint-disable-line react-hooks/exhaustive-deps
   useEffect(() => {
     costCentresAPI.options().then(setCcOpts).catch(() => {});
     locationsAPI.getAdmin().then((l) => setBranches((l.locations ?? []).filter((x) => x.is_active !== false))).catch(() => {});
@@ -90,12 +91,14 @@ export default function ReportFrame({ reportKey, children }) {
             <option value="none">No comparison</option><option value="previous_period">Previous period</option><option value="previous_year">Same period last year</option>
           </select>
         )}
-        {(rep?.options ?? []).map((o) => (
+        {(rep?.options ?? []).map((o) => (o.type === 'ledger'
+          ? <LedgerPicker key={o.key} label={o.label} value={f.opts[o.key] ?? ''} onChange={(v) => setF((x) => ({ ...x, opts: { ...x.opts, [o.key]: v } }))} />
+          : (
           <select key={o.key} value={f.opts[o.key] ?? o.default} aria-label={o.label}
             onChange={(e) => setF((x) => ({ ...x, opts: { ...x.opts, [o.key]: e.target.value } }))} style={filterStyle}>
             {Object.entries(o.choices).map(([v, label]) => <option key={v} value={v}>{label}</option>)}
           </select>
-        ))}
+        )))}
         <button type="button" style={{ ...btnPrimary, opacity: loading ? 0.6 : 1 }} disabled={loading} onClick={() => { setF((x) => ({ ...x, page: 1 })); run({ ...f, page: 1 }); }}>{loading ? 'Running…' : 'Run'}</button>
         <span style={{ flex: 1 }} />
         {rep && <ExportMenu onExport={(format) => booksAPI.exportEngineReport(reportKey, { ...params(f), format })} />}
