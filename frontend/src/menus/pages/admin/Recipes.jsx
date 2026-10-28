@@ -6,7 +6,7 @@ import HubHeader, { NoAccess } from '../../../core/components/admin/ui/HubHeader
 import Modal from '../../../core/components/admin/ui/Modal';
 import { Field, FormError, FormStack, ModalActions, NumberInput, SelectInput, TextArea, TextInput } from '../../../core/components/admin/ui/Form';
 import useCoursesOn from '../../lib/useCoursesOn';
-import { fromSteps, KEYWORDS } from '../../lib/stepMinutes';
+import { fromSteps, wordsOf } from '../../lib/stepMinutes';
 import scrollTop from '../../lib/scrollTop';
 import menusAPI from '../../../_shared/api/menus';
 import useAuthStore from '../../../_shared/store/authStore';
@@ -299,8 +299,15 @@ function RecipeModal({ dish, options, onClose, onDone }) {
               {(prepOwn || cookOwn) && <button type="button" style={{ ...small, marginRight: 0 }} onClick={() => { setPrepOwn(false); setCookOwn(false); }}>Use the steps again</button>}
               <details style={{ fontSize: '0.72rem' }}>
                 <summary style={{ cursor: 'pointer' }}>Which words count?</summary>
-                <div><strong>Prep:</strong> {KEYWORDS.prep.join(', ')}.</div>
-                <div><strong>Cook:</strong> {KEYWORDS.cook.join(', ')}. A step with both kinds of word counts as cooking.</div>
+                <div style={{ display: 'grid', gap: 6, marginTop: 4, maxHeight: 220, overflowY: 'auto' }}>
+                  <div>A word in a step counts when it <em>starts</em> with one of these (so &ldquo;fry&rdquo; finds &ldquo;frying&rdquo;); capitals and accents do not matter. A step with a cooking word counts as cooking, even if it has a prep word too.</div>
+                  {[['Prep', 'prep'], ['Cook', 'cook']].map(([title, kind]) => (
+                    <div key={kind}>
+                      <strong>{title}</strong>
+                      {wordsOf(kind).map(([language, words]) => <div key={language}><em>{language}:</em> {words.join(', ')}.</div>)}
+                    </div>
+                  ))}
+                </div>
               </details>
             </div>
           </div>
