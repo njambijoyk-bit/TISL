@@ -361,6 +361,7 @@ All four were answered by the owner on 28 Oct and are in the decisions log (18 t
 - **Parity check:** for several periods and as-of dates, every ledger's figures and every total match the old reports to the cent, or the difference is a listed audit finding.
 - Then switch the screen to the new versions.
 - **Done when** parity is signed off by the owner and the old three are off the screen.
+- **Status: built, awaiting your sign-off.** Backend: `ProfitLossReport`, `BalanceSheetReport`, `StatementBuilder`, the trial balance group view, comparisons (previous period / same period last year, and as-of for the balance sheet), month-by-month P&L, retained earnings split into previous years and this year, loose ledgers shown apart but counted. Parity tests (same books, old versus new, to the cent) pass on SQLite and MariaDB. Frontend: `StatementView` (fold/unfold, comparison with change and %, month columns, margins, notes), a By ledger / By group switch on the trial balance, the report options in `ReportFrame`. The Reports screen now opens the new Trial balance, P&L and Balance sheet; the old ones stay beside them labelled "(old)" until you sign off, and P&L by cost centre stays old for now.
 
 ### Step 6. The existing reports on the engine (the eight, money flow, and the stock journal and stock reports)
 

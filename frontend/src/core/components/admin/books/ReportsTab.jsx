@@ -10,6 +10,7 @@ import { money, filterStyle, yearStart, today } from './booksFmt';
 import StockMovement from './StockMovement';
 import ReportFrame from '../reports/ReportFrame';
 import TrialBalanceView from '../reports/TrialBalanceView';
+import StatementView from '../reports/StatementView';
 import { hasPermission } from '../../../../_shared/lib/roles';
 import costCentresAPI from '../../../../_shared/api/costCentres';
 import locationsAPI from '../../../../_shared/api/locations';
@@ -17,10 +18,13 @@ import locationsAPI from '../../../../_shared/api/locations';
 const REPORTS = [
   { id: 'day-book', label: 'Day book', range: true },
   { id: 'ledger', label: 'Ledger statement', range: true },
-  { id: 'trial-balance', label: 'Trial balance', range: true },
-  { id: 'profit-loss', label: 'Profit & loss', range: true },
+  { id: 'engine-trial-balance', label: 'Trial balance', custom: true, engine: 'trial-balance' },
+  { id: 'engine-profit-loss', label: 'Profit & loss', custom: true, engine: 'profit-loss' },
+  { id: 'engine-balance-sheet', label: 'Balance sheet', custom: true, engine: 'balance-sheet' },
+  { id: 'trial-balance', label: 'Trial balance (old)', range: true },
+  { id: 'profit-loss', label: 'Profit & loss (old)', range: true },
   { id: 'profit-loss-by-cost-centre', label: 'Profit & loss by cost centre', range: true, byCostCentre: true },
-  { id: 'balance-sheet', label: 'Balance sheet', asOf: true },
+  { id: 'balance-sheet', label: 'Balance sheet (old)', asOf: true },
   { id: 'receivables', label: 'Receivables ageing', asOf: true },
   { id: 'payables', label: 'Payables ageing', asOf: true },
   { id: 'tax-return', label: 'Tax return', range: true },
@@ -28,8 +32,6 @@ const REPORTS = [
   { id: 'ratio-analysis', label: 'Ratio analysis', range: true },
   { id: 'reconciliation', label: 'Reconciliation', asOf: true },
   { id: 'stock-movement', label: 'Stock movement', custom: true },   // draws itself: it starts from a ledger or an item
-  // reports built on the new engine (docs/BOOKS_REPORTS_PLAN.md, step 4): shown beside the old ones, to those who may open the Reports settings, until step 5 switches over
-  { id: 'engine-trial-balance', label: 'Trial balance (new)', custom: true, engine: 'trial-balance', permission: 'books.reports.settings' },
 ];
 
 const th = { padding: '8px 12px', fontSize: '0.65rem', fontWeight: 700, color: colors.textFaint, textAlign: 'left', whiteSpace: 'nowrap' };
@@ -354,7 +356,7 @@ export default function ReportsTab() {
           </button>
         ))}
       </div>
-      {def.engine && <ReportFrame reportKey={def.engine}>{(r) => <TrialBalanceView result={r} />}</ReportFrame>}
+      {def.engine && <ReportFrame reportKey={def.engine}>{(r) => (def.engine === 'trial-balance' ? <TrialBalanceView result={r} /> : <StatementView result={r} />)}</ReportFrame>}
       {def.custom && !def.engine && <StockMovement />}
       {!def.custom && <div style={{ display: 'flex', gap: 10, alignItems: 'center', flexWrap: 'wrap', marginBottom: 14 }}>
         {id === 'ledger' && (

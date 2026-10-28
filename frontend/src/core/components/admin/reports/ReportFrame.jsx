@@ -28,7 +28,7 @@ export default function ReportFrame({ reportKey, children }) {
   const [result, setResult] = useState(null);
   const [error, setError] = useState(null);
   const [loading, setLoading] = useState(false);
-  const [f, setF] = useState({ from: '', to: '', compare: 'none', locId: '', ccId: '' });
+  const [f, setF] = useState({ from: '', to: '', compare: 'none', locId: '', ccId: '', opts: {} });
   const ran = useRef(null);   // the filters the figures on screen were run for
   const seq = useRef(0);
   const [branches, setBranches] = useState([]);
@@ -36,7 +36,7 @@ export default function ReportFrame({ reportKey, children }) {
 
   const params = useCallback((x) => ({
     ...(x.from ? { from: x.from } : {}), ...(x.to ? { to: x.to } : {}), ...(x.compare && x.compare !== 'none' ? { compare: x.compare } : {}),
-    ...(x.locId ? { location_id: x.locId } : {}), ...(x.ccId ? { cost_centre_id: x.ccId } : {}),
+    ...(x.locId ? { location_id: x.locId } : {}), ...(x.ccId ? { cost_centre_id: x.ccId } : {}), ...(x.opts ?? {}),
   }), []);
 
   const run = useCallback(async (x) => {
@@ -56,7 +56,7 @@ export default function ReportFrame({ reportKey, children }) {
     } finally { if (mine === seq.current) setLoading(false); }
   }, [reportKey, params]);
 
-  useEffect(() => { setResult(null); run({ from: '', to: '', compare: 'none', locId: '', ccId: '' }); }, [reportKey]);   // eslint-disable-line react-hooks/exhaustive-deps
+  useEffect(() => { setResult(null); run({ from: '', to: '', compare: 'none', locId: '', ccId: '', opts: {} }); setF((x) => ({ ...x, opts: {}, compare: 'none' })); }, [reportKey]);   // eslint-disable-line react-hooks/exhaustive-deps
   useEffect(() => {
     costCentresAPI.options().then(setCcOpts).catch(() => {});
     locationsAPI.getAdmin().then((l) => setBranches((l.locations ?? []).filter((x) => x.is_active !== false))).catch(() => {});
@@ -85,6 +85,12 @@ export default function ReportFrame({ reportKey, children }) {
             <option value="none">No comparison</option><option value="previous_period">Previous period</option><option value="previous_year">Same period last year</option>
           </select>
         )}
+        {(rep?.options ?? []).map((o) => (
+          <select key={o.key} value={f.opts[o.key] ?? o.default} aria-label={o.label}
+            onChange={(e) => setF((x) => ({ ...x, opts: { ...x.opts, [o.key]: e.target.value } }))} style={filterStyle}>
+            {Object.entries(o.choices).map(([v, label]) => <option key={v} value={v}>{label}</option>)}
+          </select>
+        ))}
         <button type="button" style={{ ...btnPrimary, opacity: loading ? 0.6 : 1 }} disabled={loading} onClick={() => run(f)}>{loading ? 'Running…' : 'Run'}</button>
         <span style={{ flex: 1 }} />
         {rep && <ExportMenu onExport={(format) => booksAPI.exportEngineReport(reportKey, { ...params(f), format })} />}

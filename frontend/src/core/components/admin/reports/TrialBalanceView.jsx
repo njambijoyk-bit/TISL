@@ -1,3 +1,4 @@
+import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { card, colors } from '../../../../_shared/theme/tokens';
 import { formatAmount, formatBalance, UNIT_WORD } from './engineFmt';
@@ -9,15 +10,25 @@ const num = { textAlign: 'right', fontVariantNumeric: 'tabular-nums' };
 /** The trial balance on the engine: every ledger with a balance or movement. A ledger opens its statement. */
 export default function TrialBalanceView({ result }) {
   const nav = useNavigate();
+  const [view, setView] = useState('ledgers');   // 'ledgers' | 'groups'
   const d = result.data;
   const fmt = result.format;
   const shown = fmt.show_zero_balances ? d.rows : d.rows.filter((r) => r.placeholder || Math.abs(r.closing) >= 0.005 || Math.abs(r.debit) >= 0.005 || Math.abs(r.credit) >= 0.005 || Math.abs(r.opening) >= 0.005);
   const openLedger = (r) => r.ledger_id && nav(`/admin/books?tab=reports&report=ledger&ledger=${r.ledger_id}`);
   const unit = UNIT_WORD[fmt.units];
+  const groups = (d.groups ?? []).filter((g) => fmt.show_zero_balances || ['opening', 'debit', 'credit', 'closing'].some((k) => Math.abs(g[k]) >= 0.005));
+  const byGroup = view === 'groups';
+  const tab = (id) => ({ cursor: 'pointer', padding: '4px 12px', fontSize: '0.75rem', border: `1px solid ${colors.tint(0.12)}`, background: view === id ? colors.tint(0.1) : 'transparent', fontWeight: view === id ? 700 : 500, color: colors.text });
 
   return (
     <>
-      {unit && <p style={{ margin: '0 0 6px', fontSize: '0.72rem', color: colors.textFaint }}>Amounts {unit}.</p>}
+      <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 6 }}>
+        <div role="group" aria-label="View" style={{ display: 'inline-flex' }}>
+          <button type="button" aria-pressed={!byGroup} style={{ ...tab('ledgers'), borderRadius: '6px 0 0 6px' }} onClick={() => setView('ledgers')}>By ledger</button>
+          <button type="button" aria-pressed={byGroup} style={{ ...tab('groups'), borderRadius: '0 6px 6px 0', borderLeft: 'none' }} onClick={() => setView('groups')}>By group</button>
+        </div>
+        {unit && <span style={{ fontSize: '0.72rem', color: colors.textFaint }}>Amounts {unit}.</span>}
+      </div>
       <div style={{ ...card, overflow: 'hidden' }}>
         <div style={{ overflowX: 'auto' }}>
           <table style={{ width: '100%', borderCollapse: 'collapse' }}>
@@ -25,7 +36,21 @@ export default function TrialBalanceView({ result }) {
               <th style={th}>Group</th><th style={th}>Ledger</th><th style={{ ...th, ...num }}>Opening</th><th style={{ ...th, ...num }}>Debit</th><th style={{ ...th, ...num }}>Credit</th><th style={{ ...th, ...num }}>Closing</th>
             </tr></thead>
             <tbody>
-              {shown.length ? shown.map((r, i) => (
+              {byGroup && groups.map((g) => (
+                <tr key={`g${g.group_id}`} style={{ fontWeight: g.depth === 0 ? 700 : 400 }}>
+                  <td style={{ ...td, paddingLeft: 12 + g.depth * 18 }} colSpan={2}>{g.group}</td>
+                  <td style={{ ...td, ...num }}>{formatBalance(g.opening, fmt)}</td>
+                  <td style={{ ...td, ...num }}>{formatAmount(g.debit, fmt, { blankZero: true })}</td>
+                  <td style={{ ...td, ...num }}>{formatAmount(g.credit, fmt, { blankZero: true })}</td>
+                  <td style={{ ...td, ...num }}>{formatBalance(g.closing, fmt)}</td>
+                </tr>
+              ))}
+              {byGroup && d.rows.filter((r) => r.placeholder).map((r) => (
+                <tr key="placeholder" style={{ fontStyle: 'italic' }}>
+                  <td style={td} colSpan={2}>{r.ledger}</td><td style={{ ...td, ...num }}>{formatBalance(r.opening, fmt)}</td><td style={td} /><td style={td} /><td style={{ ...td, ...num }}>{formatBalance(r.closing, fmt)}</td>
+                </tr>
+              ))}
+              {!byGroup && shown.length ? shown.map((r, i) => (
                 <tr key={r.ledger_id ?? `p${i}`} onClick={() => openLedger(r)} style={{ cursor: r.ledger_id ? 'pointer' : 'default', fontStyle: r.placeholder ? 'italic' : undefined }}>
                   <td style={td}>{r.group}</td><td style={td}>{r.ledger}</td>
                   <td style={{ ...td, ...num }}>{formatBalance(r.opening, fmt)}</td>
@@ -33,7 +58,7 @@ export default function TrialBalanceView({ result }) {
                   <td style={{ ...td, ...num }}>{formatAmount(r.credit, fmt, { blankZero: true })}</td>
                   <td style={{ ...td, ...num }}>{formatBalance(r.closing, fmt)}</td>
                 </tr>
-              )) : <tr><td colSpan={6} style={{ ...td, textAlign: 'center', color: colors.textMuted, padding: 30 }}>Nothing posted for this period.</td></tr>}
+              )) : !byGroup && <tr><td colSpan={6} style={{ ...td, textAlign: 'center', color: colors.textMuted, padding: 30 }}>Nothing posted for this period.</td></tr>}
               {shown.length > 0 && (
                 <tr style={{ background: colors.tint(0.03), fontWeight: 700 }}>
                   <td style={td} colSpan={4}>Closing totals</td>
