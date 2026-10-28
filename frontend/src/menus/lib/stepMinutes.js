@@ -56,14 +56,23 @@ export const kindOf = (body) => {
   return null;
 };
 
-/** @param {{body: string, minutes: string|number}[]} steps @returns {{prep: number, cook: number, left: number}} minutes by kind, and minutes in steps that matched no word */
-export function fromSteps(steps) {
-  const out = { prep: 0, cook: 0, left: 0 };
+/**
+ * @param {{body: string, minutes: string|number}[]} steps in order
+ * @param {{overlap?: boolean}} o `overlap` (on by default): a prep step that comes after a cooking step is done while that cooks (dicing the tomatoes while the potatoes boil), so its minutes are not
+ *   added to prep. Prep before the first cooking step still counts.
+ * @returns {{prep: number, cook: number, left: number, overlapped: number}} minutes by kind, minutes in steps that matched no word, and prep minutes left out as done at the same time
+ */
+export function fromSteps(steps, { overlap = true } = {}) {
+  const out = { prep: 0, cook: 0, left: 0, overlapped: 0 };
+  let cooking = false;
   steps.forEach((s) => {
+    const k = kindOf(s.body);
+    if (k === 'cook') cooking = true;
     const m = Number(s.minutes) || 0;
     if (m <= 0) return;
-    const k = kindOf(s.body);
-    if (k) out[k] += m; else out.left += m;
+    if (k === 'prep' && overlap && cooking) out.overlapped += m;
+    else if (k) out[k] += m;
+    else out.left += m;
   });
 
   return out;

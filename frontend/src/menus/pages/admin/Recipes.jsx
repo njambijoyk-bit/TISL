@@ -95,6 +95,7 @@ function RecipeModal({ dish, options, onClose, onDone }) {
   const [cook, setCook] = useState(r?.cook_minutes ?? '');
   const topRef = useRef(null);
   const [screen, setScreen] = useState(1);   // 1: what it is made of; 2: the method, times and the rest
+  const [overlap, setOverlap] = useState(true);   // prep steps after a cooking step happen while it cooks, so they add no time
   const [timesOpen, setTimesOpen] = useState(true);   // the time by batch size starts open; the arrow folds it away
   // prep and cook follow the steps (by the words in them) until someone types their own figure; a recipe saved with figures that differ from its steps keeps them
   const fromMethod = fromSteps(r ? (r.steps ?? []).map((x) => ({ body: x.body, minutes: x.minutes ?? '' })) : []);
@@ -119,7 +120,7 @@ function RecipeModal({ dish, options, onClose, onDone }) {
     if (shown.current) scrollTop(topRef.current);
     shown.current = true;
   }, [screen]);
-  const auto = fromSteps(steps);
+  const auto = fromSteps(steps, { overlap });
   useEffect(() => {
     if (!prepOwn) setPrep(auto.prep > 0 ? String(auto.prep) : '');
     if (!cookOwn) setCook(auto.cook > 0 ? String(auto.cook) : '');
@@ -295,7 +296,8 @@ function RecipeModal({ dish, options, onClose, onDone }) {
               </Field>
             </div>
             <div style={{ fontSize: '0.72rem', color: colors.textFaint, display: 'flex', gap: 8, flexWrap: 'wrap', alignItems: 'center' }} data-testid="prep-cook-note">
-              <span>Shown on the kitchen card, and used as the batch time when there is no time by batch size.{auto.left > 0 ? ` ${auto.left} min in steps with no prep or cook word is not counted.` : ''}</span>
+              <span>Shown on the kitchen card, and used as the batch time when there is no time by batch size.{auto.left > 0 ? ` ${auto.left} min in steps with no prep or cook word is not counted.` : ''}{auto.overlapped > 0 ? ` ${auto.overlapped} min of prep after a cooking step is done while it cooks, so it is not added.` : ''}</span>
+              <label style={{ display: 'flex', gap: 5, alignItems: 'center' }}><input type="checkbox" aria-label="Prep after a cooking step happens at the same time" checked={overlap} onChange={(e) => setOverlap(e.target.checked)} /> Prep steps after a cooking step happen at the same time (do not add their minutes)</label>
               {(prepOwn || cookOwn) && <button type="button" style={{ ...small, marginRight: 0 }} onClick={() => { setPrepOwn(false); setCookOwn(false); }}>Use the steps again</button>}
               <details style={{ fontSize: '0.72rem' }}>
                 <summary style={{ cursor: 'pointer' }}>Which words count?</summary>
