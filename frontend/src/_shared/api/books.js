@@ -126,6 +126,15 @@ const booksAPI = {
   deleteMethod: (id) => send('delete', `/admin/books/payment-methods/${id}`),
 
   settings: () => get('/admin/books/settings'),
+
+  // Reports settings (Books -> Configuration -> Reports) and the statements tree
+  reportSettings: () => get('/admin/books/report-settings'),
+  saveReportSettings: (section, values) => send('put', `/admin/books/report-settings/${section}`, { values }),
+  reportSettingsLog: (params) => get('/admin/books/report-settings/log', params),
+  statements: () => get('/admin/books/statements'),
+  createStatement: (d) => send('post', '/admin/books/statements', d),
+  updateStatement: (id, d) => send('put', `/admin/books/statements/${id}`, d),
+  deleteStatement: (id) => send('delete', `/admin/books/statements/${id}`),
   saveSettings: (d) => send('put', '/admin/books/settings', d),
   saveEditLimits: (limits) => send('put', '/admin/books/edit-limits', { limits }),
   createYear: (d) => send('post', '/admin/books/financial-years', d),

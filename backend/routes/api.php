@@ -1290,6 +1290,19 @@ Route::middleware('auth:sanctum')->group(function () {
             Route::post('/financial-years',         [BooksMasterController::class, 'storeYear']);
         });
 
+        // Reports settings and the statements tree (Books -> Configuration -> Reports): the tab needs books.reports.settings; each section's own permission is checked in the controller
+        Route::middleware('permission:books.reports.settings')->group(function () {
+            Route::get('/report-settings',          [\App\Http\Controllers\Api\ReportSettingsController::class, 'show']);
+            Route::get('/report-settings/log',      [\App\Http\Controllers\Api\ReportSettingsController::class, 'log']);
+            Route::put('/report-settings/{section}', [\App\Http\Controllers\Api\ReportSettingsController::class, 'update'])->where('section', '[a-z_]+');
+            Route::get('/statements',               [\App\Http\Controllers\Api\StatementController::class, 'index']);
+        });
+        Route::middleware('permission:books.statements')->group(function () {
+            Route::post('/statements',              [\App\Http\Controllers\Api\StatementController::class, 'store']);
+            Route::put('/statements/{id}',          [\App\Http\Controllers\Api\StatementController::class, 'update'])->whereNumber('id');
+            Route::delete('/statements/{id}',       [\App\Http\Controllers\Api\StatementController::class, 'destroy'])->whereNumber('id');
+        });
+
         Route::middleware('permission:books.period')->group(function () {
             Route::put('/settings',                 [BooksMasterController::class, 'updateSettings']);
             Route::put('/company',                  [CompanyProfileController::class, 'update']);

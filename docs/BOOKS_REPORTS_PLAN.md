@@ -323,6 +323,15 @@ All four were answered by the owner on 28 Oct and are in the decisions log (18 t
 
 ### Step 3. Reports settings
 
+**Status: built, waiting for the owner to run script 228 and try it.**
+
+- `backend/database/sql/228_report_settings.sql`: `report_settings` and `report_settings_log`, with starting values for the three settings that name groups (money accounts, reconcilable groups, ratio inputs), looked up by name once and stored as ids. Tested on MariaDB with mismatched collations, with a chart missing two groups, and run twice.
+- Backend: `ReportSettingDefinitions` (every setting, its section, permission, default and validation, no database), `ReportSettings` (read with defaults, save a section with the ids checked, change log), `ReportSettingsController` and `StatementController` (the statements tree: view, add, rename, hide, delete), routes under `admin/books`.
+- Frontend: a **Reports** sub-tab under Books → Configuration for people holding `books.reports.settings`, with every section behind its own permission, the reconcilable-accounts table (switch off, confirm the kind), the ratio inputs, the statements editor and the change log.
+- Every change is logged with the old value (the default if never saved), the new value, who and when, including the approval rules.
+- Not yet used by any report: the settings are stored and editable; the reports start reading them in Steps 4 to 6.
+- How it was checked: unit tests for the definitions (15) plus the two access tests, run with a small stand-in for PHPUnit (PHPUnit could not be installed here); the settings screen driven in a real browser against the live group list with the API mocked (28 checks); lint and a production build. **Not run: the Laravel parts (`ReportSettings` against a real database, the controllers and routes) have never run end to end**, because the PHP dependencies could not be installed here. The first real run is on the owner's machine.
+
 - `report_settings` table and service; the Reports tab (section 9) with each section behind its permission.
 - Ratio inputs default from the statements tree; money accounts and reconcilable groups default to Bank Accounts and Cash-in-hand (by id).
 - Every change is logged (who, what, when), including turning the approval rule off.

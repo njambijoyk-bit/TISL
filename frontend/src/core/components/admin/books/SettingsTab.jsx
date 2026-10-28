@@ -12,6 +12,8 @@ import Modal from '../ui/Modal';
 import { Field, TextInput, NumberInput, SelectInput, FormGrid, FormStack, ModalActions, FormError, CheckboxRow } from '../ui/Form';
 import { btnPrimary, btnGhost, card, colors } from '../../../../_shared/theme/tokens';
 import noSlash from '../../../../_shared/lib/noSlash';
+import { hasPermission } from '../../../../_shared/lib/roles';
+import ReportsSettings from './ReportsSettings';
 
 const SUBS = [
   { id: 'numbering', label: 'Voucher numbering' },
@@ -19,6 +21,7 @@ const SUBS = [
   { id: 'period', label: 'Period control' },
   { id: 'defaults', label: 'Default ledgers' },
   { id: 'company', label: 'Company' },
+  { id: 'reports', label: 'Reports', permission: 'books.reports.settings' },   // shown to people who may open the Reports settings
 ];
 
 const Section = ({ title, hint, action, children }) => (
@@ -532,13 +535,14 @@ function CompanySection({ canSetup }) {
 
 export default function SettingsTab({ canSetup }) {
   const [params] = useSearchParams();
-  const [sub, setSub] = useState(SUBS.some((x) => x.id === params.get('sub')) ? params.get('sub') : 'numbering');
+  const subs = SUBS.filter((x) => !x.permission || hasPermission(null, x.permission));
+  const [sub, setSub] = useState(subs.some((x) => x.id === params.get('sub')) ? params.get('sub') : 'numbering');
   const [branches, setBranches] = useState([]);
   useEffect(() => { locationsAPI.getAdmin().then((r) => setBranches(r.locations ?? [])).catch(() => {}); }, []);
   return (
     <div>
       <div style={{ display: 'flex', gap: 8, marginBottom: 16, flexWrap: 'wrap' }}>
-        {SUBS.map((s) => (
+        {subs.map((s) => (
           <button key={s.id} type="button" onClick={() => setSub(s.id)}
             style={{ ...btnGhost, padding: '6px 14px', fontWeight: s.id === sub ? 700 : 500, background: s.id === sub ? colors.tint(0.1) : 'transparent', color: s.id === sub ? colors.primaryDeep : colors.textMuted }}>
             {s.label}
@@ -550,6 +554,7 @@ export default function SettingsTab({ canSetup }) {
       {sub === 'period' && <PeriodSection canSetup={canSetup} />}
       {sub === 'defaults' && <DefaultsSection canSetup={canSetup} />}
       {sub === 'company' && <CompanySection canSetup={canSetup} />}
+      {sub === 'reports' && <ReportsSettings canEditStatements={hasPermission(null, 'books.statements')} />}
     </div>
   );
 }
