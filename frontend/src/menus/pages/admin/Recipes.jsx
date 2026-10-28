@@ -91,7 +91,7 @@ function RecipeModal({ dish, options, onClose, onDone }) {
   const [times, setTimes] = useState((r?.times ?? []).map((t) => ({ key: `t${++key.current}`, up_to: t.up_to, minutes: t.minutes })));
   const [prep, setPrep] = useState(r?.prep_minutes ?? '');
   const [cook, setCook] = useState(r?.cook_minutes ?? '');
-  const [timesOpen, setTimesOpen] = useState(false);   // the time by batch size is tucked away until asked for
+  const [timesOpen, setTimesOpen] = useState(true);   // the time by batch size starts open; the arrow folds it away
   // prep and cook follow the steps (by the words in them) until someone types their own figure; a recipe saved with figures that differ from its steps keeps them
   const fromMethod = fromSteps(r ? (r.steps ?? []).map((x) => ({ body: x.body, minutes: x.minutes ?? '' })) : []);
   const [prepOwn, setPrepOwn] = useState(r?.prep_minutes != null && r.prep_minutes !== fromMethod.prep);
@@ -248,11 +248,6 @@ function RecipeModal({ dish, options, onClose, onDone }) {
             </div>
           )}
 
-          <div style={{ display: 'grid', gridTemplateColumns: '1fr', gap: 10 }}>
-            <Field label="Who may see it">
-              <SelectInput aria-label="Who may see it" value={visibility} onChange={(e) => setVisibility(e.target.value)}>{Object.entries(options.visibility).map(([k, v]) => <option key={k} value={k}>{coursesOn ? v : v.replace(' and in courses', '')}</option>)}</SelectInput>
-            </Field>
-          </div>
 
           <div>
             <div style={{ fontSize: '0.74rem', fontWeight: 700, color: colors.textMuted, marginBottom: 6 }}>Method (steps)</div>
@@ -286,6 +281,11 @@ function RecipeModal({ dish, options, onClose, onDone }) {
                 <div><strong>Cook:</strong> {KEYWORDS.cook.join(', ')}. A step with both kinds of word counts as cooking.</div>
               </details>
             </div>
+          </div>
+          <div style={{ display: 'grid', gridTemplateColumns: '1fr', gap: 10 }}>
+            <Field label="Who may see it">
+              <SelectInput aria-label="Who may see it" value={visibility} onChange={(e) => setVisibility(e.target.value)}>{Object.entries(options.visibility).map(([k, v]) => <option key={k} value={k}>{coursesOn ? v : v.replace(' and in courses', '')}</option>)}</SelectInput>
+            </Field>
           </div>
           {dish.standalone && dish.id && !own && options.plate_installed && (
             <label data-testid="recipe-add-side" style={{ display: 'flex', gap: 6, alignItems: 'center', fontSize: '0.82rem', fontWeight: 700 }}>
