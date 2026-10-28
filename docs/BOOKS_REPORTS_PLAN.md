@@ -27,13 +27,15 @@ Everything stays in **Core** except the visual reports page.
 | 1 | A `statements` table (tree) plus a `statement_id` column on `ledger_groups` and on `ledgers`. |
 | 2 | A new ledger copies its group's statement on creation; the creation form can change it. |
 | 3 | Raw SQL inserts and empty values fall back to the group's statement in reports; the health panel lists them. |
-| 4 | Who may change a statement line: **super admin and senior accountant**. |
+| 4 | Changing a statement line is its own permission in the catalogue (`books.statements`), assigned by default to **super admin and senior accountant** and grantable to any role. |
 | 5 | "Closing balance" = each ledger's balance at year end, stored when the year is closed. |
-| 6 | Bank reconciliation covers **every ledger under the Bank Accounts group**. |
-| 7 | M-Pesa ledgers (mobile-money payment methods) get their own reconciliation, matched on receipt numbers, from the portal statement. |
+| 6 | **Nothing is hardcoded to bank or M-Pesa.** In the Reports settings, the admin chooses which **ledger groups** can be reconciled. Every ledger in a chosen group is reconcilable by default; a single ledger can be switched off. Any ledger in the books can be reconcilable (even Sundry Debtors, if the admin chooses). |
+| 7 | **Initial setting:** Cash-in-hand and Bank Accounts. That covers bank, M-Pesa and cash today. Because the reconcilable set is configurable, the engine must handle any ledger type (see section 7). |
 | 8 | Charts live only in Extras. Core report pages stay tables, with a "View visually" button. |
-| 9 | Reconciliations and the year-end close need a **second approver**. |
+| 9 | Reconciliations and the year-end close need a **second approver** by default. Whether they do is a setting in the Reports settings, changeable only by someone holding a dedicated permission (default: super admin alone, grantable to other roles). |
 | 10 | The suspense account is one of the ledgers chosen in Books → Settings → Default ledgers. Its statement line follows its group (or its own override). Any balance on it is flagged by the health panel. |
+| 11 | Reconciliation matches on **recognizer identifiers** carried by each transaction (voucher number, M-Pesa reference, cheque number and dates, transfer reference). See section 7. |
+| 12 | **Deferred until all Books work is done:** the `.wnkjap` export and import for reports (other companies' books), and the backup engine, both need updating for the new tables and columns. |
 
 ---
 
@@ -147,10 +149,35 @@ Every report, rebuilt or existing, uses the same layer.
 
 One generic engine: a **source** (an imported statement or a register) against the **books**, with statuses, match tolerance, sign-off and lock. Each type is an adapter.
 
+**What can be reconciled is configuration, not code.**
+
+- Reports settings holds a list of **reconcilable ledger groups**. Every ledger in those groups (including subgroups) is reconcilable by default; the admin can switch an individual ledger off.
+- Initially: Cash-in-hand and Bank Accounts.
+- An admin may add any group, for example Sundry Debtors (a customer-statement reconciliation) or a loan group (a lender statement). So the engine cannot assume the account is a bank:
+  - **Account kind decides the source adapter:** bank statement import, M-Pesa statement import, cash count, or a generic "counter-party statement" import.
+  - **Sign and meaning flip by nature:** a bank is an asset, a lender or supplier statement is a liability, so "statement balance vs book balance" and the direction of unmatched items are worked out from the ledger's nature.
+  - **Party ledgers** (debtors, creditors) match on bill references and invoice numbers rather than amounts and dates alone.
+  - A ledger with no adapter configured still gets manual matching.
+
+**Recognizer identifiers.** Each match uses identifiers the transaction already carries. Most already exist in the data and just need to be shown and matched:
+
+| Identifier | Where it lives today | Used for |
+|---|---|---|
+| Voucher number | `vouchers.voucher_number` | Every type |
+| Reference number | `vouchers.reference_no`, `supplier_invoice_no` | Bills and invoices |
+| Cheque number, instrument date, bank name, deposited-on and cleared-on dates, status | `voucher_instruments` (`number`, `instrument_date`, `bank_name`, `deposited_on`, `cleared_on`, `status`) | Cheques: payments and receipts record how they were paid |
+| Transfer or deposit reference | `voucher_instruments.reference` | Bank transfers, slips |
+| M-Pesa transaction code | `voucher_tenders.reference` and `payment_attempts.receipt_number` | M-Pesa matching |
+| Payment method and ledger | `voucher_tenders`, `payment_methods` | Which account the money went through |
+
+- Payments and receipts paid by cheque must carry the cheque number and dates, so the bank side can match on them. A cheque stays "outstanding" until its `cleared_on` date or a matched statement line.
+- The ledger statement, day book and reconciliation screens will show these identifiers.
+- Gap to confirm during the audit: whether every payment and receipt form captures them consistently.
+
 | Type | Behaviour |
 |---|---|
 | Control accounts (exists) | Keep the current checks; add drill-down to unmatched items. |
-| **Bank** | Every ledger under Bank Accounts. Import the statement, auto-match by amount, date and reference, match the rest by hand. Track outstanding cheques (`InstrumentService`) and deposits in transit. Post bank charges and interest as journals. Proof: statement balance + deposits in transit − outstanding cheques = book balance. |
+| **Bank** | Every ledger in a reconcilable group (initially Bank Accounts). Import the statement, auto-match by amount, date and reference, match the rest by hand. Track outstanding cheques (`InstrumentService`) and deposits in transit. Post bank charges and interest as journals. Proof: statement balance + deposits in transit − outstanding cheques = book balance. |
 | **M-Pesa** | Match the portal statement against confirmed `PaymentAttempt` receipts and the M-Pesa ledger, by receipt number. Flags paid-not-booked, booked-not-paid, duplicates, reversals, fees, and settlement to the bank. |
 | Cash | Till counts (over/short) and petty cash floats. |
 | Clearing accounts | Any ledger marked clearing or suspense should net to zero over time. |
@@ -174,8 +201,11 @@ One page of pass/fail checks, each drilling down. Includes: trial balance and ba
 - Which ledgers count as cash and bank
 - Statements tree editor (needs `books.statements`)
 - Report header, footer and signatories
-- Which bank accounts and which M-Pesa paybill or till are reconciled
-- Approval requirements for reconciliation and close
+- **Reconcilable ledger groups** (initially Cash-in-hand and Bank Accounts), with a switch to disable any single ledger
+- M-Pesa paybill or till details, and the account kind per reconcilable group (bank, M-Pesa, cash, counter-party)
+- **Second-approver rule** for reconciliation and for the year-end close (default: required). Changing it needs `books.reports.approval`.
+
+Each part of this tab has its own permission (section 12), so access can be given a section at a time.
 
 The suspense ledger is chosen on the existing Default ledgers tab.
 
@@ -207,12 +237,26 @@ The suspense ledger is chosen on the existing Default ledgers tab.
 
 Existing: `books.view`, `books.post`, `books.review` (review and reconcile), `books.period` (lock periods and close years; **owner-only**).
 
+How the catalogue works (`Catalog.php`): each permission has a module, group, description and a "sensitive" flag. `OWNER_ONLY` lists what the owner holds by default and the admin role does not; custom roles can still be granted those. Roles list their permissions, and a few have amount-limited approvals.
+
 Proposed additions, to confirm when building:
 
-- `books.statements`: change statement lines (super admin, senior accountant).
-- `books.reconcile` (prepare) and `books.reconcile.approve`.
-- `books.close.prepare`; approving the close stays with `books.period` (owner).
-- `books.reports.export`, if finer control than `books.view` is wanted.
+| Permission | Meaning | Default holders |
+|---|---|---|
+| `books.statements` | Change the statement line on a ledger or group, and edit the statements tree | Super admin, senior accountant |
+| `books.reports.settings` | See the Reports settings tab | Super admin, admin, senior accountant |
+| `books.reports.format` | Change display settings (decimals, units, ageing buckets, headers, signatories) | Super admin, senior accountant |
+| `books.reports.reconcile_setup` | Choose reconcilable groups, disable ledgers, set account kinds | Super admin (owner-only) |
+| `books.reports.approval` | Change the second-approver rule for reconciliation and year-end close | **Super admin alone** (owner-only), grantable |
+| `books.reconcile` | Prepare a reconciliation | Senior accountant and above |
+| `books.reconcile.approve` | Approve someone else's reconciliation | Senior accountant and above, never the preparer |
+| `books.close.prepare` | Prepare the year-end close | Senior accountant |
+| `books.period` (exists) | Approve the close and reopen a closed year; stays owner-only | Super admin |
+| `books.reports.export` | Export and print reports, if finer control than `books.view` is wanted | To decide |
+
+The `*.reports.reconcile_setup`, `*.approval` and `books.period` permissions go in `OWNER_ONLY`. The approval keys already used for journals and refunds are an alternative place for the reconcile and close approvals, if amount limits are wanted.
+
+Existing permissions kept: `books.view`, `books.post`, `books.review`.
 
 ---
 
@@ -237,3 +281,18 @@ Proposed additions, to confirm when building:
 - Anything reading `nature` today (dashboard, ratio analysis) is unaffected, since `nature` does not change.
 - Closed years use the mapping saved at close; deliberate re-maps must be visible.
 - Bank statement formats vary by bank; the importer needs a column-mapping step per bank.
+- A reconcilable group can hold ledgers of different natures; the engine works out direction and sign per ledger.
+- Making a group reconcilable after years of history means the first session starts from an agreed opening position, not from zero.
+- Turning the second-approver rule off must itself be audited (who, when).
+
+---
+
+## 15. Later, once all Books work is done
+
+Not part of this build; written down so it is not forgotten.
+
+- Update the **`.wnkjap` export and import** (`imports.export`, `imports.view`) so other companies' books carry the statements table, the new ledger and group columns, closing balances and reconciliation records.
+- Update the **backup engine** (`ModuleTables`) to claim every new table, so none shows as unassigned and all are restored.
+- Check the `docs/WNKJAP_FORMAT.md` version rules before changing the file format.
+
+The audit of the eight existing reports is in `docs/BOOKS_REPORTS_AUDIT.md`.
