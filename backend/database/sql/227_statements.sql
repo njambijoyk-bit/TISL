@@ -7,6 +7,8 @@
 -- Nothing in today's reports reads these columns yet, so nothing on screen changes when this runs.
 -- Plan: docs/BOOKS_REPORTS_PLAN.md (sections 3.1 to 3.3). Safe to re-run: it never overwrites a line that is already set.
 -- Run each part on its own in Workbench. PART D (foreign keys) is optional: read it first.
+-- Collation: the new table and the work tables use utf8mb4_unicode_ci (what the ledger tables use), and every text comparison against a
+-- ledger or group column says so, so it runs the same on a server whose default collation is different (for example MySQL 8's utf8mb4_0900_ai_ci).
 -- =====================================================================
 
 -- PART A - READ-ONLY CHECKS. Run first, on their own.
@@ -48,14 +50,18 @@ CREATE TABLE IF NOT EXISTS statements (
     updated_at          TIMESTAMP NULL,
     UNIQUE KEY uq_statements_code (code),
     KEY idx_statements_parent (parent_id)
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE utf8mb4_unicode_ci;
+
+-- B1b. If the table was made earlier with the server's default collation (a first run that stopped part-way), bring it in line.
+-- Safe to repeat; the table is small.
+ALTER TABLE statements CONVERT TO CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
 
 -- B2. The default tree. Level 1 is the two statements, level 2 their sections, then sub-sections and lines.
 DROP TEMPORARY TABLE IF EXISTS tmp_stmt_seed;
 CREATE TEMPORARY TABLE tmp_stmt_seed (
     lvl INT NOT NULL, code VARCHAR(40) NOT NULL, parent_code VARCHAR(40) NULL, name VARCHAR(120) NOT NULL,
     kind VARCHAR(10) NOT NULL, nature VARCHAR(10) NULL, side CHAR(1) NULL, sort_order INT NOT NULL
-);
+) DEFAULT CHARSET=utf8mb4 COLLATE utf8mb4_unicode_ci;
 INSERT INTO tmp_stmt_seed (lvl, code, parent_code, name, kind, nature, side, sort_order) VALUES
  (1, 'BS',            NULL,        'Balance sheet',                  'heading', NULL,        NULL, 1),
  (1, 'IS',            NULL,        'Income statement',               'heading', NULL,        NULL, 2),
@@ -133,10 +139,15 @@ CALL add_index_if_missing('ledgers',       'idx_ledgers_statement',       'state
 DROP PROCEDURE IF EXISTS add_column_if_missing;
 DROP PROCEDURE IF EXISTS add_index_if_missing;
 
+-- Workbench's safe-update mode refuses updates that do not name a key; B4 and B5 are deliberate bulk updates, so it is switched off for them
+-- and put back after B5 (the same way script 22 does it).
+SET @old_safe := @@SQL_SAFE_UPDATES;
+SET SQL_SAFE_UPDATES = 0;
+
 -- B4. Put each group on a line. Only groups with no line yet are touched, and only when the line accepts the group's nature
 -- (a group whose nature does not fit is left empty and shows up in PART C). Groups not listed here take their parent's line.
 DROP TEMPORARY TABLE IF EXISTS tmp_group_map;
-CREATE TEMPORARY TABLE tmp_group_map (group_name VARCHAR(120) NOT NULL, code VARCHAR(40) NOT NULL);
+CREATE TEMPORARY TABLE tmp_group_map (group_name VARCHAR(120) NOT NULL, code VARCHAR(40) NOT NULL) DEFAULT CHARSET=utf8mb4 COLLATE utf8mb4_unicode_ci;
 INSERT INTO tmp_group_map (group_name, code) VALUES
  ('Capital Account',                      'BS.E.CAP'),
  ('Reserves & Surplus',                   'BS.E.RES'),
@@ -166,23 +177,23 @@ INSERT INTO tmp_group_map (group_name, code) VALUES
  ('Indirect Expenses',                    'IS.OPEX');
 
 UPDATE ledger_groups g
-JOIN tmp_group_map m ON m.group_name = g.name
-JOIN statements s ON s.code = m.code AND s.kind = 'line' AND s.nature = g.nature
+JOIN tmp_group_map m ON m.group_name = g.name COLLATE utf8mb4_unicode_ci
+JOIN statements s ON s.code = m.code AND s.kind = 'line' AND s.nature = g.nature COLLATE utf8mb4_unicode_ci
 SET g.statement_id = s.id
 WHERE g.statement_id IS NULL;
 DROP TEMPORARY TABLE IF EXISTS tmp_group_map;
 
 -- subgroups not listed (Value Added Tax, Withholding tax, Service Fees, Shipping & Delivery, Auction Charges, Auction Deposits, Employee
 -- Benefits, Deposits (Asset), and so on) take the line of their parent. Five passes reach any depth the chart has.
-UPDATE ledger_groups c JOIN ledger_groups p ON p.id = c.parent_id JOIN statements s ON s.id = p.statement_id AND s.nature = c.nature
+UPDATE ledger_groups c JOIN ledger_groups p ON p.id = c.parent_id JOIN statements s ON s.id = p.statement_id AND s.nature = c.nature COLLATE utf8mb4_unicode_ci
 SET c.statement_id = p.statement_id WHERE c.statement_id IS NULL AND p.statement_id IS NOT NULL;
-UPDATE ledger_groups c JOIN ledger_groups p ON p.id = c.parent_id JOIN statements s ON s.id = p.statement_id AND s.nature = c.nature
+UPDATE ledger_groups c JOIN ledger_groups p ON p.id = c.parent_id JOIN statements s ON s.id = p.statement_id AND s.nature = c.nature COLLATE utf8mb4_unicode_ci
 SET c.statement_id = p.statement_id WHERE c.statement_id IS NULL AND p.statement_id IS NOT NULL;
-UPDATE ledger_groups c JOIN ledger_groups p ON p.id = c.parent_id JOIN statements s ON s.id = p.statement_id AND s.nature = c.nature
+UPDATE ledger_groups c JOIN ledger_groups p ON p.id = c.parent_id JOIN statements s ON s.id = p.statement_id AND s.nature = c.nature COLLATE utf8mb4_unicode_ci
 SET c.statement_id = p.statement_id WHERE c.statement_id IS NULL AND p.statement_id IS NOT NULL;
-UPDATE ledger_groups c JOIN ledger_groups p ON p.id = c.parent_id JOIN statements s ON s.id = p.statement_id AND s.nature = c.nature
+UPDATE ledger_groups c JOIN ledger_groups p ON p.id = c.parent_id JOIN statements s ON s.id = p.statement_id AND s.nature = c.nature COLLATE utf8mb4_unicode_ci
 SET c.statement_id = p.statement_id WHERE c.statement_id IS NULL AND p.statement_id IS NOT NULL;
-UPDATE ledger_groups c JOIN ledger_groups p ON p.id = c.parent_id JOIN statements s ON s.id = p.statement_id AND s.nature = c.nature
+UPDATE ledger_groups c JOIN ledger_groups p ON p.id = c.parent_id JOIN statements s ON s.id = p.statement_id AND s.nature = c.nature COLLATE utf8mb4_unicode_ci
 SET c.statement_id = p.statement_id WHERE c.statement_id IS NULL AND p.statement_id IS NOT NULL;
 
 -- B5. Put each ledger on its group's line (only ledgers with no line yet), then the four ledgers that belong on a finance line.
@@ -203,6 +214,8 @@ JOIN statements oth ON oth.code = 'IS.OTHINC'
 SET l.statement_id = fin.id
 WHERE l.name IN ('Interest Income', 'Exchange Gain') AND l.statement_id = oth.id;
 
+SET SQL_SAFE_UPDATES = @old_safe;
+
 -- PART C - RESULT CHECKS. Run on their own.
 -- C1. The tree. Expect 32 rows in total: 9 headings and 23 lines.
 SELECT COUNT(*) AS statement_rows, SUM(kind = 'heading') AS headings, SUM(kind = 'line') AS line_rows FROM statements;
@@ -215,10 +228,10 @@ SELECT l.id, l.name, g.name AS `group` FROM ledgers l JOIN ledger_groups g ON g.
 
 -- C4. A line that does not accept the nature of the group it holds. Expect 0 rows from each.
 SELECT 'group' AS what, g.id, g.name, g.nature AS group_nature, s.code, s.nature AS line_nature
-FROM ledger_groups g JOIN statements s ON s.id = g.statement_id WHERE s.nature IS NULL OR s.nature <> g.nature
+FROM ledger_groups g JOIN statements s ON s.id = g.statement_id WHERE s.nature IS NULL OR s.nature <> g.nature COLLATE utf8mb4_unicode_ci
 UNION ALL
 SELECT 'ledger', l.id, l.name, g.nature, s.code, s.nature
-FROM ledgers l JOIN ledger_groups g ON g.id = l.group_id JOIN statements s ON s.id = l.statement_id WHERE s.nature IS NULL OR s.nature <> g.nature;
+FROM ledgers l JOIN ledger_groups g ON g.id = l.group_id JOIN statements s ON s.id = l.statement_id WHERE s.nature IS NULL OR s.nature <> g.nature COLLATE utf8mb4_unicode_ci;
 
 -- C5. A ledger or group sitting on a heading instead of a line. Expect 0 rows.
 SELECT 'group' AS what, g.id, g.name FROM ledger_groups g JOIN statements s ON s.id = g.statement_id WHERE s.kind <> 'line'
