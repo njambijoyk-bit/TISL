@@ -8,6 +8,7 @@ use App\Models\Books\AccountingSetting;
 use App\Models\Books\FinancialYear;
 use App\Models\Books\Ledger;
 use App\Models\Books\LedgerGroup;
+use App\Services\Books\StatementLines;
 use App\Models\Books\PaymentMethod;
 use App\Models\Books\VoucherEditLimit;
 use App\Models\Books\VoucherSeries;
@@ -35,9 +36,10 @@ class BooksMasterController extends Controller
 
     public function storeGroup(Request $request): JsonResponse
     {
-        $d = $request->validate(['name' => 'required|string|max:120|unique:ledger_groups,name', 'parent_id' => 'required|integer|exists:ledger_groups,id', 'behaviour' => 'nullable|in:' . implode(',', LedgerGroup::BEHAVIOURS), 'settings' => 'nullable|array']);
+        $d = $request->validate(['name' => 'required|string|max:120|unique:ledger_groups,name', 'parent_id' => 'required|integer|exists:ledger_groups,id', 'behaviour' => 'nullable|in:' . implode(',', LedgerGroup::BEHAVIOURS), 'settings' => 'nullable|array', 'statement_id' => 'nullable|integer']);
         $parent = LedgerGroup::findOrFail($d['parent_id']);   // primary groups are fixed — new groups always hang under one
-        $g = LedgerGroup::create(['name' => $d['name'], 'parent_id' => $parent->id, 'nature' => $parent->nature, 'is_primary' => false, 'is_system' => false, 'affects_gross_profit' => $parent->affects_gross_profit,
+        $line = StatementLines::available() ? ['statement_id' => app(StatementLines::class)->forNewGroup($d['statement_id'] ?? null, $parent->id, $request->user())] : [];   // its parent's line unless another was chosen
+        $g = LedgerGroup::create($line + ['name' => $d['name'], 'parent_id' => $parent->id, 'nature' => $parent->nature, 'is_primary' => false, 'is_system' => false, 'affects_gross_profit' => $parent->affects_gross_profit,
             'behaviour' => $d['behaviour'] ?? $parent->behaviour ?? 'standard', 'settings' => $d['settings'] ?? $parent->settings]);   // a subgroup inherits how its parent behaves
 
         return response()->json(['message' => 'Group added', 'data' => $g], 201);
@@ -47,10 +49,16 @@ class BooksMasterController extends Controller
     {
         $g = LedgerGroup::findOrFail($id);
         $d = $request->validate(['name' => "sometimes|string|max:120|unique:ledger_groups,name,{$g->id}", 'parent_id' => 'sometimes|integer|exists:ledger_groups,id',
-            'settings' => 'sometimes|nullable|array', 'behaviour' => 'sometimes|in:' . implode(',', LedgerGroup::BEHAVIOURS)]);
-        if ($g->is_system) {   // a system group keeps its name and place; only its defaults can be tuned
-            $d = array_intersect_key($d, ['settings' => 1]);
+            'settings' => 'sometimes|nullable|array', 'behaviour' => 'sometimes|in:' . implode(',', LedgerGroup::BEHAVIOURS),
+            'statement_id' => 'sometimes|nullable|integer', 'apply_to_members' => 'sometimes|boolean']);
+        if ($g->is_system) {   // a system group keeps its name and place; only its defaults (and the statement line it reports under) can be tuned
+            $d = array_intersect_key($d, ['settings' => 1, 'statement_id' => 1, 'apply_to_members' => 1]);
         }
+        $moved = null;
+        if (StatementLines::available() && array_key_exists('statement_id', $d)) {   // needs books.statements; the group's ledgers still on the old line can follow
+            $moved = app(StatementLines::class)->changeGroup($g, $d['statement_id'], (bool) ($d['apply_to_members'] ?? false), $request->user());
+        }
+        unset($d['statement_id'], $d['apply_to_members']);
         if (isset($d['parent_id'])) {
             if ($g->isSelfOrAncestorOf($d['parent_id'])) {
                 return response()->json(['message' => 'A group cannot sit inside itself.'], 422);
@@ -61,8 +69,11 @@ class BooksMasterController extends Controller
             $d['affects_gross_profit'] = $p->affects_gross_profit;
         }
         $g->update($d);
+        if (StatementLines::available() && isset($d['parent_id'])) {
+            app(StatementLines::class)->realign($g->fresh());   // a group moved under another primary may now be of another nature
+        }
 
-        return response()->json(['message' => 'Group updated', 'data' => $g]);
+        return response()->json(['message' => 'Group updated', 'data' => $g->fresh(), 'statement' => $moved]);
     }
 
     public function destroyGroup($id): JsonResponse
@@ -115,7 +126,7 @@ class BooksMasterController extends Controller
     public function storeLedger(Request $request): JsonResponse
     {
         $d = $request->validate([
-            'name' => 'required|string|max:160|unique:ledgers,name', 'group_id' => 'required|integer|exists:ledger_groups,id',
+            'name' => 'required|string|max:160|unique:ledgers,name', 'group_id' => 'required|integer|exists:ledger_groups,id', 'statement_id' => 'nullable|integer',
             'code' => 'nullable|string|max:40', 'opening_balance' => 'nullable|numeric|min:0', 'opening_side' => 'nullable|in:D,C', 'notes' => 'nullable|string', 'address' => 'nullable|string|max:500', 'currency_id' => 'nullable|integer|exists:currencies,id',
             'rate_type' => 'nullable|in:percent,fixed,per_unit,per_day', 'rate_value' => 'nullable|numeric|min:0', 'valid_from' => 'nullable|date', 'valid_until' => 'nullable|date|after_or_equal:valid_from',
             'min_amount' => 'nullable|numeric|min:0', 'max_amount' => 'nullable|numeric|min:0', 'free_above' => 'nullable|numeric|min:0', 'transit_days' => 'nullable|integer|min:0|max:365',
@@ -135,6 +146,11 @@ class BooksMasterController extends Controller
         if (empty($d['code']) && ($d['side'] ?? null) === 'income' && LedgerGroup::whereKey($d['group_id'])->value('behaviour') === 'delivery') {
             $d['code'] = \Illuminate\Support\Str::slug($d['name'], '_');   // checkout picks a delivery method by this
         }
+        if (StatementLines::available()) {   // its group's statement line unless the form chose another (which needs books.statements)
+            $d['statement_id'] = app(StatementLines::class)->forNewLedger($d['statement_id'] ?? null, (int) $d['group_id'], $request->user());
+        } else {
+            unset($d['statement_id']);
+        }
         $l = Ledger::create($d + ['opening_balance' => $d['opening_balance'] ?? 0, 'opening_side' => $d['opening_side'] ?? 'D', 'is_active' => true]);
         if ($mode && $l->offer_at_checkout) {
             app(\App\Services\Books\PaymentModeService::class)->setMode($l->id, $mode);
@@ -147,7 +163,7 @@ class BooksMasterController extends Controller
     {
         $l = Ledger::findOrFail($id);
         $d = $request->validate([
-            'name' => "sometimes|string|max:160|unique:ledgers,name,{$l->id}", 'group_id' => 'sometimes|integer|exists:ledger_groups,id',
+            'name' => "sometimes|string|max:160|unique:ledgers,name,{$l->id}", 'group_id' => 'sometimes|integer|exists:ledger_groups,id', 'statement_id' => 'sometimes|nullable|integer',
             'code' => 'nullable|string|max:40', 'opening_balance' => 'nullable|numeric|min:0', 'opening_side' => 'nullable|in:D,C',
             'notes' => 'nullable|string', 'address' => 'nullable|string|max:500', 'is_active' => 'sometimes|boolean', 'currency_id' => 'nullable|integer|exists:currencies,id',
             'rate_type' => 'nullable|in:percent,fixed,per_unit,per_day', 'rate_value' => 'nullable|numeric|min:0', 'valid_from' => 'nullable|date', 'valid_until' => 'nullable|date|after_or_equal:valid_from',
@@ -172,6 +188,11 @@ class BooksMasterController extends Controller
         $this->assertBehaviourFields($d, $d['group_id'] ?? $l->group_id, $l);
         if ($l->is_system) {
             unset($d['group_id']);   // the system relies on where these sit
+        }
+        if (StatementLines::available()) {   // a ledger moved to another group follows that group's line unless it was given its own
+            $d['statement_id'] = app(StatementLines::class)->forExistingLedger($l, array_key_exists('statement_id', $d), $d['statement_id'] ?? null, isset($d['group_id']) ? (int) $d['group_id'] : null, $request->user());
+        } else {
+            unset($d['statement_id']);
         }
         $mode = $d['checkout_mode'] ?? null;
         unset($d['checkout_mode']);

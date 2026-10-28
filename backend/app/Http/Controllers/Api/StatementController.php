@@ -37,6 +37,12 @@ class StatementController extends Controller
         return response()->json(['ready' => true, 'rows' => $this->tree()]);
     }
 
+    /** The active lines, for the ledger and group forms (anyone who can open the chart of accounts may see them). */
+    public function lines(): JsonResponse
+    {
+        return response()->json(['ready' => \App\Services\Books\StatementLines::available(), 'lines' => app(\App\Services\Books\StatementLines::class)->lines()]);
+    }
+
     public function store(Request $request): JsonResponse
     {
         if (! $this->ready()) {

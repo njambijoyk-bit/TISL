@@ -15,6 +15,7 @@ class AdminRoutesNeedAPermissionTest extends TestCase
     /** prefix => why a route in it may rely on the admin area alone */
     private const CHECKED_INSIDE = [
         'api/admin/vault' => 'the vault policies decide per document and folder',
+        'api/admin/reports' => 'ReportEngine: every report names its own permission (books.view, stock.view...) and the engine checks it',
         'api/admin/campaigns' => 'CampaignAccess: builders see their own, publishers decide',
         'api/admin/boards' => 'CampaignAccess',
         'api/admin/moodboards' => 'CampaignAccess',

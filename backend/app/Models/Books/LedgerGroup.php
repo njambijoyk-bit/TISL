@@ -16,7 +16,7 @@ class LedgerGroup extends Model
     protected $table = 'ledger_groups';
 
     protected $fillable = ['parent_id', 'name', 'nature', 'is_primary', 'is_system', 'affects_gross_profit', 'sort_order', 'behaviour', 'settings',
-        'code', 'is_active', 'application_mode', 'is_compound', 'kind', 'control_ledger_id', 'payable_ledger_id', 'receivable_ledger_id'];
+        'statement_id', 'code', 'is_active', 'application_mode', 'is_compound', 'kind', 'control_ledger_id', 'payable_ledger_id', 'receivable_ledger_id'];
 
     protected $casts = [
         'is_primary'           => 'boolean',
@@ -26,6 +26,16 @@ class LedgerGroup extends Model
         'is_active'            => 'boolean',
         'is_compound'          => 'boolean',
     ];
+
+    /** A new subgroup reports under its parent's statement line unless one was given (database/sql/227_statements.sql). */
+    protected static function booted(): void
+    {
+        static::creating(function (self $group) {
+            if ($group->getAttribute('statement_id') === null && $group->parent_id && \App\Services\Books\Engine\LedgerBalances::hasColumn('ledger_groups', 'statement_id')) {
+                $group->setAttribute('statement_id', static::whereKey($group->parent_id)->value('statement_id'));
+            }
+        });
+    }
 
     /** What a group's ledgers *are*. Drives the ledger form and the engines that read ledgers. */
     public const BEHAVIOURS = ['standard', 'tax', 'delivery', 'sales', 'purchase', 'party', 'bank', 'charge'];

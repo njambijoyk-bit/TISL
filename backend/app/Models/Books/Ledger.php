@@ -17,7 +17,7 @@ class Ledger extends Model
         'rate_type', 'rate_value', 'valid_from', 'valid_until', 'min_amount', 'max_amount', 'free_above', 'transit_days', 'side', 'settings',
         'classification', 'unit_of_measure_id', 'calculation_base', 'calculation_sequence', 'requires_certificate',
         'tax_nature', 'tax_rate_ledger_id', 'affects_stock', 'bank_name', 'account_number', 'branch',
-        'account_name', 'swift_code', 'branch_code', 'accepts', 'mobile_kind', 'mobile_number', 'cash_kind', 'offer_at_checkout', 'checkout_label', 'checkout_instructions', 'checkout_sort',
+        'statement_id', 'account_name', 'swift_code', 'branch_code', 'accepts', 'mobile_kind', 'mobile_number', 'cash_kind', 'offer_at_checkout', 'checkout_label', 'checkout_instructions', 'checkout_sort',
     ];
 
     protected $casts = [
@@ -36,6 +36,16 @@ class Ledger extends Model
         'affects_stock'    => 'boolean',
         'calculation_sequence' => 'integer',
     ];
+
+    /** A new ledger reports under its group's statement line unless one was given (database/sql/227_statements.sql). */
+    protected static function booted(): void
+    {
+        static::creating(function (self $ledger) {
+            if ($ledger->getAttribute('statement_id') === null && $ledger->group_id && \App\Services\Books\Engine\LedgerBalances::hasColumn('ledgers', 'statement_id')) {
+                $ledger->setAttribute('statement_id', LedgerGroup::whereKey($ledger->group_id)->value('statement_id'));
+            }
+        });
+    }
 
     public const RATE_TYPES = ['percent', 'fixed', 'per_unit'];
 

@@ -1200,6 +1200,12 @@ Route::middleware('auth:sanctum')->group(function () {
         Route::put('/{id}',    [\App\Http\Controllers\Admin\NavController::class, 'update']);
     });
 
+    // The report engine: each report names its own permission and the engine checks it (see ReportEngineController)
+    Route::prefix('admin/reports')->group(function () {
+        Route::get('/',        [\App\Http\Controllers\Api\ReportEngineController::class, 'index']);
+        Route::get('/{key}',   [\App\Http\Controllers\Api\ReportEngineController::class, 'show'])->where('key', '[a-z0-9-]+');
+    });
+
     // BOOKS (vouchers, ledgers, reports) — finance roles; period control is super_admin
     Route::middleware('permission:books.view')->prefix('admin/books')->group(function () {
         Route::get('/vouchers',                 [BooksVoucherController::class, 'index']);
@@ -1238,6 +1244,7 @@ Route::middleware('auth:sanctum')->group(function () {
         Route::get('/gift-vouchers/reconcile',  [GiftVoucherController::class, 'reconcile']);
         Route::get('/gift-vouchers/{id}',       [GiftVoucherController::class, 'show']);
         Route::get('/groups',                   [BooksMasterController::class, 'groups']);
+        Route::get('/statement-lines',          [\App\Http\Controllers\Api\StatementController::class, 'lines']);
         Route::get('/item-accounts',            [BooksMasterController::class, 'itemAccounts']);
         Route::get('/ledgers',                  [BooksMasterController::class, 'ledgers']);
         Route::get('/voucher-types',            [BooksMasterController::class, 'types']);
