@@ -82,7 +82,7 @@ Gross profit, operating profit and net profit are computed by the engine from se
 - Rules: copy on create (decision 2), fallback to the group (decision 3), a line must accept the nature of the ledger's group (refused on save otherwise). When a group's line changes, the screen offers to move the group's ledgers that still match the old line; ledgers with their own choice stay.
 - `ledger_groups.affects_gross_profit` stays until Step 12, then retires.
 
-### 3.3 Mapping from the live chart (39 groups, 189 ledgers, checked 28 Oct)
+### 3.3 Mapping from the live chart (37 groups, 189 ledgers, checked 28 Oct)
 
 | Live group (id) | Statement line |
 |---|---|
@@ -303,6 +303,8 @@ Each step lists what is built, how it is checked, and when it is done. A step st
 All four were answered by the owner on 28 Oct and are in the decisions log (18 to 21). Nothing remains open before Step 1.
 
 ### Step 1. Statements schema: script `227_statements.sql`
+
+**Status: drafted** as `backend/database/sql/227_statements.sql`, awaiting the owner's review. It has **not** been run on the real database. It was tested on a MariaDB copy built from the 37 live groups and 189 live ledgers: 32 statement rows (9 headings, 23 lines); every group and ledger mapped; no nature mismatches; a second run changes nothing; a line set by hand is kept; an unknown group is listed, not guessed; the optional foreign keys work and block deleting a line in use.
 
 - Create `statements` and seed the default tree (3.1).
 - Add `statement_id` to `ledger_groups` and `ledgers` (3.2).

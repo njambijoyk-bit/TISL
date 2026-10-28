@@ -24,7 +24,7 @@ No fixes are applied. Each one needs the owner's agreement first.
 | A3 | **"Limited to your branches" banner is missing** on the tax return, withholding register and ratio analysis, although the figures are limited. Trial balance, P&L, balance sheet, ledger statement, day book and ageing return the flag. | Confirmed |
 | A4 | **Default periods disagree.** Ratio analysis and money flow default to 1 January of the current calendar year, ignoring the configured financial year. Day book and ledger statement default to all time. | Confirmed |
 | A5 | **No limits or paging.** The day book returns every matching voucher. The ledger statement loads every entry from the beginning up to the end date, even to show one month. Ageing returns every open bill. These get slow on years of history; stored closing balances (the plan's year-end close) address the ledger statement. | Confirmed |
-| A6 | **Group lookups by name** (`LedgerGroup::where('name', ...)->first()`, and the ratio service's own name map). If two groups share a name, or a group is renamed, the wrong group or none is used. This also affects `isUnderGroup`, used by several services. | Confirmed (the pattern). The live list (39 groups) has no duplicate names, so no wrong match today. |
+| A6 | **Group lookups by name** (`LedgerGroup::where('name', ...)->first()`, and the ratio service's own name map). If two groups share a name, or a group is renamed, the wrong group or none is used. This also affects `isUnderGroup`, used by several services. | Confirmed (the pattern). The live list (37 groups) has no duplicate names, so no wrong match today. |
 | A7 | **Transaction identifiers are not shown.** The ledger statement and day book show voucher number and narration only. Cheque number and dates (`voucher_instruments`), M-Pesa code (`voucher_tenders.reference`) and reference numbers are stored but not displayed. This is also what reconciliation will need. | Confirmed |
 
 ---
@@ -158,7 +158,7 @@ Read in full: `StockJournalController`, `StockReportService`, `StockReportContro
 
 ## J. Questions answered by the owner (28 Oct)
 
-1. **Live group list:** received (39 groups). It confirms G1, shows no duplicate names (A6), and gives the exact statement mapping in the plan, section 3.
+1. **Live group list:** received (37 groups). It confirms G1, shows no duplicate names (A6), and gives the exact statement mapping in the plan, section 3.
 2. **Credit notes (D2, D3):** keep visible in the customer or supplier records; never treat as an ordinary unpaid invoice; show a valid unapplied credit as an available credit, separate from outstanding bills; the entries must reflect the real transaction and must not duplicate the credit when it is applied.
 3. **Cost-centre split (A1):** see section K.
 
