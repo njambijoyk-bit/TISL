@@ -243,7 +243,7 @@ function RecipeModal({ dish, options, onClose, onDone }) {
                   </div>
                 ))}
               </div>
-              <button type="button" style={{ ...small, marginTop: 8 }} onClick={() => setTimes((xs) => [...xs, { key: `t${++key.current}`, up_to: '', minutes: '' }])}><Plus size={12} /> Add a time</button>
+              <button type="button" style={{ ...small, marginTop: 8, background: colors.tint(0.14), color: colors.primary, border: `1px solid ${colors.primary}`, fontWeight: 700 }} onClick={() => setTimes((xs) => [...xs, { key: `t${++key.current}`, up_to: '', minutes: '' }])}><Plus size={12} /> Add a time</button>
               </div>
             </div>
           )}
