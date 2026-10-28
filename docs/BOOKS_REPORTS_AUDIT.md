@@ -9,7 +9,7 @@ Reports covered: Day book, Ledger statement, Receivables ageing, Payables ageing
 - **Confirmed** = the code does this, as read.
 - **Verify** = likely a problem, but it depends on live data or on intent, so it needs a test case or a question to the owner.
 
-**Coverage.** Read in full: `BooksReportService` (day book, ledger statement, ageing), `ComplianceReportService` (tax return, withholding), `RatioAnalysisService`, `TaxLedgerService::position`, `LedgerService::balance`. Only skimmed: `MovementReportService` (stock movement and money flow). Not yet read: the screen code for these reports, export tables, and the tests. Nothing was run.
+**Coverage.** Read in full: `BooksReportService` (day book, ledger statement, ageing), `ComplianceReportService` (tax return, withholding), `RatioAnalysisService`, `MovementReportService` (stock movement and money flow), `TaxLedgerService::position`, `LedgerService::balance`, the report export tables in `BooksVoucherController::buildReport`, and the screen `ReportsTab.jsx`. Skimmed: `StockMovement.jsx`. Not read: the tests. Nothing was run; the live group and ledger lists were checked by hand.
 
 No fixes are applied. Each one needs the owner's agreement first.
 
@@ -34,7 +34,8 @@ No fixes are applied. Each one needs the owner's agreement first.
 | # | Finding | Confidence |
 |---|---|---|
 | B1 | Cost-centre filter uses the header, not the lines (A1). | Confirmed |
-| B2 | Rows include drafts and cancelled vouchers, but the grand total counts posted ones only. The status column explains it, but the total next to a row can look wrong. | Confirmed (low) |
+| B2 | Rows include drafts and cancelled vouchers, but the grand total counts posted ones only. The screen labels it "Posted total" and dims cancelled rows, so this is understood. | Confirmed (low; labelled) |
+| B4 | No narration column, although narration is on every voucher. | Confirmed (low) |
 | B3 | No paging (A5). | Confirmed |
 
 ## C. Ledger statement
@@ -44,6 +45,9 @@ No fixes are applied. Each one needs the owner's agreement first.
 | C1 | Loads all history to the end date (A5). | Confirmed |
 | C2 | For a branch-limited person the running balance starts from the company-wide opening balance and adds only their branches' movement. The banner explains this for the other reports; check the ledger statement says it clearly. | Confirmed (by design); Verify wording |
 | C3 | No identifiers (A7). | Confirmed |
+| C4 | **The screen drops the narration** the server returns for each row, and there is no "particulars" column naming the other side of the entry (Tally's standard). A statement shows only date, number, type and amounts. | Confirmed |
+| C5 | The balance column is a signed number ("Dr +"); a credit balance shows as a negative. Accountants expect "1,000.00 Cr". | Confirmed (low) |
+| C6 | The ledger picker is a plain drop-down of every ledger (189 today, 86 of them customers), with no search. | Confirmed (low) |
 
 ## D. Receivables and payables ageing
 
@@ -53,6 +57,8 @@ No fixes are applied. Each one needs the owner's agreement first.
 | D2 | Credit notes sit on the **payables** side and debit notes (and bounced-cheque journals) on the **receivables** side. The tax return uses the opposite pairing, treating a credit note as a sales return. This may be deliberate: a credit note with no invoice to offset leaves us owing the customer. | **Owner's direction (28 Oct):** an unapplied credit is not an ordinary unpaid invoice. Show it in a separate "Unapplied credits" section on the correct side (customer or supplier), clearly apart from outstanding bills, and make sure applying it later does not count it twice. Still **verify the direction** with a test case before changing the code. |
 | D3 | Ageing only counts bills (`ref_type = new`). Advances and on-account receipts are not in it, so the total never equals the debtors or creditors balance. The reconciliation note admits this; the ageing page should show "unallocated" beside the total. | Confirmed |
 | D4 | Ageing is by due date only. The Tally dashboard offers bill date or due date. | Confirmed (enhancement) |
+| D5 | **Bills are crammed into one line of faint text** under each party ("number (amount, days)" joined together). They cannot be clicked, and the party cannot be opened to its ledger statement. With many bills it is unreadable. | Confirmed |
+| D6 | The export has the party totals but not the bills behind them. | Confirmed (low) |
 
 ## E. Tax return
 
@@ -62,6 +68,8 @@ No fixes are applied. Each one needs the owner's agreement first.
 | E2 | **Brought forward with no start date.** `balance($control, null)` means "all time", so with an empty From date, "brought forward" equals the whole balance instead of nothing. | Confirmed |
 | E3 | For withheld tax types, brought forward is always 0 and closing owed is today's figure (E1). | Confirmed |
 | E4 | No branch banner (A3), and the branch-limited rows sit beside unlimited position figures (A2). | Confirmed |
+| E5 | **The supplies split is not on the screen.** The server works out sales and purchases by tax nature (standard, zero-rated, exempt, out of scope, unclassified), which is what a VAT return asks for, but only the export shows it. | Confirmed |
+| E6 | The screen labels the closing figure "Owed to the authority at the end", which reads as the period's end although it is today's figure (E1). | Confirmed |
 
 ## F. Withholding certificates
 
@@ -70,6 +78,7 @@ No fixes are applied. Each one needs the owner's agreement first.
 | F1 | No branch banner (A3). | Confirmed |
 | F2 | "Awaiting certificate" counts only certificates in the chosen period, not all outstanding ones. Check that this is what finance expects. | Verify |
 | F3 | No payment identifiers on the row (A7). | Confirmed (low) |
+| F4 | **Mixed currencies on one screen.** Each row shows gross and withheld amounts in the voucher's own currency, without the currency code, while the totals underneath are in the base currency. With any foreign-currency receipt the column does not add up to the total. | Confirmed |
 
 ## G. Ratio analysis
 
@@ -83,21 +92,47 @@ No fixes are applied. Each one needs the owner's agreement first.
 | G6 | Receivable days uses the whole debtors balance, including advances not tied to bills. | Confirmed (low) |
 | G7 | No branch banner (A3). | Confirmed |
 
-## H. Stock movement and money flow (partly read)
+## H. Stock movement
 
 | # | Finding | Confidence |
 |---|---|---|
 | H1 | Default start is 1 January (A4). | Confirmed |
-| H2 | Money flow splits a multi-line voucher's money across its other lines in proportion; vouchers that do not add up are shown unattributed. This is documented in the code but approximate. The screen should say so. | Confirmed (by design) |
-| H3 | Fully reading this service is still to do. | Open |
+| H2 | **The name promises more than it shows.** It counts only sales, cash sales, credit notes, purchases and debit notes. Stock journals, transfers between branches, wastage and stock loss, manufacturing and delivery notes are not in it. It is a "what we traded with whom" report, not a stock in/out report. | Confirmed |
+| H3 | Values use the exchange rate stored on the voucher, not the restated base the other reports use (`RestatedBase`), so after a change of base currency its values disagree with the ledgers. | Confirmed |
+| H4 | Treats a credit note as a sales return and a debit note as a purchase return, as the tax return does. This is the opposite of the ageing report (D2), which strengthens the case that ageing has the pairing backwards. | Confirmed (supports D2) |
+| H5 | Walk-in and cash customers are grouped by the name typed on the voucher, so spelling differences make separate rows. | Confirmed (low) |
+| H6 | No export, and no branch banner although branch limits apply. | Confirmed |
+
+## H2. Money flow (Cash page; feeds the plan's cash flow and visuals)
+
+Not one of the eight reports, but it is in the same service and the plan's cash flow statement and Extras charts will build on it.
+
+| # | Finding | Confidence |
+|---|---|---|
+| M1 | The money accounts are found by group name (`Bank Accounts`, `Cash-in-hand`). The plan's configurable groups should feed this instead. | Confirmed |
+| M2 | Uses the amounts as posted (`base_amount`), not the restated base (same as H3). | Confirmed |
+| M3 | **Transfers between our own accounts inflate the totals.** Moving 100,000 from the bank to petty cash counts as 100,000 out and 100,000 in. They are labelled by group, but the "money in" and "money out" totals include them. | Confirmed |
+| M4 | **Split-tender sales become "Adjustments".** A cash sale paid 600 cash plus 400 M-Pesa, against sales and VAT lines, fails the "do the other lines add up to this money line?" test for each tender, so both tenders are put under Adjustments instead of Sales and VAT. Point-of-sale split payments will hit this often. | Confirmed (from the logic; worth a test case) |
+| M5 | Default start is 1 January (A4). | Confirmed |
+
+## H3. The reports screen as a whole
+
+| # | Finding | Confidence |
+|---|---|---|
+| S1 | **The screen's default From date is 1 January** (`yearStart()` in `booksFmt.js`) for every range report, whatever the financial year. | Confirmed |
+| S2 | Branch and cost-centre pickers appear only on the day book, ledger statement, trial balance and P&L. Ageing, tax, withholding and ratio analysis are still limited to the person's branches, with no picker and no banner. | Confirmed |
+| S3 | Every change to a date or filter fires a new request straight away; no "Run" button or delay. Heavy reports (ratio analysis builds a trial balance and two ageings) run on each keystroke in a date field. | Confirmed |
+| S4 | Empty reports say "Nothing posted for this period", including the as-of reports where there is no period. | Confirmed (low) |
+| S5 | Only some rows open the voucher (day book, ledger statement, withholding). Ageing parties and bills, tax rows and ratio figures do not drill down. | Confirmed |
 
 ---
 
 ## I. Suggested order of fixes (for agreement, nothing applied)
 
-1. **Quick, low-risk:** G1 (after checking live names), E2, A3 (banners), B2 wording.
-2. **Needs a decision:** D2 (is the credit note placement intended?), A1 (which rule is right: header or lines), A4 (financial year as the default period), F2.
-3. **Larger, folded into the rebuild:** E1 and A2 (a dated, branch-aware balance function used by every report), A5 and G4/G5 (stored closing balances and the year-end close), A7 (identifiers shown), D1 (ageing buckets in settings), D4 (bill-date toggle), A6 (look groups up by id or by a stable code, not by name).
+1. **Quick, low-risk:** G1 (names confirmed wrong), E2, E5 (show the supplies split), E6 wording, A3 and H6 (banners), C4 (show narration), F4 (show currency or base amounts), S4 wording.
+2. **Agreed by the owner, needs building:** A1 and B1 (day book with both views), D2 and D3 (unapplied credits section; confirm the direction with a test case first; H4 supports changing it).
+3. **Needs a decision:** A4 and S1 (financial year as the default period), F2, H2 (rename to "Trade by party and item", or widen it to real stock in/out), M3 (show transfers separately and leave them out of the totals), M4 (attribute split tenders properly).
+4. **Larger, folded into the rebuild:** E1 and A2 (a dated, branch-aware balance function used by every report), A5, G4 and G5 (stored closing balances and the year-end close), A7 (identifiers shown), D1 (ageing buckets in settings), D4 (bill-date toggle), D5 and S5 (drill-down everywhere), A6 and M1 (look groups up by id or by a stable code), H3 and M2 (one currency rule), S2 and S3 (one filter bar with a Run button).
 
 ## J. Questions answered by the owner (28 Oct)
 
