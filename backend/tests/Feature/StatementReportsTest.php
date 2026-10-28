@@ -22,7 +22,6 @@ use Tests\TestCase;
 class StatementReportsTest extends TestCase
 {
     use Concerns\CreatesBooksLedgerWorld;
-    use Concerns\RunsSqlScripts;
     use Concerns\StandsInForAccess;
 
     protected function setUp(): void
@@ -33,6 +32,8 @@ class StatementReportsTest extends TestCase
 
     protected function tearDown(): void
     {
+        \Illuminate\Support\Facades\Schema::dropIfExists('report_settings');   // DDL is not rolled back on MySQL
+        \Illuminate\Support\Facades\Schema::dropIfExists('report_settings_log');
         Carbon::setTestNow();
         LedgerBalances::forget();
         parent::tearDown();
@@ -188,9 +189,16 @@ class StatementReportsTest extends TestCase
         $this->assertNotContains('line:IS.TAX', $keys);
         $this->assertNotContains('line:IS.FININC', $keys);
 
-        DB::statement('DROP TABLE IF EXISTS report_settings');
-        DB::statement('DROP TABLE IF EXISTS report_settings_log');
-        $this->runSqlScripts('228_report_settings.sql');
+        \Illuminate\Support\Facades\Schema::dropIfExists('report_settings');
+        \Illuminate\Support\Facades\Schema::dropIfExists('report_settings_log');
+        \Illuminate\Support\Facades\Schema::create('report_settings', function ($t) {
+            $t->string('setting_key', 80)->primary();
+            $t->text('value');
+            $t->timestamps();
+        });
+        \Illuminate\Support\Facades\Schema::create('report_settings_log', function ($t) {
+            $t->id();
+        });
         DB::table('report_settings')->insert(['setting_key' => 'show_zero_balances', 'value' => 'true', 'created_at' => now(), 'updated_at' => now()]);
         $keys = array_column($this->newPl('2026-01-01', '2026-12-31')['rows'], 'key');
         $this->assertContains('line:IS.TAX', $keys);
