@@ -12,6 +12,7 @@ Status: **plan only, no code written.** Agreed with the owner, 28 Oct 2026. Comp
 4. **Old and new run side by side** until the new figures match the old to the cent (or the difference is an audit finding, explained). Only then does the screen switch over and the old code retire.
 5. **Core and Extras.** Books and every report stay in Core. Only the visual reports page is Extras.
 6. **Every change to the database** goes through a numbered SQL script in the repo style (PART A read-only check, PART B change, PART C result check).
+7. **One definition, two doors.** The stock journal and stock reports (today standalone, on the Purchases page) move onto the engine **line by line**: same queries, same figures, same labels. They are then offered in two places from the same definition: the Purchases page tabs, and the Reports page.
 
 ---
 
@@ -35,6 +36,11 @@ Status: **plan only, no code written.** Agreed with the owner, 28 Oct 2026. Comp
 | 14 | Ratio analysis inputs (current assets, cash, bank, overdraft, debtors, creditors, stock, capital, loans, sales, purchases) are set in Reports settings, not hardcoded. |
 | 15 | No quick fixes to the old reports. All audit findings are delivered by the new engine. |
 | 16 | Deferred until all Books work is done: the `.wnkjap` export and import, and the backup engine. |
+| 17 | **Stock journal and stock reports** (Stock summary, Location summary, Stock query, the monthly and movement drill-downs, and the dashboard's Stock tab data) are ported to the engine line by line, kept as tabs on the Purchases page, and also listed in the Reports page. They keep their own permission (`stock.view`) and branch scope (`stock`) wherever they appear. |
+| 18 | **Stock movement** is renamed "Trade by party and item". Real stock in and out is covered by the stock journal and stock reports. |
+| 19 | **Money flow:** transfers between our own accounts are left out of money in and out totals unless a "Show transfers" checkbox is ticked. The stock reports already do the same for stock transfers (hidden company-wide, shown when a branch is chosen); the checkbox makes the rule the same everywhere. |
+| 20 | **Withholding "awaiting certificate"** counts all outstanding certificates, with the period's shown separately. |
+| 21 | **Credit-note direction in ageing** is settled by a test case before any code is written (Step 6.3). |
 
 ---
 
@@ -181,7 +187,29 @@ Replaces `LedgerService::balance()` and the private `movement()` copies in `Book
 | Withholding certificates | Base amounts with currency shown (*F4*); "awaiting" scope as decided (*F2*); identifiers |
 | Ratio analysis | Inputs from settings (decision 14); equity includes retained earnings once closing exists (*G4*); reuses the engine's figures instead of recomputing (*G5*) |
 | Stock movement | Renamed or widened (decision needed, Step 0); restated currency; export; banner |
-| Money flow (Cash page) | Money accounts from settings; transfers shown separately and out of the totals (*M3*); split tenders attributed (*M4*) |
+| Money flow (Cash page) | Money accounts from settings; transfers left out of the totals unless "Show transfers" is ticked (decision 19, *M3*); split tenders attributed (*M4*) |
+
+### 5.3 Stock journal and stock reports (ported line by line)
+
+Source today: `StockJournalController`, `StockReportService`, `StockReportController`, screens `StockJournal.jsx` and `StockReports.jsx`, API `stockOps.js`, routes under `/admin/stock/`.
+
+| Report | Behaviour that must be kept exactly |
+|---|---|
+| Stock journal | Every movement newest first; filters for item search (item, SKU, batch), kind of movement, kind of item, branch and dates; 50 per page; value = quantity × unit cost; the labels for each movement kind |
+| Stock summary | Opening, inward, outward and closing, quantity and value, grouped by item group; opening stock counted as opening whatever its date; stock transfers hidden company-wide and shown for a chosen branch; "negative" and "no cost" flags; one quantity per group only when all items share a unit |
+| Location summary | The same report for one branch |
+| Stock query | One item's card: closing, cost price and costing method, last purchase and sale, recent purchases and sales, where it sits (batches, expiry), other items in its group |
+| Monthly and movements drill-downs | An item month by month, then the vouchers behind a month |
+| Dashboard Stock tab data | `dashboard()`: value, trend, groups, top items, kinds of movement, items needing attention |
+
+How the port is done:
+
+- The queries, the SQL and the response shapes move over unchanged. What changes is where they live (engine definitions) and what the engine adds around them (filter bar, banners, export, financial-year default).
+- **Parity check:** the same inputs through the old and the new code must give identical responses, field for field, before the old code is removed.
+- **Two doors, one definition:** the Purchases page keeps its tabs (Stock reports, Stock journal) and the Reports page lists the same reports under a "Stock" group. Both open the same engine definition. Permission stays `stock.view`, so a person who sees one door sees the other.
+- The two movement-label lists (one in the journal, one in the report service) become one shared list (*audit L2*).
+
+The Reports page is grouped: Financial statements; Books (day book, ledger statement, ageing); Tax and compliance; Cash and reconciliation; Stock (summary, location summary, query, journal, trade by party and item).
 
 ---
 
@@ -270,18 +298,9 @@ Kept as they are: `books.view`, `books.post`, `books.review`.
 
 Each step lists what is built, how it is checked, and when it is done. A step starts only when the one before is done, except where noted.
 
-### Step 0. Close the open decisions
+### Step 0. Open decisions: closed
 
-Before any code. Recommendations given; the owner decides.
-
-| Decision | Recommendation |
-|---|---|
-| Stock movement: rename to "Trade by party and item", or widen to real stock in/out (journals, transfers, wastage, delivery notes)? (*audit H2*) | Rename now; real stock in/out is a separate report later |
-| Money flow: show transfers between own accounts separately and leave them out of the totals? (*M3*) | Yes |
-| Withholding "awaiting certificate": only the period's, or all outstanding? (*F2*) | All outstanding, with the period's shown separately |
-| Credit-note direction in ageing (*D2, H4*) | Decide from a test case in Step 6 |
-
-**Done when** each has an answer written into the decisions log.
+All four were answered by the owner on 28 Oct and are in the decisions log (18 to 21). Nothing remains open before Step 1.
 
 ### Step 1. Statements schema: script `227_statements.sql`
 
@@ -321,7 +340,7 @@ Before any code. Recommendations given; the owner decides.
 - Then switch the screen to the new versions.
 - **Done when** parity is signed off by the owner and the old three are off the screen.
 
-### Step 6. The eight existing reports on the engine
+### Step 6. The existing reports on the engine (the eight, money flow, and the stock journal and stock reports)
 
 In this order, each with its own parity check against the old report:
 
@@ -331,8 +350,10 @@ In this order, each with its own parity check against the old report:
 4. Tax return
 5. Withholding certificates
 6. Ratio analysis (inputs from settings)
-7. Stock movement (as decided in Step 0)
-8. Money flow on the Cash page (transfers and split tenders; a test case for a 600 cash + 400 M-Pesa sale first, *M4*)
+7. Trade by party and item (the renamed Stock movement; decision 18)
+8. Money flow on the Cash page (transfers behind a "Show transfers" checkbox; split tenders; a test case for a 600 cash + 400 M-Pesa sale first, *M4*)
+9. Stock journal, ported line by line (5.3); parity check on identical responses; tab kept on the Purchases page and listed in the Reports page
+10. Stock reports (summary, location summary, query, monthly and movements drill-downs, dashboard data), ported line by line the same way
 
 **Done when** each audit finding listed against these reports in the appendix is closed.
 
@@ -419,3 +440,8 @@ In this order, each with its own parity check against the old report:
 | H5 | Step 6.7 |
 | M3, M4 | Step 0, Step 6.8 |
 | S2, S3, S4, S5 | Step 4 (screen frame) |
+| L1, R1 (stock reports and journal dates) | Step 4 (financial-year default), Step 6.9, 6.10 |
+| L2 (duplicate movement labels) | Step 6.9 (one shared list) |
+| L3, L4, R2 (no export, no totals, search) | Step 4 (export), Step 6.9, 6.10 |
+| L5 (two permission styles) | Step 4 (catalogue permissions only) |
+| R3 (stock query runs a full summary) | Step 6.10 (same figures, computed for the one group only; parity checked) |

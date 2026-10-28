@@ -115,6 +115,28 @@ Not one of the eight reports, but it is in the same service and the plan's cash 
 | M4 | **Split-tender sales become "Adjustments".** A cash sale paid 600 cash plus 400 M-Pesa, against sales and VAT lines, fails the "do the other lines add up to this money line?" test for each tender, so both tenders are put under Adjustments instead of Sales and VAT. Point-of-sale split payments will hit this often. | Confirmed (from the logic; worth a test case) |
 | M5 | Default start is 1 January (A4). | Confirmed |
 
+## L. Stock journal and stock reports (Purchases page; added 28 Oct)
+
+Read in full: `StockJournalController`, `StockReportService`, `StockReportController`, the routes; skimmed `StockJournal.jsx` and `StockReports.jsx`. These are being ported line by line, so most of what they do is right and is kept; the items below are what the engine improves around them.
+
+| # | Finding | Confidence |
+|---|---|---|
+| L1 | Stock summary, monthly and dashboard default to 1 January (`startOfYear`); the screen's default From is `yearStart()` (A4). The journal has no default (all time). | Confirmed |
+| L2 | **Two copies of the movement-kind labels:** `StockJournalController::TYPES` and `StockReportService::movementLabels()`. They match today but can drift. | Confirmed |
+| L3 | No export on the journal or any stock report. | Confirmed |
+| L4 | The journal has no totals for the filtered rows, and its search cannot find a voucher number although the number is shown. | Confirmed (low) |
+| L5 | The screens check both the catalogue permission on the route (`stock.view`) and a role helper (`canReadFinance`). Two permission styles for one screen. | Confirmed (low) |
+
+## R. Stock reports: points to keep and to improve
+
+| # | Finding | Confidence |
+|---|---|---|
+| R1 | **Keep:** opening stock is counted as the opening balance whatever its date; transfers are hidden company-wide and shown when a branch is chosen; "negative" and "no cost" flags; a value is quantity × the cost the movement carried, so any past date can be asked for. | By design |
+| R2 | The summary builds its date conditions by putting the dates into the SQL text rather than binding them. It is safe today because the dates are normalised first, but it is a pattern to avoid; the port keeps the results and binds the values. | Confirmed (low) |
+| R3 | **Stock query runs a whole summary** (for today, for the item's kind) just to list the other items in the same group. Slow on big catalogues. | Confirmed |
+| R4 | Stock reports read `stock_movements`, the books read vouchers. They can disagree; the reconciliation's stock check exists for this and moves onto the engine. | Confirmed (by design) |
+| R5 | Branch scope for these reports is the `stock` module, for the books reports `books`. Both must be kept when the reports are listed in the Reports page. | Confirmed |
+
 ## H3. The reports screen as a whole
 
 | # | Finding | Confidence |
