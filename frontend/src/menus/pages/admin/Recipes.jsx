@@ -24,6 +24,7 @@ import { useMenusBranch } from '../../lib/menusBranch';
 const th = { textAlign: 'left', padding: '8px 10px', fontSize: '0.68rem', textTransform: 'uppercase', letterSpacing: '0.06em', color: colors.textFaint };
 const td = { padding: '9px 10px', fontSize: '0.8rem', borderTop: `1px solid ${colors.tint(0.06)}`, verticalAlign: 'top' };
 const small = { ...btnGhost, padding: '4px 10px', fontSize: '0.72rem', marginRight: 6 };
+const tinted = { ...small, background: colors.tint(0.14), color: colors.primary, border: `1px solid ${colors.primary}`, fontWeight: 700 };   // the Add buttons of the forms
 const iconBtn = { background: 'none', border: 'none', cursor: 'pointer', color: colors.textFaint, padding: 3 };
 const num = (n, dp = 2) => (n == null ? '—' : Number(n).toLocaleString('en-KE', { maximumFractionDigits: dp }));
 
@@ -47,7 +48,7 @@ function SizeRows({ label, rows, setRows, servings, valueLabel, testid }) {
         </div>
       ))}
       {servings.length === 0 ? <p style={{ margin: 0, fontSize: '0.74rem', color: colors.textFaint }}>No sizes on the list yet (Menus, Configuration).</p>
-        : free.length > 0 && <button type="button" style={small} onClick={() => setRows((xs) => [...xs, { serving_id: String(free[0].id), value: '' }])}><Plus size={12} /> Add a size</button>}
+        : free.length > 0 && <button type="button" style={tinted} onClick={() => setRows((xs) => [...xs, { serving_id: String(free[0].id), value: '' }])}><Plus size={12} /> Add a size</button>}
     </div>
   );
 }
@@ -73,7 +74,7 @@ function PackRows({ label, rows, setRows, items }) {
         </div>
       ))}
       {items.length === 0 ? <p style={{ margin: 0, fontSize: '0.74rem', color: colors.textFaint }}>No packaging items yet (Menus, Configuration: choose the packaging kind and price list).</p>
-        : <button type="button" style={small} onClick={() => setRows((xs) => [...xs, { item_id: '', quantity: 1, scope: 'per_dish', compulsory: false, charged: false, receipt: 'auto' }])}><Plus size={12} /> Add packaging</button>}
+        : <button type="button" style={tinted} onClick={() => setRows((xs) => [...xs, { item_id: '', quantity: 1, scope: 'per_dish', compulsory: false, charged: false, receipt: 'auto' }])}><Plus size={12} /> Add packaging</button>}
     </div>
   );
 }
@@ -149,9 +150,9 @@ function RecipeModal({ dish, options, onClose, onDone }) {
       <form onSubmit={go}>
         <FormStack>
           <FormError message={err} />
-          <ol data-testid="recipe-screens" style={{ display: 'flex', gap: 6, flexWrap: 'wrap', listStyle: 'none', margin: 0, padding: 0, fontSize: '0.74rem' }}>
+          <ol data-testid="recipe-screens" style={{ display: 'flex', gap: 18, flexWrap: 'wrap', listStyle: 'none', margin: 0, padding: 0, fontSize: '0.8rem', borderBottom: `1px solid ${colors.tint(0.12)}` }}>
             {['Ingredients', 'Method and details'].map((t, i) => (
-              <li key={t} aria-current={screen === i + 1 ? 'step' : undefined} style={{ padding: '3px 10px', borderRadius: 999, border: `1px solid ${colors.tint(screen === i + 1 ? 0.5 : 0.15)}`, fontWeight: screen === i + 1 ? 800 : 500 }}>{i + 1}. {t}</li>
+              <li key={t} aria-current={screen === i + 1 ? 'step' : undefined} style={{ padding: '4px 2px 6px', marginBottom: -1, fontWeight: screen === i + 1 ? 800 : 500, color: screen === i + 1 ? colors.primary : colors.textMuted, borderBottom: `2px solid ${screen === i + 1 ? colors.primary : 'transparent'}` }}>{i + 1}. {t}</li>
             ))}
           </ol>
           {screen === 1 && (
