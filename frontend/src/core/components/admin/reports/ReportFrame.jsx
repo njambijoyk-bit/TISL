@@ -62,12 +62,14 @@ export default function ReportFrame({ reportKey, children }) {
     locationsAPI.getAdmin().then((l) => setBranches((l.locations ?? []).filter((x) => x.is_active !== false))).catch(() => {});
   }, []);
 
-  const rep = result?.report;
+  // the answer of another report (left over for a moment after switching reports) is never drawn with this report's view
+  const current = result?.report?.key === reportKey ? result : null;
+  const rep = current?.report;
   const asOf = rep?.kind === 'asof';
-  const stale = result && ran.current !== JSON.stringify(params(f));
+  const stale = current && ran.current !== JSON.stringify(params(f));
   const set = (k) => (e) => setF((x) => ({ ...x, [k]: e.target.value }));
-  const b = result?.banners ?? {};
-  const fmt = result?.format ?? {};
+  const b = current?.banners ?? {};
+  const fmt = current?.format ?? {};
 
   return (
     <div>
@@ -103,8 +105,8 @@ export default function ReportFrame({ reportKey, children }) {
       {b.branch_limited && <Note>These figures cover only the branches you have access to. Opening balances belong to the whole business, so ask someone with access to every branch for company-wide totals.</Note>}
 
       {fmt.report_header && <p style={{ margin: '0 0 10px', fontSize: '0.8rem', color: colors.textMuted }}>{fmt.report_header}</p>}
-      {loading && !result ? <p style={{ color: colors.textMuted }}>Running…</p> : result ? children(result) : null}
-      {result && fmt.report_footer && <p style={{ margin: '12px 0 0', fontSize: '0.75rem', color: colors.textFaint }}>{fmt.report_footer}</p>}
+      {!current ? (loading ? <p style={{ color: colors.textMuted }}>Running…</p> : null) : children(current)}
+      {current && fmt.report_footer && <p style={{ margin: '12px 0 0', fontSize: '0.75rem', color: colors.textFaint }}>{fmt.report_footer}</p>}
     </div>
   );
 }

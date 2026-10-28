@@ -356,7 +356,7 @@ export default function ReportsTab() {
           </button>
         ))}
       </div>
-      {def.engine && <ReportFrame reportKey={def.engine}>{(r) => (def.engine === 'trial-balance' ? <TrialBalanceView result={r} /> : <StatementView result={r} />)}</ReportFrame>}
+      {def.engine && <ReportFrame key={def.engine} reportKey={def.engine}>{(r) => (def.engine === 'trial-balance' ? <TrialBalanceView result={r} /> : <StatementView result={r} />)}</ReportFrame>}
       {def.custom && !def.engine && <StockMovement />}
       {!def.custom && <div style={{ display: 'flex', gap: 10, alignItems: 'center', flexWrap: 'wrap', marginBottom: 14 }}>
         {id === 'ledger' && (
