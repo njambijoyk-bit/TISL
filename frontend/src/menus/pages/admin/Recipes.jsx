@@ -1,11 +1,12 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
-import { Plus, Trash2 } from 'lucide-react';
+import { ChevronDown, ChevronRight, Plus, Trash2 } from 'lucide-react';
 import toast from 'react-hot-toast';
 import AdminLayout from '../../../_shared/components/layout/AdminLayout';
 import HubHeader, { NoAccess } from '../../../core/components/admin/ui/HubHeader';
 import Modal from '../../../core/components/admin/ui/Modal';
 import { Field, FormError, FormStack, ModalActions, NumberInput, SelectInput, TextArea, TextInput } from '../../../core/components/admin/ui/Form';
 import useCoursesOn from '../../lib/useCoursesOn';
+import { fromSteps, KEYWORDS } from '../../lib/stepMinutes';
 import menusAPI from '../../../_shared/api/menus';
 import useAuthStore from '../../../_shared/store/authStore';
 import { canViewMenus, canManageMenus, hasPermission } from '../../../_shared/lib/roles';
@@ -90,6 +91,11 @@ function RecipeModal({ dish, options, onClose, onDone }) {
   const [times, setTimes] = useState((r?.times ?? []).map((t) => ({ key: `t${++key.current}`, up_to: t.up_to, minutes: t.minutes })));
   const [prep, setPrep] = useState(r?.prep_minutes ?? '');
   const [cook, setCook] = useState(r?.cook_minutes ?? '');
+  const [timesOpen, setTimesOpen] = useState(false);   // the time by batch size is tucked away until asked for
+  // prep and cook follow the steps (by the words in them) until someone types their own figure; a recipe saved with figures that differ from its steps keeps them
+  const fromMethod = fromSteps(r ? (r.steps ?? []).map((x) => ({ body: x.body, minutes: x.minutes ?? '' })) : []);
+  const [prepOwn, setPrepOwn] = useState(r?.prep_minutes != null && r.prep_minutes !== fromMethod.prep);
+  const [cookOwn, setCookOwn] = useState(r?.cook_minutes != null && r.cook_minutes !== fromMethod.cook);
   const [visibility, setVisibility] = useState(r?.visibility ?? 'internal');
   const [note, setNote] = useState(r?.note ?? '');
   const [name, setName] = useState(dish.name ?? '');
@@ -104,6 +110,11 @@ function RecipeModal({ dish, options, onClose, onDone }) {
   const [addSide, setAddSide] = useState(false);   // editing a recipe that has no side: tick to make one
   const [busy, setBusy] = useState(false);
   const [err, setErr] = useState(null);
+  const auto = fromSteps(steps);
+  useEffect(() => {
+    if (!prepOwn) setPrep(auto.prep > 0 ? String(auto.prep) : '');
+    if (!cookOwn) setCook(auto.cook > 0 ? String(auto.cook) : '');
+  }, [auto.prep, auto.cook, prepOwn, cookOwn]);
   const unitLabel = dish.standalone ? (options.units ?? []).find((u) => String(u.id) === String(yieldUnit))?.code ?? 'portions' : 'portions';
   const ing = (ref) => (ref.startsWith('i:') ? options.ingredients.find((i) => `i:${i.id}` === ref) : undefined);
   const sub = (ref) => (ref.startsWith('r:') ? (options.recipes ?? []).find((x) => `r:${x.id}` === ref) : undefined);
@@ -213,7 +224,12 @@ function RecipeModal({ dish, options, onClose, onDone }) {
             <p role="status" data-testid="recipe-times-missing" style={{ margin: 0, fontSize: '0.78rem', color: colors.textMuted }}>Time by batch size: run database script 196_menus_recipe_times.sql to add it here.</p>
           ) : (
             <div data-testid="recipe-times">
-              <div style={{ fontSize: '0.74rem', fontWeight: 700, color: colors.textMuted, marginBottom: 2 }}>Time by batch size</div>
+              <button type="button" aria-expanded={timesOpen} aria-controls="recipe-times-body" onClick={() => setTimesOpen((o) => !o)} style={{ display: 'flex', alignItems: 'center', gap: 6, width: '100%', background: 'none', border: 'none', padding: 0, cursor: 'pointer', fontFamily: 'inherit', textAlign: 'left' }}>
+                {timesOpen ? <ChevronDown size={14} aria-hidden="true" /> : <ChevronRight size={14} aria-hidden="true" />}
+                <span style={{ fontSize: '0.68rem', fontWeight: 800, letterSpacing: '0.06em', textTransform: 'uppercase', color: colors.primary }}>Time by batch size</span>
+                <span style={{ fontSize: '0.72rem', color: colors.textFaint }}>{times.filter((t) => t.up_to !== '' || t.minutes !== '').length ? `${times.filter((t) => t.up_to !== '' || t.minutes !== '').length} row${times.filter((t) => t.up_to !== '' || t.minutes !== '').length === 1 ? '' : 's'}` : 'optional: for a recipe made in different sizes'}</span>
+              </button>
+              <div id="recipe-times-body" hidden={!timesOpen} style={{ marginTop: 6 }}>
               <div style={{ fontSize: '0.72rem', color: colors.textFaint, marginBottom: 6 }}>This is what the batch timers use. A batch is timed by the smallest row that is big enough; a batch bigger than every row is worked out from the two biggest rows. With no rows, the timers use prep plus cook below, for a batch of any size.</div>
               <div style={{ display: 'grid', gap: 8 }}>
                 {times.map((t, i) => (
@@ -228,12 +244,11 @@ function RecipeModal({ dish, options, onClose, onDone }) {
                 ))}
               </div>
               <button type="button" style={{ ...small, marginTop: 8 }} onClick={() => setTimes((xs) => [...xs, { key: `t${++key.current}`, up_to: '', minutes: '' }])}><Plus size={12} /> Add a time</button>
+              </div>
             </div>
           )}
 
-          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 2fr', gap: 10 }}>
-            <Field label="Prep (minutes)" hint="Shown on the kitchen card. Also the batch time when there are no rows above."><NumberInput aria-label="Prep minutes" min="0" value={prep} onChange={(e) => setPrep(e.target.value)} /></Field>
-            <Field label="Cook (minutes)" hint="Prep plus cook is the batch time when there are no rows above."><NumberInput aria-label="Cook minutes" min="0" value={cook} onChange={(e) => setCook(e.target.value)} /></Field>
+          <div style={{ display: 'grid', gridTemplateColumns: '1fr', gap: 10 }}>
             <Field label="Who may see it">
               <SelectInput aria-label="Who may see it" value={visibility} onChange={(e) => setVisibility(e.target.value)}>{Object.entries(options.visibility).map(([k, v]) => <option key={k} value={k}>{coursesOn ? v : v.replace(' and in courses', '')}</option>)}</SelectInput>
             </Field>
@@ -252,6 +267,25 @@ function RecipeModal({ dish, options, onClose, onDone }) {
               ))}
             </div>
             <button type="button" style={{ ...small, marginTop: 8 }} onClick={() => setSteps((xs) => [...xs, { key: `s${++key.current}`, body: '', minutes: '' }])}><Plus size={12} /> Add a step</button>
+          </div>
+          <div data-testid="recipe-prep-cook" style={{ display: 'grid', gap: 6 }}>
+            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10 }}>
+              <Field label="Prep (minutes)" hint={prepOwn ? 'Typed by you: the steps no longer change it.' : 'Added up from the steps that say dice, chop, wash and so on. Type a number to use your own.'}>
+                <NumberInput aria-label="Prep minutes" min="0" value={prep} onChange={(e) => { setPrep(e.target.value); setPrepOwn(true); }} />
+              </Field>
+              <Field label="Cook (minutes)" hint={cookOwn ? 'Typed by you: the steps no longer change it.' : 'Added up from the steps that say fry, boil, bake and so on. Type a number to use your own.'}>
+                <NumberInput aria-label="Cook minutes" min="0" value={cook} onChange={(e) => { setCook(e.target.value); setCookOwn(true); }} />
+              </Field>
+            </div>
+            <div style={{ fontSize: '0.72rem', color: colors.textFaint, display: 'flex', gap: 8, flexWrap: 'wrap', alignItems: 'center' }} data-testid="prep-cook-note">
+              <span>Shown on the kitchen card, and used as the batch time when there is no time by batch size.{auto.left > 0 ? ` ${auto.left} min in steps with no prep or cook word is not counted.` : ''}</span>
+              {(prepOwn || cookOwn) && <button type="button" style={{ ...small, marginRight: 0 }} onClick={() => { setPrepOwn(false); setCookOwn(false); }}>Use the steps again</button>}
+              <details style={{ fontSize: '0.72rem' }}>
+                <summary style={{ cursor: 'pointer' }}>Which words count?</summary>
+                <div><strong>Prep:</strong> {KEYWORDS.prep.join(', ')}.</div>
+                <div><strong>Cook:</strong> {KEYWORDS.cook.join(', ')}. A step with both kinds of word counts as cooking.</div>
+              </details>
+            </div>
           </div>
           {dish.standalone && dish.id && !own && options.plate_installed && (
             <label data-testid="recipe-add-side" style={{ display: 'flex', gap: 6, alignItems: 'center', fontSize: '0.82rem', fontWeight: 700 }}>
