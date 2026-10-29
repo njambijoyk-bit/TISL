@@ -82,10 +82,10 @@ For a purchase from a non-resident or an appointed supplier, the books post: the
 | T2 (**drafted**: `backend/database/sql/229_tax_control.sql`, not yet run on the real database) | Database script (read-only check, change, result check): the new columns and tables, conversion of existing kinds and modes, the one-row tax list for each account, the settings rows. Tested on a copy with the live groups and ledgers. | A second run changes nothing; every type and account converts; anything unmapped is listed. |
 | T3 (**built**) | Tax control tab, permissions, audit log. | Each section saves, is refused without its permission, and is logged. |
 | T4 (**built**) | Tax type form: category, method, jurisdiction, with the combination table; rate form with the new rate types and tax point. | Invalid combinations are refused with a reason. |
-| T5 | Chart of accounts: the Duties & Taxes guard; accounts carrying several taxes. | The guard and the multi-tax form pass their tests. |
-| T6 (**split**: 6a built, 6b and 6c to do, see section 15) | Tax resolution in the posting code (item, account, apply regardless, exemptions), reverse charge, and calculation snapshots. **First** a record of what every existing setup posts today; the new code must post the same, to the cent. | Old and new post identically for every existing case; new cases (several taxes on one account, reverse charge, an always-apply levy, excise with VAT on top) have tests. |
-| T7 | Rebuild the tax return and the withholding register on the new model (categories, methods, reverse charge, per-tax nature), and the Books health checks on tax control accounts. | The two reports agree with the ledgers and with the previous versions where nothing changed. |
-| T8 | Update this plan and the Books reports plan, and the backup and `.wnkjap` table lists (step 13). | Docs match the code. |
+| T5 (**built**) | Chart of accounts: the Duties & Taxes guard; accounts carrying several taxes. | The guard and the multi-tax form pass their tests. |
+| T6 (**built** except prices that include tax, see section 15) | Tax resolution in the posting code (item, account, apply regardless, exemptions), reverse charge, and calculation snapshots. **First** a record of what every existing setup posts today; the new code must post the same, to the cent. | Old and new post identically for every existing case; new cases (several taxes on one account, reverse charge, an always-apply levy, excise with VAT on top) have tests. |
+| T7 (**built**, section 16) | Rebuild the tax return and the withholding register on the new model (categories, methods, reverse charge, per-tax nature), and the Books health checks on tax control accounts. | The two reports agree with the ledgers and with the previous versions where nothing changed. |
+| T8 (**done**) | Update this plan and the Books reports plan, and the backup and `.wnkjap` table lists (step 13). | Docs match the code. |
 
 Then the stock reports (steps 6.7 to 6.10) and the rest of the Books reports plan continue.
 
@@ -191,3 +191,10 @@ T6 changes the code that posts sales and purchases, so it is done in three parts
 - **Withholding register.** Needed no change: it reads certificates, which do not depend on the parts of the model that changed.
 - **Health of the tax set-up** (end of the Tax control tab, `GET /admin/books/tax-control/health`, read-only): a tax type without category or method; an active type with no rate in force; a reverse charge with no input or cost ledger; a withheld tax with no payable ledger; a rate whose base lists a removed tax; an account carrying a tax with no rate, a removed type, or a rate that has ended; taxable accounts with no tax rows; opt-outs for a removed type. Tests: `TaxReturnReverseChargeTest`, `TaxReverseChargeTest`.
 - **Still open for the Books health panel (reports step 10):** the same checks will be listed there beside the other Books checks.
+
+## 17. Status of T8 (done)
+
+- **Backup list.** `ledger_taxes`, `tax_control_settings`, `tax_control_log` and `tax_opt_outs` are in `ModuleTables`, so a backup and a restore carry them. The new columns on `ledger_groups` and `ledgers` (category, method, jurisdiction, input and cost ledgers, per-unit amount, tax point, base list) travel with those tables.
+- **`.wnkjap` export and import** (reports plan step 13) is not built yet. When it is, it must include the same four tables and treat the tax type and rate columns above as part of the ledger and group records.
+- **Still open from this plan:** prices that include tax (*included in the displayed price*, section 15); customs and tariffs as their own module; direct-liability manual journals; the Books health panel (reports step 10) listing the tax checks beside its own.
+- **Test guide:** `docs/TAX_CONTROL_TEST_GUIDE.md`.

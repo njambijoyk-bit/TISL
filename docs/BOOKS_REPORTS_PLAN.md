@@ -380,7 +380,7 @@ In this order, each with its own parity check against the old report:
 
 **Done when** each audit finding listed against these reports in the appendix is closed.
 
-**Order change (29 Oct):** the tax control work in `docs/TAX_CONTROL_PLAN.md` is done before 6.7 onwards, because the tax return and withholding register (6.4, 6.5) are rebuilt on it (T7 there). Steps 6.7 to 6.10 resume afterwards.
+**Order change (29 Oct):** the tax control work in `docs/TAX_CONTROL_PLAN.md` is done before 6.7 onwards, because the tax return and withholding register (6.4, 6.5) are rebuilt on it (T7 there). The tax work is finished (T1 to T8, except prices that include tax); steps 6.7 to 6.10 resume next.
 
 **Progress:**
 - 6.1 Day book: done and tested (both views, cost centre and branch on the entry lines, identifiers, paging with an all-pages total, export of every row, old-versus-new parity). Awaiting the owner's look on real data.
