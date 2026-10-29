@@ -1,0 +1,658 @@
+{
+    "vat \/ output \/ no discount \/ 2026-03-01": [
+        {
+            "tax_rate_id": 43,
+            "ledger_id": 43,
+            "label": "VAT 16%",
+            "base_amount": 1000,
+            "tax_amount": 160,
+            "percent": 16
+        }
+    ],
+    "vat \/ output \/ no discount \/ 2024-06-01": [
+        {
+            "tax_rate_id": 43,
+            "ledger_id": 43,
+            "label": "VAT 16%",
+            "base_amount": 1000,
+            "tax_amount": 160,
+            "percent": 16
+        }
+    ],
+    "vat \/ output \/ discounted \/ 2026-03-01": [
+        {
+            "tax_rate_id": 43,
+            "ledger_id": 43,
+            "label": "VAT 16%",
+            "base_amount": 900,
+            "tax_amount": 144,
+            "percent": 16
+        }
+    ],
+    "vat \/ output \/ discounted \/ 2024-06-01": [
+        {
+            "tax_rate_id": 43,
+            "ledger_id": 43,
+            "label": "VAT 16%",
+            "base_amount": 900,
+            "tax_amount": 144,
+            "percent": 16
+        }
+    ],
+    "vat \/ output \/ a litre line \/ 2026-03-01": [
+        {
+            "tax_rate_id": 43,
+            "ledger_id": 43,
+            "label": "VAT 16%",
+            "base_amount": 2500.5,
+            "tax_amount": 400.08,
+            "percent": 16
+        }
+    ],
+    "vat \/ output \/ a litre line \/ 2024-06-01": [
+        {
+            "tax_rate_id": 43,
+            "ledger_id": 43,
+            "label": "VAT 16%",
+            "base_amount": 2500.5,
+            "tax_amount": 400.08,
+            "percent": 16
+        }
+    ],
+    "vat \/ input \/ no discount \/ 2026-03-01": [
+        {
+            "tax_rate_id": 43,
+            "ledger_id": 43,
+            "label": "VAT 16%",
+            "base_amount": 1000,
+            "tax_amount": 160,
+            "percent": 16
+        }
+    ],
+    "vat \/ input \/ no discount \/ 2024-06-01": [
+        {
+            "tax_rate_id": 43,
+            "ledger_id": 43,
+            "label": "VAT 16%",
+            "base_amount": 1000,
+            "tax_amount": 160,
+            "percent": 16
+        }
+    ],
+    "vat \/ input \/ discounted \/ 2026-03-01": [
+        {
+            "tax_rate_id": 43,
+            "ledger_id": 43,
+            "label": "VAT 16%",
+            "base_amount": 900,
+            "tax_amount": 144,
+            "percent": 16
+        }
+    ],
+    "vat \/ input \/ discounted \/ 2024-06-01": [
+        {
+            "tax_rate_id": 43,
+            "ledger_id": 43,
+            "label": "VAT 16%",
+            "base_amount": 900,
+            "tax_amount": 144,
+            "percent": 16
+        }
+    ],
+    "vat \/ input \/ a litre line \/ 2026-03-01": [
+        {
+            "tax_rate_id": 43,
+            "ledger_id": 43,
+            "label": "VAT 16%",
+            "base_amount": 2500.5,
+            "tax_amount": 400.08,
+            "percent": 16
+        }
+    ],
+    "vat \/ input \/ a litre line \/ 2024-06-01": [
+        {
+            "tax_rate_id": 43,
+            "ledger_id": 43,
+            "label": "VAT 16%",
+            "base_amount": 2500.5,
+            "tax_amount": 400.08,
+            "percent": 16
+        }
+    ],
+    "vat pre-discount \/ output \/ no discount \/ 2026-03-01": [
+        {
+            "tax_rate_id": 44,
+            "ledger_id": 44,
+            "label": "VAT 16%",
+            "base_amount": 1000,
+            "tax_amount": 160,
+            "percent": 16
+        }
+    ],
+    "vat pre-discount \/ output \/ no discount \/ 2024-06-01": [
+        {
+            "tax_rate_id": 44,
+            "ledger_id": 44,
+            "label": "VAT 16%",
+            "base_amount": 1000,
+            "tax_amount": 160,
+            "percent": 16
+        }
+    ],
+    "vat pre-discount \/ output \/ discounted \/ 2026-03-01": [
+        {
+            "tax_rate_id": 44,
+            "ledger_id": 44,
+            "label": "VAT 16%",
+            "base_amount": 1000,
+            "tax_amount": 160,
+            "percent": 16
+        }
+    ],
+    "vat pre-discount \/ output \/ discounted \/ 2024-06-01": [
+        {
+            "tax_rate_id": 44,
+            "ledger_id": 44,
+            "label": "VAT 16%",
+            "base_amount": 1000,
+            "tax_amount": 160,
+            "percent": 16
+        }
+    ],
+    "vat pre-discount \/ output \/ a litre line \/ 2026-03-01": [
+        {
+            "tax_rate_id": 44,
+            "ledger_id": 44,
+            "label": "VAT 16%",
+            "base_amount": 2500.5,
+            "tax_amount": 400.08,
+            "percent": 16
+        }
+    ],
+    "vat pre-discount \/ output \/ a litre line \/ 2024-06-01": [
+        {
+            "tax_rate_id": 44,
+            "ledger_id": 44,
+            "label": "VAT 16%",
+            "base_amount": 2500.5,
+            "tax_amount": 400.08,
+            "percent": 16
+        }
+    ],
+    "vat pre-discount \/ input \/ no discount \/ 2026-03-01": [
+        {
+            "tax_rate_id": 44,
+            "ledger_id": 44,
+            "label": "VAT 16%",
+            "base_amount": 1000,
+            "tax_amount": 160,
+            "percent": 16
+        }
+    ],
+    "vat pre-discount \/ input \/ no discount \/ 2024-06-01": [
+        {
+            "tax_rate_id": 44,
+            "ledger_id": 44,
+            "label": "VAT 16%",
+            "base_amount": 1000,
+            "tax_amount": 160,
+            "percent": 16
+        }
+    ],
+    "vat pre-discount \/ input \/ discounted \/ 2026-03-01": [
+        {
+            "tax_rate_id": 44,
+            "ledger_id": 44,
+            "label": "VAT 16%",
+            "base_amount": 1000,
+            "tax_amount": 160,
+            "percent": 16
+        }
+    ],
+    "vat pre-discount \/ input \/ discounted \/ 2024-06-01": [
+        {
+            "tax_rate_id": 44,
+            "ledger_id": 44,
+            "label": "VAT 16%",
+            "base_amount": 1000,
+            "tax_amount": 160,
+            "percent": 16
+        }
+    ],
+    "vat pre-discount \/ input \/ a litre line \/ 2026-03-01": [
+        {
+            "tax_rate_id": 44,
+            "ledger_id": 44,
+            "label": "VAT 16%",
+            "base_amount": 2500.5,
+            "tax_amount": 400.08,
+            "percent": 16
+        }
+    ],
+    "vat pre-discount \/ input \/ a litre line \/ 2024-06-01": [
+        {
+            "tax_rate_id": 44,
+            "ledger_id": 44,
+            "label": "VAT 16%",
+            "base_amount": 2500.5,
+            "tax_amount": 400.08,
+            "percent": 16
+        }
+    ],
+    "zero-rated \/ output \/ no discount \/ 2026-03-01": [
+        {
+            "tax_rate_id": 43,
+            "ledger_id": 43,
+            "label": "VAT 16%",
+            "base_amount": 1000,
+            "tax_amount": 0,
+            "percent": 16
+        }
+    ],
+    "zero-rated \/ output \/ no discount \/ 2024-06-01": [
+        {
+            "tax_rate_id": 43,
+            "ledger_id": 43,
+            "label": "VAT 16%",
+            "base_amount": 1000,
+            "tax_amount": 0,
+            "percent": 16
+        }
+    ],
+    "zero-rated \/ output \/ discounted \/ 2026-03-01": [
+        {
+            "tax_rate_id": 43,
+            "ledger_id": 43,
+            "label": "VAT 16%",
+            "base_amount": 900,
+            "tax_amount": 0,
+            "percent": 16
+        }
+    ],
+    "zero-rated \/ output \/ discounted \/ 2024-06-01": [
+        {
+            "tax_rate_id": 43,
+            "ledger_id": 43,
+            "label": "VAT 16%",
+            "base_amount": 900,
+            "tax_amount": 0,
+            "percent": 16
+        }
+    ],
+    "zero-rated \/ output \/ a litre line \/ 2026-03-01": [
+        {
+            "tax_rate_id": 43,
+            "ledger_id": 43,
+            "label": "VAT 16%",
+            "base_amount": 2500.5,
+            "tax_amount": 0,
+            "percent": 16
+        }
+    ],
+    "zero-rated \/ output \/ a litre line \/ 2024-06-01": [
+        {
+            "tax_rate_id": 43,
+            "ledger_id": 43,
+            "label": "VAT 16%",
+            "base_amount": 2500.5,
+            "tax_amount": 0,
+            "percent": 16
+        }
+    ],
+    "zero-rated \/ input \/ no discount \/ 2026-03-01": [
+        {
+            "tax_rate_id": 43,
+            "ledger_id": 43,
+            "label": "VAT 16%",
+            "base_amount": 1000,
+            "tax_amount": 0,
+            "percent": 16
+        }
+    ],
+    "zero-rated \/ input \/ no discount \/ 2024-06-01": [
+        {
+            "tax_rate_id": 43,
+            "ledger_id": 43,
+            "label": "VAT 16%",
+            "base_amount": 1000,
+            "tax_amount": 0,
+            "percent": 16
+        }
+    ],
+    "zero-rated \/ input \/ discounted \/ 2026-03-01": [
+        {
+            "tax_rate_id": 43,
+            "ledger_id": 43,
+            "label": "VAT 16%",
+            "base_amount": 900,
+            "tax_amount": 0,
+            "percent": 16
+        }
+    ],
+    "zero-rated \/ input \/ discounted \/ 2024-06-01": [
+        {
+            "tax_rate_id": 43,
+            "ledger_id": 43,
+            "label": "VAT 16%",
+            "base_amount": 900,
+            "tax_amount": 0,
+            "percent": 16
+        }
+    ],
+    "zero-rated \/ input \/ a litre line \/ 2026-03-01": [
+        {
+            "tax_rate_id": 43,
+            "ledger_id": 43,
+            "label": "VAT 16%",
+            "base_amount": 2500.5,
+            "tax_amount": 0,
+            "percent": 16
+        }
+    ],
+    "zero-rated \/ input \/ a litre line \/ 2024-06-01": [
+        {
+            "tax_rate_id": 43,
+            "ledger_id": 43,
+            "label": "VAT 16%",
+            "base_amount": 2500.5,
+            "tax_amount": 0,
+            "percent": 16
+        }
+    ],
+    "exempt \/ output \/ no discount \/ 2026-03-01": [],
+    "exempt \/ output \/ no discount \/ 2024-06-01": [],
+    "exempt \/ output \/ discounted \/ 2026-03-01": [],
+    "exempt \/ output \/ discounted \/ 2024-06-01": [],
+    "exempt \/ output \/ a litre line \/ 2026-03-01": [],
+    "exempt \/ output \/ a litre line \/ 2024-06-01": [],
+    "exempt \/ input \/ no discount \/ 2026-03-01": [],
+    "exempt \/ input \/ no discount \/ 2024-06-01": [],
+    "exempt \/ input \/ discounted \/ 2026-03-01": [],
+    "exempt \/ input \/ discounted \/ 2024-06-01": [],
+    "exempt \/ input \/ a litre line \/ 2026-03-01": [],
+    "exempt \/ input \/ a litre line \/ 2024-06-01": [],
+    "out of scope \/ output \/ no discount \/ 2026-03-01": [],
+    "out of scope \/ output \/ no discount \/ 2024-06-01": [],
+    "out of scope \/ output \/ discounted \/ 2026-03-01": [],
+    "out of scope \/ output \/ discounted \/ 2024-06-01": [],
+    "out of scope \/ output \/ a litre line \/ 2026-03-01": [],
+    "out of scope \/ output \/ a litre line \/ 2024-06-01": [],
+    "out of scope \/ input \/ no discount \/ 2026-03-01": [],
+    "out of scope \/ input \/ no discount \/ 2024-06-01": [],
+    "out of scope \/ input \/ discounted \/ 2026-03-01": [],
+    "out of scope \/ input \/ discounted \/ 2024-06-01": [],
+    "out of scope \/ input \/ a litre line \/ 2026-03-01": [],
+    "out of scope \/ input \/ a litre line \/ 2024-06-01": [],
+    "per unit \/ output \/ no discount \/ 2026-03-01": [
+        {
+            "tax_rate_id": 45,
+            "ledger_id": 45,
+            "label": "EXC 20",
+            "base_amount": 1000,
+            "tax_amount": 20,
+            "percent": null
+        }
+    ],
+    "per unit \/ output \/ no discount \/ 2024-06-01": [
+        {
+            "tax_rate_id": 45,
+            "ledger_id": 45,
+            "label": "EXC 20",
+            "base_amount": 1000,
+            "tax_amount": 20,
+            "percent": null
+        }
+    ],
+    "per unit \/ output \/ discounted \/ 2026-03-01": [
+        {
+            "tax_rate_id": 45,
+            "ledger_id": 45,
+            "label": "EXC 20",
+            "base_amount": 900,
+            "tax_amount": 60,
+            "percent": null
+        }
+    ],
+    "per unit \/ output \/ discounted \/ 2024-06-01": [
+        {
+            "tax_rate_id": 45,
+            "ledger_id": 45,
+            "label": "EXC 20",
+            "base_amount": 900,
+            "tax_amount": 60,
+            "percent": null
+        }
+    ],
+    "per unit \/ output \/ a litre line \/ 2026-03-01": [
+        {
+            "tax_rate_id": 45,
+            "ledger_id": 45,
+            "label": "EXC 20",
+            "base_amount": 2500.5,
+            "tax_amount": 2000,
+            "percent": null
+        }
+    ],
+    "per unit \/ output \/ a litre line \/ 2024-06-01": [
+        {
+            "tax_rate_id": 45,
+            "ledger_id": 45,
+            "label": "EXC 20",
+            "base_amount": 2500.5,
+            "tax_amount": 2000,
+            "percent": null
+        }
+    ],
+    "per unit \/ input \/ no discount \/ 2026-03-01": [
+        {
+            "tax_rate_id": 45,
+            "ledger_id": 45,
+            "label": "EXC 20",
+            "base_amount": 1000,
+            "tax_amount": 20,
+            "percent": null
+        }
+    ],
+    "per unit \/ input \/ no discount \/ 2024-06-01": [
+        {
+            "tax_rate_id": 45,
+            "ledger_id": 45,
+            "label": "EXC 20",
+            "base_amount": 1000,
+            "tax_amount": 20,
+            "percent": null
+        }
+    ],
+    "per unit \/ input \/ discounted \/ 2026-03-01": [
+        {
+            "tax_rate_id": 45,
+            "ledger_id": 45,
+            "label": "EXC 20",
+            "base_amount": 900,
+            "tax_amount": 60,
+            "percent": null
+        }
+    ],
+    "per unit \/ input \/ discounted \/ 2024-06-01": [
+        {
+            "tax_rate_id": 45,
+            "ledger_id": 45,
+            "label": "EXC 20",
+            "base_amount": 900,
+            "tax_amount": 60,
+            "percent": null
+        }
+    ],
+    "per unit \/ input \/ a litre line \/ 2026-03-01": [
+        {
+            "tax_rate_id": 45,
+            "ledger_id": 45,
+            "label": "EXC 20",
+            "base_amount": 2500.5,
+            "tax_amount": 2000,
+            "percent": null
+        }
+    ],
+    "per unit \/ input \/ a litre line \/ 2024-06-01": [
+        {
+            "tax_rate_id": 45,
+            "ledger_id": 45,
+            "label": "EXC 20",
+            "base_amount": 2500.5,
+            "tax_amount": 2000,
+            "percent": null
+        }
+    ],
+    "old VAT \/ output \/ no discount \/ 2026-03-01": [
+        {
+            "tax_rate_id": 47,
+            "ledger_id": 47,
+            "label": "VAT 16%",
+            "base_amount": 1000,
+            "tax_amount": 160,
+            "percent": 16
+        }
+    ],
+    "old VAT \/ output \/ no discount \/ 2024-06-01": [
+        {
+            "tax_rate_id": 46,
+            "ledger_id": 46,
+            "label": "VAT 14%",
+            "base_amount": 1000,
+            "tax_amount": 140,
+            "percent": 14
+        }
+    ],
+    "old VAT \/ output \/ discounted \/ 2026-03-01": [
+        {
+            "tax_rate_id": 47,
+            "ledger_id": 47,
+            "label": "VAT 16%",
+            "base_amount": 900,
+            "tax_amount": 144,
+            "percent": 16
+        }
+    ],
+    "old VAT \/ output \/ discounted \/ 2024-06-01": [
+        {
+            "tax_rate_id": 46,
+            "ledger_id": 46,
+            "label": "VAT 14%",
+            "base_amount": 900,
+            "tax_amount": 126,
+            "percent": 14
+        }
+    ],
+    "old VAT \/ output \/ a litre line \/ 2026-03-01": [
+        {
+            "tax_rate_id": 47,
+            "ledger_id": 47,
+            "label": "VAT 16%",
+            "base_amount": 2500.5,
+            "tax_amount": 400.08,
+            "percent": 16
+        }
+    ],
+    "old VAT \/ output \/ a litre line \/ 2024-06-01": [
+        {
+            "tax_rate_id": 46,
+            "ledger_id": 46,
+            "label": "VAT 14%",
+            "base_amount": 2500.5,
+            "tax_amount": 350.07,
+            "percent": 14
+        }
+    ],
+    "old VAT \/ input \/ no discount \/ 2026-03-01": [
+        {
+            "tax_rate_id": 47,
+            "ledger_id": 47,
+            "label": "VAT 16%",
+            "base_amount": 1000,
+            "tax_amount": 160,
+            "percent": 16
+        }
+    ],
+    "old VAT \/ input \/ no discount \/ 2024-06-01": [
+        {
+            "tax_rate_id": 46,
+            "ledger_id": 46,
+            "label": "VAT 14%",
+            "base_amount": 1000,
+            "tax_amount": 140,
+            "percent": 14
+        }
+    ],
+    "old VAT \/ input \/ discounted \/ 2026-03-01": [
+        {
+            "tax_rate_id": 47,
+            "ledger_id": 47,
+            "label": "VAT 16%",
+            "base_amount": 900,
+            "tax_amount": 144,
+            "percent": 16
+        }
+    ],
+    "old VAT \/ input \/ discounted \/ 2024-06-01": [
+        {
+            "tax_rate_id": 46,
+            "ledger_id": 46,
+            "label": "VAT 14%",
+            "base_amount": 900,
+            "tax_amount": 126,
+            "percent": 14
+        }
+    ],
+    "old VAT \/ input \/ a litre line \/ 2026-03-01": [
+        {
+            "tax_rate_id": 47,
+            "ledger_id": 47,
+            "label": "VAT 16%",
+            "base_amount": 2500.5,
+            "tax_amount": 400.08,
+            "percent": 16
+        }
+    ],
+    "old VAT \/ input \/ a litre line \/ 2024-06-01": [
+        {
+            "tax_rate_id": 46,
+            "ledger_id": 46,
+            "label": "VAT 14%",
+            "base_amount": 2500.5,
+            "tax_amount": 350.07,
+            "percent": 14
+        }
+    ],
+    "nothing to tax": [],
+    "manual 43 1000 output": [
+        {
+            "tax_rate_id": 43,
+            "ledger_id": 43,
+            "label": "VAT 16%",
+            "base_amount": 1000,
+            "tax_amount": 160,
+            "percent": 16
+        }
+    ],
+    "manual 43 333.33 input": [
+        {
+            "tax_rate_id": 43,
+            "ledger_id": 43,
+            "label": "VAT 16%",
+            "base_amount": 333.33,
+            "tax_amount": 53.33,
+            "percent": 16
+        }
+    ],
+    "manual 45 500 output": [
+        {
+            "tax_rate_id": 45,
+            "ledger_id": 45,
+            "label": "EXC 20%",
+            "base_amount": 500,
+            "tax_amount": 0,
+            "percent": 20
+        }
+    ],
+    "taxable, no rate": "The account \"Sales taxable no rate\" is taxable but has no tax rate. Set it under Books → Accounts."
+}
