@@ -64,12 +64,11 @@ class StockReportService
         // opening stock is the opening balance whatever its date is: it is what the books start with, not stock that came in during the period
         $isOpen = "m.movement_type = 'opening_stock'";
         $cost = 'm.quantity * COALESCE(m.unit_cost, 0)';
-        $rows = $q->groupBy(DB::raw($t), DB::raw($i))->selectRaw(
-            "{$t} AS t, {$i} AS i,
-             SUM(CASE WHEN m.movement_date < '{$from}' OR {$isOpen} THEN m.quantity ELSE 0 END) AS oq, SUM(CASE WHEN m.movement_date < '{$from}' OR {$isOpen} THEN {$cost} ELSE 0 END) AS ov,
-             SUM(CASE WHEN m.movement_date >= '{$from}' AND NOT {$isOpen} AND m.quantity > 0 {$skip} THEN m.quantity ELSE 0 END) AS iq, SUM(CASE WHEN m.movement_date >= '{$from}' AND NOT {$isOpen} AND m.quantity > 0 {$skip} THEN {$cost} ELSE 0 END) AS iv,
-             SUM(CASE WHEN m.movement_date >= '{$from}' AND NOT {$isOpen} AND m.quantity < 0 {$skip} THEN -m.quantity ELSE 0 END) AS xq, SUM(CASE WHEN m.movement_date >= '{$from}' AND NOT {$isOpen} AND m.quantity < 0 {$skip} THEN -({$cost}) ELSE 0 END) AS xv"
-        )->get();
+        $sql = "{$t} AS t, {$i} AS i,
+             SUM(CASE WHEN m.movement_date < ? OR {$isOpen} THEN m.quantity ELSE 0 END) AS oq, SUM(CASE WHEN m.movement_date < ? OR {$isOpen} THEN {$cost} ELSE 0 END) AS ov,
+             SUM(CASE WHEN m.movement_date >= ? AND NOT {$isOpen} AND m.quantity > 0 {$skip} THEN m.quantity ELSE 0 END) AS iq, SUM(CASE WHEN m.movement_date >= ? AND NOT {$isOpen} AND m.quantity > 0 {$skip} THEN {$cost} ELSE 0 END) AS iv,
+             SUM(CASE WHEN m.movement_date >= ? AND NOT {$isOpen} AND m.quantity < 0 {$skip} THEN -m.quantity ELSE 0 END) AS xq, SUM(CASE WHEN m.movement_date >= ? AND NOT {$isOpen} AND m.quantity < 0 {$skip} THEN -({$cost}) ELSE 0 END) AS xv";
+        $rows = $q->groupBy(DB::raw($t), DB::raw($i))->selectRaw($sql, array_fill(0, substr_count($sql, '?'), $from))->get();   // the date is bound, not written into the SQL
 
         $byType = [];
         foreach ($rows as $r) {

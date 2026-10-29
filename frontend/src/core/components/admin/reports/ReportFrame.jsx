@@ -100,8 +100,8 @@ export default function ReportFrame({ reportKey, initialOpts = {}, children }) {
           ? <input key={o.key} type="text" aria-label={o.label} placeholder={o.label} value={f.opts[o.key] ?? ''} onChange={(e) => setF((x) => ({ ...x, opts: { ...x.opts, [o.key]: e.target.value } }))} onKeyDown={(e) => { if (e.key === 'Enter') { e.preventDefault(); const next = { ...f, page: 1 }; setF(next); run(next); } }} style={{ ...filterStyle, minWidth: 200 }} />
           : o.type === 'checkbox'
           ? <label key={o.key} style={{ fontSize: '0.75rem', color: colors.textMuted }}><input type="checkbox" checked={Boolean(f.opts[o.key])} onChange={(e) => setF((x) => ({ ...x, opts: { ...x.opts, [o.key]: e.target.checked ? '1' : '' } }))} /> {o.label}</label>
-          : o.type === 'item'
-          ? <ItemPicker key={o.key} label={o.label} value={f.opts[o.key] ?? ''} onChange={(v) => setF((x) => ({ ...x, opts: { ...x.opts, [o.key]: v } }))} />
+          : o.type === 'item' || o.type === 'stock_item'
+          ? <ItemPicker key={o.key} label={o.label} source={o.type === 'stock_item' ? 'stock' : 'trade'} value={f.opts[o.key] ?? ''} onChange={(v) => setF((x) => ({ ...x, opts: { ...x.opts, [o.key]: v } }))} />
           : (
           <select key={o.key} value={f.opts[o.key] ?? o.default} aria-label={o.label}
             onChange={(e) => setF((x) => ({ ...x, opts: { ...x.opts, [o.key]: e.target.value } }))} style={filterStyle}>
@@ -120,7 +120,7 @@ export default function ReportFrame({ reportKey, initialOpts = {}, children }) {
       {b.branch_limited && <Note>These figures cover only the branches you have access to. Opening balances belong to the whole business, so ask someone with access to every branch for company-wide totals.</Note>}
 
       {fmt.report_header && <p style={{ margin: '0 0 10px', fontSize: '0.8rem', color: colors.textMuted }}>{fmt.report_header}</p>}
-      {!current ? (loading ? <p style={{ color: colors.textMuted }}>Running…</p> : null) : children(current, { drill })}
+      {!current ? (loading ? <p style={{ color: colors.textMuted }}>Running…</p> : null) : children(current, { drill, opts: f.opts })}
       {current?.data?.paging?.pages > 1 && (
         <div style={{ display: 'flex', alignItems: 'center', gap: 10, justifyContent: 'center', marginTop: 12, fontSize: '0.78rem', color: colors.textMuted }}>
           <button type="button" style={filterStyle} disabled={loading || current.data.paging.page <= 1} onClick={() => { const page = current.data.paging.page - 1; setF((x) => ({ ...x, page })); run({ ...ranFilters(), page }); }}>Previous</button>

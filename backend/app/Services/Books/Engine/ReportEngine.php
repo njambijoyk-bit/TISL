@@ -12,6 +12,11 @@ use App\Services\Books\Engine\Reports\ReceivablesAgeingReport;
 use App\Services\Books\Engine\Reports\TaxReturnReport;
 use App\Services\Books\Engine\Reports\MoneyFlowReport;
 use App\Services\Books\Engine\Reports\StockJournalReport;
+use App\Services\Books\Engine\Reports\StockItemMonthlyReport;
+use App\Services\Books\Engine\Reports\StockItemMovementsReport;
+use App\Services\Books\Engine\Reports\StockLocationSummaryReport;
+use App\Services\Books\Engine\Reports\StockQueryReport;
+use App\Services\Books\Engine\Reports\StockSummaryReport;
 use App\Services\Books\Engine\Reports\TradeReport;
 use App\Services\Books\Engine\Reports\WithholdingReport;
 use App\Services\Books\Engine\Reports\DayBookReport;
@@ -44,6 +49,11 @@ final class ReportEngine
         TradeReport::class,
         MoneyFlowReport::class,
         StockJournalReport::class,
+        StockSummaryReport::class,
+        StockLocationSummaryReport::class,
+        StockQueryReport::class,
+        StockItemMonthlyReport::class,
+        StockItemMovementsReport::class,
     ];
 
     /** The display settings a screen needs to draw every amount the same way. */

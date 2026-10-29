@@ -112,6 +112,50 @@ class MenusCoreStockTest extends TestCase
         $this->assertCount(0, $this->journal(['q' => $v->voucher_number])['rows'], 'the old journal could not');
     }
 
+    /** Step 6.10: each stock report through the engine gives the service's answer, field for field. */
+    private function viaEngine(string $class, array $options = [], array $scope = []): array
+    {
+        $data = (new $class())->run(\App\Services\Books\Engine\Scope::fromInput($scope, 'stock'), $options);
+        unset($data['ready']);
+
+        return $data;
+    }
+
+    public function test_the_engine_stock_reports_give_the_services_answers_field_for_field(): void
+    {
+        foreach (['party_name' => fn ($t) => $t->string('party_name')->nullable(), 'exchange_rate' => fn ($t) => $t->decimal('exchange_rate', 18, 6)->default(1)] as $col => $add) {
+            if (! Schema::hasColumn('vouchers', $col)) {
+                Schema::table('vouchers', $add);   // the stock query reads who a purchase was from
+            }
+        }
+        $this->receive($this->exe, 1, 260);
+        $this->receive($this->pembe, 2, 2400, 'pack', ['expiry_date' => '2027-01-01']);
+        $svc = app(\App\Services\Stock\StockReportService::class);
+        $this->app->instance(\App\Services\CostCentres\CostCentreService::class, new class extends \App\Services\CostCentres\CostCentreService {
+            public function __construct() {}
+
+            public function booksReady(): bool { return true; }
+        });   // so a branch chosen on the screen reaches the scope
+        $w = ['from' => '2026-10-01', 'to' => '2026-10-31'];
+        $this->assertEquals($svc->summary($w), $this->viaEngine(\App\Services\Books\Engine\Reports\StockSummaryReport::class, [], $w));
+        $this->assertEquals($svc->summary($w + ['item_type' => IngredientItemSource::TYPE]), $this->viaEngine(\App\Services\Books\Engine\Reports\StockSummaryReport::class, ['item_type' => IngredientItemSource::TYPE], $w));
+        $this->assertEquals($svc->summary($w + ['q' => 'Pembe']), $this->viaEngine(\App\Services\Books\Engine\Reports\StockSummaryReport::class, ['q' => 'Pembe'], $w));
+        $this->assertEquals($svc->summary($w + ['location_id' => self::BRANCH]), $this->viaEngine(\App\Services\Books\Engine\Reports\StockLocationSummaryReport::class, [], $w + ['location_id' => self::BRANCH]));
+        $this->assertSame(false, (new \App\Services\Books\Engine\Reports\StockLocationSummaryReport())->run(\App\Services\Books\Engine\Scope::fromInput($w, 'stock'), [])['ready'], 'a location summary needs a branch');
+        $this->assertEquals($svc->query(IngredientItemSource::TYPE, $this->exe, []), $this->viaEngine(\App\Services\Books\Engine\Reports\StockQueryReport::class, ['item' => IngredientItemSource::TYPE . ':' . $this->exe]));
+        $this->assertEquals($svc->monthly(IngredientItemSource::TYPE, $this->exe, $w), $this->viaEngine(\App\Services\Books\Engine\Reports\StockItemMonthlyReport::class, ['item' => IngredientItemSource::TYPE . ':' . $this->exe], $w));
+        $this->assertEquals($svc->movements(IngredientItemSource::TYPE, $this->exe, $w), $this->viaEngine(\App\Services\Books\Engine\Reports\StockItemMovementsReport::class, ['item' => IngredientItemSource::TYPE . ':' . $this->exe], $w));
+    }
+
+    public function test_the_summary_binds_its_date_and_still_counts_opening_stock_as_opening(): void
+    {
+        $this->receive($this->exe, 1, 260);
+        $svc = app(\App\Services\Stock\StockReportService::class);
+        $this->assertNotEmpty($svc->summary(['from' => '2026-10-01', 'to' => '2026-10-31'])['groups']);
+        $this->expectException(\Carbon\Exceptions\InvalidFormatException::class);   // a date is read as a date, never put into SQL
+        $svc->summary(['from' => "2026-10-01'; DROP TABLE x; --", 'to' => '2026-10-31']);
+    }
+
     public function test_a_cancelled_voucher_takes_its_ingredient_movements_out_of_the_journal(): void
     {
         $v = $this->receive($this->exe, 1, 260);

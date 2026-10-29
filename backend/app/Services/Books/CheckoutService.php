@@ -484,7 +484,7 @@ class CheckoutService
         }
         $a['data']['meta'] = array_merge($a['data']['meta'] ?? [], ['payment_intent' => $intent]);
 
-        return DB::transaction(function () use ($a, $in, $user, $customer, $mode, $method) {
+        return DB::transaction(function () use ($a, $in, $user, $customer, $mode, $method, $depositPct) {
             // Pay later: nothing is spent now; the order only remembers which gift vouchers the customer meant to use
             if ($mode === 'pay_later' && ($codes = $this->giftCodes($in)) && $customer) {
                 $a['data']['gift_codes'] = $codes;

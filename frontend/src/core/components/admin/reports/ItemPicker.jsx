@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react';
 import booksAPI from '../../../../_shared/api/books';
+import { stockReportsAPI } from '../../../../_shared/api/stockOps';
 import { card, colors } from '../../../../_shared/theme/tokens';
 import { filterStyle } from '../books/booksFmt';
 
@@ -7,7 +8,7 @@ import { filterStyle } from '../books/booksFmt';
  * Choose a stock item (a product, or the kitchen's stock when Menus is on) by typing part of its name or code.
  * `value` is "product:12" or "ingredient:7" (or empty); `onChange(value)` gets it, or '' when the box is cleared.
  */
-export default function ItemPicker({ value, onChange, label = 'Item' }) {
+export default function ItemPicker({ value, onChange, label = 'Item', source = 'trade' }) {
   const [text, setText] = useState('');
   const [found, setFound] = useState([]);
   const [open, setOpen] = useState(false);
@@ -15,9 +16,12 @@ export default function ItemPicker({ value, onChange, label = 'Item' }) {
   useEffect(() => { if (!value) setText(''); }, [value]);
   useEffect(() => {
     if (!open) return undefined;
-    const t = setTimeout(() => booksAPI.movementProducts(text.trim()).then(setFound).catch(() => {}), text ? 250 : 0);
+    const ask = source === 'stock'
+      ? () => (text.trim().length < 2 ? Promise.resolve([]) : stockReportsAPI.find(text.trim()).then((r) => r.rows.map((x) => ({ item_type: x.item_type, id: x.item_id, name: x.name, sku: x.sku }))))   // any kind of stocked item
+      : () => booksAPI.movementProducts(text.trim());
+    const t = setTimeout(() => ask().then(setFound).catch(() => {}), text ? 250 : 0);
     return () => clearTimeout(t);
-  }, [text, open]);
+  }, [text, open, source]);
 
   const pick = (p) => { onChange(`${p.item_type ?? 'product'}:${p.id}`); setText(p.name); setOpen(false); };
 
