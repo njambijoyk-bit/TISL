@@ -14,6 +14,7 @@ import StatementView from '../reports/StatementView';
 import DayBookView from '../reports/DayBookView';
 import LedgerStatementView from '../reports/LedgerStatementView';
 import AgeingView from '../reports/AgeingView';
+import TaxReturnView from '../reports/TaxReturnView';
 import { hasPermission } from '../../../../_shared/lib/roles';
 import costCentresAPI from '../../../../_shared/api/costCentres';
 import locationsAPI from '../../../../_shared/api/locations';
@@ -27,7 +28,7 @@ const REPORTS = [
   { id: 'profit-loss-by-cost-centre', label: 'Profit & loss by cost centre', range: true, byCostCentre: true },
   { id: 'engine-receivables', label: 'Receivables ageing', custom: true, engine: 'receivables-ageing' },
   { id: 'engine-payables', label: 'Payables ageing', custom: true, engine: 'payables-ageing' },
-  { id: 'tax-return', label: 'Tax return', range: true },
+  { id: 'engine-tax-return', label: 'Tax return', custom: true, engine: 'tax-return' },
   { id: 'withholding', label: 'Withholding certificates', range: true },
   { id: 'ratio-analysis', label: 'Ratio analysis', range: true },
   { id: 'reconciliation', label: 'Reconciliation', asOf: true },
@@ -78,13 +79,14 @@ function View(props) {
   );
 }
 
-const ENGINE_ALIAS = { 'day-book': 'engine-day-book', ledger: 'engine-ledger', receivables: 'engine-receivables', payables: 'engine-payables', 'trial-balance': 'engine-trial-balance', 'profit-loss': 'engine-profit-loss', 'balance-sheet': 'engine-balance-sheet' };
+const ENGINE_ALIAS = { 'day-book': 'engine-day-book', ledger: 'engine-ledger', receivables: 'engine-receivables', payables: 'engine-payables', 'tax-return': 'engine-tax-return', 'trial-balance': 'engine-trial-balance', 'profit-loss': 'engine-profit-loss', 'balance-sheet': 'engine-balance-sheet' };
 
 /** The screen of each report on the engine. */
 function EngineView({ engine, result }) {
   if (engine === 'trial-balance') return <TrialBalanceView result={result} />;
   if (engine === 'day-book') return <DayBookView result={result} />;
   if (engine === 'ledger-statement') return <LedgerStatementView result={result} />;
+  if (engine === 'tax-return') return <TaxReturnView result={result} />;
   if (engine === 'receivables-ageing' || engine === 'payables-ageing') return <AgeingView result={result} />;
   return <StatementView result={result} />;
 }
