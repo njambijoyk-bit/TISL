@@ -1118,7 +1118,8 @@ class VoucherService
         $line['tax_amount'] = round(array_sum(array_column($line['taxes'], 'tax_amount')), 2);
         $first = collect($line['taxes'])->first(fn ($t) => empty($t['reverse_charge'])) ?? $line['taxes'][0] ?? null;
         $line['tax_rate_id'] = $first['tax_rate_id'] ?? null;
-        $line['tax_rate_percent'] = $first['percent'] ?? null;
+        // one percentage is only told when one tax is charged; with two (VAT and excise) a single figure beside the total would mislead
+        $line['tax_rate_percent'] = count(array_filter($line['taxes'], fn ($t) => empty($t['reverse_charge']))) > 1 ? null : ($first['percent'] ?? null);
     }
 
     private function productLine(array $l, array $ctx): array
