@@ -1298,6 +1298,25 @@ Route::middleware('auth:sanctum')->group(function () {
             Route::post('/financial-years',         [BooksMasterController::class, 'storeYear']);
         });
 
+        // Reconciliation: preparing needs books.reconcile; approving and locking books.reconcile.approve; reopening books.period
+        Route::middleware('permission:books.reconcile')->prefix('recon')->group(function () {
+            Route::get('/',                        [\App\Http\Controllers\Api\ReconController::class, 'index']);
+            Route::post('/sessions',               [\App\Http\Controllers\Api\ReconController::class, 'start']);
+            Route::get('/sessions/{id}',           [\App\Http\Controllers\Api\ReconController::class, 'show'])->whereNumber('id');
+            Route::post('/sessions/{id}/import',   [\App\Http\Controllers\Api\ReconController::class, 'import'])->whereNumber('id');
+            Route::post('/sessions/{id}/auto-match', [\App\Http\Controllers\Api\ReconController::class, 'autoMatch'])->whereNumber('id');
+            Route::post('/sessions/{id}/match',    [\App\Http\Controllers\Api\ReconController::class, 'match'])->whereNumber('id');
+            Route::post('/sessions/{id}/unmatch',  [\App\Http\Controllers\Api\ReconController::class, 'unmatch'])->whereNumber('id');
+            Route::post('/sessions/{id}/clear-before', [\App\Http\Controllers\Api\ReconController::class, 'clearBefore'])->whereNumber('id');
+            Route::post('/sessions/{id}/book-line', [\App\Http\Controllers\Api\ReconController::class, 'bookLine'])->whereNumber('id');
+            Route::post('/sessions/{id}/prepare',  [\App\Http\Controllers\Api\ReconController::class, 'prepare'])->whereNumber('id');
+        });
+        Route::middleware('permission:books.reconcile.approve')->prefix('recon')->group(function () {
+            Route::post('/sessions/{id}/approve',  [\App\Http\Controllers\Api\ReconController::class, 'approve'])->whereNumber('id');
+            Route::post('/sessions/{id}/lock',     [\App\Http\Controllers\Api\ReconController::class, 'lock'])->whereNumber('id');
+        });
+        Route::post('/recon/sessions/{id}/reopen', [\App\Http\Controllers\Api\ReconController::class, 'reopen'])->whereNumber('id')->middleware('permission:books.period');
+
         // The year-end close: seeing it needs books.view (the group above); preparing books.close.prepare; approving, locking and reopening books.period
         Route::get('/year-close',                       [\App\Http\Controllers\Api\YearCloseController::class, 'index']);
         Route::get('/year-close/years/{yearId}',        [\App\Http\Controllers\Api\YearCloseController::class, 'show'])->whereNumber('yearId');

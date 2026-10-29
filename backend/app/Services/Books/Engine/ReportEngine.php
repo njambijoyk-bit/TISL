@@ -22,6 +22,7 @@ use App\Services\Books\Engine\Reports\StockQueryReport;
 use App\Services\Books\Engine\Reports\StockSummaryReport;
 use App\Services\Books\Engine\Reports\TradeReport;
 use App\Services\Books\Engine\Reports\WithholdingReport;
+use App\Services\Books\Engine\Reports\ControlAccountsReport;
 use App\Services\Books\Engine\Reports\DayBookReport;
 use App\Services\Books\Engine\Reports\LedgerStatementReport;
 use App\Services\Books\Engine\Reports\ProfitLossReport;
@@ -54,6 +55,7 @@ final class ReportEngine
         TradeReport::class,
         MoneyFlowReport::class,
         CashFlowReport::class,
+        ControlAccountsReport::class,
         StockJournalReport::class,
         StockSummaryReport::class,
         StockLocationSummaryReport::class,

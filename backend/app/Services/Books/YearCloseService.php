@@ -105,7 +105,12 @@ class YearCloseService
         foreach (self::CONFIRMATIONS as $key => $label) {
             $add($key, $label, false, false, 'Tick to confirm when you prepare the close.', true);
         }
-        $add('reconciliations', 'Reconciliations are signed off', false, false, 'Not checked yet: reconciliation is not built.', true);
+        if (ReconService::ready() && ($ledgers = app(ReconService::class)->ledgers())) {
+            $behind = array_values(array_filter($ledgers, fn ($l) => (app(ReconService::class)->lockedUpTo((int) $l['id']) ?? '0000-00-00') < $end));
+            $add('reconciliations', 'Reconciliations are signed off to the year end', ! $behind, false, $behind ? 'Not reconciled to ' . $end . ': ' . implode(', ', array_map(fn ($l) => $l['name'], array_slice($behind, 0, 6))) . (count($behind) > 6 ? ' and ' . (count($behind) - 6) . ' more' : '') . '.' : null);
+        } else {
+            $add('reconciliations', 'Reconciliations are signed off', false, false, 'Reconciliation is not set up: choose the reconcilable groups in the Reports settings and run script 233.', true);
+        }
 
         return $items;
     }
