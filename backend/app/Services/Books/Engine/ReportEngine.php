@@ -7,6 +7,7 @@ use App\Services\Access\Authorizer;
 use App\Services\Access\BranchFilter;
 use App\Services\Books\Engine\Reports\AdjustedTrialBalanceReport;
 use App\Services\Books\Engine\Reports\BalanceSheetReport;
+use App\Services\Books\Engine\Reports\CashFlowReport;
 use App\Services\Books\Engine\Reports\ChangesInEquityReport;
 use App\Services\Books\Engine\Reports\PayablesAgeingReport;
 use App\Services\Books\Engine\Reports\RatioAnalysisReport;
@@ -52,6 +53,7 @@ final class ReportEngine
         RatioAnalysisReport::class,
         TradeReport::class,
         MoneyFlowReport::class,
+        CashFlowReport::class,
         StockJournalReport::class,
         StockSummaryReport::class,
         StockLocationSummaryReport::class,

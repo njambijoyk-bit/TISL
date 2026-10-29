@@ -81,7 +81,8 @@ class StatementController extends Controller
         }
         $row = DB::table('statements')->where('id', $id)->first();
         abort_unless($row, 404, 'Row not found.');
-        $d = $request->validate(['name' => 'sometimes|string|max:120', 'sort_order' => 'sometimes|integer|min:0|max:9999', 'is_active' => 'sometimes|boolean']);
+        $d = $request->validate(['name' => 'sometimes|string|max:120', 'sort_order' => 'sometimes|integer|min:0|max:9999', 'is_active' => 'sometimes|boolean',
+            'cash_flow_category' => 'sometimes|nullable|in:' . implode(',', array_keys(\App\Services\Books\CashFlowCategories::ALL))]);
         $set = [];
         if (isset($d['name'])) {
             $name = trim($d['name']);
@@ -91,6 +92,9 @@ class StatementController extends Controller
         }
         if (isset($d['sort_order'])) {
             $set['sort_order'] = $d['sort_order'];
+        }
+        if (array_key_exists('cash_flow_category', $d)) {   // which section of the cash flow statement the row counts in; empty follows the row above it
+            $set['cash_flow_category'] = $d['cash_flow_category'] ?: null;
         }
         if (array_key_exists('is_active', $d) && (bool) $d['is_active'] !== (bool) $row->is_active) {
             if (! $d['is_active']) {
@@ -156,12 +160,14 @@ class StatementController extends Controller
             $children[$r->parent_id ?? 0][] = $r;
         }
         $out = [];
-        $walk = function ($parent, $depth) use (&$walk, &$out, $children, $onGroups, $onLedgers) {
+        $cats = new \App\Services\Books\CashFlowCategories();
+        $walk = function ($parent, $depth) use (&$walk, &$out, $children, $onGroups, $onLedgers, $cats) {
             foreach ($children[$parent] ?? [] as $r) {
                 $out[] = [
                     'id' => (int) $r->id, 'parent_id' => $r->parent_id ? (int) $r->parent_id : null, 'code' => $r->code, 'name' => $r->name, 'kind' => $r->kind,
                     'nature' => $r->nature, 'is_system' => (bool) $r->is_system, 'is_active' => (bool) $r->is_active, 'sort_order' => (int) $r->sort_order, 'depth' => $depth,
                     'groups' => (int) ($onGroups[$r->id] ?? 0), 'ledgers' => (int) ($onLedgers[$r->id] ?? 0),
+                    'cash_flow_category' => $r->cash_flow_category ?? null, 'cash_flow_effective' => $r->kind === 'line' || ! empty($r->cash_flow_category) ? $cats->of((int) $r->id) : null,
                 ];
                 $walk($r->id, $depth + 1);
             }

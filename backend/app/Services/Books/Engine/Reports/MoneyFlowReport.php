@@ -66,6 +66,12 @@ final class MoneyFlowReport extends ReportDefinition
         return Ledger::whereIn('group_id', $ids ?: [0])->orderBy('name')->get(['id', 'name', 'group_id']);
     }
 
+    /** The ids of the cash and bank ledgers. @return int[] */
+    public function moneyLedgerIds(): array
+    {
+        return $this->moneyLedgers()->pluck('id')->map(fn ($i) => (int) $i)->all();
+    }
+
     private function span(Scope $scope): array
     {
         $to = $scope->to ?: today()->toDateString();

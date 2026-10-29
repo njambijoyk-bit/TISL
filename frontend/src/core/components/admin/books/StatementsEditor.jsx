@@ -14,6 +14,8 @@ import { btnPrimary, card, colors } from '../../../../_shared/theme/tokens';
 
 const NATURES = { BS: { asset: 'An asset', liability: 'A liability or equity' }, IS: { income: 'Income', expense: 'An expense' } };
 
+const CASH_FLOW = { operating: 'Operating', investing: 'Investing', financing: 'Financing', non_cash: 'Non-cash' };   // where the row counts in the cash flow statement
+
 function Row({ r, canEdit, onChange }) {
   const [name, setName] = useState(r.name);
   useEffect(() => setName(r.name), [r.name]);
@@ -31,6 +33,15 @@ function Row({ r, canEdit, onChange }) {
       <td style={{ padding: '6px 8px', fontFamily: 'monospace', fontSize: '0.72rem', color: colors.textMuted }}>{r.code}</td>
       <td style={{ padding: '6px 8px', fontSize: '0.72rem', color: colors.textMuted }}>{r.kind === 'heading' ? 'Section' : `Line · ${r.nature}`}</td>
       <td style={{ padding: '6px 8px', fontSize: '0.75rem', textAlign: 'right' }}>{r.kind === 'line' ? `${r.groups} group${r.groups === 1 ? '' : 's'}, ${r.ledgers} ledger${r.ledgers === 1 ? '' : 's'}` : ''}</td>
+      <td style={{ padding: '6px 8px' }}>
+        {r.code === 'BS' || r.code === 'IS' ? null : (
+          <select aria-label={`Cash flow section of ${r.name}`} disabled={!canEdit} value={r.cash_flow_category ?? ''} style={{ fontSize: '0.74rem', padding: '3px 6px' }}
+            onChange={(e) => run(() => booksAPI.updateStatement(r.id, { cash_flow_category: e.target.value || null }), 'Saved')}>
+            <option value="">{r.cash_flow_effective ? `Follows: ${CASH_FLOW[r.cash_flow_effective]}` : 'Follows the row above'}</option>
+            {Object.entries(CASH_FLOW).map(([k, v]) => <option key={k} value={k}>{v}</option>)}
+          </select>
+        )}
+      </td>
       <td style={{ padding: '6px 8px', whiteSpace: 'nowrap' }}>
         {canEdit && (
           <>
@@ -107,7 +118,7 @@ export default function StatementsEditor({ canEdit }) {
         <>
           <div style={{ overflowX: 'auto' }}>
             <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '0.8rem' }}>
-              <thead><tr style={{ textAlign: 'left', color: colors.textFaint, fontSize: '0.68rem' }}><th style={{ padding: '6px 8px' }}>Name</th><th style={{ padding: '6px 8px' }}>Code</th><th style={{ padding: '6px 8px' }}>Kind</th><th style={{ padding: '6px 8px', textAlign: 'right' }}>On it</th><th /></tr></thead>
+              <thead><tr style={{ textAlign: 'left', color: colors.textFaint, fontSize: '0.68rem' }}><th style={{ padding: '6px 8px' }}>Name</th><th style={{ padding: '6px 8px' }}>Code</th><th style={{ padding: '6px 8px' }}>Kind</th><th style={{ padding: '6px 8px', textAlign: 'right' }}>On it</th><th style={{ padding: '6px 8px' }}>Cash flow</th><th /></tr></thead>
               <tbody>{data.rows.map((r) => <Row key={r.id} r={r} canEdit={canEdit} onChange={setRows} />)}</tbody>
             </table>
           </div>
