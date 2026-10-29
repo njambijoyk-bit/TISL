@@ -1,4 +1,4 @@
-import { useMemo, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import {
   Area, AreaChart, Bar, BarChart, CartesianGrid, Cell, ComposedChart, Legend, Line, Pie, PieChart, ResponsiveContainer, Scatter, ScatterChart, Tooltip, Treemap, XAxis, YAxis, ZAxis,
 } from 'recharts';
@@ -360,6 +360,249 @@ export function ReconStatus({ d }) {
           </div>
         );
       })}
+    </div>
+  );
+}
+
+// ── more charts ────────────────────────────────────────────────────────────
+
+/** A number that counts up to its value (once, when it appears) unless motion is off. */
+function CountUp({ value, format = compact }) {
+  const [shown, setShown] = useState(MOTION ? 0 : value);
+  useEffect(() => {
+    if (!MOTION || value === null || value === undefined) { setShown(value); return undefined; }
+    let frame;
+    const start = performance.now();
+    const tick = (now) => {
+      const t = Math.min(1, (now - start) / 800);
+      setShown(value * (1 - (1 - t) ** 3));
+      if (t < 1) frame = requestAnimationFrame(tick);
+    };
+    frame = requestAnimationFrame(tick);
+    return () => cancelAnimationFrame(frame);
+  }, [value]);
+  return <>{shown === null || shown === undefined ? '—' : format(shown)}</>;
+}
+
+/** Revenue, profit, cash and what is owed: a tile each, with a month by month line, and the change against the other period when there is one. */
+export function Scorecard({ d, c }) {
+  const before = new Map((c?.cards ?? []).map((x) => [x.key, x.value]));
+  return (
+    <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(170px, 1fr))', gap: 12 }}>
+      {d.cards.map((k, i) => (
+        <div key={k.key} style={{ border: `1px solid ${colors.tint(0.1)}`, borderRadius: 10, padding: '10px 12px', minWidth: 0 }}>
+          <div style={{ fontSize: '0.7rem', color: colors.textFaint }}>{k.label}</div>
+          <div style={{ fontSize: '1.35rem', fontWeight: 700, color: colors.text, fontVariantNumeric: 'tabular-nums' }}><CountUp value={k.value} /></div>
+          {c && k.value !== null ? <Delta now={k.value} before={before.get(k.key)} lowerIsBetter={k.good === 'down'} /> : <span style={{ fontSize: '0.7rem', color: colors.textFaint }}>{k.note ?? ' '}</span>}
+          {k.series.length > 1 && (
+            <div style={{ height: 38, marginTop: 4 }}>
+              <ResponsiveContainer><AreaChart data={k.series.map((v, n) => ({ n, v }))} margin={{ top: 2, right: 0, left: 0, bottom: 0 }}>
+                <Area {...anim} type="monotone" dataKey="v" stroke={SERIES[i % SERIES.length]} strokeWidth={2} fill={SERIES[i % SERIES.length]} fillOpacity={0.12} dot={false} />
+              </AreaChart></ResponsiveContainer>
+            </div>
+          )}
+        </div>
+      ))}
+    </div>
+  );
+}
+
+/** One figure by month, with the other period's drawn dashed over it by position. */
+export function MonthLine({ d, c, field, name, money = true }) {
+  const rows = zip(d.months, c?.months, (x) => ({ cmp: x[field] }));
+  return (
+    <Frame><ComposedChart data={rows} margin={{ top: 8, right: 8, left: 0, bottom: 0 }}>
+      <CartesianGrid stroke={GRID} vertical={false} /><XAxis dataKey="month" {...axis} tickFormatter={month} /><YAxis {...axis} tickFormatter={money ? compact : (v) => `${v}`} width={48} />
+      <Tooltip {...tip} labelFormatter={month} formatter={(v, n) => [money ? full(v) : v, n]} />{c && <Legend {...legend} />}
+      <Area {...anim} type="monotone" dataKey={field} name={name} stroke={SERIES[0]} strokeWidth={2} fill={SERIES[0]} fillOpacity={0.12} dot={{ r: 3 }} />
+      {c && <Line {...anim} type="monotone" dataKey="cmp" name="Earlier period" stroke={GHOST} strokeWidth={2} strokeDasharray="5 4" dot={false} />}
+    </ComposedChart></Frame>
+  );
+}
+
+/** Gross and net margin by month. */
+export function Margins({ d, c }) {
+  const rows = zip(d.months, c?.months, (x) => ({ cmpNet: x.net_pct }));
+  return (
+    <div>
+      <Frame><ComposedChart data={rows} margin={{ top: 8, right: 8, left: 0, bottom: 0 }}>
+        <CartesianGrid stroke={GRID} vertical={false} /><XAxis dataKey="month" {...axis} tickFormatter={month} /><YAxis {...axis} tickFormatter={(v) => `${v}%`} width={44} />
+        <Tooltip contentStyle={tip.contentStyle} labelFormatter={month} formatter={(v, n) => [v === null ? '—' : `${v}%`, n]} /><Legend {...legend} />
+        <Line {...anim} type="monotone" dataKey="gross_pct" name="Gross margin" stroke={SERIES[0]} strokeWidth={2} dot={{ r: 3 }} connectNulls />
+        <Line {...anim} type="monotone" dataKey="net_pct" name="Net margin" stroke={SERIES[2]} strokeWidth={2} dot={{ r: 3 }} connectNulls />
+        {c && <Line {...anim} type="monotone" dataKey="cmpNet" name="Net margin, earlier period" stroke={GHOST} strokeWidth={2} strokeDasharray="5 4" dot={false} connectNulls />}
+      </ComposedChart></Frame>
+      <div style={{ fontSize: '0.74rem', color: colors.textBody }}>Over the period: gross {d.gross_pct ?? '—'}%, net {d.net_pct ?? '—'}%.</div>
+    </div>
+  );
+}
+
+/** The biggest expense groups, stacked by month. */
+export function ExpensesStacked({ d }) {
+  if (!d.groups.length) return <Empty />;
+  return (
+    <Frame h={300}><BarChart data={d.months} margin={{ top: 8, right: 8, left: 0, bottom: 0 }}>
+      <CartesianGrid stroke={GRID} vertical={false} /><XAxis dataKey="month" {...axis} tickFormatter={month} /><YAxis {...axis} tickFormatter={compact} width={48} />
+      <Tooltip {...tip} labelFormatter={month} /><Legend {...legend} />
+      {d.groups.map((g, i) => <Bar {...anim} key={g} dataKey={g} stackId="e" name={g} fill={g === 'Everything else' ? '#b4b2a9' : SERIES[i % SERIES.length]} stroke="var(--surface-card, #fff)" strokeWidth={1} />)}
+    </BarChart></Frame>
+  );
+}
+
+/** Each of the top customers' share of sales as a bar, and the running total as a line up to 100%. */
+export function Concentration({ d }) {
+  if (!d.rows.length) return <Empty />;
+  return (
+    <div>
+      <div style={{ display: 'flex', gap: 16, flexWrap: 'wrap', fontSize: '0.78rem', marginBottom: 6 }}>
+        {[['Biggest customer', d.top1], ['Top 5', d.top5], ['Top 10', d.top10]].map(([l, v]) => <span key={l}><b style={{ fontSize: '1.05rem' }}><CountUp value={v} format={(x) => `${x.toFixed(1)}%`} /></b> <span style={{ color: colors.textFaint }}>{l}</span></span>)}
+      </div>
+      <Frame h={220}><ComposedChart data={d.rows} margin={{ top: 8, right: 8, left: 0, bottom: 0 }}>
+        <CartesianGrid stroke={GRID} vertical={false} /><XAxis dataKey="rank" {...axis} /><YAxis {...axis} tickFormatter={(v) => `${v}%`} width={44} domain={[0, 100]} />
+        <Tooltip contentStyle={tip.contentStyle} formatter={(v, n) => [`${v}%`, n]} labelFormatter={(r) => d.rows[r - 1]?.name ?? r} /><Legend {...legend} />
+        <Bar {...anim} dataKey="share" name="Share of sales" fill={SERIES[0]} radius={[4, 4, 0, 0]} />
+        <Line {...anim} type="monotone" dataKey="cumulative" name="Running total" stroke={SERIES[1]} strokeWidth={2} dot={{ r: 3 }} />
+      </ComposedChart></Frame>
+    </div>
+  );
+}
+
+/** The items that sold for the most. */
+export function TopItems({ d }) {
+  if (!d.rows.length) return <Empty />;
+  return (
+    <Frame h={Math.max(H, d.rows.length * 34 + 40)}><BarChart data={d.rows} layout="vertical" margin={{ top: 4, right: 12, left: 8, bottom: 0 }}>
+      <CartesianGrid stroke={GRID} horizontal={false} /><XAxis type="number" {...axis} tickFormatter={compact} /><YAxis type="category" dataKey="name" {...axis} width={130} />
+      <Tooltip contentStyle={tip.contentStyle} formatter={(v, n, p) => [`${full(v)} · ${p.payload.qty} sold`, p.payload.name]} />
+      <Bar {...anim} dataKey="value" name="Sales" fill={SERIES[2]} radius={[0, 4, 4, 0]} />
+    </BarChart></Frame>
+  );
+}
+
+/** Tax charged on sales against tax paid on purchases, by month, with the gap as a line. */
+export function VatFlow({ d }) {
+  return (
+    <Frame><ComposedChart data={d.months} margin={{ top: 8, right: 8, left: 0, bottom: 0 }}>
+      <CartesianGrid stroke={GRID} vertical={false} /><XAxis dataKey="month" {...axis} tickFormatter={month} /><YAxis {...axis} tickFormatter={compact} width={48} />
+      <Tooltip {...tip} labelFormatter={month} /><Legend {...legend} />
+      <Bar {...anim} dataKey="output" name="Charged on sales" fill={SERIES[0]} radius={[4, 4, 0, 0]} /><Bar {...anim} dataKey="input" name="Paid on purchases" fill={SERIES[1]} radius={[4, 4, 0, 0]} />
+      <Line {...anim} type="monotone" dataKey="net" name="Owed (the gap)" stroke={SERIES[2]} strokeWidth={2} dot={{ r: 3 }} />
+    </ComposedChart></Frame>
+  );
+}
+
+/** What is owed to us against what we owe, by the week it falls due; overdue first. */
+export function DueChart({ d }) {
+  const rows = [...d.buckets, ...((d.later.receivables || d.later.payables) ? [{ label: 'Later', receivables: d.later.receivables, payables: d.later.payables }] : [])];
+  return (
+    <div>
+      <div style={{ display: 'flex', gap: 16, flexWrap: 'wrap', fontSize: '0.78rem', marginBottom: 6 }}>
+        <span><b style={{ fontSize: '1.05rem' }}><CountUp value={d.receivables} /></b> <span style={{ color: colors.textFaint }}>customers owe us</span></span>
+        <span><b style={{ fontSize: '1.05rem' }}><CountUp value={d.payables} /></b> <span style={{ color: colors.textFaint }}>we owe suppliers</span></span>
+        <span><b style={{ fontSize: '1.05rem', color: d.receivables - d.payables >= 0 ? colors.successText : colors.dangerText }}><CountUp value={d.receivables - d.payables} /></b> <span style={{ color: colors.textFaint }}>net</span></span>
+      </div>
+      <Frame><BarChart data={rows} margin={{ top: 8, right: 8, left: 0, bottom: 0 }} barGap={2}>
+        <CartesianGrid stroke={GRID} vertical={false} /><XAxis dataKey="label" {...axis} interval={0} tick={{ fill: AXIS, fontSize: 10 }} /><YAxis {...axis} tickFormatter={compact} width={48} />
+        <Tooltip {...tip} /><Legend {...legend} />
+        <Bar {...anim} dataKey="receivables" name="Customers owe us" fill={SERIES[0]} radius={[4, 4, 0, 0]} /><Bar {...anim} dataKey="payables" name="We owe suppliers" fill={SERIES[1]} radius={[4, 4, 0, 0]} />
+      </BarChart></Frame>
+    </div>
+  );
+}
+
+const SEVERITY = ['#0ca30c', '#eda100', '#eb6834', '#d03b3b', '#9b1c1c'];
+
+/** What is late, by how late, coloured from green to red, with the customers furthest behind. */
+export function Overdue({ d }) {
+  return (
+    <div>
+      <div style={{ display: 'flex', gap: 16, flexWrap: 'wrap', fontSize: '0.78rem', marginBottom: 6 }}>
+        <span><b style={{ fontSize: '1.05rem', color: colors.dangerText }}><CountUp value={d.late} /></b> <span style={{ color: colors.textFaint }}>late, {d.late_share}% of what is owed</span></span>
+      </div>
+      <Frame h={220}><BarChart data={d.buckets} margin={{ top: 8, right: 8, left: 0, bottom: 0 }}>
+        <CartesianGrid stroke={GRID} vertical={false} /><XAxis dataKey="bucket" {...axis} /><YAxis {...axis} tickFormatter={compact} width={48} />
+        <Tooltip contentStyle={tip.contentStyle} formatter={(v, n, p) => [`${full(v)} · ${p.payload.customers} customer(s) · ${p.payload.share}%`, p.payload.bucket]} />
+        <Bar {...anim} dataKey="amount" name="Owed" radius={[4, 4, 0, 0]}>{d.buckets.map((b, i) => <Cell key={b.bucket} fill={SEVERITY[Math.min(i, SEVERITY.length - 1)]} />)}</Bar>
+      </BarChart></Frame>
+      {d.worst.length > 0 && (
+        <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '0.76rem', marginTop: 6 }}><tbody>
+          {d.worst.map((w) => <tr key={w.name}><td style={{ padding: '3px 0' }}>{w.name}</td><td style={{ textAlign: 'right', color: colors.textFaint }}>{w.days} days late</td><td style={{ textAlign: 'right', fontWeight: 700, fontVariantNumeric: 'tabular-nums' }}>{full(w.overdue)}</td></tr>)}
+        </tbody></table>
+      )}
+    </div>
+  );
+}
+
+/** Days of sales customers owe, by month; lower is better. */
+export function Collection({ d }) {
+  return (
+    <div>
+      <div style={{ fontSize: '0.78rem', marginBottom: 6 }}><b style={{ fontSize: '1.05rem' }}><CountUp value={d.average} format={(x) => `${x.toFixed(0)} days`} /></b> <span style={{ color: colors.textFaint }}>on average</span></div>
+      <Frame h={220}><ComposedChart data={d.months} margin={{ top: 8, right: 8, left: 0, bottom: 0 }}>
+        <CartesianGrid stroke={GRID} vertical={false} /><XAxis dataKey="month" {...axis} tickFormatter={month} /><YAxis {...axis} width={40} unit=" d" />
+        <Tooltip contentStyle={tip.contentStyle} labelFormatter={month} formatter={(v) => [v === null ? '—' : `${v} days`, 'Owed']} />
+        <Line {...anim} type="monotone" dataKey="days" name="Days of sales owed" stroke={SERIES[1]} strokeWidth={2} dot={{ r: 4 }} connectNulls />
+      </ComposedChart></Frame>
+    </div>
+  );
+}
+
+/** What the stock ledgers hold at the end of each month. */
+export function StockValue({ d }) {
+  return <Frame><AreaChart data={d.months} margin={{ top: 8, right: 8, left: 0, bottom: 0 }}>
+    <CartesianGrid stroke={GRID} vertical={false} /><XAxis dataKey="month" {...axis} tickFormatter={month} /><YAxis {...axis} tickFormatter={compact} width={48} /><Tooltip {...tip} labelFormatter={month} />
+    <Area {...anim} type="monotone" dataKey="value" name="Stock value" stroke={SERIES[6]} strokeWidth={2} fill={SERIES[6]} fillOpacity={0.14} dot={{ r: 3 }} />
+  </AreaChart></Frame>;
+}
+
+/** Turns over the period and days of stock held, with the month by month line of days. */
+export function Turnover({ d }) {
+  return (
+    <div>
+      <div style={{ display: 'flex', gap: 16, flexWrap: 'wrap', fontSize: '0.78rem', marginBottom: 6 }}>
+        <span><b style={{ fontSize: '1.05rem' }}><CountUp value={d.turns} format={(x) => `${x.toFixed(1)}×`} /></b> <span style={{ color: colors.textFaint }}>turns a year</span></span>
+        <span><b style={{ fontSize: '1.05rem' }}><CountUp value={d.days_of_stock} format={(x) => `${x.toFixed(0)} days`} /></b> <span style={{ color: colors.textFaint }}>of stock held</span></span>
+      </div>
+      <Frame h={220}><ComposedChart data={d.months} margin={{ top: 8, right: 8, left: 0, bottom: 0 }}>
+        <CartesianGrid stroke={GRID} vertical={false} /><XAxis dataKey="month" {...axis} tickFormatter={month} /><YAxis {...axis} width={40} unit=" d" />
+        <Tooltip contentStyle={tip.contentStyle} labelFormatter={month} formatter={(v, n) => [v === null ? '—' : `${v}`, n]} />
+        <Line {...anim} type="monotone" dataKey="days_of_stock" name="Days of stock held" stroke={SERIES[6]} strokeWidth={2} dot={{ r: 4 }} connectNulls />
+      </ComposedChart></Frame>
+    </div>
+  );
+}
+
+/** Stock on hand that has not gone out for the longest. */
+export function SlowMovers({ d }) {
+  if (!d.rows.length) return <Empty text="Every item with stock has moved." />;
+  return (
+    <div>
+      <div style={{ display: 'flex', gap: 16, flexWrap: 'wrap', fontSize: '0.78rem', marginBottom: 6 }}>
+        <span><b style={{ fontSize: '1.05rem', color: colors.warningText }}><CountUp value={d.tied_up} /></b> <span style={{ color: colors.textFaint }}>tied up in items unsold for 90+ days</span></span>
+        {d.never_sold > 0 && <span><b>{d.never_sold}</b> <span style={{ color: colors.textFaint }}>never sold</span></span>}
+      </div>
+      <Frame h={Math.max(H, d.rows.length * 30 + 40)}><BarChart data={d.rows.map((r) => ({ ...r, days: r.days ?? 0 }))} layout="vertical" margin={{ top: 4, right: 12, left: 8, bottom: 0 }}>
+        <CartesianGrid stroke={GRID} horizontal={false} /><XAxis type="number" {...axis} unit=" d" /><YAxis type="category" dataKey="name" {...axis} width={130} />
+        <Tooltip contentStyle={tip.contentStyle} formatter={(v, n, p) => [`${p.payload.days === 0 && p.payload.days !== v ? '' : ''}${v} days since one went out · ${p.payload.qty} on hand · ${full(p.payload.value)}`, p.payload.name]} />
+        <Bar {...anim} dataKey="days" name="Days since last out" fill={SERIES[3]} radius={[0, 4, 4, 0]} />
+      </BarChart></Frame>
+    </div>
+  );
+}
+
+/** Matched, unmatched and unresolved amounts for each area. */
+export function ReconAreas({ d }) {
+  return (
+    <div>
+      <Frame h={260}><BarChart data={d.areas} layout="vertical" margin={{ top: 4, right: 12, left: 8, bottom: 0 }}>
+        <CartesianGrid stroke={GRID} horizontal={false} /><XAxis type="number" {...axis} tickFormatter={compact} /><YAxis type="category" dataKey="area" {...axis} width={130} />
+        <Tooltip {...tip} /><Legend {...legend} />
+        <Bar {...anim} dataKey="matched" stackId="r" name="Matched" fill={GOOD} /><Bar {...anim} dataKey="unmatched" stackId="r" name="Unmatched" fill="#eda100" stroke="var(--surface-card, #fff)" strokeWidth={1} />
+        <Bar {...anim} dataKey="unresolved" stackId="r" name="Unresolved" fill={BAD} stroke="var(--surface-card, #fff)" strokeWidth={1} radius={[0, 4, 4, 0]} />
+      </BarChart></Frame>
+      <div style={{ display: 'flex', flexWrap: 'wrap', gap: '4px 16px', fontSize: '0.74rem', color: colors.textBody }}>
+        {d.areas.map((a) => <span key={a.area}>{a.area}: {a.reconciled} of {a.accounts} reconciled</span>)}
+      </div>
     </div>
   );
 }

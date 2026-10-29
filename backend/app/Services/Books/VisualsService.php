@@ -20,6 +20,8 @@ use Throwable;
  */
 class VisualsService
 {
+    use VisualsMoreCharts;
+
     private LedgerBalances $b;
 
     public function __construct()
@@ -32,22 +34,36 @@ class VisualsService
      * overlay (a ghost series beside the main one), delta (a column of change) or none.
      */
     public const CATALOG = [
+        'scorecard' => ['title' => 'At a glance', 'note' => 'Revenue, profit, cash and what is owed, each with its month by month line.', 'source' => 'scorecard', 'wide' => true, 'compare' => 'delta'],
         'cash' => ['title' => 'Cash and bank balance', 'note' => 'The running balance of all cash and bank accounts.', 'source' => 'money', 'compare' => 'overlay'],
         'inout' => ['title' => 'Money in and out', 'note' => 'What came into the cash and bank accounts and what went out.', 'source' => 'money', 'compare' => 'overlay'],
-        'accounts' => ['title' => 'Each account', 'note' => 'In, out and the balance at the end, per cash and bank account.', 'source' => 'money', 'compare' => 'none'],
-        'expense-donut' => ['title' => 'Where the money went', 'note' => 'The biggest groups of expenses in the period. Click a slice to open it.', 'source' => 'expenses', 'compare' => 'delta'],
-        'expense-tree' => ['title' => 'Expenses by group', 'note' => 'Every expense group and ledger; bigger is more.', 'source' => 'expenses', 'wide' => true, 'compare' => 'none'],
-        'customers' => ['title' => 'Top customers', 'note' => 'The ten customers who bought the most in the period.', 'source' => 'top_customers', 'compare' => 'overlay'],
-        'sales-purchases' => ['title' => 'Sales against purchases', 'note' => 'By month. A cash sale is cash; any other sale or purchase that left an open bill is credit, and one that did not is cash.', 'source' => 'sales_purchases', 'wide' => true, 'compare' => 'none'],
-        'composition' => ['title' => 'What we own', 'note' => 'Assets on the last day, by group.', 'source' => 'composition', 'wide' => true, 'compare' => 'none'],
-        'build' => ['title' => 'Owed to us and by us', 'note' => 'Receivables, payables and the net position they leave.', 'source' => 'outstanding', 'compare' => 'none'],
-        'ageing' => ['title' => 'How old the debts are', 'note' => 'Receivables and payables by age.', 'source' => 'outstanding', 'compare' => 'none'],
-        'bubbles' => ['title' => 'Who is late', 'note' => 'Each customer: how long their bills have been open (across), how much they owe (up) and how many bills (size).', 'source' => 'outstanding', 'wide' => true, 'compare' => 'none'],
-        'calendar' => ['title' => 'Activity', 'note' => 'Vouchers posted each day over the last year.', 'source' => 'heatmap', 'wide' => true, 'compare' => 'none'],
-        'waterfall' => ['title' => 'From income to profit', 'note' => 'How the income of the period turns into profit.', 'source' => 'waterfall', 'compare' => 'delta'],
-        'balance' => ['title' => 'Assets against liabilities and equity', 'note' => 'What the business has against who it belongs to.', 'source' => 'balance', 'compare' => 'delta'],
+        'sales-year' => ['title' => 'Sales over time', 'note' => 'Revenue by month; set against another period it shows growth.', 'source' => 'sales_year', 'compare' => 'overlay'],
+        'margins' => ['title' => 'Margins', 'note' => 'Gross and net profit as a share of revenue, by month.', 'source' => 'margins', 'compare' => 'overlay'],
         'trend' => ['title' => 'Profit month by month', 'note' => 'Income and expenses as bars, profit as the line.', 'source' => 'profit_trend', 'wide' => true, 'compare' => 'overlay'],
-        'recon' => ['title' => 'Reconciliation', 'note' => 'How far each account has been reconciled with its statement.', 'source' => 'recon', 'compare' => 'none'],
+        'waterfall' => ['title' => 'From income to profit', 'note' => 'How the income of the period turns into profit.', 'source' => 'waterfall', 'compare' => 'delta'],
+        'expense-donut' => ['title' => 'Where the money went', 'note' => 'The biggest groups of expenses in the period. Click a slice to open it.', 'source' => 'expenses', 'compare' => 'delta'],
+        'expense-tree' => ['title' => 'Expenses by group', 'note' => 'Every expense group and ledger; bigger is more. Click a group to open it.', 'source' => 'expenses', 'wide' => true, 'compare' => 'none'],
+        'expenses-stacked' => ['title' => 'Expenses month by month', 'note' => 'The biggest expense groups, stacked, to see which cost is growing.', 'source' => 'expenses_stacked', 'wide' => true, 'compare' => 'none'],
+        'customers' => ['title' => 'Top customers', 'note' => 'The ten customers who bought the most in the period.', 'source' => 'top_customers', 'compare' => 'overlay'],
+        'concentration' => ['title' => 'How much sales depend on a few customers', 'note' => 'The share of sales the biggest customers make up, building up to the top ten.', 'source' => 'concentration', 'compare' => 'none'],
+        'top-items' => ['title' => 'Top items', 'note' => 'The ten items that sold for the most, with the quantity sold.', 'source' => 'top_items', 'compare' => 'none'],
+        'sales-purchases' => ['title' => 'Sales against purchases', 'note' => 'By month. A cash sale is cash; any other sale or purchase that left an open bill is credit, and one that did not is cash.', 'source' => 'sales_purchases', 'wide' => true, 'compare' => 'none'],
+        'vat-flow' => ['title' => 'Tax charged against tax paid', 'note' => 'Tax on sales against tax on purchases by month, from the tax return. The gap is what is owed.', 'source' => 'vat_flow', 'compare' => 'none'],
+        'due' => ['title' => 'Receivables and payables due', 'note' => 'What customers owe us against what we owe suppliers, by the week it falls due.', 'source' => 'due', 'wide' => true, 'compare' => 'none'],
+        'overdue' => ['title' => 'Overdue receivables', 'note' => 'What customers owe that is late, by how late, and who is furthest behind.', 'source' => 'overdue', 'compare' => 'none'],
+        'bubbles' => ['title' => 'Who is late', 'note' => 'Each customer: how long their bills have been open (across), how much they owe (up) and how many bills (size).', 'source' => 'outstanding', 'wide' => true, 'compare' => 'none'],
+        'collection' => ['title' => 'How fast customers pay', 'note' => 'Days of sales that customers owe at the end of each month. Lower is better.', 'source' => 'collection', 'compare' => 'none'],
+        'ageing' => ['title' => 'How old the debts are', 'note' => 'Receivables and payables by age.', 'source' => 'outstanding', 'compare' => 'none'],
+        'build' => ['title' => 'Owed to us and by us', 'note' => 'Receivables, payables and the net position they leave.', 'source' => 'outstanding', 'compare' => 'none'],
+        'accounts' => ['title' => 'Each account', 'note' => 'In, out and the balance at the end, per cash and bank account.', 'source' => 'money', 'compare' => 'none'],
+        'composition' => ['title' => 'What we own', 'note' => 'Assets on the last day, by group. Click a group to open it.', 'source' => 'composition', 'wide' => true, 'compare' => 'none'],
+        'balance' => ['title' => 'Assets against liabilities and equity', 'note' => 'What the business has against who it belongs to.', 'source' => 'balance', 'compare' => 'delta'],
+        'stock-value' => ['title' => 'Stock value', 'note' => 'What the stock ledgers hold at the end of each month.', 'source' => 'stock_value', 'compare' => 'none'],
+        'turnover' => ['title' => 'Inventory turnover', 'note' => 'How many times stock is sold and replaced, and how many days of stock you hold. Slow turnover means cash tied up on shelves.', 'source' => 'turnover', 'compare' => 'none'],
+        'slow-movers' => ['title' => 'Stock that is not moving', 'note' => 'Items on hand with the longest time since any went out.', 'source' => 'slow_movers', 'compare' => 'none'],
+        'recon-areas' => ['title' => 'Reconciliation by area', 'note' => 'Matched, unmatched and unresolved amounts across bank, cash, debtors, creditors and tax.', 'source' => 'recon_areas', 'compare' => 'none'],
+        'recon' => ['title' => 'Reconciliation by account', 'note' => 'How far each account has been reconciled with its statement.', 'source' => 'recon', 'compare' => 'none'],
+        'calendar' => ['title' => 'Activity', 'note' => 'Vouchers posted each day over the last year.', 'source' => 'heatmap', 'wide' => true, 'compare' => 'none'],
     ];
 
     /** The cards for the page, in order: key, title, note, width and how a comparison is drawn. */
