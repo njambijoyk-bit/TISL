@@ -152,6 +152,8 @@ const booksAPI = {
   removeBudget: (type, id, params) => send('delete', `/admin/books/planning/budgets/${type}/${id}?from=${params.from}&to=${params.to}`),
   saveForecastItem: (id, body) => (id ? send('put', `/admin/books/planning/items/${id}`, body) : send('post', '/admin/books/planning/items', body)),
   deleteForecastItem: (id) => send('delete', `/admin/books/planning/items/${id}`),
+  visualFavourites: () => get('/admin/books/visuals/favourites'),
+  saveVisualFavourites: (keys) => send('put', '/admin/books/visuals/favourites', { keys }),
   visualsStatus: () => get('/admin/books/visuals/status'),
   visualsCatalog: () => get('/admin/books/visuals/catalog'),
   visualChart: (key, params) => get(`/admin/books/visuals/chart/${key}`, params),

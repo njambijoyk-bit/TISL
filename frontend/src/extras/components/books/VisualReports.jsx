@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useState } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { ArrowLeft, ListTree, Star } from 'lucide-react';
+import { useNavigate, useSearchParams } from 'react-router-dom';
 import { BarChart3, Lock, Power } from 'lucide-react';
 import toast from 'react-hot-toast';
 import booksAPI from '../../../_shared/api/books';
@@ -10,6 +11,10 @@ import { btnPrimary, card, colors } from '../../../_shared/theme/tokens';
 import { Field, NumberInput, SelectInput, TextInput } from '../../../core/components/admin/ui/Form';
 import VisualCard from './VisualCard';
 import { DEFS, SOURCE } from './visualDefs';
+import VisualNav from './VisualNav';
+import useVisualFavourites from './useVisualFavourites';
+import useVisualKeys from './useVisualKeys';
+import { CHARTS, QUESTIONS } from './visualCatalog';
 import { COMPARES, PRESETS, compareFor, label, periodFor } from './visualPeriods';
 import { SAMPLE } from './visualSample';
 
@@ -38,6 +43,9 @@ export default function VisualReports() {
   const [mode, setMode] = useState('none');
   const [back, setBack] = useState(1);
   const [cmpCustom, setCmpCustom] = useState({ from: '', to: '' });
+  const [query, setQuery] = useSearchParams();
+  const [goHint, setGoHint] = useState(false);
+  const fav = useVisualFavourites(user?.id);
 
   useEffect(() => { booksAPI.visualsStatus().then((r) => setState(r.state)).catch((e) => { toast.error(errMsg(e, 'Could not check Extras')); setState('error'); }); }, []);
   useEffect(() => { if (state === 'active') booksAPI.visualsCatalog().then(setCatalog).catch((e) => toast.error(errMsg(e, 'Could not load the charts'))); }, [state]);
@@ -48,6 +56,16 @@ export default function VisualReports() {
   const params = useMemo(() => ({ from: period.from, to: period.to, ...(other ? { compare_from: other.from, compare_to: other.to } : {}) }), [period, other]);
   const openLedger = (id) => nav(`/admin/books?tab=reports&report=ledger&ledger=${id}`);
   const openPlanning = () => nav('/admin/books?tab=settings&sub=planning');
+
+  const available = useMemo(() => { const have = new Set((catalog?.charts ?? []).map((c) => c.key)); return CHARTS.filter((c) => DEFS[c.key] && (!catalog || have.has(c.key))); }, [catalog]);
+  const chartKey = query.get('chart');
+  const boardId = query.get('board');
+  const current = available.find((c) => c.key === chartKey) ?? null;
+  const go = (patch) => { const p = new URLSearchParams(query); p.delete('chart'); p.delete('board'); Object.entries(patch).forEach(([k, v]) => p.set(k, v)); setQuery(p); };
+  useVisualKeys({
+    charts: state === 'active' ? available : [], current, open: (c) => go({ chart: c.key }), home: () => go({}),
+    star: (c) => { if (!fav.toggle(c.key)) toast.error('Favourites hold nine charts. Unstar one first.'); }, favourites: fav.keys, onGo: setGoHint,
+  });
 
   if (state === null) return <p style={{ fontSize: '0.85rem', color: colors.textFaint }}>Loading…</p>;
   if (state === 'error') return null;
@@ -80,7 +98,10 @@ export default function VisualReports() {
     );
   }
 
-  const keys = (catalog?.charts ?? []).map((c) => c.key).filter((k) => DEFS[k]);
+  const question = QUESTIONS.find((q) => q.id === boardId) ?? null;
+  const card1 = (k, wide) => <VisualCard key={k} def={wide === undefined ? DEFS[k] : { ...DEFS[k], wide }} chartKey={k} params={params} openLedger={openLedger} openPlanning={openPlanning} />;
+  const link = { background: 'none', border: 'none', cursor: 'pointer', color: colors.primary, fontFamily: 'inherit', fontSize: '0.8rem', fontWeight: 600, padding: 0, display: 'inline-flex', alignItems: 'center', gap: 5 };
+
   return (
     <div style={{ display: 'grid', gap: 16 }}>
       <div style={{ ...card, padding: 14, display: 'flex', gap: 12, alignItems: 'flex-end', flexWrap: 'wrap' }}>
@@ -101,11 +122,57 @@ export default function VisualReports() {
           <b style={{ color: colors.text }}>{label(period.from, period.to)}</b>{other ? <> against <b style={{ color: colors.text }}>{label(other.from, other.to)}</b></> : null}
         </div>
       </div>
-      {!catalog ? <p style={{ fontSize: '0.85rem', color: colors.textFaint }}>Loading…</p> : (
-        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(340px, 1fr))', gap: 16 }}>
-          {keys.map((k) => <VisualCard key={k} def={DEFS[k]} chartKey={k} params={params} openLedger={openLedger} openPlanning={openPlanning} />)}
+
+      {!catalog ? <p style={{ fontSize: '0.85rem', color: colors.textFaint }}>Loading…</p> : current ? (
+        <div style={{ display: 'grid', gridTemplateColumns: 'minmax(190px, 240px) minmax(0, 1fr)', gap: 18, alignItems: 'start' }} className="vis-layout">
+          <VisualNav charts={available} current={current} open={(c) => go({ chart: c.key })} favourites={fav.keys} onStar={(c) => { if (!fav.toggle(c.key)) toast.error('Favourites hold nine charts. Unstar one first.'); }} goHint={goHint} />
+          <div style={{ minWidth: 0, display: 'grid', gap: 10 }}>
+            <button type="button" style={link} onClick={() => go({})}><ArrowLeft size={14} /> Questions</button>
+            {card1(current.key, false)}
+          </div>
+          <style>{'@media (max-width: 800px) { .vis-layout { grid-template-columns: minmax(0, 1fr) !important; } }'}</style>
+        </div>
+      ) : question ? (
+        <div style={{ display: 'grid', gap: 12 }}>
+          <div style={{ display: 'flex', gap: 14, alignItems: 'center', flexWrap: 'wrap' }}>
+            <button type="button" style={link} onClick={() => go({})}><ArrowLeft size={14} /> Questions</button>
+            <h2 style={{ margin: 0, fontSize: '1.15rem', fontWeight: 800, color: colors.primary }}>{question.title}</h2>
+            <span style={{ flex: 1 }} />
+            <button type="button" style={link} onClick={() => go({ chart: question.charts[0] })}><ListTree size={14} /> See all charts</button>
+          </div>
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(340px, 1fr))', gap: 16 }}>{question.charts.filter((k) => available.some((c) => c.key === k)).map((k) => card1(k))}</div>
+        </div>
+      ) : (
+        <div style={{ display: 'grid', gap: 14 }}>
+          <div style={{ display: 'flex', gap: 14, alignItems: 'center', flexWrap: 'wrap' }}>
+            <h2 style={{ margin: 0, fontSize: '1.15rem', fontWeight: 800, color: colors.primary }}>What do you want to know?</h2>
+            <span style={{ flex: 1 }} />
+            <button type="button" style={{ ...btnPrimary, display: 'inline-flex', alignItems: 'center', gap: 6 }} onClick={() => go({ chart: available[0]?.key })}><ListTree size={14} /> See all charts</button>
+          </div>
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(210px, 1fr))', gap: 12 }}>
+            {QUESTIONS.map((q) => {
+              const n = q.charts.filter((k) => available.some((c) => c.key === k)).length;
+              return (
+                <button key={q.id} type="button" onClick={() => go({ board: q.id })} style={{ ...card, textAlign: 'left', padding: '14px 16px', cursor: 'pointer', display: 'grid', gap: 4, fontFamily: 'inherit', color: colors.text }}>
+                  <b style={{ fontSize: '0.92rem' }}>{q.title}</b>
+                  <span style={{ fontSize: '0.74rem', color: colors.textMuted }}>{q.blurb}</span>
+                  <span style={{ fontSize: '0.68rem', fontFamily: 'ui-monospace, monospace', color: colors.primaryDeep }}>{n} chart{n === 1 ? '' : 's'}</span>
+                </button>
+              );
+            })}
+          </div>
+          {fav.keys.length > 0 && (
+            <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap', alignItems: 'center' }}>
+              <span style={{ fontSize: '0.7rem', fontWeight: 700, letterSpacing: '0.08em', textTransform: 'uppercase', color: colors.textFaint, display: 'inline-flex', alignItems: 'center', gap: 4 }}><Star size={12} /> Favourites</span>
+              {fav.keys.filter((k) => DEFS[k]).map((k, i) => (
+                <button key={k} type="button" onClick={() => go({ chart: k })} style={{ ...card, padding: '5px 12px', cursor: 'pointer', fontFamily: 'inherit', fontSize: '0.78rem', color: colors.text }}><b style={{ color: colors.warningText, marginRight: 6 }}>{i + 1}</b>{DEFS[k].title}</button>
+              ))}
+            </div>
+          )}
+          <p style={{ margin: 0, fontSize: '0.74rem', color: colors.textFaint }}>Keys: press <b>G</b> then a chart's key to go to it (it is shown in the list), <b>G 0</b> to come back here, <b>1–9</b> for your favourites.</p>
         </div>
       )}
+      {goHint && !current && <div role="status" style={{ position: 'fixed', left: 16, bottom: 16, zIndex: 20, padding: '8px 12px', borderRadius: 8, background: colors.warningBg, color: colors.warningText, fontSize: '0.78rem', boxShadow: '0 4px 14px rgba(0,0,0,0.12)' }}>Go to a chart: press its key (0 for the questions)</div>}
     </div>
   );
 }

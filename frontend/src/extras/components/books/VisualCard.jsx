@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
-import { Copy, Image as ImageIcon, Table2, BarChart3 } from 'lucide-react';
+import { Copy, Image as ImageIcon, RefreshCw, Table2, BarChart3 } from 'lucide-react';
 import toast from 'react-hot-toast';
 import booksAPI from '../../../_shared/api/books';
 import { errMsg } from '../../../_shared/store/helpers/apiState';
@@ -17,6 +17,7 @@ export default function VisualCard({ def, chartKey, params, sample, openLedger, 
   const [seen, setSeen] = useState(Boolean(sample));
   const [state, setState] = useState(sample ? { data: sample, cmp: null, ready: true } : { loading: true });
   const [view, setView] = useState('chart');
+  const [tick, setTick] = useState(0);   // reload asks the server again
   const key = JSON.stringify(params);
 
   useEffect(() => {
@@ -34,7 +35,7 @@ export default function VisualCard({ def, chartKey, params, sample, openLedger, 
       .then((r) => { if (live) setState({ data: r.data, cmp: r.compare?.data ?? null, cmpRange: r.compare, range: { from: r.from, to: r.to }, loading: false }); })
       .catch((e) => { if (live) setState({ error: errMsg(e, 'Could not load this chart'), loading: false }); });
     return () => { live = false; };
-  }, [sample, seen, chartKey, key]);   // eslint-disable-line react-hooks/exhaustive-deps -- `key` stands for the params
+  }, [sample, seen, chartKey, key, tick]);   // eslint-disable-line react-hooks/exhaustive-deps -- `key` stands for the params
 
   const { data, cmp, loading, error } = state;
   const ok = data && data.ready !== false;
@@ -53,9 +54,10 @@ export default function VisualCard({ def, chartKey, params, sample, openLedger, 
         </div>
         {ok && !sample && (
           <div data-html2canvas-ignore style={{ display: 'flex', gap: 4, flexShrink: 0 }}>
-            <button type="button" style={tool} onClick={() => setView(view === 'chart' ? 'table' : 'chart')} aria-pressed={view === 'table'}>{view === 'chart' ? <><Table2 size={12} /> Table</> : <><BarChart3 size={12} /> Chart</>}</button>
+            <button type="button" style={tool} data-visual-reload onClick={() => setTick((t) => t + 1)} aria-label={`Reload ${def.title}`}><RefreshCw size={12} /></button>
+            <button type="button" style={tool} data-visual-table onClick={() => setView(view === 'chart' ? 'table' : 'chart')} aria-pressed={view === 'table'}>{view === 'chart' ? <><Table2 size={12} /> Table</> : <><BarChart3 size={12} /> Chart</>}</button>
             {view === 'table' && <button type="button" style={tool} onClick={copy}><Copy size={12} /> Copy</button>}
-            <button type="button" style={tool} onClick={save} aria-label={`Save ${def.title} as an image`}><ImageIcon size={12} /> Image</button>
+            <button type="button" style={tool} data-visual-image onClick={save} aria-label={`Save ${def.title} as an image`}><ImageIcon size={12} /> Image</button>
           </div>
         )}
       </div>

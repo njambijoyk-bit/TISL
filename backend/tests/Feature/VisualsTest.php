@@ -19,6 +19,7 @@ use Tests\TestCase;
 class VisualsTest extends TestCase
 {
     use Concerns\CreatesBooksLedgerWorld;
+    use Concerns\RunsSqlScripts;
     use Concerns\StandsInForAccess;
 
     protected function setUp(): void
@@ -202,5 +203,23 @@ class VisualsTest extends TestCase
         $this->licence(true, true);
         $this->getJson('/api/admin/books/visuals/status')->assertForbidden();
         $this->getJson('/api/admin/books/visuals/chart/cash')->assertForbidden();
+    }
+
+    public function test_each_person_keeps_their_own_ordered_favourite_charts(): void
+    {
+        \Illuminate\Support\Facades\Schema::dropIfExists('visual_favourites');
+        $this->as(['books.view']);
+        $this->getJson('/api/admin/books/visuals/favourites')->assertOk()->assertExactJson(['ready' => false, 'keys' => []]);
+        $this->putJson('/api/admin/books/visuals/favourites', ['keys' => ['cash']])->assertStatus(409);
+
+        $this->runSqlScripts('238_visual_favourites.sql');
+        $this->putJson('/api/admin/books/visuals/favourites', ['keys' => ['cash-forecast', 'nonsense', 'trend', 'cash-forecast']])->assertOk()->assertJsonPath('keys', ['cash-forecast', 'trend']);
+        $u = new User();
+        $u->id = 2;
+        $this->grant($u, ['books.view']);
+        Sanctum::actingAs($u, ['*']);
+        $this->getJson('/api/admin/books/visuals/favourites')->assertJsonPath('keys', []);
+        $this->putJson('/api/admin/books/visuals/favourites', ['keys' => array_fill(0, 10, 'cash')])->assertStatus(422);
+        \Illuminate\Support\Facades\Schema::dropIfExists('visual_favourites');
     }
 }
