@@ -2,6 +2,7 @@ import useCalculatorContext from '../../../../_shared/hooks/useCalculatorContext
 import { useEffect, useRef, useState } from 'react';
 import { useSearchParams } from 'react-router-dom';
 import toast from 'react-hot-toast';
+import { colors } from '../../../../_shared/theme/tokens';
 import useAuthStore from '../../../../_shared/store/authStore';
 import ReportsNav from './ReportsNav';
 import useReportFavourites from './useReportFavourites';
@@ -75,6 +76,10 @@ export default function ReportsTab() {
     <div style={{ display: 'grid', gridTemplateColumns: 'minmax(190px, 230px) minmax(0, 1fr)', gap: 18, alignItems: 'start' }} className="reports-layout">
       <ReportsNav visible={visible} current={def} open={open} favourites={fav.keys} onStar={star} searchRef={searchRef} goHint={goHint} />
       <div style={{ minWidth: 0 }}>
+        <header style={{ marginBottom: 12 }}>
+          <div style={{ fontSize: '0.66rem', fontWeight: 700, letterSpacing: '0.08em', textTransform: 'uppercase', color: colors.textFaint }}>{def.group}</div>
+          <h2 style={{ margin: '2px 0 0', fontSize: '1.3rem', fontWeight: 700, color: colors.text }}>{def.label}</h2>
+        </header>
         <ReportFrame key={def.engine + (params.get('ledger') ?? '')} reportKey={def.engine} initialOpts={def.engine === 'ledger-statement' && params.get('ledger') ? { ledger_id: params.get('ledger') } : {}}>
           {(r, api) => <EngineView engine={def.engine} result={r} drill={api?.drill} opts={api?.opts} />}
         </ReportFrame>
