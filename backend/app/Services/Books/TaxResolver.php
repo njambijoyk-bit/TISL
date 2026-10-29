@@ -182,7 +182,36 @@ class TaxResolver
         $base = $rate->baseAmount($pre, $post, $post + $this->earlierTax($rate, $earlier));
         $tax = $treatment === 'zero_rated' ? 0.0 : $rate->calculate($base, $qty, $currency);
 
-        return self::rowOf($rate, (int) $ledgerId, $base, $tax, $source, $treatment, $extra);
+        return self::reverseCharged(self::rowOf($rate, (int) $ledgerId, $base, $tax, $source, $treatment, $extra), $rate, $side);
+    }
+
+    /**
+     * A tax kept as a reverse charge is not added to what the buyer pays: the buyer accounts for it. On a purchase the row keeps its amount as
+     * `reverse_amount` and charges nothing to the bill (`tax_amount` 0); posting then makes two entries of that amount, the tax owed and the same tax
+     * recovered as input (or, for a tax that cannot be recovered, charged to its cost ledger). On a sale there is nothing to charge, so no row at all.
+     *
+     * @return array|null the row as a reverse charge, the row itself when the tax is not one, or null on a sale
+     */
+    public static function reverseCharged(array $row, TaxRate $rate, string $side): ?array
+    {
+        $type = $rate->taxType;
+        if (! $type || $type->getAttribute('application_method') !== 'reverse_charge') {
+            return $row;
+        }
+        if ($side !== 'input') {
+            return null;
+        }
+        $amount = (float) $row['tax_amount'];
+        $inputLedger = $type->getAttribute('input_ledger_id');
+        $costLedger = $type->getAttribute('cost_ledger_id');
+        $recoverable = $inputLedger !== null || $costLedger === null;   // recoverable unless only a cost ledger is named
+        $into = $recoverable ? (int) ($inputLedger ?: $rate->ledger_input_id) : (int) $costLedger;
+
+        return array_merge($row, [
+            'reverse_charge' => true, 'reverse_amount' => round($amount, 2), 'input_ledger_id' => $into, 'recoverable' => $recoverable, 'tax_amount' => 0.0,
+            'label' => $row['label'] . ' (reverse charge)',
+            'snapshot' => $row['snapshot'] + ['reverse_charge' => true, 'reverse_amount' => round($amount, 2), 'input_ledger_id' => $into, 'recoverable' => $recoverable, 'liability_ledger_id' => $row['ledger_id']],
+        ]);
     }
 
     /** The taxes worked out before this one that go into its base: all of them, or the tax types the rate lists. */

@@ -144,7 +144,7 @@ class TaxLineService
                 $base = $rate->baseAmount($pre, $post, $post);
                 $tax = $account->tax_nature === 'zero_rated' ? 0.0 : $rate->calculate($base, $qty, $currency);
                 $ledgerId = (int) ($side === 'input' ? $rate->ledger_input_id : $rate->ledger_output_id);
-                $rows[] = [
+                $primary = [
                     'tax_rate_id' => $rate->id,
                     'ledger_id'   => $ledgerId,
                     'label'       => trim(($rate->taxType?->code ?? 'Tax') . ' ' . rtrim(rtrim((string) $rate->rate_value, '0'), '.') . ($rate->isPercentage() ? '%' : '')),
@@ -152,6 +152,9 @@ class TaxLineService
                     'tax_amount'  => round($tax, 2),
                     'percent'     => $rate->isPercentage() ? (float) $rate->rate_value : null,
                 ] + $this->detail($rate, $ledgerId, $base, $tax, 'account');
+                if ($primary = TaxResolver::reverseCharged($primary, $rate, $side)) {
+                    $rows[] = $primary;
+                }
             }
         }
         if ($exempt) {

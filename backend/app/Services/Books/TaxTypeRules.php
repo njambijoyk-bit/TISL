@@ -13,7 +13,7 @@ use Illuminate\Validation\ValidationException;
 class TaxTypeRules
 {
     /** The methods the posting code can carry out today. Step T6 adds the others here, and nowhere else. */
-    public const POSTABLE_METHODS = ['added', 'withheld'];
+    public const POSTABLE_METHODS = ['added', 'withheld', 'reverse_charge'];
 
     /** category => the old `kind` it is stored as too. */
     private const KIND_OF = ['vat_gst' => 'vat', 'excise' => 'excise', 'customs' => 'customs', 'withholding_income' => 'withholding_income', 'withholding_vat' => 'withholding_vat'];
@@ -33,7 +33,8 @@ class TaxTypeRules
     /** The old mode a method is stored as. Methods the posting code cannot carry out yet have none. */
     public static function modeOf(string $method): ?string
     {
-        return match ($method) {'added' => 'additive', 'withheld' => 'withheld', default => null};
+        // a reverse-charge tax is kept as 'additive' in the old column (which only knows additive and withheld) and told apart by application_method
+        return match ($method) {'added', 'reverse_charge' => 'additive', 'withheld' => 'withheld', default => null};
     }
 
     public static function methodOfMode(?string $mode): ?string

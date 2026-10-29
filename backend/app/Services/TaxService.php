@@ -166,7 +166,8 @@ class TaxService
             ->pluck('tax_rule_id');
 
         $rules = TaxRule::query()
-            ->whereHas('taxType', fn ($q) => $q->where('application_mode', TaxType::MODE_ADDITIVE)->where('is_active', true))
+            ->whereHas('taxType', fn ($q) => $q->where('application_mode', TaxType::MODE_ADDITIVE)->where('is_active', true)
+                ->when(\Illuminate\Support\Facades\Schema::hasColumn('ledger_groups', 'application_method'), fn ($t) => $t->where(fn ($m) => $m->whereNull('application_method')->orWhere('application_method', '!=', 'reverse_charge'))))   // a reverse-charge tax is never added to what the customer pays
             ->active()
             ->where(function ($q) use ($module, $pinnedRuleIds) {
                 $q->forModule($module);

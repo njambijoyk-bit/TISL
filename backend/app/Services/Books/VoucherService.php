@@ -1063,10 +1063,22 @@ class VoucherService
         return $id ? Ledger::find($id) : null;
     }
 
+    /** A cloned reverse-charge row keeps what it posted: the amount owed and the ledger it was claimed into (from the saved snapshot). */
+    private function reverseFromSnapshot(VoucherItemTax $t, float $ratio): array
+    {
+        $s = $t->calc_snapshot;
+        if (! is_array($s) || empty($s['reverse_charge'])) {
+            return [];
+        }
+
+        return ['reverse_charge' => true, 'reverse_amount' => round((float) ($s['reverse_amount'] ?? $s['tax_amount']) * $ratio, 2), 'input_ledger_id' => (int) $s['input_ledger_id'],
+            'recoverable' => (bool) ($s['recoverable'] ?? true), 'snapshot' => $s];
+    }
+
     private function summariseTaxes(array &$line): void
     {
         $line['tax_amount'] = round(array_sum(array_column($line['taxes'], 'tax_amount')), 2);
-        $first = $line['taxes'][0] ?? null;
+        $first = collect($line['taxes'])->first(fn ($t) => empty($t['reverse_charge'])) ?? $line['taxes'][0] ?? null;
         $line['tax_rate_id'] = $first['tax_rate_id'] ?? null;
         $line['tax_rate_percent'] = $first['percent'] ?? null;
     }
@@ -1414,7 +1426,7 @@ class VoucherService
             'tax_rate_id' => $t->tax_rate_id, 'ledger_id' => $t->ledger_id, 'label' => $t->label,
             'base_amount' => round((float) $t->base_amount * $ratio, 2), 'tax_amount' => round((float) $t->tax_amount * $ratio, 2),
             'percent' => $it->tax_rate_percent !== null ? (float) $it->tax_rate_percent : null,
-        ])->all();
+        ] + $this->reverseFromSnapshot($t, $ratio))->all();
         $line['tax_amount'] = round(array_sum(array_column($line['taxes'], 'tax_amount')), 2);
         $line['stock_qty'] = round($stockSellingQty * (float) $it->unit_factor, 4);
 
@@ -1499,6 +1511,7 @@ class VoucherService
 
         $byLedger = [];
         $taxByLedger = [];
+        $reverse = [];
         $discByLedger = [];
         // Valued stock: stock bought (or returned to the supplier) posts to the Stock ledger, not the purchase account.
         // The purchase account still decides the line's tax; and when no Stock ledger is set, purchases post as before.
@@ -1528,6 +1541,10 @@ class VoucherService
             }
             foreach ($l['taxes'] as $t) {
                 $taxByLedger[$t['ledger_id']] = ($taxByLedger[$t['ledger_id']] ?? 0) + $t['tax_amount'];
+                if (! empty($t['reverse_charge'])) {   // reverse charge: the buyer owes the tax and may claim it back — a balanced pair that leaves the party total alone
+                    $key = $t['input_ledger_id'] . ':' . $t['ledger_id'];
+                    $reverse[$key] = ($reverse[$key] ?? 0) + (float) $t['reverse_amount'];
+                }
             }
         }
 
@@ -1557,6 +1574,11 @@ class VoucherService
             $side = $amt >= 0 ? $lineSide : $flip($lineSide);
             $add((int) $ledgerId, $side, abs($amt), ['is_tax' => true]);
             $total += $amt;
+        }
+        foreach ($reverse as $key => $amt) {
+            [$into, $owed] = array_map('intval', explode(':', $key));
+            $add($into, $amt >= 0 ? $lineSide : $flip($lineSide), abs($amt), ['is_tax' => true, 'narration' => 'Reverse charge']);
+            $add($owed, $amt >= 0 ? $flip($lineSide) : $lineSide, abs($amt), ['is_tax' => true, 'narration' => 'Reverse charge']);
         }
 
         // Parts bought elsewhere for the job: what they cost us — Dr Job Materials Cost, Cr the supplier / cash / bank it was paid from.

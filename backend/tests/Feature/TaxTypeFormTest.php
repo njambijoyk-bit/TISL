@@ -110,10 +110,16 @@ class TaxTypeFormTest extends TestCase
 
     public function test_a_method_the_books_cannot_post_yet_is_refused_plainly(): void
     {
-        $r = $this->createType(['tax_category' => 'vat_gst', 'application_method' => 'reverse_charge'])->assertStatus(422);
+        $r = $this->createType(['tax_category' => 'vat_gst', 'application_method' => 'included'])->assertStatus(422);
         $this->assertStringContainsString('not available yet', $r->json('errors.application_method.0'));
-        $this->assertStringContainsString('T6', $r->json('errors.application_method.0'));
         $this->assertSame(0, DB::table('ledger_groups')->where('code', 'VAT')->count(), 'nothing was created');
+    }
+
+    public function test_a_reverse_charge_type_is_created_as_an_added_tax_that_is_charged_to_the_buyer(): void
+    {
+        $this->createType(['tax_category' => 'vat_gst', 'application_method' => 'reverse_charge'])->assertCreated();
+        $row = DB::table('ledger_groups')->where('code', 'VAT')->first();
+        $this->assertSame(['reverse_charge', 'additive'], [$row->application_method, $row->application_mode]);
     }
 
     public function test_an_unknown_category_or_area_is_refused(): void
@@ -143,7 +149,7 @@ class TaxTypeFormTest extends TestCase
         $this->control('enabled_categories', ['vat_gst', 'excise']);
         $o = $this->getJson('/api/admin/tax/type-options')->assertOk()->json();
         $this->assertSame(['vat_gst', 'excise'], array_column($o['categories'], 'key'));
-        $this->assertSame(['added', 'withheld'], $o['postable_methods']);
+        $this->assertSame(['added', 'withheld', 'reverse_charge'], $o['postable_methods']);
         $this->assertSame(['added', 'included', 'reverse_charge'], collect($o['categories'])->firstWhere('key', 'vat_gst')['methods']);
         $this->assertSame(['Nairobi'], array_column($o['areas'], 'name'));
         $this->assertContains('removal', $o['tax_points']);
