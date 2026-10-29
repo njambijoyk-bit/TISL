@@ -9,6 +9,7 @@ use App\Services\Books\Engine\Reports\BalanceSheetReport;
 use App\Services\Books\Engine\Reports\PayablesAgeingReport;
 use App\Services\Books\Engine\Reports\ReceivablesAgeingReport;
 use App\Services\Books\Engine\Reports\TaxReturnReport;
+use App\Services\Books\Engine\Reports\WithholdingReport;
 use App\Services\Books\Engine\Reports\DayBookReport;
 use App\Services\Books\Engine\Reports\LedgerStatementReport;
 use App\Services\Books\Engine\Reports\ProfitLossReport;
@@ -34,6 +35,7 @@ final class ReportEngine
         ReceivablesAgeingReport::class,
         PayablesAgeingReport::class,
         TaxReturnReport::class,
+        WithholdingReport::class,
     ];
 
     /** The display settings a screen needs to draw every amount the same way. */
