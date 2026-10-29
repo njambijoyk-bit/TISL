@@ -33,9 +33,9 @@ class TaxLineService
             : $this->fromRules($taxable, $module, $pre, $post, $qty, $unitId, $side, $customer, $locationId, $currency);
 
         // the taxes that apply regardless of the item and the account (Tax control), each unless its own rule about exemptions says the line is exempt
-        return $this->resolver->withRegardless($rows, $pre, $post, $qty, $side, $currency, null, [
+        return $this->resolver->recovery($this->resolver->withRegardless($rows, $pre, $post, $qty, $side, $currency, null, [
             'account' => $account, 'item_exempt' => $this->blanketExempt($taxable, null), 'customer_exempt' => $this->blanketExempt($customer, null), 'opted_out' => $this->resolver->optedOut($taxable),
-        ], $this);
+        ], $this), $side);
     }
 
     /** The item path: the tax rules that match the item, the customer and the branch, in the order of their rates' sequence. */
@@ -106,14 +106,15 @@ class TaxLineService
         }
         $tax = $rate->isPercentage() ? round($base * (float) $rate->rate_value / 100, 2) : 0.0;
 
-        return [[
+        return $this->resolver->recovery([[
             'tax_rate_id' => $rate->id,
+            'tax_type_id' => (int) $rate->group_id,
             'ledger_id'   => (int) $ledgerId,
             'label'       => trim(($rate->taxType?->code ?? 'Tax') . ' ' . rtrim(rtrim((string) $rate->rate_value, '0'), '.') . '%'),
             'base_amount' => round($base, 2),
             'tax_amount'  => $tax,
             'percent'     => (float) $rate->rate_value,
-        ]];
+        ]], $side);
     }
 
     /**
@@ -125,6 +126,11 @@ class TaxLineService
      * exempt one, each line taxed by the account it posts to.
      */
     public function fromAccount(Ledger $account, float $pre, float $post, float $qty, string $side, ?Customer $customer, ?Currency $currency = null, $on = null, ?Model $taxable = null): array
+    {
+        return $this->resolver->recovery($this->accountTaxes($account, $pre, $post, $qty, $side, $customer, $currency, $on, $taxable), $side);
+    }
+
+    private function accountTaxes(Ledger $account, float $pre, float $post, float $qty, string $side, ?Customer $customer, ?Currency $currency, $on, ?Model $taxable): array
     {
         if ($post == 0.0) {
             return [];

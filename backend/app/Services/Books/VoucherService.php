@@ -1105,6 +1105,9 @@ class VoucherService
     private function reverseFromSnapshot(VoucherItemTax $t, float $ratio): array
     {
         $s = $t->calc_snapshot;
+        if (is_array($s) && ($s['recovery'] ?? null) === 'non_recoverable') {   // a cloned line keeps where the tax went: into the cost, not the tax ledger
+            return ['non_recoverable' => true, 'cost_ledger_id' => $s['cost_ledger_id'] ?? null, 'snapshot' => $s];
+        }
         if (! is_array($s) || empty($s['reverse_charge'])) {
             return [];
         }
@@ -1589,6 +1592,12 @@ class VoucherService
                 $byLedger[$ledgerId] = ($byLedger[$ledgerId] ?? 0) + $l['amount'];
             }
             foreach ($l['taxes'] as $t) {
+                if (! empty($t['non_recoverable'])) {   // the buyer cannot claim it back: it is part of what the item cost, in the line's own ledger (the stock) or the tax type's cost ledger
+                    $costTo = (int) ($t['cost_ledger_id'] ?? 0) ?: (int) $ledgerId;
+                    $byLedger[$costTo] = ($byLedger[$costTo] ?? 0) + $t['tax_amount'];
+
+                    continue;
+                }
                 $taxByLedger[$t['ledger_id']] = ($taxByLedger[$t['ledger_id']] ?? 0) + $t['tax_amount'];
                 if (! empty($t['reverse_charge'])) {   // reverse charge: the buyer owes the tax and may claim it back — a balanced pair that leaves the party total alone
                     $key = $t['input_ledger_id'] . ':' . $t['ledger_id'];
@@ -2121,7 +2130,9 @@ class VoucherService
                 $move['return_to'] = $sourceId ? $this->returnableBatches($sourceId, (int) $l['variant_id'], (int) $loc, (float) $l['stock_qty'], $excludeVoucherId) : [];
             } elseif ($sign > 0) {
                 // what this stock cost: the line's net amount (after discount, before tax) in base currency, per base unit
-                $move['unit_cost'] = round((float) ($l['amount'] ?? 0) * $rate / (float) $l['stock_qty'], 4);
+                // a tax that cannot be claimed back is part of what the stock cost (unless it is charged to a cost ledger of its own)
+                $costTax = array_sum(array_map(fn ($t) => ! empty($t['non_recoverable']) && empty($t['cost_ledger_id']) ? (float) $t['tax_amount'] : 0.0, $l['taxes'] ?? []));
+                $move['unit_cost'] = round(((float) ($l['amount'] ?? 0) + $costTax) * $rate / (float) $l['stock_qty'], 4);
                 $move['batch'] = $this->batchInfo($l, $date);
             } elseif ($sign < 0) {
                 $move['purpose'] = ($l['material_mode'] ?? null) === 'included' ? 'included' : null;   // costed to Cost of Services, not cost of goods sold

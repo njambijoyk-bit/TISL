@@ -198,3 +198,20 @@ T6 changes the code that posts sales and purchases, so it is done in three parts
 - **`.wnkjap` export and import** (reports plan step 13) is not built yet. When it is, it must include the same four tables and treat the tax type and rate columns above as part of the ledger and group records.
 - **Still open from this plan:** prices that include tax (*included in the displayed price*, section 15); customs and tariffs as their own module; direct-liability manual journals; the Books health panel (reports step 10) listing the tax checks beside its own.
 - **Test guide:** `docs/TAX_CONTROL_TEST_GUIDE.md`.
+
+## 18. Tax recovery: can the buyer claim the tax back? (built)
+
+**The rule.** Each *added* tax type has a recovery treatment (script `231_tax_recovery.sql`, `ledger_groups.recovery`):
+- **Recoverable**: input tax. Debited to the tax ledger and claimed back on the return. This is how VAT has always posted, and it is where every existing type starts.
+- **Not recoverable**: part of what the goods cost. The supplier still charges it, so the bill, the amount owed and the line's tax amount are unchanged; only the posting differs. The tax is debited to the line's own ledger (for stock, the Stock ledger, and the stock's unit cost includes it, so the stock report and the ledger agree), or to the type's own cost ledger when one is chosen ("Charge it to").
+- **Conditional**: recoverable only when the company stands in the right position for the tax (`company_role`: an ordinary purchaser, a licensed manufacturer, or an importer). Only a **licensed manufacturer** claims a conditional tax back, for what it uses to make the goods the tax is on. Anyone else treats it as cost.
+
+**Excise starts as not recoverable** (an ordinary purchaser cannot claim it), unless a valid rule says otherwise: change the type to conditional and set the company's position, or to recoverable. A type with no recovery set takes its category's start. The health panel questions an excise type that is claimed back by a company that is not a manufacturer.
+
+**Liability stays apart from purchase cost.** Recovery acts on purchases only. What a manufacturer or importer *charges* (excise on its own sales or removals) is a liability to the authority and posts exactly as before, whatever the recovery setting. An importer's duty paid on import is not a purchase-cost question: it belongs to the customs module (a later phase), so an importer is not treated as recovering anything here.
+
+**Where it applies.** One place decides (`TaxResolver::recovery`, called for every way a line's taxes are worked out), so item rules, account taxes, taxes that apply regardless and manual rates all follow it. Reverse-charge and withheld types keep their own treatment. The snapshot kept with each posted line records the treatment, and a credit note cloned from a purchase reverses the same way. Documents already posted are never changed.
+
+**Known limit.** Kitchen stock received through Menus values its batches from the line price without tax, so a tax that is part of the cost makes the Inventory ledger larger than the batches' value by that tax. Until Menus is taught the same rule, give such a type a cost ledger of its own.
+
+**Tests.** `TaxReverseChargeTest` (recovery cases): excise as cost and VAT claimed, sales untouched, conditional by position, posting and balance, cost ledger, health.

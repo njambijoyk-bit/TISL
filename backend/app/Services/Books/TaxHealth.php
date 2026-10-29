@@ -34,6 +34,12 @@ class TaxHealth
             if ($active && $rates->where('is_active', 1)->filter(fn ($r) => (! $r->valid_from || $r->valid_from <= $today) && (! $r->valid_until || $r->valid_until >= $today))->isEmpty() && $t->application_method !== 'withheld') {
                 $add('no_rate_in_force', 'warning', "{$name} is active but has no rate in force today.", "type:{$t->id}");
             }
+            if (property_exists($t, 'recovery') && $t->application_method === 'added' && $t->tax_category === 'excise' && ($t->recovery === 'recoverable' || ($t->recovery === 'conditional' && ($t->company_role ?? 'ordinary') === 'manufacturer'))) {
+                $add('excise_recoverable', 'warning', "{$name} is claimed back as input tax. An ordinary purchaser cannot claim excise; only a licensed manufacturer can, for what it uses to make excisable goods. Check this is right for the company.", "type:{$t->id}");
+            }
+            if (property_exists($t, 'recovery') && $t->recovery === 'conditional' && ($t->company_role ?? 'ordinary') !== 'manufacturer') {
+                $add('conditional_not_met', 'warning', "{$name} is recoverable only in a certain position, and the company is set as " . ($t->company_role ?? 'ordinary') . ', so it is treated as part of the cost.', "type:{$t->id}");
+            }
             if ($t->application_method === 'reverse_charge' && ! $t->input_ledger_id && ! $t->cost_ledger_id) {
                 $add('reverse_no_ledger', 'error', "{$name} is a reverse charge but has no input-tax ledger or cost ledger, so the amount claimed has nowhere to go.", "type:{$t->id}");
             }

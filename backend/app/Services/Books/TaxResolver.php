@@ -214,6 +214,44 @@ class TaxResolver
         ]);
     }
 
+    /** @var array<int, array{0: bool, 1: ?int}> tax type id => [can the buyer claim it back, its cost ledger] */
+    private array $recovery = [];
+
+    /**
+     * On a purchase, mark each tax the buyer cannot claim back (docs/TAX_CONTROL_PLAN.md, section 18). Such a tax is still charged by the supplier, so it stays in the
+     * line's tax amount and in what is owed; what changes is the posting: it is not input tax in the tax ledger but part of what the item cost (the line's own
+     * ledger, so the stock), or the type's cost ledger when it has one. Sales are never touched: what a manufacturer or importer charges is a liability, whatever
+     * the buyer may do with it. Reverse charges and withheld taxes have their own treatment.
+     *
+     * @param  array[]  $rows
+     * @return array[]
+     */
+    public function recovery(array $rows, string $side): array
+    {
+        if ($side !== 'input' || ! Schema::hasColumn('ledger_groups', 'recovery')) {
+            return $rows;
+        }
+        foreach ($rows as $i => $row) {
+            if (! empty($row['reverse_charge']) || empty($row['tax_type_id']) || (float) ($row['tax_amount'] ?? 0) == 0.0) {
+                continue;
+            }
+            $id = (int) $row['tax_type_id'];
+            if (! isset($this->recovery[$id])) {
+                $type = TaxType::find($id);
+                $added = $type && ! in_array($type->getAttribute('application_method'), ['withheld', 'reverse_charge'], true) && $type->application_mode !== TaxType::MODE_WITHHELD;
+                $this->recovery[$id] = [! $added || TaxTypeRules::recoverable($type), $type?->getAttribute('cost_ledger_id') ? (int) $type->getAttribute('cost_ledger_id') : null];
+            }
+            [$claimable, $costLedger] = $this->recovery[$id];
+            if (! $claimable) {
+                $rows[$i]['non_recoverable'] = true;
+                $rows[$i]['cost_ledger_id'] = $costLedger;
+                $rows[$i]['snapshot'] = ($row['snapshot'] ?? []) + ['recovery' => 'non_recoverable', 'cost_ledger_id' => $costLedger];
+            }
+        }
+
+        return $rows;
+    }
+
     /** The taxes worked out before this one that go into its base: all of them, or the tax types the rate lists. */
     private function earlierTax(TaxRate $rate, array $earlier): float
     {

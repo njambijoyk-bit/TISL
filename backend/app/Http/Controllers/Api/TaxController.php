@@ -73,6 +73,8 @@ class TaxController extends Controller
             'postable_methods' => \App\Services\Books\TaxTypeRules::POSTABLE_METHODS,
             'areas' => $areas,
             'tax_points' => self::TAX_POINTS,
+            'recovery' => \App\Services\Books\TaxTypeRules::RECOVERY, 'company_roles' => \App\Services\Books\TaxTypeRules::ROLES,
+            'recovery_defaults' => array_combine($allowed['categories'], array_map(fn ($c) => \App\Services\Books\TaxTypeRules::defaultRecovery($c), $allowed['categories'])),
             'ready' => \App\Services\Books\TaxControlSettings::ready(),
         ]);
     }
@@ -88,6 +90,8 @@ class TaxController extends Controller
             'jurisdiction_id'  => 'nullable|exists:tax_districts,id',
             'input_ledger_id'  => 'nullable|integer|exists:ledgers,id',
             'cost_ledger_id'   => 'nullable|integer|exists:ledgers,id',
+            'recovery'         => 'nullable|in:' . implode(',', array_keys(\App\Services\Books\TaxTypeRules::RECOVERY)),
+            'company_role'     => 'nullable|in:' . implode(',', array_keys(\App\Services\Books\TaxTypeRules::ROLES)),
             'kind'             => 'nullable|in:' . implode(',', \App\Services\Books\TaxLedgerService::KINDS),
             'is_compound'      => 'boolean',
             'is_active'        => 'boolean',
@@ -104,6 +108,8 @@ class TaxController extends Controller
         $new = \Illuminate\Support\Facades\Schema::hasColumn('ledger_groups', 'tax_category')   // the new columns exist once script 229 has been run
             ? ['tax_category' => $rules['tax_category'], 'application_method' => $rules['application_method'], 'jurisdiction_id' => $request->input('jurisdiction_id'),
                 'input_ledger_id' => $request->input('input_ledger_id') ?: null, 'cost_ledger_id' => $request->input('cost_ledger_id') ?: null]
+                + (\Illuminate\Support\Facades\Schema::hasColumn('ledger_groups', 'recovery')   // script 231
+                    ? ['recovery' => $request->input('recovery') ?: \App\Services\Books\TaxTypeRules::defaultRecovery($rules['tax_category']), 'company_role' => $request->input('company_role') ?: 'ordinary'] : [])
             : [];
         $type = TaxType::create([
             'name'             => $request->name,
@@ -142,6 +148,8 @@ class TaxController extends Controller
             'jurisdiction_id'  => 'nullable|exists:tax_districts,id',
             'input_ledger_id'  => 'nullable|integer|exists:ledgers,id',
             'cost_ledger_id'   => 'nullable|integer|exists:ledgers,id',
+            'recovery'         => 'nullable|in:' . implode(',', array_keys(\App\Services\Books\TaxTypeRules::RECOVERY)),
+            'company_role'     => 'nullable|in:' . implode(',', array_keys(\App\Services\Books\TaxTypeRules::ROLES)),
             'is_compound'      => 'boolean',
             'is_active'        => 'boolean',
         ]);
@@ -155,7 +163,8 @@ class TaxController extends Controller
         $oldName = $type->name;
         $type->update($request->only(['name', 'code', 'is_compound', 'is_active'])
             + ($hasNew ? $changes + ($request->has('jurisdiction_id') ? ['jurisdiction_id' => $request->input('jurisdiction_id')] : [])
-                + ($request->has('input_ledger_id') ? ['input_ledger_id' => $request->input('input_ledger_id') ?: null] : []) + ($request->has('cost_ledger_id') ? ['cost_ledger_id' => $request->input('cost_ledger_id') ?: null] : []) : array_diff_key($changes, ['tax_category' => 1])));
+                + ($request->has('input_ledger_id') ? ['input_ledger_id' => $request->input('input_ledger_id') ?: null] : []) + ($request->has('cost_ledger_id') ? ['cost_ledger_id' => $request->input('cost_ledger_id') ?: null] : [])
+                + (\Illuminate\Support\Facades\Schema::hasColumn('ledger_groups', 'recovery') ? array_filter(['recovery' => $request->input('recovery'), 'company_role' => $request->input('company_role')]) : []) : array_diff_key($changes, ['tax_category' => 1])));
         app(\App\Services\Books\TaxLedgerService::class)->renameType($type, $oldName);
 
         return response()->json(['tax_type' => $type], 200);

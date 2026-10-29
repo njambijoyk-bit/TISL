@@ -15,6 +15,30 @@ class TaxTypeRules
     /** The methods the posting code can carry out today. Step T6 adds the others here, and nowhere else. */
     public const POSTABLE_METHODS = ['added', 'withheld', 'reverse_charge'];
 
+    /** Whether the tax a buyer pays can be claimed back (docs/TAX_CONTROL_PLAN.md, section 18). It matters on purchases only. */
+    public const RECOVERY = ['recoverable' => 'Recoverable: claimed back as input tax', 'non_recoverable' => 'Not recoverable: part of what the goods cost', 'conditional' => 'Conditional: recoverable only in a certain position'];
+
+    /** How the company stands for a tax. Only a manufacturer recovers a conditional tax; an importer's duty on import belongs to the customs module. */
+    public const ROLES = ['ordinary' => 'An ordinary purchaser', 'manufacturer' => 'A licensed manufacturer', 'importer' => 'An importer'];
+
+    /** The recovery a new tax type of a category starts with: excise is not claimed back by an ordinary purchaser; everything else posts as it always has. */
+    public static function defaultRecovery(?string $category): string
+    {
+        return $category === 'excise' ? 'non_recoverable' : 'recoverable';
+    }
+
+    /** Can the buyer claim this tax back? A type with no recovery set takes its category's default. */
+    public static function recoverable(TaxType $type): bool
+    {
+        $recovery = $type->getAttribute('recovery') ?: self::defaultRecovery($type->getAttribute('tax_category') ?: self::categoryOfKind($type->kind));
+
+        return match ($recovery) {
+            'non_recoverable' => false,
+            'conditional' => $type->getAttribute('company_role') === 'manufacturer',
+            default => true,
+        };
+    }
+
     /** category => the old `kind` it is stored as too. */
     private const KIND_OF = ['vat_gst' => 'vat', 'excise' => 'excise', 'customs' => 'customs', 'withholding_income' => 'withholding_income', 'withholding_vat' => 'withholding_vat'];
 

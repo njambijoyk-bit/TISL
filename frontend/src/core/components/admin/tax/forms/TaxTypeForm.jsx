@@ -26,6 +26,8 @@ export default function TaxTypeForm({ type, onClose }) {
     jurisdiction_id: type?.jurisdiction_id ?? '',
     input_ledger_id: type?.input_ledger_id ?? null,
     cost_ledger_id: type?.cost_ledger_id ?? null,
+    recovery: type?.recovery ?? null,   // null: what the category starts with
+    company_role: type?.company_role ?? 'ordinary',
     is_compound: type?.is_compound ?? false,
     is_active: type?.is_active ?? true,
     opening_balance: '', opening_side: 'C', opening_payable: '', opening_receivable: '',
@@ -41,6 +43,7 @@ export default function TaxTypeForm({ type, onClose }) {
   const postable = new Set(options?.postable_methods ?? []);
   const methodsHere = Object.entries(options?.methods ?? {}).filter(([m]) => (categoryRow?.methods ?? []).includes(m) || m === form.application_method);
   const withheld = form.application_method === 'withheld';
+  const recovery = form.recovery ?? options?.recovery_defaults?.[form.tax_category] ?? 'recoverable';   // what is shown: the choice, or the category's start
   const pickCategory = (key) => setForm((f) => {
     const row = categories.find((c) => c.key === key);
     const keep = editing || (row?.methods ?? []).includes(f.application_method);
@@ -53,6 +56,7 @@ export default function TaxTypeForm({ type, onClose }) {
     setErrors({}); setFormError(null);
     try {
       const payload = { ...form, code: form.code.trim().toUpperCase(), jurisdiction_id: form.jurisdiction_id || null };
+      if (payload.recovery === null) delete payload.recovery;   // the server gives a new type its category's start
       if (editing) { delete payload.opening_balance; delete payload.opening_side; delete payload.opening_payable; delete payload.opening_receivable; }
       ['opening_balance', 'opening_payable', 'opening_receivable'].forEach((k) => { if (payload[k] === '') delete payload[k]; });
       if (editing) await updateType(type.id, payload); else await createType(payload);
@@ -94,6 +98,28 @@ export default function TaxTypeForm({ type, onClose }) {
               {(options?.areas ?? []).map((a) => <option key={a.id} value={a.id}>{a.name}{a.level ? ` (${a.level})` : ''}</option>)}
             </SelectInput>
           </Field>
+          {form.application_method === 'added' && (
+            <div style={{ padding: 12, borderRadius: 8, background: 'rgba(168,85,247,0.05)' }}>
+              <FormGrid min={220}>
+                <Field label="When we buy goods with this tax in the price" htmlFor="tt-rec" error={errors.recovery}
+                  hint={recovery === 'non_recoverable' ? 'It is part of what the goods cost: it goes into the stock (or the account below), not into a tax account. A sale is not affected.' : recovery === 'conditional' ? 'Claimed back only if the company stands in the position below; otherwise it is part of the cost.' : 'Claimed back as input tax, like VAT.'}>
+                  <SelectInput id="tt-rec" value={recovery} onChange={(e) => set('recovery')(e.target.value)}>
+                    {Object.entries(options?.recovery ?? { recoverable: 'Recoverable: claimed back as input tax', non_recoverable: 'Not recoverable: part of what the goods cost', conditional: 'Conditional' }).map(([k, label]) => <option key={k} value={k}>{label}</option>)}
+                  </SelectInput>
+                </Field>
+                {recovery === 'conditional' && (
+                  <Field label="The company is" htmlFor="tt-role" error={errors.company_role} hint="Only a licensed manufacturer claims it back, for what it uses to make the goods the tax is on. An importer's duty is dealt with in the customs module later.">
+                    <SelectInput id="tt-role" value={form.company_role ?? 'ordinary'} onChange={(e) => set('company_role')(e.target.value)}>
+                      {Object.entries(options?.company_roles ?? { ordinary: 'An ordinary purchaser', manufacturer: 'A licensed manufacturer', importer: 'An importer' }).map(([k, label]) => <option key={k} value={k}>{label}</option>)}
+                    </SelectInput>
+                  </Field>
+                )}
+                {recovery !== 'recoverable' && (
+                  <LedgerSelect id="tt-costto" label="Charge it to (optional)" hint="Leave empty to add it to the cost of the item. Choose an expense account to keep it apart." value={form.cost_ledger_id} onChange={set('cost_ledger_id')} />
+                )}
+              </FormGrid>
+            </div>
+          )}
           {form.application_method === 'reverse_charge' && (
             <div style={{ padding: 12, borderRadius: 8, background: 'rgba(168,85,247,0.05)' }}>
               <p style={{ margin: '0 0 8px', fontSize: '0.75rem', color: '#4b5563', lineHeight: 1.5 }}>
