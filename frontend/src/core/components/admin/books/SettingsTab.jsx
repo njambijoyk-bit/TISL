@@ -15,6 +15,7 @@ import noSlash from '../../../../_shared/lib/noSlash';
 import { hasPermission } from '../../../../_shared/lib/roles';
 import ReportsSettings from './ReportsSettings';
 import TaxControlSettings from './TaxControlSettings';
+import YearCloseWizard from './YearCloseWizard';
 
 const SUBS = [
   { id: 'numbering', label: 'Voucher numbering' },
@@ -250,6 +251,7 @@ function PeriodSection({ canSetup }) {
   const [win, setWin] = useState({ edit_window_days: '', locked_before: '' });
   const [limits, setLimits] = useState([]);
   const [year, setYear] = useState({ name: '', start_date: '', end_date: '' });
+  const [closeYear, setCloseYear] = useState(null);   // the year whose year-end close is open
   const [busy, setBusy] = useState(false);
 
   const load = useCallback(async () => {
@@ -279,9 +281,6 @@ function PeriodSection({ canSetup }) {
     e.preventDefault();
     try { await booksAPI.createYear(year); setYear({ name: '', start_date: '', end_date: '' }); toast.success('Financial year added'); load(); }
     catch (x) { toast.error(errMsg(x, 'Could not add the year')); }
-  };
-  const closeYear = async (y) => {
-    try { await booksAPI.closeYear(y.id, !y.is_closed); load(); } catch (e) { toast.error(errMsg(e, 'Could not change the year')); }
   };
   const ro = !canSetup;
   const small = { padding: '6px 8px', borderRadius: 6, border: `1.5px solid ${colors.tint(0.18)}`, fontSize: '0.8rem', width: 110 };
@@ -321,12 +320,13 @@ function PeriodSection({ canSetup }) {
         {!ro && <div style={{ marginTop: 12 }}><button type="button" style={btnPrimary} disabled={busy} onClick={saveLimits}>Save limits</button></div>}
       </Section>
 
-      <Section title="Financial years" hint="A closed year is frozen — no voucher dated inside it can be added, edited or cancelled.">
+      {closeYear && <YearCloseWizard year={closeYear} onClose={() => setCloseYear(null)} onChanged={load} />}
+      <Section title="Financial years" hint="A closed year is frozen — no voucher dated inside it can be added, edited or cancelled. Close a year with the year-end close: prepare, approve, lock.">
         {data.years.map((y) => (
           <div key={y.id} style={{ display: 'flex', gap: 12, alignItems: 'center', padding: '8px 0', borderTop: `1px solid ${colors.tint(0.06)}`, fontSize: '0.85rem' }}>
             <strong style={{ flex: 1 }}>{y.name} <span style={{ fontWeight: 400, color: colors.textMuted }}>· {y.start_date} → {y.end_date}</span></strong>
             <span style={{ color: y.is_closed ? colors.dangerText : colors.successText, fontSize: '0.75rem', fontWeight: 700 }}>{y.is_closed ? 'Closed' : 'Open'}</span>
-            {canSetup && <button type="button" style={{ ...btnGhost, padding: '4px 10px' }} onClick={() => closeYear(y)}>{y.is_closed ? 'Reopen' : 'Close year'}</button>}
+            <button type="button" style={{ ...btnGhost, padding: '4px 10px' }} onClick={() => setCloseYear(y)}>{y.is_closed ? 'Year-end close' : 'Close the year…'}</button>
           </div>
         ))}
         {!ro && (

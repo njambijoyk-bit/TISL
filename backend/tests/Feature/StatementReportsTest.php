@@ -257,6 +257,37 @@ class StatementReportsTest extends TestCase
         $this->assertEquals(0.0, round($d['total_assets'] - $d['total_liabilities'], 2), 'the books balance once the opening difference is carried');
     }
 
+    // ── step 7: changes in equity and the adjusted trial balance ────────
+
+    public function test_changes_in_equity_close_on_the_balance_sheets_equity_and_the_columns_add_across(): void
+    {
+        foreach ([[null, '2026-12-31'], ['2026-01-01', '2026-12-31'], ['2026-04-01', '2026-09-30'], ['2026-06-01', '2026-06-30']] as [$from, $to]) {
+            $e = (new \App\Services\Books\Engine\Reports\ChangesInEquityReport())->run(Scope::dates($from, $to), []);
+            $bs = (new BalanceSheetReport())->run(Scope::dates(null, $to), []);
+            $this->assertTrue($e['ready']);
+            $this->assertEquals($bs['totals']['equity'], $e['totals']['closing'], "{$from}..{$to}: the closing equity is the balance sheet's");
+            foreach ($e['rows'] as $r) {
+                $this->assertEquals($r['closing'], round($r['opening'] + $r['profit'] + $r['other'], 2), $r['name'] . ': opening + profit + other = closing');
+            }
+            $retained = collect($e['rows'])->firstWhere('key', 'retained');
+            $this->assertEquals($bs['retained']['prior'] + $bs['retained']['current'], $retained['closing'], 'retained earnings agree');
+        }
+    }
+
+    public function test_the_adjusted_trial_balance_has_no_income_or_expense_ledgers_and_balances(): void
+    {
+        $d = (new \App\Services\Books\Engine\Reports\AdjustedTrialBalanceReport())->run(Scope::dates(null, '2026-12-31'), []);
+        $this->assertTrue($d['balanced']);
+        $this->assertEquals($d['totals']['debit'], $d['totals']['credit']);
+        $names = array_column($d['rows'], 'name');
+        $this->assertNotContains('Sales', $names);
+        $this->assertNotContains('Rent', $names);
+        $this->assertContains('Retained earnings (profit and loss of all years)', $names);
+        $bs = (new BalanceSheetReport())->run(Scope::dates(null, '2026-12-31'), []);
+        $retained = collect($d['rows'])->first(fn ($r) => str_starts_with($r['name'], 'Retained'));
+        $this->assertEquals(round($bs['retained']['prior'] + $bs['retained']['current'], 2), round($retained['credit'] - $retained['debit'], 2));
+    }
+
     public function test_retained_earnings_are_split_into_previous_years_and_this_year(): void
     {
         $d = (new BalanceSheetReport())->run(Scope::dates(null, '2026-12-31'), []);

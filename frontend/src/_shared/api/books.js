@@ -147,6 +147,10 @@ const booksAPI = {
   saveSettings: (d) => send('put', '/admin/books/settings', d),
   saveEditLimits: (limits) => send('put', '/admin/books/edit-limits', { limits }),
   createYear: (d) => send('post', '/admin/books/financial-years', d),
+  yearClose: () => get('/admin/books/year-close'),
+  yearCloseShow: (yearId) => get(`/admin/books/year-close/years/${yearId}`),
+  yearClosePrepare: (yearId, body) => send('post', `/admin/books/year-close/years/${yearId}/prepare`, body),
+  yearCloseStep: (closeId, step, body) => send('post', `/admin/books/year-close/${closeId}/${step}`, body ?? {}),
   closeYear: (id, closed) => send('post', `/admin/books/financial-years/${id}/close`, { closed }),
 };
 

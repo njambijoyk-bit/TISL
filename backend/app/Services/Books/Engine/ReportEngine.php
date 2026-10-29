@@ -5,7 +5,9 @@ namespace App\Services\Books\Engine;
 use App\Models\User;
 use App\Services\Access\Authorizer;
 use App\Services\Access\BranchFilter;
+use App\Services\Books\Engine\Reports\AdjustedTrialBalanceReport;
 use App\Services\Books\Engine\Reports\BalanceSheetReport;
+use App\Services\Books\Engine\Reports\ChangesInEquityReport;
 use App\Services\Books\Engine\Reports\PayablesAgeingReport;
 use App\Services\Books\Engine\Reports\RatioAnalysisReport;
 use App\Services\Books\Engine\Reports\ReceivablesAgeingReport;
@@ -39,6 +41,8 @@ final class ReportEngine
         TrialBalanceReport::class,
         ProfitLossReport::class,
         BalanceSheetReport::class,
+        ChangesInEquityReport::class,
+        AdjustedTrialBalanceReport::class,
         DayBookReport::class,
         LedgerStatementReport::class,
         ReceivablesAgeingReport::class,

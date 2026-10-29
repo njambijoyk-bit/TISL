@@ -589,6 +589,9 @@ class BooksMasterController extends Controller
     public function closeYear(Request $request, $id): JsonResponse
     {
         $y = FinancialYear::findOrFail($id);
+        if (\App\Services\Books\YearCloseService::ready()) {   // script 232: a year is closed by preparing, approving and locking the year-end close
+            return response()->json(['message' => 'Use the year-end close: prepare, approve and lock the year from Period control.'], 422);
+        }
         $close = $request->boolean('closed', true);
         $y->update(['is_closed' => $close, 'closed_by' => $close ? $request->user()->id : null, 'closed_at' => $close ? now() : null]);
 

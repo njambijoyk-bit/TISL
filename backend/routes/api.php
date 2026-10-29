@@ -1298,6 +1298,16 @@ Route::middleware('auth:sanctum')->group(function () {
             Route::post('/financial-years',         [BooksMasterController::class, 'storeYear']);
         });
 
+        // The year-end close: seeing it needs books.view (the group above); preparing books.close.prepare; approving, locking and reopening books.period
+        Route::get('/year-close',                       [\App\Http\Controllers\Api\YearCloseController::class, 'index']);
+        Route::get('/year-close/years/{yearId}',        [\App\Http\Controllers\Api\YearCloseController::class, 'show'])->whereNumber('yearId');
+        Route::post('/year-close/years/{yearId}/prepare', [\App\Http\Controllers\Api\YearCloseController::class, 'prepare'])->whereNumber('yearId')->middleware('permission:books.close.prepare');
+        Route::middleware('permission:books.period')->group(function () {
+            Route::post('/year-close/{closeId}/approve', [\App\Http\Controllers\Api\YearCloseController::class, 'approve'])->whereNumber('closeId');
+            Route::post('/year-close/{closeId}/lock',    [\App\Http\Controllers\Api\YearCloseController::class, 'lock'])->whereNumber('closeId');
+            Route::post('/year-close/{closeId}/reopen',  [\App\Http\Controllers\Api\YearCloseController::class, 'reopen'])->whereNumber('closeId');
+        });
+
         // Tax control (Books -> Configuration -> Tax control): the tab needs books.tax.view; each section's own permission is checked in the service
         Route::middleware('permission:books.tax.view')->group(function () {
             Route::get('/tax-control',             [\App\Http\Controllers\Api\TaxControlController::class, 'show']);
