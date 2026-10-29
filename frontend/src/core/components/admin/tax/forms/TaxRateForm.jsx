@@ -11,6 +11,15 @@ import { colors } from '../../../../../_shared/theme/tokens';
 
 const today = () => new Date().toLocaleDateString('en-CA');
 
+const RATE_TYPES = [
+  { id: 'percentage', label: 'Percentage of the price' },
+  { id: 'fixed_amount', label: 'Fixed amount per unit' },
+  { id: 'combined', label: 'Percentage plus an amount per unit', mixed: true },
+  { id: 'higher_of', label: 'The higher of the percentage and the amount per unit', mixed: true },
+  { id: 'lower_of', label: 'The lower of the percentage and the amount per unit', mixed: true },
+];
+const TAX_POINTS = { invoice: 'When it is invoiced', delivery: 'When the goods are delivered', payment: 'When it is paid', removal: 'When the goods leave the factory', import: 'When the goods are imported' };
+
 const BASES = [
   { id: 'post_discount', label: 'After discounts', help: 'The usual choice.' },
   { id: 'pre_discount',  label: 'Before discounts', help: 'Tax the full list price.' },
@@ -30,6 +39,8 @@ export default function TaxRateForm({ rate, defaultTypeId, onClose }) {
     classification: rate?.classification ?? '',
     rate_type: rate?.rate_type ?? 'percentage',
     rate_value: rate?.rate_value != null ? Number(rate.rate_value) : '',
+    secondary_rate_value: rate?.secondary_rate_value != null ? Number(rate.secondary_rate_value) : '',
+    tax_point: rate?.tax_point ?? '',
     unit_of_measure_id: rate?.unit_of_measure_id ?? '',
     currency_id: rate?.currency_id ?? '',
     calculation_base: rate?.calculation_base ?? 'post_discount',
@@ -43,7 +54,11 @@ export default function TaxRateForm({ rate, defaultTypeId, onClose }) {
   const [formError, setFormError] = useState(null);
   const [locked, setLocked] = useState((rate?.applications_count ?? 0) > 0);
   const set = (k) => (v) => setForm((f) => ({ ...f, [k]: v }));
+  const typeRow = types.find((t) => t.id === Number(form.tax_type_id));
+  const added = !typeRow || (typeRow.application_method ?? (typeRow.application_mode === 'additive' ? 'added' : 'withheld')) === 'added';   // a percentage together with an amount per unit is only for a tax added to the price
+  const mixed = RATE_TYPES.find((r) => r.id === form.rate_type)?.mixed === true;
   const fixed = form.rate_type === 'fixed_amount';
+  const perUnit = fixed || mixed;   // has an amount per unit, so a unit and a currency
 
   const submit = async (e) => {
     e.preventDefault();
@@ -51,15 +66,17 @@ export default function TaxRateForm({ rate, defaultTypeId, onClose }) {
     const payload = {
       ...form,
       classification: form.classification.trim() || null,
-      unit_of_measure_id: fixed ? form.unit_of_measure_id || null : null,
-      currency_id: fixed ? form.currency_id || null : null,
+      unit_of_measure_id: perUnit ? form.unit_of_measure_id || null : null,
+      currency_id: perUnit ? form.currency_id || null : null,
+      secondary_rate_value: mixed ? form.secondary_rate_value : null,
+      tax_point: form.tax_point || null,
       valid_until: form.valid_until || null,
       calculation_sequence: Number(form.calculation_sequence) || 0,
     };
     if (editing) delete payload.tax_type_id; // not updatable
     if (editing && locked) {
       // Only administrative fields are allowed on a used rate
-      ['rate_type', 'rate_value', 'classification', 'unit_of_measure_id', 'currency_id', 'calculation_base']
+      ['rate_type', 'rate_value', 'secondary_rate_value', 'tax_point', 'classification', 'unit_of_measure_id', 'currency_id', 'calculation_base']
         .forEach((k) => delete payload[k]);
     }
     try {
@@ -102,17 +119,22 @@ export default function TaxRateForm({ rate, defaultTypeId, onClose }) {
           <FormGrid>
             <Field label="Rate type" htmlFor="tr-rtype" error={errors.rate_type}>
               <SelectInput id="tr-rtype" value={form.rate_type} disabled={moneyDisabled} onChange={(e) => set('rate_type')(e.target.value)}>
-                <option value="percentage">Percentage of the price</option>
-                <option value="fixed_amount">Fixed amount per unit</option>
+                {RATE_TYPES.filter((r) => !r.mixed || added || r.id === form.rate_type).map((r) => <option key={r.id} value={r.id}>{r.label}</option>)}
               </SelectInput>
             </Field>
             <Field label={fixed ? 'Amount per unit' : 'Rate (%)'} htmlFor="tr-val" error={errors.rate_value}>
               <NumberInput id="tr-val" required min="0" step="0.0001" value={form.rate_value} disabled={moneyDisabled}
                 onChange={(e) => set('rate_value')(e.target.value)} placeholder={fixed ? '50.00' : '16'} />
             </Field>
+            {mixed && (
+              <Field label="Amount per unit" htmlFor="tr-val2" error={errors.secondary_rate_value} hint="The second part of the rate, for each unit (each litre, each kilo)">
+                <NumberInput id="tr-val2" required min="0" step="0.0001" value={form.secondary_rate_value} disabled={moneyDisabled}
+                  onChange={(e) => set('secondary_rate_value')(e.target.value)} placeholder="20.00" />
+              </Field>
+            )}
           </FormGrid>
 
-          {fixed && (
+          {perUnit && (
             <FormGrid>
               <Field label="Per unit of" htmlFor="tr-unit" error={errors.unit_of_measure_id} hint="e.g. per litre for fuel excise">
                 <UnitSelect id="tr-unit" value={form.unit_of_measure_id} disabled={moneyDisabled} onChange={set('unit_of_measure_id')} />
@@ -146,6 +168,13 @@ export default function TaxRateForm({ rate, defaultTypeId, onClose }) {
               <NumberInput id="tr-seq" step="1" value={form.calculation_sequence} onChange={(e) => set('calculation_sequence')(e.target.value)} />
             </Field>
           </FormGrid>
+
+          <Field label="When the tax arises" htmlFor="tr-point" error={errors.tax_point} hint="The moment the liability starts. Leave empty to follow the document.">
+            <SelectInput id="tr-point" value={form.tax_point} disabled={moneyDisabled} onChange={(e) => set('tax_point')(e.target.value)}>
+              <option value="">Follows the document</option>
+              {Object.entries(TAX_POINTS).map(([k, label]) => <option key={k} value={k}>{label}</option>)}
+            </SelectInput>
+          </Field>
 
           <CheckboxRow checked={form.requires_certificate} onChange={set('requires_certificate')}
             label="Needs a verified exemption certificate"

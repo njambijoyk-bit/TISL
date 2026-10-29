@@ -7,6 +7,7 @@ import api from './axios';
 const taxAPI = {
   // ── Types ──────────────────────────────────────────────────────────────
   // params: { active, application_mode: 'additive' | 'withheld' }
+  getTypeOptions: async () => (await api.get('/admin/tax/type-options')).data,
   getTypes: async (params = {}) => (await api.get('/admin/tax/types', { params })).data,
   createType: async (data) => (await api.post('/admin/tax/types', data)).data,
   updateType: async (id, data) => (await api.put(`/admin/tax/types/${id}`, data)).data,

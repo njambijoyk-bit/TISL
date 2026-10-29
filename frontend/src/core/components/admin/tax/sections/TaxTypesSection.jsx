@@ -9,6 +9,8 @@ import RowActions from './RowActions';
 import useDeleteConfirm from './useDeleteConfirm';
 import { btnPrimary, colors } from '../../../../../_shared/theme/tokens';
 
+const humanise = (k) => (k ? String(k).replace(/_/g, ' ').replace(/^./, (c) => c.toUpperCase()) : '—');
+
 export default function TaxTypesSection({ canWrite }) {
   const { types, rates, rules, loading, actionLoading, deleteType } = useTaxStore();
   const [editing, setEditing] = useState(null);
@@ -17,7 +19,8 @@ export default function TaxTypesSection({ canWrite }) {
   const columns = [
     { key: 'name', label: 'Name', render: (t) => <strong style={{ color: colors.text, fontWeight: 600 }}>{t.name}</strong> },
     { key: 'code', label: 'Code', render: (t) => <span style={{ fontFamily: 'monospace' }}>{t.code}</span> },
-    { key: 'application_mode', label: 'Applied as', render: (t) => <StatusBadge status={t.application_mode} dot={false} /> },
+    { key: 'tax_category', label: 'Category', render: (t) => <span style={{ color: colors.textMuted }}>{humanise(t.tax_category ?? (t.kind === 'vat' ? 'vat_gst' : t.kind))}</span> },
+    { key: 'application_mode', label: 'Applied as', render: (t) => <StatusBadge status={t.application_method ? humanise(t.application_method) : t.application_mode} dot={false} /> },
     { key: 'rates', label: 'Rates', align: 'right', render: (t) => rates.filter((r) => r.tax_type_id === t.id).length },
     { key: 'rules', label: 'Rules', align: 'right', render: (t) => rules.filter((r) => r.tax_type_id === t.id).length },
     { key: 'position', label: 'Position (in books)', align: 'right', render: (t) => {

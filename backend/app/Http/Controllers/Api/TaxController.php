@@ -19,6 +19,9 @@ use Illuminate\Support\Facades\Validator;
 class TaxController extends Controller
 {
     /** Whitelist of taxable_type aliases the client may send — never accept a raw class string. */
+    /** When the liability for a tax arises. */
+    public const TAX_POINTS = ['invoice', 'delivery', 'payment', 'removal', 'import'];
+
     private const TAXABLE_MODELS = [
         'product'  => Product::class,
         'customer' => Customer::class,
@@ -56,12 +59,33 @@ class TaxController extends Controller
         return response()->json(['tax_types' => $types], 200);
     }
 
+    /** What the tax type form offers: the categories and methods Tax control allows, which methods can be posted yet, and the areas a type can belong to. */
+    public function adminTypeOptions()
+    {
+        $allowed = app(\App\Services\Books\TaxTypeRules::class)->allowed();
+        $areas = \Illuminate\Support\Facades\Schema::hasTable('tax_districts')
+            ? TaxDistrict::orderBy('name')->get(['id', 'name', 'level', 'parent_id'])->map(fn ($d) => ['id' => $d->id, 'name' => $d->name, 'level' => $d->level, 'parent_id' => $d->parent_id])->all()
+            : [];
+
+        return response()->json([
+            'categories' => array_map(fn ($c) => ['key' => $c, 'label' => \App\Services\Books\TaxControlDefinitions::CATEGORIES[$c], 'methods' => $allowed['methods'][$c] ?? []], $allowed['categories']),
+            'methods' => \App\Services\Books\TaxControlDefinitions::METHODS,
+            'postable_methods' => \App\Services\Books\TaxTypeRules::POSTABLE_METHODS,
+            'areas' => $areas,
+            'tax_points' => self::TAX_POINTS,
+            'ready' => \App\Services\Books\TaxControlSettings::ready(),
+        ]);
+    }
+
     public function adminStoreType(Request $request)
     {
         $validator = Validator::make($request->all(), [
             'name'             => 'required|string|max:100|unique:ledger_groups,name',
             'code'             => 'required|string|max:30|unique:ledger_groups,code',
-            'application_mode' => 'required|in:additive,withheld',
+            'application_mode' => 'required_without:application_method|nullable|in:additive,withheld',
+            'application_method' => 'required_without:application_mode|nullable|string|max:20',
+            'tax_category'     => 'nullable|string|max:40',
+            'jurisdiction_id'  => 'nullable|exists:tax_districts,id',
             'kind'             => 'nullable|in:' . implode(',', \App\Services\Books\TaxLedgerService::KINDS),
             'is_compound'      => 'boolean',
             'is_active'        => 'boolean',
@@ -74,14 +98,18 @@ class TaxController extends Controller
             return response()->json(['errors' => $validator->errors()], 422);
         }
 
+        $rules = app(\App\Services\Books\TaxTypeRules::class)->forCreate($request->only(['tax_category', 'application_method', 'application_mode', 'kind']));
+        $new = \Illuminate\Support\Facades\Schema::hasColumn('ledger_groups', 'tax_category')   // the new columns exist once script 229 has been run
+            ? ['tax_category' => $rules['tax_category'], 'application_method' => $rules['application_method'], 'jurisdiction_id' => $request->input('jurisdiction_id')]
+            : [];
         $type = TaxType::create([
             'name'             => $request->name,
             'code'             => $request->code,
-            'application_mode' => $request->application_mode,
-            'kind'             => $request->kind ?: ($request->application_mode === 'withheld' ? 'withholding_income' : 'other'),
+            'application_mode' => $rules['application_mode'],
+            'kind'             => $rules['kind'],
             'is_compound'      => $request->boolean('is_compound'),
             'is_active'        => $request->boolean('is_active', true),
-        ]);
+        ] + $new);
 
         try {
             $type = app(\App\Services\Books\TaxLedgerService::class)->provisionType($type, [
@@ -106,6 +134,9 @@ class TaxController extends Controller
             'name'             => 'sometimes|required|string|max:100|unique:ledger_groups,name,' . $id,
             'code'             => 'sometimes|required|string|max:30|unique:ledger_groups,code,' . $id,
             'application_mode' => 'sometimes|required|in:additive,withheld',
+            'application_method' => 'sometimes|required|string|max:20',
+            'tax_category'     => 'sometimes|required|string|max:40',
+            'jurisdiction_id'  => 'nullable|exists:tax_districts,id',
             'is_compound'      => 'boolean',
             'is_active'        => 'boolean',
         ]);
@@ -114,8 +145,11 @@ class TaxController extends Controller
             return response()->json(['errors' => $validator->errors()], 422);
         }
 
+        $changes = app(\App\Services\Books\TaxTypeRules::class)->forUpdate($type, $request->only(['tax_category', 'application_method', 'application_mode', 'kind']));
+        $hasNew = \Illuminate\Support\Facades\Schema::hasColumn('ledger_groups', 'tax_category');
         $oldName = $type->name;
-        $type->update($request->only(['name', 'code', 'application_mode', 'is_compound', 'is_active', 'kind']));
+        $type->update($request->only(['name', 'code', 'is_compound', 'is_active'])
+            + ($hasNew ? $changes + ($request->has('jurisdiction_id') ? ['jurisdiction_id' => $request->input('jurisdiction_id')] : []) : array_diff_key($changes, ['tax_category' => 1])));
         app(\App\Services\Books\TaxLedgerService::class)->renameType($type, $oldName);
 
         return response()->json(['tax_type' => $type], 200);
@@ -179,9 +213,11 @@ class TaxController extends Controller
         $validator = Validator::make($request->all(), [
             'tax_type_id'          => 'required|exists:ledger_groups,id',
             'classification'       => 'nullable|string|max:50',
-            'rate_type'            => 'required|in:percentage,fixed_amount',
+            'rate_type'            => 'required|in:percentage,fixed_amount,combined,higher_of,lower_of',
             'rate_value'           => 'required|numeric|min:0',
-            'unit_of_measure_id'   => 'nullable|exists:units_of_measure,id|required_if:rate_type,fixed_amount',
+            'secondary_rate_value' => 'nullable|numeric|min:0|required_if:rate_type,combined,higher_of,lower_of',
+            'tax_point'            => 'nullable|in:' . implode(',', self::TAX_POINTS),
+            'unit_of_measure_id'   => 'nullable|exists:units_of_measure,id|required_if:rate_type,fixed_amount,combined,higher_of,lower_of',
             'currency_id'          => 'nullable|exists:currencies,id,is_active,1',
             'calculation_base'     => 'nullable|in:pre_discount,post_discount,total_payable',
             'calculation_sequence' => 'nullable|integer',
@@ -194,15 +230,20 @@ class TaxController extends Controller
         if ($validator->fails()) {
             return response()->json(['errors' => $validator->errors()], 422);
         }
+        $mixed = in_array($request->rate_type, TaxRate::MIXED_TYPES, true);
+        if ($mixed && ! app(\App\Services\Books\TaxTypeRules::class)->allowsMixedRates(TaxType::findOrFail($request->tax_type_id))) {
+            return response()->json(['errors' => ['rate_type' => ['A percentage together with an amount per unit can only be used on a tax that is added to the price.']]], 422);
+        }
+        $newColumns = \Illuminate\Support\Facades\Schema::hasColumn('ledgers', 'tax_point') ? ['secondary_rate_value', 'tax_point'] : [];   // script 229 adds them
 
-        $data = $request->only([
+        $data = $request->only(array_merge([
             'tax_type_id', 'classification', 'rate_type', 'rate_value', 'unit_of_measure_id',
             'calculation_base', 'calculation_sequence', 'requires_certificate', 'valid_from', 'valid_until',
-        ]) + ['is_active' => $request->boolean('is_active', true)];
+        ], $newColumns)) + ['is_active' => $request->boolean('is_active', true)];
 
         // A fixed amount is money, so it needs a currency. Percentages are
         // currency-neutral and keep currency_id NULL.
-        $data['currency_id'] = $request->rate_type === TaxRate::TYPE_FIXED_AMOUNT
+        $data['currency_id'] = $request->rate_type === TaxRate::TYPE_FIXED_AMOUNT || $mixed
             ? ($request->currency_id ?: app(\App\Services\CurrencyConversionService::class)->getBaseCurrency()->id)
             : null;
 
@@ -224,8 +265,10 @@ class TaxController extends Controller
 
         $validator = Validator::make($request->all(), [
             'classification'       => 'nullable|string|max:50',
-            'rate_type'            => 'sometimes|required|in:percentage,fixed_amount',
+            'rate_type'            => 'sometimes|required|in:percentage,fixed_amount,combined,higher_of,lower_of',
             'rate_value'           => 'sometimes|required|numeric|min:0',
+            'secondary_rate_value' => 'nullable|numeric|min:0',
+            'tax_point'            => 'nullable|in:' . implode(',', self::TAX_POINTS),
             'unit_of_measure_id'   => 'nullable|exists:units_of_measure,id',
             'currency_id'          => 'nullable|exists:currencies,id,is_active,1',
             'calculation_base'     => 'nullable|in:pre_discount,post_discount,total_payable',
@@ -246,7 +289,7 @@ class TaxController extends Controller
         if ($rate->applications()->exists()) {
             $locked = array_intersect(
                 array_keys($request->all()),
-                ['rate_type', 'rate_value', 'classification', 'unit_of_measure_id', 'currency_id', 'calculation_base']
+                ['rate_type', 'rate_value', 'secondary_rate_value', 'tax_point', 'classification', 'unit_of_measure_id', 'currency_id', 'calculation_base']
             );
 
             if (!empty($locked)) {
@@ -256,13 +299,24 @@ class TaxController extends Controller
             }
         }
 
-        $data = $request->only([
+        $newColumns = \Illuminate\Support\Facades\Schema::hasColumn('ledgers', 'tax_point') ? ['secondary_rate_value', 'tax_point'] : [];   // script 229 adds them
+        $data = $request->only(array_merge([
             'classification', 'rate_type', 'rate_value', 'unit_of_measure_id', 'currency_id',
             'calculation_base', 'calculation_sequence', 'requires_certificate', 'valid_from', 'valid_until', 'is_active',
-        ]);
+        ], $newColumns));
 
         $type = $data['rate_type'] ?? $rate->rate_type;
-        if ($type !== TaxRate::TYPE_FIXED_AMOUNT) {
+        if (in_array($type, TaxRate::MIXED_TYPES, true)) {
+            if (! app(\App\Services\Books\TaxTypeRules::class)->allowsMixedRates(TaxType::findOrFail($rate->group_id))) {
+                return response()->json(['errors' => ['rate_type' => ['A percentage together with an amount per unit can only be used on a tax that is added to the price.']]], 422);
+            }
+            $secondary = array_key_exists('secondary_rate_value', $data) ? $data['secondary_rate_value'] : ($newColumns ? $rate->secondary_rate_value : null);
+            $unit = array_key_exists('unit_of_measure_id', $data) ? $data['unit_of_measure_id'] : $rate->unit_of_measure_id;
+            if ($secondary === null || $secondary === '' || ! $unit) {
+                return response()->json(['errors' => ['secondary_rate_value' => ['This kind of rate needs its amount per unit and the unit.']]], 422);
+            }
+        }
+        if (! in_array($type, [TaxRate::TYPE_FIXED_AMOUNT, ...TaxRate::MIXED_TYPES], true)) {
             $data['currency_id'] = null;
         } elseif (empty($data['currency_id']) && $rate->currency_id === null) {
             $data['currency_id'] = app(\App\Services\CurrencyConversionService::class)->getBaseCurrency()->id;

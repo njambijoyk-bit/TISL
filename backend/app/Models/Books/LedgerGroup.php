@@ -16,7 +16,8 @@ class LedgerGroup extends Model
     protected $table = 'ledger_groups';
 
     protected $fillable = ['parent_id', 'name', 'nature', 'is_primary', 'is_system', 'affects_gross_profit', 'sort_order', 'behaviour', 'settings',
-        'statement_id', 'code', 'is_active', 'application_mode', 'is_compound', 'kind', 'control_ledger_id', 'payable_ledger_id', 'receivable_ledger_id'];
+        'statement_id', 'code', 'is_active', 'application_mode', 'is_compound', 'kind', 'control_ledger_id', 'payable_ledger_id', 'receivable_ledger_id',
+        'tax_category', 'application_method', 'jurisdiction_id', 'input_ledger_id', 'cost_ledger_id'];
 
     protected $casts = [
         'is_primary'           => 'boolean',

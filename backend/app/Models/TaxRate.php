@@ -23,6 +23,12 @@ class TaxRate extends Ledger
 
     public const TYPE_PERCENTAGE   = 'percentage';
     public const TYPE_FIXED_AMOUNT = 'fixed_amount';
+    public const TYPE_COMBINED     = 'combined';    // a percentage of the base plus an amount per unit
+    public const TYPE_HIGHER_OF    = 'higher_of';   // the larger of the percentage and the per-unit amount
+    public const TYPE_LOWER_OF     = 'lower_of';    // the smaller of the two
+
+    /** The rate types that have a percentage (rate_value) and a per-unit amount (secondary_rate_value) together. */
+    public const MIXED_TYPES = [self::TYPE_COMBINED, self::TYPE_HIGHER_OF, self::TYPE_LOWER_OF];
 
     public const BASE_PRE_DISCOUNT  = 'pre_discount';   // line amount before discounts
     public const BASE_POST_DISCOUNT = 'post_discount';  // after discounts, before other taxes
@@ -30,7 +36,7 @@ class TaxRate extends Ledger
 
     protected $fillable = [
         'name', 'group_id', 'tax_type_id', 'classification', 'rate_type', 'rate_value', 'unit_of_measure_id', 'currency_id',
-        'calculation_base', 'calculation_sequence', 'requires_certificate', 'valid_from', 'valid_until', 'is_active', 'is_system',
+        'calculation_base', 'calculation_sequence', 'requires_certificate', 'valid_from', 'valid_until', 'is_active', 'is_system', 'secondary_rate_value', 'tax_point',
     ];
 
     protected $appends = ['tax_type_id', 'ledger_output_id', 'ledger_input_id'];
@@ -64,6 +70,7 @@ class TaxRate extends Ledger
         return match ($this->attributes['rate_type'] ?? null) {
             null => null,
             'percent' => self::TYPE_PERCENTAGE,
+            'combined' => self::TYPE_COMBINED, 'higher_of' => self::TYPE_HIGHER_OF, 'lower_of' => self::TYPE_LOWER_OF,
             default => self::TYPE_FIXED_AMOUNT,
         };
     }
@@ -72,7 +79,7 @@ class TaxRate extends Ledger
     {
         $this->attributes['rate_type'] = $v === self::TYPE_PERCENTAGE || $v === 'percent'
             ? 'percent'
-            : ($v === null ? null : 'fixed');
+            : (in_array($v, self::MIXED_TYPES, true) ? $v : ($v === null ? null : 'fixed'));
         $this->refreshRawType();
     }
 
@@ -170,7 +177,7 @@ class TaxRate extends Ledger
     /** Fixed amount quoted per unit of measure (excise-style). */
     public function isFixedPerUnit(): bool
     {
-        return $this->rate_type === self::TYPE_FIXED_AMOUNT && $this->unit_of_measure_id !== null;
+        return ($this->rate_type === self::TYPE_FIXED_AMOUNT || in_array($this->rate_type, self::MIXED_TYPES, true)) && $this->unit_of_measure_id !== null;
     }
 
     /** Pick the amount this rate should be calculated on. */
@@ -227,11 +234,28 @@ class TaxRate extends Ledger
      */
     public function calculate(float $base, float $quantity = 1.0, ?Currency $orderCurrency = null): float
     {
-        if ($this->rate_type !== self::TYPE_FIXED_AMOUNT) {
+        $type = $this->rate_type;
+        if (in_array($type, self::MIXED_TYPES, true)) {
+            $percentage = round($base * ((float) $this->rate_value / 100), 2);
+            $perUnit = $this->perUnitAmount((float) $this->secondary_rate_value, $quantity, $orderCurrency);
+
+            return match ($type) {
+                self::TYPE_COMBINED  => round($percentage + $perUnit, 2),
+                self::TYPE_HIGHER_OF => max($percentage, $perUnit),
+                default              => min($percentage, $perUnit),
+            };
+        }
+        if ($type !== self::TYPE_FIXED_AMOUNT) {
             return round($base * ((float) $this->rate_value / 100), 2);
         }
 
-        $amount = (float) $this->rate_value * $quantity;
+        return $this->perUnitAmount((float) $this->rate_value, $quantity, $orderCurrency);
+    }
+
+    /** An amount per unit times the quantity, in the order's currency. */
+    private function perUnitAmount(float $perUnit, float $quantity, ?Currency $orderCurrency): float
+    {
+        $amount = $perUnit * $quantity;
 
         // No currency on the rate, or no order currency to compare against —
         // nothing to convert, pass the raw amount through.

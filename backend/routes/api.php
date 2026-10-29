@@ -2673,6 +2673,7 @@ Route::middleware('auth:sanctum')->group(function () {
             // ---------- Reads ----------
             Route::prefix('tax')->group(function () {
                 Route::get('types',         [TaxController::class, 'adminIndexTypes']);
+                Route::get('type-options',  [TaxController::class, 'adminTypeOptions']);
                 Route::get('rates',         [TaxController::class, 'adminIndexRates']);
                 Route::get('rules',         [TaxController::class, 'adminIndexRules']);
                 Route::get('districts',     [TaxController::class, 'adminIndexDistricts']);
