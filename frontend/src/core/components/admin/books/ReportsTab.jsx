@@ -5,6 +5,7 @@ import toast from 'react-hot-toast';
 import { colors } from '../../../../_shared/theme/tokens';
 import useAuthStore from '../../../../_shared/store/authStore';
 import ReportsNav from './ReportsNav';
+import ReportGuide from './ReportGuide';
 import useReportFavourites from './useReportFavourites';
 import useReportKeys from './useReportKeys';
 import { ALIASES, REPORTS } from './reportCatalog';
@@ -83,6 +84,7 @@ export default function ReportsTab() {
         <ReportFrame key={def.engine + (params.get('ledger') ?? '')} reportKey={def.engine} initialOpts={def.engine === 'ledger-statement' && params.get('ledger') ? { ledger_id: params.get('ledger') } : {}}>
           {(r, api) => <EngineView engine={def.engine} result={r} drill={api?.drill} opts={api?.opts} />}
         </ReportFrame>
+        <ReportGuide report={def} reports={visible} open={open} />
       </div>
       <style>{`@media (max-width: 800px) { .reports-layout { grid-template-columns: minmax(0, 1fr) !important; } }`}</style>
     </div>
