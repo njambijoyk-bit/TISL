@@ -2607,10 +2607,18 @@ class VoucherService
           + (! empty($l['dish_id']) ? ['dish_id' => $l['dish_id']] : [])   // (and dish_id once script 184 is run)
           + (! empty($l['ingredient_item_id']) ? ['ingredient_item_id' => $l['ingredient_item_id']] : []));   // (and ingredient_item_id once script 187 is run)
         foreach ($l['taxes'] as $t) {
-            VoucherItemTax::create(['item_id' => $item->id, 'tax_rate_id' => $t['tax_rate_id'], 'ledger_id' => $t['ledger_id'], 'label' => $t['label'], 'base_amount' => $t['base_amount'], 'tax_amount' => $t['tax_amount']]);
+            VoucherItemTax::create(['item_id' => $item->id, 'tax_rate_id' => $t['tax_rate_id'], 'ledger_id' => $t['ledger_id'], 'label' => $t['label'], 'base_amount' => $t['base_amount'], 'tax_amount' => $t['tax_amount']]
+                + (isset($t['snapshot']) && $this->hasSnapshotColumn() ? ['calc_snapshot' => $t['snapshot']] : []));   // how the tax was worked out, kept with the line (script 229)
         }
 
         return $item;
+    }
+
+    private ?bool $snapshotColumn = null;
+
+    private function hasSnapshotColumn(): bool
+    {
+        return $this->snapshotColumn ??= \Illuminate\Support\Facades\Schema::hasColumn('voucher_item_taxes', 'calc_snapshot');
     }
 
     /** Check availability for stock going out, then move it. @return array applied movements, one per batch */

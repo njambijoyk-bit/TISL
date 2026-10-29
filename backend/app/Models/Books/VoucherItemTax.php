@@ -10,7 +10,7 @@ class VoucherItemTax extends Model
 
     protected $table = 'voucher_item_taxes';
 
-    protected $fillable = ['item_id', 'tax_rate_id', 'ledger_id', 'label', 'base_amount', 'tax_amount'];
+    protected $fillable = ['item_id', 'tax_rate_id', 'ledger_id', 'label', 'base_amount', 'tax_amount', 'calc_snapshot'];
 
-    protected $casts = ['base_amount' => 'decimal:2', 'tax_amount' => 'decimal:2'];
+    protected $casts = ['base_amount' => 'decimal:2', 'tax_amount' => 'decimal:2', 'calc_snapshot' => 'array'];
 }

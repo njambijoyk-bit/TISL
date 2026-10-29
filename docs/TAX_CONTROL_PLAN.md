@@ -83,7 +83,7 @@ For a purchase from a non-resident or an appointed supplier, the books post: the
 | T3 (**built**) | Tax control tab, permissions, audit log. | Each section saves, is refused without its permission, and is logged. |
 | T4 (**built**) | Tax type form: category, method, jurisdiction, with the combination table; rate form with the new rate types and tax point. | Invalid combinations are refused with a reason. |
 | T5 | Chart of accounts: the Duties & Taxes guard; accounts carrying several taxes. | The guard and the multi-tax form pass their tests. |
-| T6 | Tax resolution in the posting code (item, account, apply regardless, exemptions), reverse charge, and calculation snapshots. **First** a record of what every existing setup posts today; the new code must post the same, to the cent. | Old and new post identically for every existing case; new cases (several taxes on one account, reverse charge, an always-apply levy, excise with VAT on top) have tests. |
+| T6 (**split**: 6a built, 6b and 6c to do, see section 15) | Tax resolution in the posting code (item, account, apply regardless, exemptions), reverse charge, and calculation snapshots. **First** a record of what every existing setup posts today; the new code must post the same, to the cent. | Old and new post identically for every existing case; new cases (several taxes on one account, reverse charge, an always-apply levy, excise with VAT on top) have tests. |
 | T7 | Rebuild the tax return and the withholding register on the new model (categories, methods, reverse charge, per-tax nature), and the Books health checks on tax control accounts. | The two reports agree with the ledgers and with the previous versions where nothing changed. |
 | T8 | Update this plan and the Books reports plan, and the backup and `.wnkjap` table lists (step 13). | Docs match the code. |
 
@@ -161,3 +161,23 @@ Built. **Tax type form:** a category, a method and an area. The categories and m
 **Rates:** three new rate types: *percentage plus an amount per unit*, *the higher of the two* and *the lower of the two*, with the second amount and the unit; and a **tax point** (when invoiced, delivered, paid, removed from the factory, imported). The three new types are calculated by the same function the posting already calls, so they work wherever a rate is used, and they can only be used on a tax that is added to the price (the withholding code cannot work them out). A used rate keeps its amounts and tax point locked.
 
 One limit to know: a **custom voucher line** that picks a rate by hand gets no tax from a per-unit or mixed rate, the same as a per-unit rate today, because it has no quantity. T6's single tax calculation closes it.
+
+## 15. Status of T6 (split into 6a, 6b, 6c)
+
+T6 changes the code that posts sales and purchases, so it is done in three parts, each proved before the next.
+
+**The proof first.** Before any change, the tax calculation was run over 89 setups that existed before (every kind of account treatment, both sides, discounts, per-unit rates, rates that were replaced by a newer one, the manual rate, the account with no rate) and the figures recorded in `tests/Fixtures/tax_golden.json`. `TaxLineGoldenTest` requires the new calculation to give exactly these figures. It passes after the change.
+
+**6a, built: several taxes on one line.** (database script 230)
+- An account's other taxes (the rows of `ledger_taxes` after the first) are now charged, each calculated in order on its own base. A tax's base is the price, or, for a rate set to *after discounts and earlier taxes*, the price plus the earlier taxes: every earlier tax, or only the tax types the rate lists (`base_includes`). The worked example (price 1,000; excise 10%; VAT 16% on price plus excise) gives 100.00 and 176.00.
+- An account that is exempt from its first tax can still charge its second.
+- An item's own opt-out of a tax (`tax_opt_outs`) is respected, for the first tax and the others; a blanket exemption on the item or the customer still wins over everything.
+- **Taxes that apply regardless** (Tax control) are added after the account's and the item's, only on the documents they name, each following its own rule about exemptions (*respect*, *exclude exempt supplies*, *apply independently*), never twice, and with a plain refusal when no standard rate is in force.
+- Every tax row carries a **snapshot** of how it was worked out (the tax, the rate, its amounts, the base and what it included, the amount, where it came from), kept on the posted line.
+- Posting needed no change: it already posts every tax row of a line to its own ledger and adds them all into the party's total.
+
+**Not yet reachable from a screen:** opting an item out of a tax has no form yet (the table and the calculation are ready), and the *base* of a rate (the list of taxes it includes) is set in the database until the rate form gets the field. Both come with 6c.
+
+**6b, to do: reverse charge.** The posting of the recipient's liability and the matching recoverable input as separate balanced entries, the tax return showing both, and `reverse_charge` added to `TaxTypeRules::POSTABLE_METHODS`.
+
+**6c, to do: the base override on a document** (with the `books.tax.override` permission, the reason and the audit entry), the forms for opt-outs and for a rate's base list, and **prices that include tax** (*included in the displayed price*). Prices are stored without tax today everywhere (price lists, cards, the invoice), so this needs its own look before it is built, and `included` stays "not available yet" until then.

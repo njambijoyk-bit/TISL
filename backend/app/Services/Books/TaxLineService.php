@@ -19,7 +19,7 @@ use Illuminate\Database\Eloquent\Model;
  */
 class TaxLineService
 {
-    public function __construct(private TaxService $tax, private TaxLedgerService $ledgers) {}
+    public function __construct(private TaxService $tax, private TaxLedgerService $ledgers, private TaxResolver $resolver) {}
 
     /**
      * @param  string  $module  product | service (the tax rule module)
@@ -28,9 +28,19 @@ class TaxLineService
      */
     public function forLine(?Model $taxable, string $module, float $pre, float $post, float $qty, ?int $unitId, string $side, ?Customer $customer, ?int $locationId, ?Currency $currency = null, ?Ledger $account = null): array
     {
-        if ($account?->tax_nature) {
-            return $this->fromAccount($account, $pre, $post, $qty, $side, $customer, $currency, null, $taxable);
-        }
+        $rows = $account?->tax_nature
+            ? $this->fromAccount($account, $pre, $post, $qty, $side, $customer, $currency, null, $taxable)
+            : $this->fromRules($taxable, $module, $pre, $post, $qty, $unitId, $side, $customer, $locationId, $currency);
+
+        // the taxes that apply regardless of the item and the account (Tax control), each unless its own rule about exemptions says the line is exempt
+        return $this->resolver->withRegardless($rows, $pre, $post, $qty, $side, $currency, null, [
+            'account' => $account, 'item_exempt' => $this->blanketExempt($taxable, null), 'customer_exempt' => $this->blanketExempt($customer, null), 'opted_out' => $this->resolver->optedOut($taxable),
+        ], $this);
+    }
+
+    /** The item path: the tax rules that match the item, the customer and the branch, in the order of their rates' sequence. */
+    private function fromRules(?Model $taxable, string $module, float $pre, float $post, float $qty, ?int $unitId, string $side, ?Customer $customer, ?int $locationId, ?Currency $currency): array
+    {
         if (! $taxable || $post == 0.0) {
             return [];
         }
@@ -65,10 +75,22 @@ class TaxLineService
                 'base_amount' => round((float) $r['base_amount'], 2),
                 'tax_amount'  => round((float) $r['tax_amount'], 2),
                 'percent'     => $rate->isPercentage() ? (float) $rate->rate_value : null,
-            ];
+            ] + $this->detail($rate, (int) $ledgerId, (float) $r['base_amount'], (float) $r['tax_amount'], 'item');
         }
 
         return $rows;
+    }
+
+    /** The type of the tax and the snapshot of how it was worked out, added to every row. */
+    private function detail(TaxRate $rate, int $ledgerId, float $base, float $tax, string $source): array
+    {
+        return array_intersect_key(TaxResolver::rowOf($rate, $ledgerId, $base, $tax, $source), ['tax_type_id' => 1, 'snapshot' => 1]);
+    }
+
+    /** Does this holder (a customer or an item) hold a blanket tax exemption? */
+    private function blanketExempt(?Model $holder, $on): bool
+    {
+        return $holder !== null && $holder->exists && TaxApplicability::forTaxable($holder)->whereNull('tax_rule_id')->get()->contains(fn ($o) => $o->isEffectivelyExempt($on));
     }
 
     /** A manually chosen percentage rate (custom lines). */
@@ -104,40 +126,54 @@ class TaxLineService
      */
     public function fromAccount(Ledger $account, float $pre, float $post, float $qty, string $side, ?Customer $customer, ?Currency $currency = null, $on = null, ?Model $taxable = null): array
     {
-        if (in_array($account->tax_nature, ['exempt', 'out_of_scope'], true) || $post == 0.0) {
+        if ($post == 0.0) {
             return [];
         }
         // a blanket exemption on the customer, or on the item itself (an exempt product / service), always wins
-        foreach (array_filter([$customer, $taxable]) as $holder) {
-            if (TaxApplicability::forTaxable($holder)->whereNull('tax_rule_id')->get()->contains(fn ($o) => $o->isEffectivelyExempt($on))) {
-                return [];
-            }
-        }
-        $rate = $this->rateFor($account, $on);
-        if (! $rate) {
-            if ($account->tax_nature === 'zero_rated') {
-                return [];
-            }
-            throw new BooksException("The account \"{$account->name}\" is taxable but has no tax rate. Set it under Books → Accounts.");
-        }
-        $base = $rate->baseAmount($pre, $post, $post);
-        $tax = $account->tax_nature === 'zero_rated' ? 0.0 : $rate->calculate($base, $qty, $currency);
+        $exempt = $this->blanketExempt($customer, $on) || $this->blanketExempt($taxable, $on);
+        $optedOut = $this->resolver->optedOut($taxable);
 
-        return [[
-            'tax_rate_id' => $rate->id,
-            'ledger_id'   => (int) ($side === 'input' ? $rate->ledger_input_id : $rate->ledger_output_id),
-            'label'       => trim(($rate->taxType?->code ?? 'Tax') . ' ' . rtrim(rtrim((string) $rate->rate_value, '0'), '.') . ($rate->isPercentage() ? '%' : '')),
-            'base_amount' => round($base, 2),
-            'tax_amount'  => round($tax, 2),
-            'percent'     => $rate->isPercentage() ? (float) $rate->rate_value : null,
-        ]];
+        $rows = [];
+        if (! in_array($account->tax_nature, ['exempt', 'out_of_scope'], true) && ! $exempt) {
+            $rate = $this->rateFor($account, $on);
+            if (! $rate) {
+                if ($account->tax_nature !== 'zero_rated') {
+                    throw new BooksException("The account \"{$account->name}\" is taxable but has no tax rate. Set it under Books → Accounts.");
+                }
+            } elseif (! in_array((int) $rate->group_id, $optedOut, true)) {
+                $base = $rate->baseAmount($pre, $post, $post);
+                $tax = $account->tax_nature === 'zero_rated' ? 0.0 : $rate->calculate($base, $qty, $currency);
+                $ledgerId = (int) ($side === 'input' ? $rate->ledger_input_id : $rate->ledger_output_id);
+                $rows[] = [
+                    'tax_rate_id' => $rate->id,
+                    'ledger_id'   => $ledgerId,
+                    'label'       => trim(($rate->taxType?->code ?? 'Tax') . ' ' . rtrim(rtrim((string) $rate->rate_value, '0'), '.') . ($rate->isPercentage() ? '%' : '')),
+                    'base_amount' => round($base, 2),
+                    'tax_amount'  => round($tax, 2),
+                    'percent'     => $rate->isPercentage() ? (float) $rate->rate_value : null,
+                ] + $this->detail($rate, $ledgerId, $base, $tax, 'account');
+            }
+        }
+        if ($exempt) {
+            return $rows;   // nothing else is charged to someone, or on something, that holds an exemption
+        }
+
+        // the other taxes the account carries, in order, each on its own base
+        return array_merge($rows, $this->resolver->accountRows((int) $account->id, $pre, $post, $qty, $side, $currency, $on, $rows, $optedOut, $this));
     }
 
     /** The rate an account charges on the given date: its own rate, or the newer one that replaced it (same type and classification). */
     public function rateFor(Ledger $account, $on = null): ?TaxRate
     {
         $rate = $account->tax_rate_ledger_id ? TaxRate::with('taxType')->find($account->tax_rate_ledger_id) : null;
-        if ($rate && ! TaxRate::whereKey($rate->id)->active()->effectiveOn($on)->exists()) {
+
+        return $rate ? $this->inForce($rate, $on) : null;
+    }
+
+    /** A rate on the given date: itself, or the newer one that replaced it (same type and classification). */
+    public function inForce(TaxRate $rate, $on = null): TaxRate
+    {
+        if (! TaxRate::whereKey($rate->id)->active()->effectiveOn($on)->exists()) {
             $successor = TaxRate::where('group_id', $rate->group_id)->where('classification', $rate->classification)->active()->effectiveOn($on)->orderByDesc('valid_from')->first();
             $rate = $successor ?? $rate;
         }
