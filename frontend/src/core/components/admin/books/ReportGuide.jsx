@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import { ChevronDown, ChevronUp } from 'lucide-react';
 import { card, colors } from '../../../../_shared/theme/tokens';
-import { GUIDE } from './reportGuide';
+import { GUIDE } from './reportAbout';
 
 const KEY = 'report-guide-collapsed';
 const read = () => { try { return localStorage.getItem(KEY) === '1'; } catch { return false; } };

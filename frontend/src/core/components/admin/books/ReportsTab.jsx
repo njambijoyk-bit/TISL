@@ -6,6 +6,8 @@ import { colors } from '../../../../_shared/theme/tokens';
 import useAuthStore from '../../../../_shared/store/authStore';
 import ReportsNav from './ReportsNav';
 import ReportGuide from './ReportGuide';
+import DevGuide from './DevGuide';
+import useDevChord from './useDevChord';
 import useReportFavourites from './useReportFavourites';
 import useReportKeys from './useReportKeys';
 import { ALIASES, REPORTS } from './reportCatalog';
@@ -67,6 +69,9 @@ export default function ReportsTab() {
   const fav = useReportFavourites(user?.id);
   const searchRef = useRef(null);
   const [goHint, setGoHint] = useState(false);
+  const [dev, setDev] = useState(() => { try { return localStorage.getItem('report-dev') === '1'; } catch { return false; } });
+  const flipDev = () => setDev((v) => { try { localStorage.setItem('report-dev', v ? '0' : '1'); } catch { /* kept for this visit only */ } return !v; });
+  useDevChord(flipDev);
 
   const open = (r) => { const p = new URLSearchParams(params); p.set('report', r.id); p.delete('ledger'); setParams(p, { replace: true }); };
   const star = (r) => { if (!fav.toggle(r.engine)) toast.error('Favourites hold nine reports. Unstar one first.'); };
@@ -85,6 +90,7 @@ export default function ReportsTab() {
           {(r, api) => <EngineView engine={def.engine} result={r} drill={api?.drill} opts={api?.opts} />}
         </ReportFrame>
         <ReportGuide report={def} reports={visible} open={open} />
+        {dev && <DevGuide report={def} onClose={flipDev} />}
       </div>
       <style>{`@media (max-width: 800px) { .reports-layout { grid-template-columns: minmax(0, 1fr) !important; } }`}</style>
     </div>
