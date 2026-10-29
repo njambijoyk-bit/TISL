@@ -760,6 +760,7 @@ class VoucherService
         $method ??= $tenders[0]['method'] ?? null;
         $ctx = compact('type', 'currency', 'baseCurrency', 'rate', 'customer', 'locationId', 'date');
         $ctx['channel'] = (string) ($data['channel'] ?? 'admin');
+        $ctx['user'] = $user;
 
         $plan = [
             'source_id' => ! empty($data['source_voucher_id']) ? (int) $data['source_voucher_id'] : null,
@@ -1042,10 +1043,47 @@ class VoucherService
         if ($account && empty($line['ledger_id'])) {
             $line['ledger_id'] = $account->id;
         }
+        $override = $this->baseOverride($line, $ctx);   // someone with the permission changed what the tax is worked out on
+        $pre = $override['to'] ?? $gross;
+        $post = $override['to'] ?? $line['amount'];
         $line['taxes'] = $taxable && $ctx['type']->base_type !== VoucherType::OPENING_STOCK
-            ? $this->taxes->forLine($taxable, $module, $gross, $line['amount'], $line['quantity'], $unitId, $this->side($ctx), $ctx['customer'], $ctx['locationId'], $ctx['currency'], $account)
+            ? $this->taxes->forLine($taxable, $module, $pre, $post, $line['quantity'], $unitId, $this->side($ctx), $ctx['customer'], $ctx['locationId'], $ctx['currency'], $account)
             : [];
+        if ($override) {
+            foreach ($line['taxes'] as &$t) {
+                $t['snapshot'] = ($t['snapshot'] ?? []) + ['base_override' => $override];   // kept with the line: what it was, what it became, why and by whom
+            }
+            unset($t);
+        }
         $this->summariseTaxes($line);
+    }
+
+    /** What a line asks for: a different amount to work the tax out on, with a reason. */
+    private function baseRequest(array $l): ?array
+    {
+        return isset($l['tax_base']) && $l['tax_base'] !== '' ? ['amount' => round((float) $l['tax_base'], 2), 'reason' => trim((string) ($l['tax_base_reason'] ?? ''))] : null;
+    }
+
+    /** The accepted override of a line's tax base, or null. Needs the permission, a reason (unless Tax control says otherwise), and is kept in the tax snapshot. */
+    private function baseOverride(array $line, array $ctx): ?array
+    {
+        $ask = $line['tax_base_request'] ?? null;
+        if (! $ask || abs($ask['amount'] - $line['amount']) < 0.005) {
+            return null;
+        }
+        $user = $ctx['user'] ?? null;
+        if (! $user || ! $user->hasPermission('books.tax.override')) {
+            throw new BooksException('Your role cannot change what a tax is calculated on.');
+        }
+        if ($ask['amount'] < 0) {
+            throw new BooksException('The amount a tax is calculated on cannot be negative.');
+        }
+        $needsReason = ! TaxControlSettings::ready() || (bool) app(TaxControlSettings::class)->get('override_needs_reason');
+        if ($needsReason && $ask['reason'] === '') {
+            throw new BooksException('Give a reason for changing what the tax is calculated on.');
+        }
+
+        return ['from' => round((float) $line['amount'], 2), 'to' => $ask['amount'], 'reason' => $ask['reason'] ?: null, 'by' => $user->id];
     }
 
     /** The sales / purchase account a line will post to — only used to read its tax nature. */
@@ -1144,6 +1182,7 @@ class VoucherService
         $line['stock_qty'] = $line['base_quantity'];
         $line['pending_price'] = $pending;
         $this->applyClearance($line, $l, $variant, $ctx);
+        $line['tax_base_request'] = $this->baseRequest($l);
         $this->finishAmounts($line, $product, 'product', $unitRow->unit_id, $ctx);
 
         return $line;
@@ -1176,6 +1215,7 @@ class VoucherService
             'discount_amount' => round((float) ($l['discount'] ?? 0) + (float) ($l['share_discount'] ?? 0), 2), 'ledger_id' => $l['ledger_id'] ?? null, 'notes' => $l['notes'] ?? null,
         ] + $this->discountMeta($l));
         $line['pending_price'] = $pending;
+        $line['tax_base_request'] = $this->baseRequest($l);
         $this->finishAmounts($line, $service, 'service', $pkg->price_unit_id, $ctx);
 
         return $line;
