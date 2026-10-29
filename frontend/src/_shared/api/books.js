@@ -99,6 +99,8 @@ const booksAPI = {
   refreshStockUnits: () => send('post', '/admin/books/reconciliation/stock-refresh'),
   // the report engine (every report on it): run one, or download it as a file
   engineReport: (key, params) => get(`/admin/reports/${key}`, params),
+  reportFavourites: () => get('/admin/reports/favourites'),
+  saveReportFavourites: (keys) => send('put', '/admin/reports/favourites', { keys }),
   exportEngineReport: (key, params) => saveBlob(`/admin/reports/${key}`, params, `${key}.${params.format}`),
 
   // masters

@@ -60,7 +60,7 @@ export function ExportMenu({ onExport, label = 'Export' }) {
   return (
     <label style={{ ...btnGhost, padding: '6px 12px', gap: 6, position: 'relative', opacity: busy ? 0.6 : 1 }}>
       <Download size={14} /> {busy ? 'Preparing…' : label}
-      <select defaultValue="" onChange={go} disabled={busy} aria-label={label}
+      <select data-report-export defaultValue="" onChange={go} disabled={busy} aria-label={label}
         style={{ position: 'absolute', inset: 0, opacity: 0, cursor: 'pointer', width: '100%' }}>
         <option value="" disabled>{label} as…</option>
         {FORMATS.map(([v, l]) => <option key={v} value={v}>{l}</option>)}

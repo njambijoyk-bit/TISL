@@ -1198,6 +1198,8 @@ Route::middleware('auth:sanctum')->group(function () {
     // The report engine: each report names its own permission and the engine checks it (see ReportEngineController)
     Route::prefix('admin/reports')->group(function () {
         Route::get('/',        [\App\Http\Controllers\Api\ReportEngineController::class, 'index']);
+        Route::get('/favourites', [\App\Http\Controllers\Api\ReportEngineController::class, 'favourites']);
+        Route::put('/favourites', [\App\Http\Controllers\Api\ReportEngineController::class, 'saveFavourites']);
         Route::get('/{key}',   [\App\Http\Controllers\Api\ReportEngineController::class, 'show'])->where('key', '[a-z0-9-]+');
     });
 

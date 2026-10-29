@@ -31,7 +31,7 @@ const ACCENTS = ['#8b5cf6', '#0ea5e9', '#10b981', '#f59e0b', '#ef4444', '#ec4899
  * Nothing on the screens says so: they are nice to know. The admin menu's own shortcuts (Ctrl+K, Alt+C, Ctrl+B) are fixed in the app.
  */
 export default function KeyboardShortcuts() {
-  const { pathname } = useLocation();
+  const { pathname, search } = useLocation();
   const navigate = useNavigate();
   const { isAuthenticated, user, logout } = useAuthStore();
   const [account, setAccount] = useState(false);
@@ -191,6 +191,8 @@ export default function KeyboardShortcuts() {
     ...(inAdmin ? [['', 'F2', 'New: add what this page lists'], ['', 'F12', 'Open the Configuration of this page or section'], ['', 'F7', 'Open the Recycle bin or Trash of this page'],
       ['Ctrl', 'K', 'Jump to any page'], ['Alt', 'C', 'Open the calculator'], ...(aiHere ? [['Alt', 'I', 'Open the AI panel (Esc closes it)']] : []), ['Ctrl', 'B', 'Show or hide the menu']] : []),
     ...(inMenus ? openTabs(MENUS_TABS, user).filter((t) => t.key).map((t) => ['G', t.key, `Go to Menus, ${t.title} (press G, then ${t.key})`]) : []),
+    ...(inBooks && new URLSearchParams(search).get('tab') === 'reports' ? [['G', 'letter', 'Go to a report: every report has its own letter, shown in the list (G P is Profit & loss, G O the cost-centre version)'], ['', '1 – 9', 'Open your favourite reports, in the order you starred them'],
+      ['', '[  ]', 'Previous or next report in the list'], ['', 'R', 'Run the report (Ctrl+Enter also works from a date box)'], ['', 'E', 'Open the export menu'], ['', 'F', 'Star or unstar this report']] : []),
     ...(inBooks && canPost ? [['Shift', 'V', 'New voucher: then press the type\'s letter'], ['', 'F4', 'Open the edit log']] : []),
     ...(voucherPage ? [['Shift', 'E', 'Edit this voucher'], ['Shift', 'X', 'Cancel this voucher (asks why first)'], ['Shift', 'D', 'Download the customer copy'], ['Shift', 'S', 'Send this voucher'], ['Shift', 'C', 'Convert this voucher'], ['Shift', 'P', 'Receive payment']] : []),
   ];

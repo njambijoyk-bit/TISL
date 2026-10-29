@@ -512,3 +512,10 @@ In this order, each with its own parity check against the old report:
 | L3, L4, R2 (no export, no totals, search) | Step 4 (export), Step 6.9, 6.10 |
 | L5 (two permission styles) | Step 4 (catalogue permissions only) |
 | R3 (stock query runs a full summary) | Step 6.10 (same figures, computed for the one group only; parity checked) |
+
+
+## 14. Reports navigation (after step 13)
+Books → Reports is a list down the left instead of 22 buttons: a search box, the person's favourites, and the reports under seven groups (Statements, Day to day, Receivables & payables, Tax, Stock, Analysis, Checks). On a phone the list sits above the report.
+- **Keys** (active on the Reports tab; none fire while typing or with a dialog open): `G` then a letter goes to a report (every report has its own letter, the same for everyone, shown in the list: G T trial balance, G A adjusted trial balance, G P profit & loss, G O profit & loss by cost centre, G B balance sheet, G Q changes in equity, G C cash flow, G D day book, G L ledger statement, G M money flow, G R receivables ageing, G Y payables ageing, G X tax return, G W withholding, G J stock journal, G S stock summary, G N location summary, G K stock query, G I ratio analysis, G V trade, G H books health, G U control-account checks); `1`–`9` open favourites in the order starred; `[` `]` previous or next report; `R` or `Ctrl+Enter` run; `E` export menu; `F` star or unstar; `/` search (the app-wide key), then `↑` `↓` `Enter`. They are listed under Shift+A.
+- **Favourites** are per person, up to nine, in the order starred. Script `236_report_favourites.sql` keeps them on the server so they follow the person; until it is run they are kept in the browser. The table is in the backup map.
+- Files: `reportCatalog.js` (groups, letters), `ReportsNav.jsx`, `useReportKeys.js`, `useReportFavourites.js`; `GET/PUT /admin/reports/favourites`.

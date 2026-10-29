@@ -108,7 +108,7 @@ export default function ReportFrame({ reportKey, initialOpts = {}, children }) {
             {Object.entries(o.choices).map(([v, label]) => <option key={v} value={v}>{label}</option>)}
           </select>
         )))}
-        <button type="button" style={{ ...btnPrimary, opacity: loading ? 0.6 : 1 }} disabled={loading} onClick={() => { setF((x) => ({ ...x, page: 1 })); run({ ...f, page: 1 }); }}>{loading ? 'Running…' : 'Run'}</button>
+        <button type="button" data-report-run style={{ ...btnPrimary, opacity: loading ? 0.6 : 1 }} disabled={loading} onClick={() => { setF((x) => ({ ...x, page: 1 })); run({ ...f, page: 1 }); }}>{loading ? 'Running…' : 'Run'}</button>
         <span style={{ flex: 1 }} />
         {rep && <ExportMenu onExport={(format) => booksAPI.exportEngineReport(reportKey, { ...params(f), format })} />}
       </div>
