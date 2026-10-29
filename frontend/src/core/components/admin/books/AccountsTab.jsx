@@ -1,6 +1,6 @@
 import { useEffect, useState, useCallback, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Plus, ChevronRight, ChevronDown, Lock, FileText, Download, Table2, LayoutList, LayoutGrid, Network } from 'lucide-react';
+import { Plus, Trash2, ChevronRight, ChevronDown, Lock, FileText, Download, Table2, LayoutList, LayoutGrid, Network } from 'lucide-react';
 import toast from 'react-hot-toast';
 import booksAPI from '../../../../_shared/api/books';
 import { hasPermission } from '../../../../_shared/lib/roles';
@@ -99,6 +99,10 @@ function LedgerForm({ ledger, groups, defaultGroupId, onClose, onSaved }) {
   }, [taxed, behaviour, expense]);
   const taxChoice = (f.tax_nature === 'taxable' || f.tax_nature === 'zero_rated') && f.tax_rate_ledger_id ? `rate:${f.tax_rate_ledger_id}` : (f.tax_nature || '');
   const rateGroups = rateChoices.reduce((m, r) => { const k = r.tax_type?.name || r.tax_type?.code || 'Tax rates'; (m[k] = m[k] || []).push(r); return m; }, {});
+  // the other taxes this account carries, after the first one chosen above (a sales or purchase account can carry several)
+  const [extras, setExtras] = useState(() => (ledger?.taxes ?? []).slice(1).map((t) => ({ tax_type_id: t.tax_type_id, tax_rate_id: t.tax_rate_id ?? '', treatment: t.treatment })));
+  const taxTypes = Object.values(rateChoices.reduce((m, r) => { const t = r.tax_type; if (t) m[t.id] = { id: t.id, name: t.name || t.code }; return m; }, {}));
+  const setExtra = (i, patch) => setExtras((xs) => xs.map((x, k) => (k === i ? { ...x, ...patch } : x)));
   const [busy, setBusy] = useState(false);
   const [errs, setErrs] = useState({});
   const [err, setErr] = useState(null);
@@ -124,6 +128,14 @@ function LedgerForm({ ledger, groups, defaultGroupId, onClose, onSaved }) {
       if (!taxed) { body.tax_nature = null; body.tax_rate_ledger_id = null; body.affects_stock = false; } else {
         body.tax_nature = f.tax_nature || null;
         body.tax_rate_ledger_id = (f.tax_nature === 'taxable' || f.tax_nature === 'zero_rated') ? blank(f.tax_rate_ledger_id) : null;
+        // the taxes in order: the first is the one chosen above, then the others; the server keeps the old tax fields in step with the first
+        if (f.tax_nature) {
+          const first = rateChoices.find((r) => String(r.id) === String(f.tax_rate_ledger_id));
+          const primary = f.tax_rate_ledger_id && (f.tax_nature === 'taxable' || f.tax_nature === 'zero_rated')
+            ? { tax_type_id: first?.tax_type?.id ?? null, tax_rate_id: Number(f.tax_rate_ledger_id), treatment: f.tax_nature === 'zero_rated' ? 'zero_rated' : 'applies' }
+            : { tax_type_id: null, tax_rate_id: null, treatment: f.tax_nature };
+          body.taxes = [primary, ...extras.map((x) => ({ tax_type_id: x.tax_type_id || null, tax_rate_id: x.treatment === 'applies' || x.treatment === 'zero_rated' ? (x.tax_rate_id || null) : null, treatment: x.treatment }))];
+        }
       }
       if (!bankish) { body.bank_name = null; body.account_number = null; body.branch = null; body.account_name = null; body.swift_code = null; body.branch_code = null; }
       if (!money) { ['accepts', 'mobile_kind', 'mobile_number', 'cash_kind', 'checkout_label', 'checkout_instructions'].forEach((k) => { body[k] = null; }); body.offer_at_checkout = false; body.checkout_sort = 0; }
@@ -177,6 +189,36 @@ function LedgerForm({ ledger, groups, defaultGroupId, onClose, onSaved }) {
                 </SelectInput>
                 {rateChoices.length === 0 && <span style={{ fontSize: 12, color: '#b45309' }}>No tax rates in the system yet — add them under Duties &amp; Taxes; until then only Exempt / Out of scope are available.</span>}
               </Field>
+              {f.tax_nature && (
+                <div style={{ padding: 10, borderRadius: 8, background: 'rgba(0,0,0,0.025)' }}>
+                  <p style={{ margin: '0 0 6px', fontSize: '0.8rem', fontWeight: 700 }}>Other taxes on this account</p>
+                  <p style={{ margin: '0 0 8px', fontSize: '0.72rem', color: '#6b7280', lineHeight: 1.5 }}>The tax above is the one charged today. Taxes added here, such as excise duty on top of VAT, are recorded now and start to be charged with the tax posting update.</p>
+                  {extras.map((x, i) => {
+                    const withRate = x.treatment === 'applies' || x.treatment === 'zero_rated';
+                    return (
+                      <div key={i} style={{ display: 'grid', gridTemplateColumns: 'minmax(0,1.2fr) minmax(0,1fr) minmax(0,1.2fr) auto', gap: 6, marginBottom: 6, alignItems: 'center' }}>
+                        <SelectInput aria-label={`Other tax ${i + 1}`} value={x.tax_type_id ?? ''} onChange={(e) => setExtra(i, { tax_type_id: e.target.value ? Number(e.target.value) : '', tax_rate_id: '' })}>
+                          <option value="">Choose the tax…</option>
+                          {taxTypes.map((t) => <option key={t.id} value={t.id}>{t.name}</option>)}
+                        </SelectInput>
+                        <SelectInput aria-label={`Treatment of other tax ${i + 1}`} value={x.treatment} onChange={(e) => setExtra(i, { treatment: e.target.value })}>
+                          <option value="applies">Charged</option><option value="zero_rated">Zero-rated</option><option value="exempt">Exempt</option><option value="out_of_scope">Out of scope</option>
+                        </SelectInput>
+                        {withRate
+                          ? (
+                            <SelectInput aria-label={`Rate of other tax ${i + 1}`} value={x.tax_rate_id ?? ''} onChange={(e) => setExtra(i, { tax_rate_id: e.target.value ? Number(e.target.value) : '' })}>
+                              <option value="">Choose the rate…</option>
+                              {rateChoices.filter((r) => r.tax_type?.id === Number(x.tax_type_id)).map((r) => <option key={r.id} value={r.id}>{r.name} ({Number(r.rate_value)}%)</option>)}
+                            </SelectInput>
+                          ) : <span style={{ fontSize: '0.75rem', color: '#9ca3af' }}>No rate</span>}
+                        <button type="button" aria-label={`Remove other tax ${i + 1}`} onClick={() => setExtras((xs) => xs.filter((_, k) => k !== i))} style={{ background: 'none', border: 'none', cursor: 'pointer', color: '#dc2626' }}><Trash2 size={15} /></button>
+                      </div>
+                    );
+                  })}
+                  {errs.taxes && <span style={{ display: 'block', fontSize: 12, color: '#dc2626', marginBottom: 6 }}>{errs.taxes}</span>}
+                  <button type="button" onClick={() => setExtras((xs) => [...xs, { tax_type_id: '', tax_rate_id: '', treatment: 'applies' }])} style={{ ...btnGhost, padding: '4px 10px', fontSize: '0.75rem' }}><Plus size={12} /> Add another tax</button>
+                </div>
+              )}
             </>
           )}
           {charging && (
@@ -496,7 +538,7 @@ export default function AccountsTab({ canWrite }) {
     { key: 'group', label: 'Group', render: (l) => l.group?.name },
     { key: 'nature', label: 'Nature', render: (l) => NATURE[l.group?.nature] },
     ...(stmt.ready ? [{ key: 'line', label: 'Statement line', render: (l) => stmt.byId[l.statement_id]?.name ?? <span style={{ color: colors.textFaint }}>—</span> }] : []),
-    { key: 'tax', label: 'Tax', render: (l) => ({ taxable: 'VAT-able', zero_rated: 'Zero-rated', exempt: 'Exempt', out_of_scope: 'Out of scope' }[l.tax_nature] ?? (['sales', 'purchase', 'charge'].includes(l.group?.behaviour) ? 'Not set' : '')) },
+    { key: 'tax', label: 'Tax', render: (l) => `${{ taxable: 'VAT-able', zero_rated: 'Zero-rated', exempt: 'Exempt', out_of_scope: 'Out of scope' }[l.tax_nature] ?? (['sales', 'purchase', 'charge'].includes(l.group?.behaviour) ? 'Not set' : '')}${(l.taxes?.length ?? 0) > 1 ? ` +${l.taxes.length - 1} more` : ''}` },
     { key: 'rate', label: 'Rate', align: 'right', render: (l) => (l.tax_rate_ledger?.rate_value != null && (l.tax_nature === 'taxable' || l.tax_nature === 'zero_rated') ? `${Number(l.tax_rate_ledger.rate_value)}%` : l.rate_type && l.rate_value != null ? (l.rate_type === 'percent' ? `${Number(l.rate_value)}%` : `${Number(l.rate_value).toLocaleString()}${l.rate_type === 'per_day' ? '/day' : ''}`) : '—') },
     { key: 'opening', label: 'Opening', align: 'right', render: (l) => Number(l.opening_balance) ? `${Number(l.opening_balance).toLocaleString()} ${l.opening_side === 'C' ? 'Cr' : 'Dr'}` : '—' },
     { key: 'actions', label: '', align: 'right', render: (l) => (

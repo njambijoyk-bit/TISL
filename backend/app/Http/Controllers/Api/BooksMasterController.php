@@ -38,6 +38,7 @@ class BooksMasterController extends Controller
     {
         $d = $request->validate(['name' => 'required|string|max:120|unique:ledger_groups,name', 'parent_id' => 'required|integer|exists:ledger_groups,id', 'behaviour' => 'nullable|in:' . implode(',', LedgerGroup::BEHAVIOURS), 'settings' => 'nullable|array', 'statement_id' => 'nullable|integer']);
         $parent = LedgerGroup::findOrFail($d['parent_id']);   // primary groups are fixed — new groups always hang under one
+        app(\App\Services\Books\TaxAccountGuard::class)->assertGroupMayBeMade($parent, $d['behaviour'] ?? null);   // a tax type is made on Tax and compliance, not here
         $line = StatementLines::available() ? ['statement_id' => app(StatementLines::class)->forNewGroup($d['statement_id'] ?? null, $parent->id, $request->user())] : [];   // its parent's line unless another was chosen
         $g = LedgerGroup::create($line + ['name' => $d['name'], 'parent_id' => $parent->id, 'nature' => $parent->nature, 'is_primary' => false, 'is_system' => false, 'affects_gross_profit' => $parent->affects_gross_profit,
             'behaviour' => $d['behaviour'] ?? $parent->behaviour ?? 'standard', 'settings' => $d['settings'] ?? $parent->settings]);   // a subgroup inherits how its parent behaves
@@ -51,6 +52,7 @@ class BooksMasterController extends Controller
         $d = $request->validate(['name' => "sometimes|string|max:120|unique:ledger_groups,name,{$g->id}", 'parent_id' => 'sometimes|integer|exists:ledger_groups,id',
             'settings' => 'sometimes|nullable|array', 'behaviour' => 'sometimes|in:' . implode(',', LedgerGroup::BEHAVIOURS),
             'statement_id' => 'sometimes|nullable|integer', 'apply_to_members' => 'sometimes|boolean']);
+        app(\App\Services\Books\TaxAccountGuard::class)->onlyTuningForTaxTypes($g, $d);   // the tax group and the tax types are changed on Tax and compliance
         if ($g->is_system) {   // a system group keeps its name and place; only its defaults (and the statement line it reports under) can be tuned
             $d = array_intersect_key($d, ['settings' => 1, 'statement_id' => 1, 'apply_to_members' => 1]);
         }
@@ -116,6 +118,8 @@ class BooksMasterController extends Controller
         $rows->each(fn ($l) => $l->setAttribute('supplier_status', $l->supplier_id ? ($supplierStatus[$l->supplier_id] ?? null) : null));
         $bankGroupIds = LedgerGroup::where('name', 'Bank Accounts')->first()?->selfAndDescendantIds() ?? [];
         $rows->each(fn ($l) => $l->setAttribute('is_bank', in_array($l->group_id, $bankGroupIds, true)));
+        $taxes = app(\App\Services\Books\AccountTaxes::class)->forLedgers($rows->pluck('id')->all());   // the taxes each account carries (script 229)
+        $rows->each(fn ($l) => $l->setAttribute('taxes', $taxes[$l->id] ?? []));
 
         return response()->json($out);
     }
@@ -133,6 +137,7 @@ class BooksMasterController extends Controller
             'tax_nature' => 'nullable|in:taxable,zero_rated,exempt,out_of_scope', 'tax_rate_ledger_id' => ['nullable', 'integer', \Illuminate\Validation\Rule::exists('ledgers', 'id')->whereNotNull('rate_type')],
             'affects_stock' => 'nullable|boolean', 'bank_name' => 'nullable|string|max:80', 'account_number' => 'nullable|string|max:60', 'branch' => 'nullable|string|max:80', 'account_name' => 'nullable|string|max:120', 'swift_code' => 'nullable|string|max:20', 'branch_code' => 'nullable|string|max:20', 'accepts' => 'nullable|string|max:120', 'mobile_kind' => 'nullable|in:till,paybill,send', 'mobile_number' => 'nullable|string|max:30', 'cash_kind' => 'nullable|in:till,petty,driver,undeposited', 'offer_at_checkout' => 'nullable|boolean', 'checkout_mode' => 'nullable|in:details,mpesa_stk', 'checkout_label' => 'nullable|string|max:80', 'checkout_instructions' => 'nullable|string|max:1000', 'checkout_sort' => 'nullable|integer|min:0|max:999',
             'side' => 'nullable|in:income,expense', 'settings' => 'nullable|array',
+            'taxes' => 'nullable|array', 'taxes.*' => 'array',
             'settings.charge_kind' => 'nullable|in:' . implode(',', array_merge(\App\Services\Books\AuctionChargeService::KINDS, \App\Services\Books\ServiceFeeService::KINDS)), 'settings.timing' => 'nullable|in:' . implode(',', array_merge(\App\Services\Books\AuctionChargeService::TIMINGS, \App\Services\Books\ServiceFeeService::TIMINGS)), 'settings.applies_to' => 'nullable|in:service',
             'settings.refundable' => 'nullable|boolean', 'settings.tax_follows' => 'nullable|in:' . implode(',', \App\Services\Books\AuctionChargeService::TAX_FOLLOWS), 'settings.default_on' => 'nullable|boolean', 'settings.free_days' => 'nullable|integer|min:0|max:3650',
             'settings.tax_rate_id' => ['nullable', 'integer', \Illuminate\Validation\Rule::exists('ledgers', 'id')->whereNotNull('rate_type')], 'settings.description' => 'nullable|string|max:500', 'settings.icon' => 'nullable|string|max:40', 'settings.sort_order' => 'nullable|integer',
@@ -140,6 +145,8 @@ class BooksMasterController extends Controller
         if ($held = \App\Http\Middleware\Assurance::check($request, 'bank_details', fn () => collect(self::PAYEE_FIELDS)->contains(fn ($k) => ! empty($d[$k])))) {
             return $held;
         }
+        app(\App\Services\Books\TaxAccountGuard::class)->assertLedgerGoesInto((int) $d['group_id']);   // taxes are added on Tax and compliance, not under Duties & Taxes
+        $taxes = $this->takeTaxes($d, (int) $d['group_id']);
         $this->assertBehaviourFields($d, $d['group_id']);
         $mode = $d['checkout_mode'] ?? null;
         unset($d['checkout_mode']);
@@ -152,6 +159,7 @@ class BooksMasterController extends Controller
             unset($d['statement_id']);
         }
         $l = Ledger::create($d + ['opening_balance' => $d['opening_balance'] ?? 0, 'opening_side' => $d['opening_side'] ?? 'D', 'is_active' => true]);
+        $this->keepTaxesInStep($l, $taxes);
         if ($mode && $l->offer_at_checkout) {
             app(\App\Services\Books\PaymentModeService::class)->setMode($l->id, $mode);
         }
@@ -171,6 +179,7 @@ class BooksMasterController extends Controller
             'tax_nature' => 'nullable|in:taxable,zero_rated,exempt,out_of_scope', 'tax_rate_ledger_id' => ['nullable', 'integer', \Illuminate\Validation\Rule::exists('ledgers', 'id')->whereNotNull('rate_type')],
             'affects_stock' => 'nullable|boolean', 'bank_name' => 'nullable|string|max:80', 'account_number' => 'nullable|string|max:60', 'branch' => 'nullable|string|max:80', 'account_name' => 'nullable|string|max:120', 'swift_code' => 'nullable|string|max:20', 'branch_code' => 'nullable|string|max:20', 'accepts' => 'nullable|string|max:120', 'mobile_kind' => 'nullable|in:till,paybill,send', 'mobile_number' => 'nullable|string|max:30', 'cash_kind' => 'nullable|in:till,petty,driver,undeposited', 'offer_at_checkout' => 'nullable|boolean', 'checkout_mode' => 'nullable|in:details,mpesa_stk', 'checkout_label' => 'nullable|string|max:80', 'checkout_instructions' => 'nullable|string|max:1000', 'checkout_sort' => 'nullable|integer|min:0|max:999',
             'side' => 'nullable|in:income,expense', 'settings' => 'nullable|array',
+            'taxes' => 'nullable|array', 'taxes.*' => 'array',
             'settings.charge_kind' => 'nullable|in:' . implode(',', array_merge(\App\Services\Books\AuctionChargeService::KINDS, \App\Services\Books\ServiceFeeService::KINDS)), 'settings.timing' => 'nullable|in:' . implode(',', array_merge(\App\Services\Books\AuctionChargeService::TIMINGS, \App\Services\Books\ServiceFeeService::TIMINGS)), 'settings.applies_to' => 'nullable|in:service',
             'settings.refundable' => 'nullable|boolean', 'settings.default_on' => 'nullable|boolean', 'settings.free_days' => 'nullable|integer|min:0|max:3650',
             'settings.tax_rate_id' => ['nullable', 'integer', \Illuminate\Validation\Rule::exists('ledgers', 'id')->whereNotNull('rate_type')], 'settings.description' => 'nullable|string|max:500', 'settings.icon' => 'nullable|string|max:40', 'settings.sort_order' => 'nullable|integer',
@@ -185,10 +194,16 @@ class BooksMasterController extends Controller
         if ($held = \App\Http\Middleware\Assurance::check($request, 'bank_details', fn () => collect(self::PAYEE_FIELDS)->contains(fn ($k) => array_key_exists($k, $d) && trim((string) $d[$k]) !== trim((string) $l->{$k})))) {
             return $held;
         }
-        $this->assertBehaviourFields($d, $d['group_id'] ?? $l->group_id, $l);
         if ($l->is_system) {
             unset($d['group_id']);   // the system relies on where these sit
         }
+        $guard = app(\App\Services\Books\TaxAccountGuard::class);
+        if (isset($d['group_id']) && (int) $d['group_id'] !== (int) $l->group_id) {
+            $guard->assertLedgerGoesInto((int) $d['group_id']);
+        }
+        $guard->assertRateIsNotRewritten($l, $d);   // an existing tax rate's amounts are changed on Tax and compliance
+        $taxes = $this->takeTaxes($d, (int) ($d['group_id'] ?? $l->group_id));
+        $this->assertBehaviourFields($d, $d['group_id'] ?? $l->group_id, $l);
         if (StatementLines::available()) {   // a ledger moved to another group follows that group's line unless it was given its own
             $d['statement_id'] = app(StatementLines::class)->forExistingLedger($l, array_key_exists('statement_id', $d), $d['statement_id'] ?? null, isset($d['group_id']) ? (int) $d['group_id'] : null, $request->user());
         } else {
@@ -200,11 +215,47 @@ class BooksMasterController extends Controller
             $d['settings'] = array_merge($l->settings ?? [], $d['settings']);   // keep what the form did not send (a shipping option's description, icon, order)
         }
         $l->update($d);
+        $this->keepTaxesInStep($l, $taxes, $request->hasAny(['tax_nature', 'tax_rate_ledger_id']));
         if ($mode && $l->offer_at_checkout) {
             app(\App\Services\Books\PaymentModeService::class)->setMode($l->id, $mode);
         }
 
         return response()->json(['message' => 'Ledger updated', 'data' => $l->load('group:id,name,nature')]);
+    }
+
+    /**
+     * The list of taxes an account carries, taken out of the request and checked. The first one is the account's primary tax: the old tax nature and rate
+     * columns are set from it, because the posting code reads those until the tax posting update. Null when the request did not send a list.
+     */
+    private function takeTaxes(array &$d, int $groupId): ?array
+    {
+        if (! array_key_exists('taxes', $d)) {
+            return null;
+        }
+        $list = $d['taxes'];
+        unset($d['taxes']);
+        if ($list === null || ! \App\Services\Books\AccountTaxes::available()) {
+            return null;
+        }
+        $behaviour = LedgerGroup::whereKey($groupId)->value('behaviour') ?? 'standard';
+        if (! $list && ! in_array($behaviour, ['sales', 'purchase', 'charge'], true)) {
+            return null;
+        }
+        $rows = app(\App\Services\Books\AccountTaxes::class)->normalise($list, $behaviour);
+        [$d['tax_nature'], $d['tax_rate_ledger_id']] = \App\Services\Books\AccountTaxes::legacyOf($rows[0] ?? null);
+
+        return $rows;
+    }
+
+    /** Save the list of taxes, or, for an account saved the old way, bring its primary tax into step with the old columns. */
+    private function keepTaxesInStep(Ledger $l, ?array $rows, bool $oldWay = true): void
+    {
+        $taxes = app(\App\Services\Books\AccountTaxes::class);
+        if ($rows !== null) {
+            $taxes->sync($l, $rows);
+        } elseif ($oldWay) {
+            $taxes->followLegacy($l->fresh());
+        }
     }
 
     /** Rate fields only make sense in a group that behaves as tax or delivery, and a percentage cannot be a foreign-currency amount. */
