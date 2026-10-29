@@ -86,6 +86,8 @@ class TaxController extends Controller
             'application_method' => 'required_without:application_mode|nullable|string|max:20',
             'tax_category'     => 'nullable|string|max:40',
             'jurisdiction_id'  => 'nullable|exists:tax_districts,id',
+            'input_ledger_id'  => 'nullable|integer|exists:ledgers,id',
+            'cost_ledger_id'   => 'nullable|integer|exists:ledgers,id',
             'kind'             => 'nullable|in:' . implode(',', \App\Services\Books\TaxLedgerService::KINDS),
             'is_compound'      => 'boolean',
             'is_active'        => 'boolean',
@@ -100,7 +102,8 @@ class TaxController extends Controller
 
         $rules = app(\App\Services\Books\TaxTypeRules::class)->forCreate($request->only(['tax_category', 'application_method', 'application_mode', 'kind']));
         $new = \Illuminate\Support\Facades\Schema::hasColumn('ledger_groups', 'tax_category')   // the new columns exist once script 229 has been run
-            ? ['tax_category' => $rules['tax_category'], 'application_method' => $rules['application_method'], 'jurisdiction_id' => $request->input('jurisdiction_id')]
+            ? ['tax_category' => $rules['tax_category'], 'application_method' => $rules['application_method'], 'jurisdiction_id' => $request->input('jurisdiction_id'),
+                'input_ledger_id' => $request->input('input_ledger_id') ?: null, 'cost_ledger_id' => $request->input('cost_ledger_id') ?: null]
             : [];
         $type = TaxType::create([
             'name'             => $request->name,
@@ -137,6 +140,8 @@ class TaxController extends Controller
             'application_method' => 'sometimes|required|string|max:20',
             'tax_category'     => 'sometimes|required|string|max:40',
             'jurisdiction_id'  => 'nullable|exists:tax_districts,id',
+            'input_ledger_id'  => 'nullable|integer|exists:ledgers,id',
+            'cost_ledger_id'   => 'nullable|integer|exists:ledgers,id',
             'is_compound'      => 'boolean',
             'is_active'        => 'boolean',
         ]);
@@ -149,7 +154,8 @@ class TaxController extends Controller
         $hasNew = \Illuminate\Support\Facades\Schema::hasColumn('ledger_groups', 'tax_category');
         $oldName = $type->name;
         $type->update($request->only(['name', 'code', 'is_compound', 'is_active'])
-            + ($hasNew ? $changes + ($request->has('jurisdiction_id') ? ['jurisdiction_id' => $request->input('jurisdiction_id')] : []) : array_diff_key($changes, ['tax_category' => 1])));
+            + ($hasNew ? $changes + ($request->has('jurisdiction_id') ? ['jurisdiction_id' => $request->input('jurisdiction_id')] : [])
+                + ($request->has('input_ledger_id') ? ['input_ledger_id' => $request->input('input_ledger_id') ?: null] : []) + ($request->has('cost_ledger_id') ? ['cost_ledger_id' => $request->input('cost_ledger_id') ?: null] : []) : array_diff_key($changes, ['tax_category' => 1])));
         app(\App\Services\Books\TaxLedgerService::class)->renameType($type, $oldName);
 
         return response()->json(['tax_type' => $type], 200);

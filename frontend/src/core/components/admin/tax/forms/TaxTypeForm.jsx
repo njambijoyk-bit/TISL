@@ -4,6 +4,7 @@ import useTaxStore from '../../../../../_shared/store/taxStore';
 import taxAPI from '../../../../../_shared/api/tax';
 import { fieldErrors } from '../../../../../_shared/store/helpers/apiState';
 import Modal from '../../ui/Modal';
+import LedgerSelect from '../../../../../menus/components/LedgerSelect';
 import { Field, TextInput, NumberInput, SelectInput, CheckboxRow, FormGrid, FormStack, ModalActions, FormError } from '../../ui/Form';
 
 // what a tax type made before categories existed is called now (its old kind and mode)
@@ -23,6 +24,8 @@ export default function TaxTypeForm({ type, onClose }) {
     tax_category: type?.tax_category ?? CATEGORY_OF_KIND[type?.kind] ?? 'vat_gst',
     application_method: type?.application_method ?? METHOD_OF_MODE[type?.application_mode] ?? 'added',
     jurisdiction_id: type?.jurisdiction_id ?? '',
+    input_ledger_id: type?.input_ledger_id ?? null,
+    cost_ledger_id: type?.cost_ledger_id ?? null,
     is_compound: type?.is_compound ?? false,
     is_active: type?.is_active ?? true,
     opening_balance: '', opening_side: 'C', opening_payable: '', opening_receivable: '',
@@ -91,6 +94,18 @@ export default function TaxTypeForm({ type, onClose }) {
               {(options?.areas ?? []).map((a) => <option key={a.id} value={a.id}>{a.name}{a.level ? ` (${a.level})` : ''}</option>)}
             </SelectInput>
           </Field>
+          {form.application_method === 'reverse_charge' && (
+            <div style={{ padding: 12, borderRadius: 8, background: 'rgba(168,85,247,0.05)' }}>
+              <p style={{ margin: '0 0 8px', fontSize: '0.75rem', color: '#4b5563', lineHeight: 1.5 }}>
+                With a reverse charge you owe the tax and, if you can claim it back, claim it in the same entry. Choose where the claim goes: an asset account such as "Input VAT". Give this tax its own account, because the tax return reads that account as the claim.
+              </p>
+              <FormGrid min={220}>
+                <LedgerSelect id="tt-input" label="Input tax you can claim back" hint="An asset account of its own for this tax." value={form.input_ledger_id} onChange={set('input_ledger_id')} />
+                <LedgerSelect id="tt-cost" label="Or: tax you cannot claim back" hint="An expense account. Used when no input account is chosen." value={form.cost_ledger_id} onChange={set('cost_ledger_id')} />
+              </FormGrid>
+              {(errors.input_ledger_id || errors.cost_ledger_id) && <p style={{ margin: '6px 0 0', fontSize: '0.72rem', color: '#dc2626' }}>{errors.input_ledger_id || errors.cost_ledger_id}</p>}
+            </div>
+          )}
           <p style={{ margin: '-4px 0 0', fontSize: '0.72rem', color: '#6b7280' }} aria-live="polite">
             {categoryRow?.label ?? form.tax_category} · {(options?.areas ?? []).find((a) => a.id === form.jurisdiction_id)?.name ?? 'The whole country'} · {options?.methods?.[form.application_method] ?? form.application_method}
           </p>

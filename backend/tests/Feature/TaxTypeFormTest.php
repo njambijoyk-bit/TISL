@@ -228,4 +228,14 @@ class TaxTypeFormTest extends TestCase
         $this->putJson('/api/admin/tax/opt-outs', ['taxable_type' => 'customer', 'taxable_id' => 5, 'opt_outs' => []])->assertStatus(422);
         Schema::dropIfExists('tax_opt_outs'); Schema::dropIfExists('products');
     }
+
+    public function test_a_reverse_charge_type_keeps_the_ledger_its_claim_goes_to(): void
+    {
+        $in = DB::table('ledgers')->insertGetId(['group_id' => 3, 'name' => 'TEST Input VAT', 'opening_balance' => 0, 'opening_side' => 'D', 'created_at' => now(), 'updated_at' => now()]);
+        $id = $this->createType(['name' => 'Import VAT', 'code' => 'IMPV', 'tax_category' => 'vat_gst', 'application_method' => 'reverse_charge', 'input_ledger_id' => $in])->assertCreated()->json('tax_type.id');
+        $this->assertSame($in, (int) DB::table('ledger_groups')->where('id', $id)->value('input_ledger_id'));
+        $this->putJson("/api/admin/tax/types/{$id}", ['input_ledger_id' => null, 'cost_ledger_id' => $in])->assertOk();
+        $this->assertSame([null, $in], [DB::table('ledger_groups')->where('id', $id)->value('input_ledger_id'), (int) DB::table('ledger_groups')->where('id', $id)->value('cost_ledger_id')]);
+        $this->putJson("/api/admin/tax/types/{$id}", ['input_ledger_id' => 99999])->assertStatus(422);
+    }
 }

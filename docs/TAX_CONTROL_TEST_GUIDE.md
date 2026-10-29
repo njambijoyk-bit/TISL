@@ -30,7 +30,7 @@ Then **Rates → New rate**:
 Create two sales accounts under a *Sales accounts* group:
 - **TEST Sales – spirits**: set *Tax on this account* = **TEST Excise 10%** (the first tax is worked out first). Then open **Other taxes on this account** and add the type **VAT** with the rate **TEST VAT on price and excise**.
 - **TEST Sales – plain**: Tax on this account = *VAT standard 16%* only.
-Create one purchase account **TEST Purchases – imports**: tax = *TEST Import VAT*. Also create an **input tax ledger** (any asset ledger named *TEST Input VAT*) and set it on the TEST Import VAT type (edit type) so the claim has somewhere to go.
+Create one purchase account **TEST Purchases – imports**: tax = *TEST Import VAT*. Also create an **input tax ledger**: a new ledger named *TEST Input VAT* under Current Assets (the New ledger form has no tax field, and needs none). Then go to **Tax & Compliance → Tax types → edit TEST Import VAT** and, under **Input tax you can claim back**, choose *TEST Input VAT*. That is where the reverse-charge claim is posted.
 
 Also check: creating a ledger directly under *Duties & Taxes* is refused with a message pointing to Tax & Compliance.
 
