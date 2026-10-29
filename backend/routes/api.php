@@ -1300,6 +1300,7 @@ Route::middleware('auth:sanctum')->group(function () {
         // Tax control (Books -> Configuration -> Tax control): the tab needs books.tax.view; each section's own permission is checked in the service
         Route::middleware('permission:books.tax.view')->group(function () {
             Route::get('/tax-control',             [\App\Http\Controllers\Api\TaxControlController::class, 'show']);
+            Route::get('/tax-control/health',      [\App\Http\Controllers\Api\TaxControlController::class, 'health']);
             Route::get('/tax-control/log',         [\App\Http\Controllers\Api\TaxControlController::class, 'log']);
             Route::put('/tax-control/{section}',   [\App\Http\Controllers\Api\TaxControlController::class, 'update'])->where('section', '[a-z_]+');
         });

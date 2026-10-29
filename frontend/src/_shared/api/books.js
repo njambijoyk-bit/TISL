@@ -137,6 +137,7 @@ const booksAPI = {
   reportSettingsLog: (params) => get('/admin/books/report-settings/log', params),
   taxControl: () => get('/admin/books/tax-control'),
   saveTaxControl: (section, values) => send('put', `/admin/books/tax-control/${section}`, { values }),
+  taxControlHealth: () => get('/admin/books/tax-control/health'),
   taxControlLog: (params) => get('/admin/books/tax-control/log', params),
   statements: () => get('/admin/books/statements'),
   createStatement: (d) => send('post', '/admin/books/statements', d),

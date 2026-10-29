@@ -25,6 +25,12 @@ class TaxControlController extends Controller
         return response()->json(['ready' => true, 'sections' => $this->settings->sectionsFor($request->user()), 'lookups' => $this->settings->lookups()]);
     }
 
+    /** Things in the tax set-up that need attention (read-only). */
+    public function health(): JsonResponse
+    {
+        return response()->json(['checks' => app(\App\Services\Books\TaxHealth::class)->checks()]);
+    }
+
     /** Body: {values: {key: value, ...}} for the settings of this section that should change. */
     public function update(Request $request, string $section): JsonResponse
     {

@@ -47,6 +47,12 @@ final class TaxReturnReport extends ReportDefinition
         return ['branch'];
     }
 
+    /** A tax the buyer accounts for (tax control, T6b): owed in the rate ledgers, claimed back in the type's own input ledger. */
+    private function reverseCharge(TaxType $type): bool
+    {
+        return $type->getAttribute('application_method') === 'reverse_charge' && $type->getAttribute('input_ledger_id');
+    }
+
     /** Owed to the authority (positive) on a date, for one tax type, from the ledgers that carry it. */
     private function owed(TaxType $type, array $rateIds, ?string $asOf, Scope $whole): float
     {
@@ -55,7 +61,8 @@ final class TaxReturnReport extends ReportDefinition
             return round(-$bal($type->payable_ledger_id) - $bal($type->receivable_ledger_id), 2);   // a credit on the payable is owed; a debit on the receivable is credit with the authority
         }
         // output and input tax share each rate's ledger: a credit balance is tax we owe, a debit balance tax we can reclaim
-        return round(-$bal($type->control_ledger_id) - array_sum(array_map($bal, $rateIds)), 2);
+        // (on a reverse charge the claim is in the type's input ledger, which takes it off what is owed)
+        return round(-$bal($type->control_ledger_id) - array_sum(array_map($bal, $rateIds)) - ($this->reverseCharge($type) ? $bal((int) $type->getAttribute('input_ledger_id')) : 0), 2);
     }
 
     public function run(Scope $scope, array $options): array
@@ -73,7 +80,9 @@ final class TaxReturnReport extends ReportDefinition
             $rates = $withheld ? collect() : TaxRate::where('group_id', $type->id)->orderBy('valid_from')->orderBy('name')->get();
             $rateIds = $rates->pluck('id')->map(fn ($i) => (int) $i)->all();
             $ledgerIds = $withheld ? array_values(array_filter([$type->receivable_ledger_id, $type->payable_ledger_id])) : $rateIds;
-            $mv = $ledgerIds ? $balances->movement($scope, $from, $scope->to, null, $ledgerIds) : [];
+            $reverse = ! $withheld && $this->reverseCharge($type);
+            $inputLedger = $reverse ? (int) $type->getAttribute('input_ledger_id') : null;
+            $mv = $ledgerIds ? $balances->movement($scope, $from, $scope->to, null, array_merge($ledgerIds, $inputLedger ? [$inputLedger] : [])) : [];
 
             $bf = $before ? $this->owed($type, $rateIds, $before, $whole) : 0.0;
             $closing = $this->owed($type, $rateIds, $to, $whole);
@@ -91,12 +100,15 @@ final class TaxReturnReport extends ReportDefinition
                 $rows = [];
                 foreach ($rates as $r) {
                     $out = $mv[$r->id]['cr'] ?? 0;   // tax charged on sales
-                    $in = $mv[$r->id]['dr'] ?? 0;    // tax paid on purchases
+                    $in = $reverse ? 0 : ($mv[$r->id]['dr'] ?? 0);    // tax paid on purchases (a reverse charge is claimed in its own ledger, below)
                     if ($out < 0.005 && $in < 0.005 && empty($bases[$r->id])) {
                         continue;
                     }
                     $rows[] = ['label' => $r->name, 'sales_base' => round($bases[$r->id]['sales'] ?? 0, 2), 'output' => round($out, 2),
                         'purchases_base' => round($bases[$r->id]['purchases'] ?? 0, 2), 'input' => round($in, 2), 'net' => round($out - $in, 2)];
+                }
+                if ($reverse && ($claimed = $mv[$inputLedger]['dr'] ?? 0) >= 0.005) {
+                    $rows[] = ['label' => 'Claimed back (reverse charge)', 'sales_base' => null, 'output' => 0.0, 'purchases_base' => null, 'input' => round($claimed, 2), 'net' => round(-$claimed, 2)];
                 }
                 $movement = array_sum(array_column($rows, 'output')) - array_sum(array_column($rows, 'input'));
                 $totals['output'] += array_sum(array_column($rows, 'output'));
@@ -104,7 +116,7 @@ final class TaxReturnReport extends ReportDefinition
                 $totals['owed'] += $closing;
             }
             $types[] = [
-                'id' => (int) $type->id, 'code' => $type->code, 'name' => $type->name, 'mode' => $withheld ? 'withheld' : 'additive', 'rows' => $rows,
+                'id' => (int) $type->id, 'code' => $type->code, 'name' => $type->name, 'mode' => $withheld ? 'withheld' : ($reverse ? 'reverse_charge' : 'additive'), 'category' => $type->getAttribute('tax_category'), 'rows' => $rows,
                 'brought_forward' => $bf, 'net_movement' => round($movement, 2),
                 // what left the amount owed in the period besides the tax itself: payments to the authority, refunds, adjustments
                 'settled' => round($bf + $movement - $closing, 2), 'closing_owed' => $closing,

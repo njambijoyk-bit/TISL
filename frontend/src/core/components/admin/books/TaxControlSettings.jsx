@@ -156,6 +156,22 @@ const control = (saved) => (s, { value, onChange, disabled, error, lookups, id, 
   }
 };
 
+const HealthPanel = () => {
+  const [checks, setChecks] = useState(null);
+  useEffect(() => { booksAPI.taxControlHealth().then((r) => setChecks(r.checks ?? [])).catch(() => setChecks([])); }, []);
+  if (checks === null) return null;
+
+  return (
+    <Section title="Health of the tax set-up" hint={checks.length ? 'These could make a document tax wrongly or leave a tax with nowhere to post. Nothing here changes by itself.' : 'No problems found.'}>
+      {checks.map((c, i) => (
+        <p key={i} style={{ margin: '0 0 6px', fontSize: '0.8rem', color: c.level === 'error' ? colors.danger : colors.warningText }}>
+          <strong>{c.level === 'error' ? 'Fix: ' : 'Check: '}</strong>{c.message}
+        </p>
+      ))}
+    </Section>
+  );
+};
+
 export default function TaxControlSettings() {
   const [data, setData] = useState(null);
   const load = useCallback(() => booksAPI.taxControl().then(setData).catch((e) => { toast.error(errMsg(e, 'Could not load Tax control')); setData({ ready: false, message: errMsg(e, 'Could not load Tax control.'), sections: [] }); }), []);
@@ -174,6 +190,7 @@ export default function TaxControlSettings() {
         <SettingsSection key={section.id} section={section} lookups={data.lookups} ledgers={[]} onSaved={onSaved} save={booksAPI.saveTaxControl}
           renderControl={control(categories)} />
       ))}
+      <HealthPanel />
       <ChangeLog fetchLog={booksAPI.taxControlLog} title="Change log" hint="Every change to Tax control: what, who and when. Documents already posted are never recalculated by a change." />
     </>
   );

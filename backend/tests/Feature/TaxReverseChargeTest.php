@@ -29,7 +29,7 @@ class TaxReverseChargeTest extends TestCase
         $this->runSqlScripts('229_tax_control.sql', '230_tax_resolution.sql');
         Schema::table('ledger_groups', function ($t) {
             $t->string('code')->nullable(); $t->string('kind')->nullable(); $t->string('application_mode')->nullable(); $t->boolean('is_active')->default(1); $t->boolean('is_compound')->default(0);
-            $t->string('application_method')->nullable(); $t->unsignedBigInteger('input_ledger_id')->nullable(); $t->unsignedBigInteger('cost_ledger_id')->nullable();
+            $t->string('application_method')->nullable(); $t->string('tax_category')->nullable(); $t->unsignedBigInteger('input_ledger_id')->nullable(); $t->unsignedBigInteger('cost_ledger_id')->nullable();
             $t->unsignedBigInteger('control_ledger_id')->nullable(); $t->unsignedBigInteger('payable_ledger_id')->nullable(); $t->unsignedBigInteger('receivable_ledger_id')->nullable();
         });
         Schema::table('ledgers', function ($t) {
@@ -41,7 +41,7 @@ class TaxReverseChargeTest extends TestCase
         Schema::create('tax_applicability', function ($t) { $t->id(); $t->string('taxable_type'); $t->unsignedBigInteger('taxable_id'); $t->unsignedBigInteger('tax_rule_id')->nullable(); $t->boolean('is_exempt')->default(0); $t->unsignedBigInteger('tax_legitimacy_certificate_id')->nullable(); $t->timestamps(); });
         $now = now();
         DB::table('ledger_groups')->insert(['id' => 30, 'name' => 'Duties & Taxes', 'nature' => 'liability', 'is_primary' => 1, 'behaviour' => 'standard', 'created_at' => $now, 'updated_at' => $now]);
-        DB::table('ledger_groups')->insert(['id' => 35, 'parent_id' => 30, 'name' => 'Import VAT', 'nature' => 'liability', 'behaviour' => 'tax', 'application_mode' => 'additive', 'application_method' => 'reverse_charge',
+        DB::table('ledger_groups')->insert(['id' => 35, 'parent_id' => 30, 'name' => 'Import VAT', 'nature' => 'liability', 'behaviour' => 'tax', 'application_mode' => 'additive', 'application_method' => 'reverse_charge', 'tax_category' => 'vat_gst',
             'input_ledger_id' => 90, 'kind' => 'vat', 'code' => 'RCVAT', 'created_at' => $now, 'updated_at' => $now]);
         DB::table('ledgers')->insert(['id' => 85, 'group_id' => 35, 'name' => 'Import VAT 16%', 'opening_balance' => 0, 'opening_side' => 'C', 'rate_type' => 'percent', 'rate_value' => 16,
             'calculation_base' => 'post_discount', 'valid_from' => '2020-01-01', 'classification' => 'standard', 'is_active' => 1, 'created_at' => $now, 'updated_at' => $now]);
@@ -106,5 +106,43 @@ class TaxReverseChargeTest extends TestCase
         $this->assertEquals([['D', 160]], array_map(fn ($e) => [$e['side'], $e['amount']], $find(90)), 'claimed back into the input tax ledger');
         $this->assertEquals([['C', 160]], array_map(fn ($e) => [$e['side'], $e['amount']], $find(85)), 'owed to the tax authority');
         $this->assertEquals([['C', 1000]], array_map(fn ($e) => [$e['side'], $e['amount']], $find(50)), 'the supplier is paid the price alone');
+    }
+
+    // ── health checks (T7) ─────────────────────────────────────────────
+
+    private function codes(): array
+    {
+        return array_column(app(\App\Services\Books\TaxHealth::class)->checks(), 'code');
+    }
+
+    public function test_health_a_sound_setup_has_no_errors(): void
+    {
+        $this->assertNotContains('reverse_no_ledger', $this->codes());
+        $this->assertNotContains('account_no_rate', $this->codes());
+    }
+
+    public function test_health_a_reverse_charge_with_nowhere_to_claim_is_an_error(): void
+    {
+        DB::table('ledger_groups')->where('id', 35)->update(['input_ledger_id' => null]);
+        $this->assertContains('reverse_no_ledger', $this->codes());
+        DB::table('ledger_groups')->where('id', 35)->update(['cost_ledger_id' => 91]);
+        $this->assertNotContains('reverse_no_ledger', $this->codes());
+    }
+
+    public function test_health_an_account_tax_with_no_rate_or_an_ended_rate_is_found(): void
+    {
+        DB::table('ledger_taxes')->where('ledger_id', 70)->update(['tax_rate_id' => null]);
+        $this->assertContains('account_no_rate', $this->codes());
+        DB::table('ledger_taxes')->where('ledger_id', 70)->update(['tax_rate_id' => 85]);
+        DB::table('ledgers')->where('id', 85)->update(['valid_until' => '2020-12-31']);
+        $c = $this->codes();
+        $this->assertContains('account_rate_ended', $c);
+        $this->assertContains('no_rate_in_force', $c);
+    }
+
+    public function test_health_a_rate_that_adds_a_removed_tax_to_its_base_is_an_error(): void
+    {
+        DB::table('ledgers')->where('id', 85)->update(['base_includes' => json_encode([999])]);
+        $this->assertContains('base_missing_type', $this->codes());
     }
 }

@@ -21,7 +21,7 @@ export default function TaxReturnView({ result }) {
       {d.types.length === 0 && <p style={{ color: colors.textMuted, fontSize: '0.85rem' }}>No tax types are set up.</p>}
       {d.types.map((t) => (
         <div key={t.id} style={{ ...card, overflow: 'hidden', marginBottom: 14 }}>
-          <div style={{ padding: '10px 12px', fontWeight: 700, fontSize: '0.85rem' }}>{t.name} <span style={{ fontWeight: 400, color: colors.textFaint, fontSize: '0.72rem' }}>{t.mode === 'withheld' ? 'withheld at source' : 'added to the price'}</span></div>
+          <div style={{ padding: '10px 12px', fontWeight: 700, fontSize: '0.85rem' }}>{t.name} <span style={{ fontWeight: 400, color: colors.textFaint, fontSize: '0.72rem' }}>{t.mode === 'withheld' ? 'withheld at source' : t.mode === 'reverse_charge' ? 'reverse charge: owed and claimed back' : 'added to the price'}</span></div>
           <div style={{ overflowX: 'auto' }}>
             <table style={{ width: '100%', borderCollapse: 'collapse' }}>
               <thead><tr style={{ background: colors.tint(0.02) }}>
