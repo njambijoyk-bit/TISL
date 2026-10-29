@@ -55,7 +55,7 @@ class TaxControlSettings
         foreach (TaxControlDefinitions::sections() as $id => $s) {
             $settings = [];
             foreach ($s['settings'] as $key => $spec) {
-                $settings[] = ['key' => $key, 'value' => $values[$key]] + array_intersect_key($spec, array_flip(['type', 'label', 'hint', 'default', 'options', 'min', 'max', 'max_items']));
+                $settings[] = ['key' => $key, 'value' => $values[$key]] + array_intersect_key($spec, array_flip(['type', 'label', 'hint', 'default', 'options', 'min', 'max', 'max_items', 'unavailable']));
             }
             $out[] = ['id' => $id, 'title' => $s['title'], 'hint' => $s['hint'], 'permission' => $s['permission'], 'can_edit' => $this->canChange($user, $id), 'settings' => $settings];
         }
@@ -89,6 +89,9 @@ class TaxControlSettings
             }
             try {
                 $clean[$key] = TaxControlDefinitions::normalise($key, $value);
+                if (! empty(TaxControlDefinitions::settings()[$key]['unavailable']) && $clean[$key] !== TaxControlDefinitions::settings()[$key]['default']) {
+                    throw new InvalidArgumentException(TaxControlDefinitions::settings()[$key]['label'] . ' is not available yet.');
+                }
                 $this->assertExist($key, $clean[$key]);
             } catch (InvalidArgumentException $e) {
                 $errors["values.{$key}"] = $e->getMessage();

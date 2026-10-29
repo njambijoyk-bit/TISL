@@ -128,6 +128,7 @@ function ApplyRegardless({ value, onChange, disabled, lookups, max }) {
 const control = (saved) => (s, { value, onChange, disabled, error, lookups, id, draft }) => {
   const enabledNow = draft?.enabled_categories ?? saved;   // what is being edited in this section, else what was last saved
   const wide = (node) => <div style={{ gridColumn: '1 / -1' }}>{node}</div>;
+  if (s.unavailable) return wide(<CheckboxRow disabled checked={false} onChange={() => {}} label={s.label} description={s.hint} />);
   switch (s.type) {
     case 'country':
       return <Field label={s.label} htmlFor={id} hint={s.hint} error={error}><TextInput id={id} disabled={disabled} maxLength={2} style={{ maxWidth: 90, textTransform: 'uppercase' }} value={value ?? ''} onChange={(e) => onChange(e.target.value.toUpperCase())} /></Field>;

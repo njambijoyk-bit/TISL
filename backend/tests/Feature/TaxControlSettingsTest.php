@@ -116,10 +116,11 @@ class TaxControlSettingsTest extends TestCase
     public function test_the_owner_changes_everything_and_each_change_is_logged_once(): void
     {
         $this->as(['books.view', 'books.tax.view', 'books.tax.control']);
-        $this->putJson(self::URL . '/calculation', ['values' => ['rounding' => 'per_document', 'prices_include_tax' => true]])->assertOk()->assertJsonPath('changed', ['rounding', 'prices_include_tax']);
+        $this->putJson(self::URL . '/calculation', ['values' => ['rounding' => 'per_document']])->assertOk()->assertJsonPath('changed', ['rounding']);
+        $this->putJson(self::URL . '/calculation', ['values' => ['prices_include_tax' => true]])->assertStatus(422);
         $this->putJson(self::URL . '/calculation', ['values' => ['rounding' => 'per_document']])->assertOk()->assertJsonPath('message', 'Nothing had changed');
         $log = $this->getJson(self::URL . '/log')->assertOk()->json('rows');
-        $this->assertCount(2, $log);
+        $this->assertCount(1, $log);
         $first = collect($log)->firstWhere('key', 'rounding');
         $this->assertSame(['per_line', 'per_document', 'Joy Accountant'], [$first['old'], $first['new'], $first['by']]);
         $this->assertSame('Round tax', $first['label']);
