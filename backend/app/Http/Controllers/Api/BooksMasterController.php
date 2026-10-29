@@ -208,7 +208,7 @@ class BooksMasterController extends Controller
     }
 
     /** Rate fields only make sense in a group that behaves as tax or delivery, and a percentage cannot be a foreign-currency amount. */
-    private function assertBehaviourFields(array $d, int $groupId, ?Ledger $existing = null): void
+    private function assertBehaviourFields(array &$d, int $groupId, ?Ledger $existing = null): void
     {
         if (! empty($d['offer_at_checkout'])) {   // only money ledgers can be how a customer pays
             $probe = new Ledger(['group_id' => $groupId]);
@@ -227,14 +227,14 @@ class BooksMasterController extends Controller
             }
             $cur = array_key_exists('currency_id', $d) ? $d['currency_id'] : $existing?->currency_id;
             if ($type !== 'percent' && $type !== 'per_unit' && empty($cur)) {
-                throw \Illuminate\Validation\ValidationException::withMessages(['currency_id' => 'A fixed or per-day charge needs a currency.']);
+                $d['currency_id'] = app(\App\Services\CurrencyConversionService::class)->getBaseCurrency()->id;   // no choice means the base currency, kept as its own id
             }
         }
         if ($behaviour === 'standard' && $rated) {
             throw \Illuminate\Validation\ValidationException::withMessages(['rate_type' => 'Rates are only kept on ledgers in a tax, delivery or charge group.']);
         }
         if (in_array($behaviour, ['tax', 'delivery'], true) && ! empty($d['rate_type']) && $d['rate_type'] !== 'percent' && empty($d['currency_id'])) {
-            throw \Illuminate\Validation\ValidationException::withMessages(['currency_id' => 'A fixed or per-unit rate needs a currency.']);
+            $d['currency_id'] = app(\App\Services\CurrencyConversionService::class)->getBaseCurrency()->id;   // "Base currency" is a currency: it is stored as the base currency's id
         }
         // a sales / purchase account cannot exist without its tax treatment: a rate from the system, exempt or out of scope
         $nature = array_key_exists('tax_nature', $d) ? $d['tax_nature'] : $existing?->tax_nature;
