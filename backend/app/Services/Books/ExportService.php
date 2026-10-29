@@ -194,6 +194,7 @@ class ExportService
             'name' => $c->name, 'legal_name' => $c->legal_name, 'tax_pin' => $c->tax_pin, 'address' => $c->address, 'city' => $c->city, 'country' => $c->country,
             'website' => $c->website, 'phones' => $first($c->phoneList()), 'emails' => $first($c->emailList()), 'tagline' => $c->tagline,
             'description' => $c->description, 'declaration' => $c->declaration, 'payment_terms' => $c->payment_terms, 'payment_mode' => $c->payment_mode, 'delivery_terms' => $c->delivery_terms,
+            'tax_lines' => $c->taxLines(),   // the jurisdiction and registrations the company chose to print, from its own columns
         ], fn ($x) => $x !== null && $x !== '' && $x !== []);
     }
 
@@ -230,6 +231,9 @@ class ExportService
         ]);
         if ($line) {
             $h .= "<div class='cod'>{$e(implode(' · ', $line))}</div>";
+        }
+        if (! empty($co['tax_lines'])) {
+            $h .= "<div class='cod'>{$e(implode(' · ', $co['tax_lines']))}</div>";
         }
 
         return $h . '</div>';
@@ -494,6 +498,9 @@ class ExportService
             $ours[] = null;                                   // a blank line before the PIN
             $ours[] = 'PIN: ' . $e($co['tax_pin']);
         }
+        foreach ($co['tax_lines'] ?? [] as $tl) {
+            $ours[] = $e($tl);                                // the jurisdiction and registrations, when the company chose to print them
+        }
         $theirs = [];
         foreach ([$party['company_name'] ?? null, $party['ledger_name'] ?? null, $party['address'] ?? null,
             ! empty($party['phone']) ? 'Tel: ' . $party['phone'] : null, ! empty($party['email']) ? 'Email: ' . $party['email'] : null] as $i => $x) {
@@ -631,6 +638,7 @@ class ExportService
             . "<div class='ibn'>{$e($legal)}</div>"
             . implode('', array_map(fn ($l) => "<div class='ibd'>{$e($l)}</div>", $addr))
             . (! empty($co['tax_pin']) ? "<div class='ibd'><b>Company's PIN:</b> {$e($co['tax_pin'])}</div>" : '')
+            . implode('', array_map(fn ($tl) => "<div class='ibd'>{$e($tl)}</div>", $co['tax_lines'] ?? []))
             . (! empty($co['website']) ? "<div class='ibd'>{$e($co['website'])}</div>" : '')
             . (! empty($co['description']) ? "<div class='ibt'>{$e($co['description'])}</div>" : '') . '</div>'
             . "<table class='ic'><tr><td>" . (! empty($co['phones']) ? 'Contact: ' . $e(implode(', ', $co['phones'])) : '') . "</td><td class='rt'>"

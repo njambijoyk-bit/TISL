@@ -128,7 +128,28 @@ class TaxControlSettings
             }
         });
 
+        $this->copyToCompany($changed, $clean);
+
         return $changed;
+    }
+
+    /**
+     * The company's country of registration and tax registrations are kept on the company details too (script 234), so documents and the storefront read the
+     * company and never Tax control. Saving either here updates the company's columns.
+     */
+    private function copyToCompany(array $changed, array $clean): void
+    {
+        $columns = array_filter([
+            'tax_country' => in_array('tax_country', $changed, true) ? (strtoupper((string) $clean['tax_country']) ?: null) : false,
+            'tax_registrations' => in_array('tax_registrations', $changed, true) ? ($clean['tax_registrations'] ?: null) : false,
+        ], fn ($v) => $v !== false);
+        if (! $columns || ! Schema::hasColumn('company_profile', 'tax_country')) {
+            return;
+        }
+        $company = \App\Models\CompanyProfile::first();
+        if ($company) {
+            $company->fill($columns)->save();
+        }
     }
 
     /** The change log, newest first. */

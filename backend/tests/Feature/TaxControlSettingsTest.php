@@ -201,4 +201,55 @@ class TaxControlSettingsTest extends TestCase
         $this->assertStringContainsString('229_tax_control.sql', $r['message']);
         $this->putJson(self::URL . '/filing', ['values' => ['filing_due_day' => 5]])->assertStatus(409);
     }
+
+    // ── the company details carry the country and registrations (script 234) ──
+
+    private function companyTable(): void
+    {
+        Schema::dropIfExists('company_profile');
+        Schema::create('company_profile', function ($t) {
+            $t->id(); $t->string('name')->nullable(); $t->string('short_code')->nullable(); $t->string('country')->nullable(); $t->text('phones')->nullable(); $t->text('emails')->nullable();
+            $t->string('tax_country', 2)->nullable(); $t->text('tax_registrations')->nullable(); $t->boolean('show_tax_jurisdiction')->default(false); $t->boolean('show_tax_registrations')->default(false);
+            $t->unsignedBigInteger('updated_by')->nullable(); $t->timestamps();
+        });
+        DB::table('company_profile')->insert(['id' => 1, 'name' => 'Acme', 'short_code' => 'ACME', 'created_at' => now(), 'updated_at' => now()]);
+        \App\Models\CompanyProfile::forget();
+    }
+
+    public function test_saving_the_jurisdiction_copies_it_to_the_company_details(): void
+    {
+        $this->companyTable();
+        $this->as(['books.view', 'books.tax.view', 'books.tax.admin']);
+        $this->putJson(self::URL . '/jurisdiction', ['values' => ['tax_country' => 'ke', 'tax_registrations' => [['name' => 'VAT', 'number' => 'P051234567X'], ['name' => 'PAYE', 'number' => 'A0012']]]])->assertOk();
+        $row = DB::table('company_profile')->first();
+        $this->assertSame('KE', $row->tax_country);
+        $this->assertSame([['name' => 'VAT', 'number' => 'P051234567X'], ['name' => 'PAYE', 'number' => 'A0012']], json_decode($row->tax_registrations, true));
+        $this->putJson(self::URL . '/jurisdiction', ['values' => ['tax_registrations' => []]])->assertOk();
+        $this->assertNull(DB::table('company_profile')->value('tax_registrations'), 'emptied here, emptied there');
+        $this->assertSame('KE', DB::table('company_profile')->value('tax_country'), 'what was not changed is left alone');
+        Schema::dropIfExists('company_profile');
+    }
+
+    public function test_documents_print_only_what_the_company_chose_and_read_the_company_not_tax_control(): void
+    {
+        $this->companyTable();
+        DB::table('company_profile')->update(['tax_country' => 'KE', 'tax_registrations' => json_encode([['name' => 'VAT', 'number' => 'P051234567X']])]);
+        \App\Models\CompanyProfile::forget();
+        $this->assertSame([], \App\Models\CompanyProfile::current()->taxLines(), 'both switches start off');
+        DB::table('company_profile')->update(['show_tax_registrations' => 1]);
+        \App\Models\CompanyProfile::forget();
+        $this->assertSame(['VAT: P051234567X'], \App\Models\CompanyProfile::current()->taxLines());
+        DB::table('company_profile')->update(['show_tax_jurisdiction' => 1]);
+        \App\Models\CompanyProfile::forget();
+        $lines = \App\Models\CompanyProfile::current()->taxLines();
+        $this->assertCount(2, $lines);
+        $this->assertStringStartsWith('Tax jurisdiction: ', $lines[0]);
+        // a customer-facing read of the company never touches Tax control: with its tables gone the lines are still there
+        Schema::dropIfExists('tax_control_settings');
+        Schema::dropIfExists('tax_control_log');
+        \App\Models\CompanyProfile::forget();
+        $this->assertCount(2, \App\Models\CompanyProfile::current()->taxLines());
+        $this->getJson('/api/company')->assertOk()->assertJsonPath('tax_lines.1', 'VAT: P051234567X');
+        Schema::dropIfExists('company_profile');
+    }
 }

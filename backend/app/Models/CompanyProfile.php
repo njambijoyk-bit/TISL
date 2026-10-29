@@ -13,9 +13,9 @@ class CompanyProfile extends Model
 {
     protected $table = 'company_profile';
 
-    protected $fillable = ['name', 'short_code', 'legal_name', 'tax_pin', 'email', 'phone', 'address', 'city', 'country', 'website', 'tagline', 'logo_url', 'updated_by', 'phones', 'emails', 'description', 'declaration', 'payment_terms', 'payment_mode', 'delivery_terms'];
+    protected $fillable = ['name', 'short_code', 'legal_name', 'tax_pin', 'email', 'phone', 'address', 'city', 'country', 'website', 'tagline', 'logo_url', 'updated_by', 'phones', 'emails', 'description', 'declaration', 'payment_terms', 'payment_mode', 'delivery_terms', 'tax_country', 'tax_registrations', 'show_tax_jurisdiction', 'show_tax_registrations'];
 
-    protected $casts = ['phones' => 'array', 'emails' => 'array'];
+    protected $casts = ['phones' => 'array', 'emails' => 'array', 'tax_registrations' => 'array', 'show_tax_jurisdiction' => 'boolean', 'show_tax_registrations' => 'boolean'];
 
     public static function current(): self
     {
@@ -102,6 +102,42 @@ class CompanyProfile extends Model
         $l = static::cleanContacts($this->phones ?? []);
 
         return $l ?: static::cleanContacts($this->phone ? [['value' => $this->phone, 'label' => 'Main', 'is_default' => true]] : []);
+    }
+
+    /** The country of registration as a name ("KE" is Kenya), or the code when the name is not known. */
+    public function taxCountryName(): ?string
+    {
+        $code = strtoupper(trim((string) $this->tax_country));
+        if ($code === '') {
+            return null;
+        }
+
+        return (class_exists(\Locale::class) ? \Locale::getDisplayRegion('-' . $code, 'en') : null) ?: $code;
+    }
+
+    /**
+     * The lines of tax detail the company chose to print on documents: its country of registration and/or its tax registrations ("VAT: P051234567X").
+     * They come from the company's own columns, which Tax control fills when it is saved, so a document never reads Tax control.
+     *
+     * @return string[]
+     */
+    public function taxLines(): array
+    {
+        $lines = [];
+        if ($this->show_tax_jurisdiction && ($name = $this->taxCountryName())) {
+            $lines[] = 'Tax jurisdiction: ' . $name;
+        }
+        if ($this->show_tax_registrations) {
+            foreach ((array) $this->tax_registrations as $r) {
+                $n = trim((string) ($r['name'] ?? ''));
+                $v = trim((string) ($r['number'] ?? ''));
+                if ($n !== '' && $v !== '') {
+                    $lines[] = "{$n}: {$v}";
+                }
+            }
+        }
+
+        return $lines;
     }
 
     /** The address the system sends mail from, and the one customers reply to. */

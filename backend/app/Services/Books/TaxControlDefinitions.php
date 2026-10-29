@@ -51,7 +51,7 @@ class TaxControlDefinitions
     public static function sections(): array
     {
         return [
-            'jurisdiction' => ['title' => 'Jurisdiction', 'hint' => 'The country whose tax rules the books follow, and the tax registrations of the company. One company, one country: the books never mix two countries\' regimes.', 'permission' => self::ADMIN, 'settings' => [
+            'jurisdiction' => ['title' => 'Jurisdiction', 'hint' => 'The country whose tax rules the books follow, and the tax registrations of the company. One company, one country: the books never mix two countries\' regimes. Saving either copies it to the company details (Books → Configuration → Company), where you choose whether documents print them.', 'permission' => self::ADMIN, 'settings' => [
                 'tax_country' => ['type' => 'country', 'label' => 'Country of registration', 'hint' => 'Two letters, such as KE. Areas within the country (county, state) are kept on the tax types.', 'default' => ''],
                 'tax_registrations' => ['type' => 'registrations', 'label' => 'Tax registrations', 'hint' => 'What the company is registered for and its number: VAT, PAYE, excise licence and so on.', 'default' => [], 'max_items' => 12],
             ]],
@@ -64,14 +64,14 @@ class TaxControlDefinitions
                 'category_ledgers' => ['type' => 'category_ledgers', 'label' => 'Starting ledgers for each category', 'hint' => 'Tax owed, recoverable input tax, and the ledger a tax that cannot be recovered is charged to. Leave empty to have them made when a tax type is created.', 'default' => []],
             ]],
             'calculation' => ['title' => 'Calculation', 'hint' => 'How tax amounts are rounded and how prices are read. Changing these changes how new documents are calculated, never documents already posted.', 'permission' => self::CONTROL, 'settings' => [
-                'rounding' => ['type' => 'enum', 'label' => 'Round tax', 'hint' => null, 'default' => 'per_line', 'options' => ['per_line' => 'On each line', 'per_document' => 'On the whole document']],
-                'prices_include_tax' => ['type' => 'bool', 'label' => 'Prices are entered with tax included', 'hint' => 'The default for new price lists and documents; each can still say otherwise.', 'default' => false],
-                'override_needs_reason' => ['type' => 'bool', 'label' => 'A change of the tax base needs a reason', 'hint' => 'When someone with the permission changes what a tax is calculated on, they must say why. The reason is kept with the calculation.', 'default' => true],
+                'rounding' => ['type' => 'enum', 'label' => 'Round tax', 'hint' => 'On each line: the tax of every line is rounded to the cent and the rounded amounts are added up. On the whole document: the taxes are added up first and rounded once. Documents round on each line today; this choice is recorded and not read by the posting code yet.', 'default' => 'per_line', 'options' => ['per_line' => 'On each line', 'per_document' => 'On the whole document']],
+                'prices_include_tax' => ['type' => 'bool', 'label' => 'Prices are entered with tax included', 'hint' => 'For when the prices people enter already contain the tax. Prices are entered and stored without tax everywhere today (products, hampers, services, auctions, kitchen stock and dishes), so this is recorded and not used yet.', 'default' => false],
+                'override_needs_reason' => ['type' => 'bool', 'label' => 'A change of the tax base needs a reason', 'hint' => 'Used on sales and purchase lines. A person holding the override permission can change the amount a line\'s taxes are worked out on. With this on they must give a reason, which is kept with the line\'s tax record.', 'default' => true],
             ]],
             'regardless' => ['title' => 'Taxes that apply regardless', 'hint' => 'A tax that applies to every qualifying document whatever the product or account says (a transaction levy, for example), and what it does about exemptions.', 'permission' => self::CONTROL, 'settings' => [
                 'apply_regardless' => ['type' => 'apply_regardless', 'label' => 'Taxes that apply regardless', 'hint' => null, 'default' => [], 'max_items' => 20],
             ]],
-            'filing' => ['title' => 'Returns and certificates', 'hint' => 'When returns are made and when a withholding certificate is needed.', 'permission' => self::ADMIN, 'settings' => [
+            'filing' => ['title' => 'Returns and certificates', 'hint' => 'When returns are made and when a withholding certificate is needed. Recorded for filing reminders; no report reads these yet.', 'permission' => self::ADMIN, 'settings' => [
                 'return_period' => ['type' => 'enum', 'label' => 'Return period', 'hint' => null, 'default' => 'monthly', 'options' => ['monthly' => 'Every month', 'quarterly' => 'Every quarter', 'annual' => 'Every year']],
                 'filing_due_day' => ['type' => 'int', 'label' => 'Day the return is due', 'hint' => 'The day of the month after the period.', 'default' => 20, 'min' => 1, 'max' => 31],
                 'certificate_threshold' => ['type' => 'number', 'label' => 'A withholding certificate is needed above', 'hint' => '0 means for every withholding.', 'default' => 0, 'min' => 0, 'max' => 1000000000],

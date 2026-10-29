@@ -1317,6 +1317,7 @@ Route::middleware('auth:sanctum')->group(function () {
         });
         Route::post('/recon/sessions/{id}/reopen', [\App\Http\Controllers\Api\ReconController::class, 'reopen'])->whereNumber('id')->middleware('permission:books.period');
 
+        Route::get('/company',                          [\App\Http\Controllers\Api\CompanyProfileController::class, 'adminShow']);
         // The year-end close: seeing it needs books.view (the group above); preparing books.close.prepare; approving, locking and reopening books.period
         Route::get('/year-close',                       [\App\Http\Controllers\Api\YearCloseController::class, 'index']);
         Route::get('/year-close/years/{yearId}',        [\App\Http\Controllers\Api\YearCloseController::class, 'show'])->whereNumber('yearId');

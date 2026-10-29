@@ -37,6 +37,9 @@ class ReceiptService
         }
         $center(trim(implode(', ', array_filter([$co->address, $co->city]))));
         $center(trim(implode(' · ', array_filter([$co->phone, $co->tax_pin ? 'PIN '.$co->tax_pin : null]))));
+        foreach ($co->taxLines() as $taxLine) {
+            $center($taxLine);
+        }
         $center(($o->settled_at ?? $o->placed_at ?? $o->created_at)->timezone((string) config('app.timezone', 'Africa/Nairobi'))->format('d/m/Y, h:i:s A'));
         $out[] = $rule;
         $type = in_array($o->order_type, ['counter', 'kiosk'], true) ? (self::TYPES[$o->service] ?? 'Counter') : ($o->order_type === 'delivery' ? 'Delivery' : 'Pickup');

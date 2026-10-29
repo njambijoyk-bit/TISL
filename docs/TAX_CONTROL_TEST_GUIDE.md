@@ -96,3 +96,6 @@ Where to set it: **Tax & Compliance → Tax types → edit the type**. For a tax
 **G. Health.** Set TEST Excise to *Recoverable* with the company as *An ordinary purchaser*: the red/amber panel at the top of **Books → Configuration → Tax control** warns that excise is being claimed back.
 
 Old purchases already posted never change; only new ones do.
+
+## 13. Company tax details (run script 234 first)
+Tax control → Jurisdiction: enter country and a registration (e.g. VAT / P051234567X), save. Books → Configuration → Company shows them read-only. Tick the two "Show … on documents" boxes, save, download an invoice and a cash sale (admin and customer side): the lines "Tax jurisdiction: Kenya" and "VAT: P051234567X" appear. Untick: they disappear.

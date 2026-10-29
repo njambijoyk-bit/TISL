@@ -112,6 +112,7 @@ class ReceiptService
             'address' => array_values(array_filter(array_map('trim', preg_split('/\R/', (string) $co->address) ?: []))),
             'place' => implode(', ', $place),   // one of them alone has no comma
             'email' => $emails[0]['value'] ?? null, 'website' => trim((string) $co->website) ?: null, 'tax_pin' => trim((string) $co->tax_pin) ?: null,
+            'tax_lines' => $co->taxLines(),   // the jurisdiction and registrations the company chose to print
             'declaration' => trim((string) $co->declaration) ?: null,
             'tagline' => trim((string) $co->tagline) ?: 'Thank you for your business. Keep this receipt: returns need it.',
             'logo' => $this->logo($co->logo_url),

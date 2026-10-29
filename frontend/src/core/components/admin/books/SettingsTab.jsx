@@ -23,8 +23,8 @@ const SUBS = [
   { id: 'tax', label: 'Tax control', permission: 'books.tax.view' },   // shown to people who may open Tax control
   { id: 'period', label: 'Period control' },
   { id: 'defaults', label: 'Default ledgers' },
-  { id: 'company', label: 'Company' },
   { id: 'reports', label: 'Reports', permission: 'books.reports.settings' },   // shown to people who may open the Reports settings
+  { id: 'company', label: 'Company' },
 ];
 
 const Section = ({ title, hint, action, children }) => (
@@ -463,7 +463,10 @@ function CompanySection({ canSetup }) {
   const [f, setF] = useState(null);
   const [busy, setBusy] = useState(false);
   const [errs, setErrs] = useState({});
-  useEffect(() => { api.get('/company').then((r) => setF(r.data)).catch((e) => toast.error(errMsg(e, 'Could not load company details'))); }, []);
+  useEffect(() => {
+    Promise.all([api.get('/company'), api.get('/admin/books/company').catch(() => ({ data: {} }))])
+      .then(([a, b]) => setF({ ...a.data, ...b.data })).catch((e) => toast.error(errMsg(e, 'Could not load company details')));
+  }, []);
   if (!f) return <p style={{ color: colors.textMuted }}>Loading…</p>;
   const set = (k) => (e) => setF((x) => ({ ...x, [k]: e.target.value }));
   const save = async () => {
@@ -522,6 +525,18 @@ function CompanySection({ canSetup }) {
           <Field label="Mode of payment (M-Pesa till, bank details…)" error={errs.payment_mode}><textarea rows={3} disabled={!canSetup} value={f.payment_mode ?? ''} onChange={set('payment_mode')} style={{ width: '100%', boxSizing: 'border-box', font: 'inherit', padding: 8, borderRadius: 8, border: '1.5px solid var(--line)', background: 'var(--surface-input)', color: 'inherit' }} /></Field>
           <Field label="Declaration" error={errs.declaration}><textarea rows={3} disabled={!canSetup} value={f.declaration ?? ''} onChange={set('declaration')} style={{ width: '100%', boxSizing: 'border-box', font: 'inherit', padding: 8, borderRadius: 8, border: '1.5px solid var(--line)', background: 'var(--surface-input)', color: 'inherit' }} /></Field>
         </FormGrid>
+      </div>
+      <div style={{ marginTop: 16 }}>
+        <div style={{ fontWeight: 700, fontSize: '0.85rem', marginBottom: 6 }}>Tax details on documents</div>
+        <p style={{ margin: '0 0 8px', fontSize: '0.74rem', color: colors.textMuted, maxWidth: 640 }}>
+          Your country of registration and tax registrations are entered in Books → Configuration → Tax control (Jurisdiction) and copied here when they are saved, so documents never read Tax control. Choose what is printed on invoices, cash sales, receipts and statements, for you and your customers.
+        </p>
+        <div style={{ fontSize: '0.8rem', marginBottom: 8 }}>
+          <div>Country of registration: <strong>{f.tax_country_name ?? f.tax_country ?? 'not set'}</strong></div>
+          <div>Registrations: {(f.tax_registrations ?? []).length ? (f.tax_registrations).map((r) => <strong key={r.name} style={{ marginRight: 12 }}>{r.name}: {r.number}</strong>) : <strong>none</strong>}</div>
+        </div>
+        <CheckboxRow checked={!!f.show_tax_jurisdiction} onChange={(v) => setF((x) => ({ ...x, show_tax_jurisdiction: v }))} label="Show the tax jurisdiction on documents" disabled={!canSetup} />
+        <CheckboxRow checked={!!f.show_tax_registrations} onChange={(v) => setF((x) => ({ ...x, show_tax_registrations: v }))} label="Show the tax registrations on documents" disabled={!canSetup} />
       </div>
       <div style={{ display: 'grid', gap: 16, marginTop: 16 }}>
         <ContactList title="Phone numbers" type="tel" placeholder="+254 7…" disabled={!canSetup} rows={f.phones} onChange={(phones) => setF((x) => ({ ...x, phones }))}

@@ -215,3 +215,9 @@ T6 changes the code that posts sales and purchases, so it is done in three parts
 **Known limit.** Kitchen stock received through Menus values its batches from the line price without tax, so a tax that is part of the cost makes the Inventory ledger larger than the batches' value by that tax. Until Menus is taught the same rule, give such a type a cost ledger of its own.
 
 **Tests.** `TaxReverseChargeTest` (recovery cases): excise as cost and VAT claimed, sales untouched, conditional by position, posting and balance, cost ledger, health.
+
+## 19. Company tax details on documents (script 234)
+- `company_profile` now holds `tax_country`, `tax_registrations`, `show_tax_jurisdiction`, `show_tax_registrations` (both switches start off).
+- Saving the jurisdiction in Tax control copies country and registrations into the company columns; documents, receipts, statements and the storefront read only the company, never Tax control.
+- Books → Configuration → Company has the two switches. Settings tab order: …Default ledgers, Reports, Company.
+- Rounding per line/document and "prices include tax" are stored settings only; posting does not read them yet.

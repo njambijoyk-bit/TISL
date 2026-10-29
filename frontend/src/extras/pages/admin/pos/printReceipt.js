@@ -36,6 +36,7 @@ function copyHtml(r, title) {
     ${c.email ? `<div class="c">${esc(c.email)}</div>` : ''}
     ${c.website ? `<div class="c">${esc(c.website)}</div>` : ''}
     ${c.tax_pin ? `<div class="c">PIN: ${esc(c.tax_pin)}</div>` : ''}
+    ${(c.tax_lines ?? []).map((l) => `<div class="c">${esc(l)}</div>`).join('')}
     ${r.branch ? `<div class="c">${esc(r.branch)}${r.station ? ` · ${esc(r.station)}` : ''}</div>` : ''}
     <div class="gap"></div>
     <div class="c b">${esc(r.document)}</div>
