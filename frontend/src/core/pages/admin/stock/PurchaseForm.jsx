@@ -13,7 +13,7 @@ import CodeScanner from '../../../components/admin/codes/CodeScanner';
 import { scanMatch } from '../../../lib/codes/scanLookup';
 import locationsAPI from '../../../../_shared/api/locations';
 import useAuthStore from '../../../../_shared/store/authStore';
-import { canWriteFinance } from '../../../../_shared/lib/roles';
+import { canWriteFinance, hasPermission } from '../../../../_shared/lib/roles';
 import { errMsg } from '../../../../_shared/store/helpers/apiState';
 import { defaultUnit, lookupStock, searchPlaceholder, stockKinds } from '../../../lib/stockKinds';
 import { btnPrimary, btnGhost, card, colors, input } from '../../../../_shared/theme/tokens';
@@ -33,6 +33,9 @@ const CLEAR_BTN = { border: '1px solid #fecaca', background: '#fef2f2', color: '
 const CHANGE_LINK = { border: 'none', background: 'none', color: '#b91c1c', cursor: 'pointer', fontSize: '0.74rem', fontWeight: 700, padding: 0, marginTop: 4, textDecoration: 'underline' };
 const small = { ...input, padding: '6px 8px', fontSize: '0.8rem' };
 const label = { display: 'block', fontSize: '0.68rem', fontWeight: 700, color: colors.textFaint, marginBottom: 3 };
+// the tax is worked out on this amount instead (only people holding books.tax.override can send it)
+const taxBase = (l) => (l.tax_base !== undefined && l.tax_base !== '' ? { tax_base: Number(l.tax_base), tax_base_reason: l.tax_base_reason || undefined } : {});
+
 const newKey = () => Math.random().toString(36).slice(2);
 
 const draftKey = (kind, id) => `purchase-draft:${kind}:${id ?? 'new'}`;
@@ -209,14 +212,14 @@ export default function PurchaseForm({ kind = 'purchase' }) {
           // the unit it was typed in: packs, the bigger unit's code, or the base unit (what is stored is 'pack' or the unit's code)
           const unit = i.unit_code === 'pack' ? 'pack' : (units.find((u) => u.unit !== 'pack' && u.label === i.unit_code)?.unit ?? 'base');
           return { key: `i${i.id}`, ingredient: true, item_id: i.ingredient_item_id, label: i.description, variantName: i.variant_label, sku: i.sku, units, unit, quantity: Number(i.quantity), rate: Number(i.rate), rate_auto: false,
-            discount: Number(i.discount_amount) || '', track_expiry: Boolean(r?.track_expiry || i.expiry_date), last_cost: r?.last_cost ?? 0, batch_no: i.batch_no ?? '', mfg_date: '', expiry_date: i.expiry_date ?? '' };
+            discount: Number(i.discount_amount) || '', track_expiry: Boolean(r?.track_expiry || i.expiry_date), last_cost: r?.last_cost ?? 0, batch_no: i.batch_no ?? '', mfg_date: '', expiry_date: i.expiry_date ?? '', ...(() => { const o = (i.taxes ?? []).map((t) => t.calc_snapshot?.base_override).find(Boolean); return o ? { tax_base: o.to, tax_base_reason: o.reason ?? '' } : {}; })() };
         }
         if (i.item_type !== 'product') return { key: `i${i.id}`, other: true, description: i.description, quantity: Number(i.quantity), rate: Number(i.item_type === 'charge' ? i.amount : i.rate), ledger_id: i.ledger_id ?? '' };
         const r = info[i.variant_id];
         const base0 = r ? lineFrom(r, false) : { units: [], track_expiry: Boolean(i.batch_no || i.expiry_date) };
         return { ...base0, key: `i${i.id}`, variant_id: i.variant_id, product_id: i.product_id, label: `${i.description}${i.variant_label && i.variant_label !== 'Standard' ? ` — ${i.variant_label}` : ''}`,
           variant_unit_id: i.variant_unit_id ?? base0.variant_unit_id, quantity: Number(i.quantity), rate: Number(i.rate), rate_auto: false, discount: Number(i.discount_amount) || '',
-          batch_no: i.batch_no ?? '', mfg_date: i.mfg_date ?? '', expiry_date: i.expiry_date ?? '' };
+          batch_no: i.batch_no ?? '', mfg_date: i.mfg_date ?? '', expiry_date: i.expiry_date ?? '', ...(() => { const o = (i.taxes ?? []).map((t) => t.calc_snapshot?.base_override).find(Boolean); return o ? { tax_base: o.to, tax_base_reason: o.reason ?? '' } : {}; })() };
       }));
     }).catch((e) => toast.error(errMsg(e, 'Could not load the purchase'))).finally(() => setLoading(false));
   }, [id, editing]); // eslint-disable-line react-hooks/exhaustive-deps
@@ -286,18 +289,19 @@ export default function PurchaseForm({ kind = 'purchase' }) {
   const createStock = (name) => { writeDraft(key, { h, lines }); nav(`/admin/menus/ingredients?new=${encodeURIComponent(name || '')}&returnTo=${encodeURIComponent(selfPath)}`); };
   const addVariantTo = (productId) => goProduct(`/admin/products/${productId}/edit`, '&tab=variants');
 
+  const canOverrideTax = hasPermission(user, 'books.tax.override');
   const payload = useMemo(() => {
     const p = {
       voucher_type_id: type?.id, date: h.date, location_id: h.location_id || null, reference_no: h.reference_no || null, supplier_invoice_no: receipt ? null : (h.supplier_invoice_no || null), narration: h.narration || null,
       currency_id: h.currency_id || null, exchange_rate: h.exchange_rate === '' ? undefined : Number(h.exchange_rate),
       lines: lines.map((l) => (l.other
-        ? { type: 'custom', description: l.description, quantity: Number(l.quantity) || 1, rate: Number(l.rate) || 0, ledger_id: l.ledger_id || undefined }
+        ? { type: 'custom', description: l.description, quantity: Number(l.quantity) || 1, rate: Number(l.rate) || 0, ledger_id: l.ledger_id || undefined, ...taxBase(l) }
         : l.ingredient
           ? { type: 'ingredient', ingredient_item_id: l.item_id, unit: l.unit, quantity: Number(l.quantity) || 0, rate: l.rate === '' ? undefined : Number(l.rate), discount: Number(l.discount) || 0,
-            batch_no: l.batch_no || undefined, expiry_date: l.expiry_date || undefined }
+            batch_no: l.batch_no || undefined, expiry_date: l.expiry_date || undefined, ...taxBase(l) }
           : { type: 'product', variant_id: l.variant_id, variant_unit_id: l.variant_unit_id || undefined, quantity: Number(l.quantity) || 0,
           rate: l.rate === '' ? undefined : Number(l.rate), discount: Number(l.discount) || 0,
-          batch_no: l.track_expiry || l.batch_no ? l.batch_no || undefined : undefined, mfg_date: l.mfg_date || undefined, expiry_date: l.expiry_date || undefined })),
+          batch_no: l.track_expiry || l.batch_no ? l.batch_no || undefined : undefined, mfg_date: l.mfg_date || undefined, expiry_date: l.expiry_date || undefined, ...taxBase(l) })),
     };
     if (opening) p.opening_ledger_id = h.opening_ledger_id || undefined;
     else {
@@ -536,6 +540,16 @@ export default function PurchaseForm({ kind = 'purchase' }) {
                             <div><label style={label}>Batch no.</label><input value={l.batch_no} onChange={(e) => setLine(l.key, { batch_no: e.target.value })} style={small} /></div>
                             {l.track_expiry && <div><label style={label}>Expiry date *</label><input type="date" value={l.expiry_date} onChange={(e) => setLine(l.key, { expiry_date: e.target.value })} style={small} /></div>}
                           </div>
+                          {canOverrideTax && !l.other && (
+                            l.tax_base_open || l.tax_base
+                              ? <div style={{ display: 'flex', gap: 8, alignItems: 'center', marginTop: 8, fontSize: '0.72rem', color: colors.textMuted, flexWrap: 'wrap' }}>
+                                <span>Tax is worked out on</span>
+                                <input type="number" min="0" step="any" value={l.tax_base ?? ''} aria-label="Amount the tax is worked out on" placeholder={money(lineAmount(l))} onChange={(e) => setLine(l.key, { tax_base: e.target.value })} style={{ ...small, width: 110 }} />
+                                <input type="text" maxLength={160} value={l.tax_base_reason ?? ''} aria-label="Reason for changing the tax base" placeholder="Reason" onChange={(e) => setLine(l.key, { tax_base_reason: e.target.value })} style={{ ...small, minWidth: 200 }} />
+                                <button type="button" onClick={() => setLine(l.key, { tax_base: '', tax_base_reason: '', tax_base_open: false })} style={{ ...btnGhost, padding: '2px 8px', fontSize: '0.7rem' }}>Cancel</button>
+                              </div>
+                              : <button type="button" onClick={() => setLine(l.key, { tax_base_open: true })} style={{ ...btnGhost, padding: '2px 10px', fontSize: '0.7rem', marginTop: 6 }}>Change what the tax is worked out on</button>
+                          )}
                         </>
                       ) : (
                         <>
@@ -566,6 +580,16 @@ export default function PurchaseForm({ kind = 'purchase' }) {
                               <div><label style={label}>Manufactured</label><input type="date" value={l.mfg_date} onChange={(e) => setLine(l.key, { mfg_date: e.target.value })} style={small} /></div>
                               <div><label style={label}>Expiry date *</label><input type="date" value={l.expiry_date} onChange={(e) => setLine(l.key, { expiry_date: e.target.value })} style={small} /></div>
                             </div>
+                          )}
+                          {canOverrideTax && !l.other && (
+                            l.tax_base_open || l.tax_base
+                              ? <div style={{ display: 'flex', gap: 8, alignItems: 'center', marginTop: 8, fontSize: '0.72rem', color: colors.textMuted, flexWrap: 'wrap' }}>
+                                <span>Tax is worked out on</span>
+                                <input type="number" min="0" step="any" value={l.tax_base ?? ''} aria-label="Amount the tax is worked out on" placeholder={money(lineAmount(l))} onChange={(e) => setLine(l.key, { tax_base: e.target.value })} style={{ ...small, width: 110 }} />
+                                <input type="text" maxLength={160} value={l.tax_base_reason ?? ''} aria-label="Reason for changing the tax base" placeholder="Reason" onChange={(e) => setLine(l.key, { tax_base_reason: e.target.value })} style={{ ...small, minWidth: 200 }} />
+                                <button type="button" onClick={() => setLine(l.key, { tax_base: '', tax_base_reason: '', tax_base_open: false })} style={{ ...btnGhost, padding: '2px 8px', fontSize: '0.7rem' }}>Cancel</button>
+                              </div>
+                              : <button type="button" onClick={() => setLine(l.key, { tax_base_open: true })} style={{ ...btnGhost, padding: '2px 10px', fontSize: '0.7rem', marginTop: 6 }}>Change what the tax is worked out on</button>
                           )}
                         </>
                       )}

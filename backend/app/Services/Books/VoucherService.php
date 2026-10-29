@@ -1367,9 +1367,17 @@ class VoucherService
         } else {
             // normally the account the line posts to decides the tax; a line may name another account to be taxed as (e.g. an auction charge that follows the auction's sales account)
             $account = Ledger::find(! empty($l['tax_account_id']) ? (int) $l['tax_account_id'] : $line['ledger_id']);
+            $line['tax_base_request'] = $this->baseRequest($l);
+            $override = $this->baseOverride($line, $ctx);   // as on a product line: the base the tax is worked out on may be changed by someone allowed to
             $line['taxes'] = $account?->tax_nature
-                ? $this->taxes->fromAccount($account, $line['amount'] + $line['discount_amount'], $line['amount'], $line['quantity'], $this->side($ctx), $ctx['customer'], $ctx['currency'])
+                ? $this->taxes->fromAccount($account, $override['to'] ?? $line['amount'] + $line['discount_amount'], $override['to'] ?? $line['amount'], $line['quantity'], $this->side($ctx), $ctx['customer'], $ctx['currency'])
                 : [];
+            if ($override) {
+                foreach ($line['taxes'] as &$t) {
+                    $t['snapshot'] = ($t['snapshot'] ?? []) + ['base_override' => $override];
+                }
+                unset($t);
+            }
         }
         $this->summariseTaxes($line);
 
