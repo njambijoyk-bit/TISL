@@ -27,21 +27,68 @@ class VisualsService
         $this->b = app(LedgerBalances::class);
     }
 
-    public function data(Scope $scope): array
+    /**
+     * The charts the page can show. `source` is the figures a chart draws (several cards can share one), `compare` says how a second period is drawn:
+     * overlay (a ghost series beside the main one), delta (a column of change) or none.
+     */
+    public const CATALOG = [
+        'cash' => ['title' => 'Cash and bank balance', 'note' => 'The running balance of all cash and bank accounts.', 'source' => 'money', 'compare' => 'overlay'],
+        'inout' => ['title' => 'Money in and out', 'note' => 'What came into the cash and bank accounts and what went out.', 'source' => 'money', 'compare' => 'overlay'],
+        'accounts' => ['title' => 'Each account', 'note' => 'In, out and the balance at the end, per cash and bank account.', 'source' => 'money', 'compare' => 'none'],
+        'expense-donut' => ['title' => 'Where the money went', 'note' => 'The biggest groups of expenses in the period. Click a slice to open it.', 'source' => 'expenses', 'compare' => 'delta'],
+        'expense-tree' => ['title' => 'Expenses by group', 'note' => 'Every expense group and ledger; bigger is more.', 'source' => 'expenses', 'wide' => true, 'compare' => 'none'],
+        'customers' => ['title' => 'Top customers', 'note' => 'The ten customers who bought the most in the period.', 'source' => 'top_customers', 'compare' => 'overlay'],
+        'sales-purchases' => ['title' => 'Sales against purchases', 'note' => 'By month. A cash sale is cash; any other sale or purchase that left an open bill is credit, and one that did not is cash.', 'source' => 'sales_purchases', 'wide' => true, 'compare' => 'none'],
+        'composition' => ['title' => 'What we own', 'note' => 'Assets on the last day, by group.', 'source' => 'composition', 'wide' => true, 'compare' => 'none'],
+        'build' => ['title' => 'Owed to us and by us', 'note' => 'Receivables, payables and the net position they leave.', 'source' => 'outstanding', 'compare' => 'none'],
+        'ageing' => ['title' => 'How old the debts are', 'note' => 'Receivables and payables by age.', 'source' => 'outstanding', 'compare' => 'none'],
+        'bubbles' => ['title' => 'Who is late', 'note' => 'Each customer: how long their bills have been open (across), how much they owe (up) and how many bills (size).', 'source' => 'outstanding', 'wide' => true, 'compare' => 'none'],
+        'calendar' => ['title' => 'Activity', 'note' => 'Vouchers posted each day over the last year.', 'source' => 'heatmap', 'wide' => true, 'compare' => 'none'],
+        'waterfall' => ['title' => 'From income to profit', 'note' => 'How the income of the period turns into profit.', 'source' => 'waterfall', 'compare' => 'delta'],
+        'balance' => ['title' => 'Assets against liabilities and equity', 'note' => 'What the business has against who it belongs to.', 'source' => 'balance', 'compare' => 'delta'],
+        'trend' => ['title' => 'Profit month by month', 'note' => 'Income and expenses as bars, profit as the line.', 'source' => 'profit_trend', 'wide' => true, 'compare' => 'overlay'],
+        'recon' => ['title' => 'Reconciliation', 'note' => 'How far each account has been reconciled with its statement.', 'source' => 'recon', 'compare' => 'none'],
+    ];
+
+    /** The cards for the page, in order: key, title, note, width and how a comparison is drawn. */
+    public function catalog(): array
     {
+        return array_map(fn ($k, $c) => ['key' => $k, 'title' => $c['title'], 'note' => $c['note'], 'wide' => (bool) ($c['wide'] ?? false), 'compare' => $c['compare']], array_keys(self::CATALOG), self::CATALOG);
+    }
+
+    /** The financial years, for the period presets on the page. */
+    public function years(): array
+    {
+        return \App\Models\Books\FinancialYear::orderBy('start_date')->get(['name', 'start_date', 'end_date'])
+            ->map(fn ($y) => ['name' => $y->name, 'from' => $y->start_date->toDateString(), 'to' => $y->end_date->toDateString()])->all();
+    }
+
+    /**
+     * One chart for a period, and for a second period when one is asked for. A chart that cannot be worked out says why instead of failing.
+     *
+     * @param  array{from: string, to: string}|null  $compare
+     */
+    public function chart(string $key, Scope $scope, ?array $compare = null): array
+    {
+        abort_unless(isset(self::CATALOG[$key]), 404, 'There is no such chart.');
         $to = $scope->to ?: today()->toDateString();
         $from = $scope->from ?: $this->b->yearStart($to);
-        $period = $scope->between($from, $to);
-        $charts = [];
-        foreach (['money', 'expenses', 'top_customers', 'sales_purchases', 'composition', 'outstanding', 'heatmap', 'waterfall', 'balance', 'profit_trend', 'recon'] as $key) {
-            try {
-                $charts[$key] = array_merge(['ready' => true], $this->{'chart' . str_replace('_', '', ucwords($key, '_'))}($period, $from, $to));
-            } catch (Throwable $e) {
-                $charts[$key] = ['ready' => false, 'message' => 'This chart could not be worked out: ' . $e->getMessage()];
-            }
+        $one = fn (string $f, string $t) => $this->run(self::CATALOG[$key]['source'], $scope->between($f, $t), $f, $t);
+        $out = ['key' => $key, 'from' => $from, 'to' => $to, 'data' => $one($from, $to), 'compare' => null];
+        if ($compare && self::CATALOG[$key]['compare'] !== 'none') {
+            $out['compare'] = ['from' => $compare['from'], 'to' => $compare['to'], 'data' => $one($compare['from'], $compare['to'])];
         }
 
-        return ['from' => $from, 'to' => $to, 'charts' => $charts];
+        return $out;
+    }
+
+    private function run(string $source, Scope $scope, string $from, string $to): array
+    {
+        try {
+            return array_merge(['ready' => true], $this->{'chart' . str_replace('_', '', ucwords($source, '_'))}($scope, $from, $to));
+        } catch (Throwable $e) {
+            return ['ready' => false, 'message' => 'This chart could not be worked out: ' . $e->getMessage()];
+        }
     }
 
     /** Cash and bank: money in and out per day/week/month, the running balance, and each account. */
@@ -115,7 +162,7 @@ class VisualsService
         $leaves = [];
         foreach ($this->b->ledgers() as $l) {
             if (isset($values[$l->id])) {
-                $leaves[(int) $l->group_id][] = ['name' => $l->name, 'size' => $values[$l->id]];
+                $leaves[(int) $l->group_id][] = ['name' => $l->name, 'size' => $values[$l->id], 'ledger_id' => (int) $l->id];
             }
         }
         $kids = [];
@@ -130,7 +177,7 @@ class VisualsService
                 }
             }
 
-            return $children ? ['name' => $groups[$id]['name'], 'children' => $children] : null;
+            return $children ? ['name' => $groups[$id]['name'], 'group_id' => $id, 'children' => $children] : null;
         };
         $out = [];
         foreach ($kids[0] ?? [] as $root) {

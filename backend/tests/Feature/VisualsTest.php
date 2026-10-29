@@ -50,7 +50,13 @@ class VisualsTest extends TestCase
 
     private function charts(): array
     {
-        return app(VisualsService::class)->data(Scope::dates('2026-01-01', '2026-10-28'))['charts'];
+        $svc = app(VisualsService::class);
+        $out = [];
+        foreach (VisualsService::CATALOG as $key => $c) {   // each source once, under its own name
+            $out[$c['source']] ??= $svc->chart($key, Scope::dates('2026-01-01', '2026-10-28'))['data'];
+        }
+
+        return $out;
     }
 
     public function test_the_money_chart_runs_a_balance_that_ends_where_the_accounts_end(): void
@@ -163,17 +169,31 @@ class VisualsTest extends TestCase
         $this->as(['books.view']);
         $this->licence(false, false);
         $this->getJson('/api/admin/books/visuals/status')->assertOk()->assertJsonPath('state', 'not_licensed');
-        $this->getJson('/api/admin/books/visuals?to=2026-10-28')->assertNotFound();
+        $this->getJson('/api/admin/books/visuals/chart/cash?to=2026-10-28')->assertNotFound();
+        $this->getJson('/api/admin/books/visuals/catalog')->assertNotFound();
 
         $this->licence(true, false);
         $this->getJson('/api/admin/books/visuals/status')->assertJsonPath('state', 'off');
-        $this->getJson('/api/admin/books/visuals?to=2026-10-28')->assertNotFound();
+        $this->getJson('/api/admin/books/visuals/chart/cash?to=2026-10-28')->assertNotFound();
 
         $this->licence(true, true);
         $this->getJson('/api/admin/books/visuals/status')->assertJsonPath('state', 'active');
-        $r = $this->getJson('/api/admin/books/visuals?from=2026-01-01&to=2026-10-28')->assertOk();
+        $r = $this->getJson('/api/admin/books/visuals/chart/cash?from=2026-01-01&to=2026-10-28')->assertOk();
         $this->assertSame('2026-10-28', $r->json('to'));
-        $this->assertTrue($r->json('charts.money.ready'));
+        $this->assertTrue($r->json('data.ready'));
+        $this->assertNull($r->json('compare'));
+        $this->assertContains('cash', array_column($this->getJson('/api/admin/books/visuals/catalog')->assertOk()->json('charts'), 'key'));
+        $this->getJson('/api/admin/books/visuals/chart/nonsense')->assertNotFound();
+    }
+
+    public function test_a_second_period_comes_back_beside_the_first_for_charts_that_can_compare_and_not_for_the_rest(): void
+    {
+        $svc = app(VisualsService::class);
+        $r = $svc->chart('trend', Scope::dates('2026-06-01', '2026-06-30'), ['from' => '2026-05-01', 'to' => '2026-05-31']);
+        $this->assertEquals(12000, $r['data']['months'][0]['expenses']);
+        $this->assertSame('2026-05-01', $r['compare']['from']);
+        $this->assertEquals(0, $r['compare']['data']['months'][0]['expenses']);
+        $this->assertNull($svc->chart('composition', Scope::dates('2026-06-01', '2026-06-30'), ['from' => '2026-05-01', 'to' => '2026-05-31'])['compare'], 'a position on a date is not compared');
     }
 
     public function test_a_person_without_the_books_cannot_see_either(): void
@@ -181,6 +201,6 @@ class VisualsTest extends TestCase
         $this->as([]);
         $this->licence(true, true);
         $this->getJson('/api/admin/books/visuals/status')->assertForbidden();
-        $this->getJson('/api/admin/books/visuals')->assertForbidden();
+        $this->getJson('/api/admin/books/visuals/chart/cash')->assertForbidden();
     }
 }

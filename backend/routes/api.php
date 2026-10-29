@@ -1312,7 +1312,8 @@ Route::middleware('auth:sanctum')->group(function () {
         Route::get('/company',                          [\App\Http\Controllers\Api\CompanyProfileController::class, 'adminShow']);
         // Visual reports (the Extras module): the state of the page is open to the books; the figures are refused unless Extras is licensed and on
         Route::get('/visuals/status',                   [\App\Http\Controllers\Api\VisualsController::class, 'status']);
-        Route::get('/visuals',                          [\App\Http\Controllers\Api\VisualsController::class, 'data'])->middleware('module:extras');
+        Route::get('/visuals/catalog',                  [\App\Http\Controllers\Api\VisualsController::class, 'catalog'])->middleware('module:extras');
+        Route::get('/visuals/chart/{key}',              [\App\Http\Controllers\Api\VisualsController::class, 'chart'])->middleware('module:extras')->where('key', '[a-z0-9-]+');
         // The year-end close: seeing it needs books.view (the group above); preparing books.close.prepare; approving, locking and reopening books.period
         Route::get('/year-close',                       [\App\Http\Controllers\Api\YearCloseController::class, 'index']);
         Route::get('/year-close/years/{yearId}',        [\App\Http\Controllers\Api\YearCloseController::class, 'show'])->whereNumber('yearId');

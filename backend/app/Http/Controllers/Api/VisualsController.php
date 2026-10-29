@@ -25,8 +25,19 @@ class VisualsController extends Controller
         return response()->json(['state' => ! $licensed ? 'not_licensed' : ($licence->isActive(self::MODULE) ? 'active' : 'off')]);
     }
 
-    public function data(Request $request, VisualsService $visuals): JsonResponse
+    /** The cards the page draws, and the financial years for its period presets. */
+    public function catalog(VisualsService $visuals): JsonResponse
     {
-        return response()->json($visuals->data(Scope::fromInput($request->only(['from', 'to', 'cost_centre_id', 'location_id']))));
+        return response()->json(['charts' => $visuals->catalog(), 'years' => $visuals->years()]);
+    }
+
+    /** One chart for the period asked for (from, to), and for a second period (compare_from, compare_to) when the page is comparing. */
+    public function chart(Request $request, VisualsService $visuals, string $key): JsonResponse
+    {
+        $in = $request->validate(['from' => 'nullable|date_format:Y-m-d', 'to' => 'nullable|date_format:Y-m-d|after_or_equal:from', 'compare_from' => 'nullable|date_format:Y-m-d|required_with:compare_to',
+            'compare_to' => 'nullable|date_format:Y-m-d|required_with:compare_from|after_or_equal:compare_from', 'cost_centre_id' => 'nullable|integer', 'location_id' => 'nullable|integer']);
+        $compare = ! empty($in['compare_from']) ? ['from' => $in['compare_from'], 'to' => $in['compare_to']] : null;
+
+        return response()->json($visuals->chart($key, Scope::fromInput($request->only(['from', 'to', 'cost_centre_id', 'location_id'])), $compare));
     }
 }
