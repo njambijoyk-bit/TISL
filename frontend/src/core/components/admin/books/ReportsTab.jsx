@@ -78,7 +78,7 @@ export default function ReportsTab() {
       <div style={{ minWidth: 0 }}>
         <header style={{ marginBottom: 12 }}>
           <div style={{ fontSize: '0.66rem', fontWeight: 700, letterSpacing: '0.08em', textTransform: 'uppercase', color: colors.textFaint }}>{def.group}</div>
-          <h2 style={{ margin: '2px 0 0', fontSize: '1.3rem', fontWeight: 700, color: colors.text }}>{def.label}</h2>
+          <h2 style={{ margin: '2px 0 0', fontSize: '1.3rem', fontWeight: 800, letterSpacing: '-0.01em', color: colors.primary }}>{def.label}</h2>
         </header>
         <ReportFrame key={def.engine + (params.get('ledger') ?? '')} reportKey={def.engine} initialOpts={def.engine === 'ledger-statement' && params.get('ledger') ? { ledger_id: params.get('ledger') } : {}}>
           {(r, api) => <EngineView engine={def.engine} result={r} drill={api?.drill} opts={api?.opts} />}
