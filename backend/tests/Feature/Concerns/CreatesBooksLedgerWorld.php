@@ -51,7 +51,7 @@ trait CreatesBooksLedgerWorld
         Schema::create('vouchers', function ($t) {
             $t->id(); $t->unsignedBigInteger('voucher_type_id')->nullable(); $t->string('voucher_number'); $t->date('date'); $t->string('status')->default('posted'); $t->unsignedBigInteger('location_id')->nullable();
             $t->unsignedBigInteger('cost_centre_id')->nullable(); $t->unsignedBigInteger('currency_id')->nullable(); $t->decimal('exchange_rate', 18, 8)->default(1); $t->decimal('total_amount', 15, 2)->default(0);
-            $t->decimal('base_total', 15, 2)->default(0); $t->string('reference_no')->nullable(); $t->string('supplier_invoice_no')->nullable(); $t->unsignedBigInteger('party_ledger_id')->nullable(); $t->text('narration')->nullable(); $t->timestamps();
+            $t->decimal('base_total', 15, 2)->default(0); $t->string('reference_no')->nullable(); $t->string('supplier_invoice_no')->nullable(); $t->unsignedBigInteger('party_ledger_id')->nullable(); $t->text('narration')->nullable(); $t->text('meta')->nullable(); $t->timestamps();
         });
         Schema::create('voucher_types', function ($t) { $t->id(); $t->string('code'); $t->string('name'); $t->string('base_type'); $t->timestamps(); });
         Schema::create('voucher_entries', function ($t) {

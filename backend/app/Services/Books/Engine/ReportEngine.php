@@ -7,6 +7,7 @@ use App\Services\Access\Authorizer;
 use App\Services\Access\BranchFilter;
 use App\Services\Books\Engine\Reports\BalanceSheetReport;
 use App\Services\Books\Engine\Reports\PayablesAgeingReport;
+use App\Services\Books\Engine\Reports\RatioAnalysisReport;
 use App\Services\Books\Engine\Reports\ReceivablesAgeingReport;
 use App\Services\Books\Engine\Reports\TaxReturnReport;
 use App\Services\Books\Engine\Reports\WithholdingReport;
@@ -36,6 +37,7 @@ final class ReportEngine
         PayablesAgeingReport::class,
         TaxReturnReport::class,
         WithholdingReport::class,
+        RatioAnalysisReport::class,
     ];
 
     /** The display settings a screen needs to draw every amount the same way. */
