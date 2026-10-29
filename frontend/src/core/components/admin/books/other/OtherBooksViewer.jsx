@@ -3,7 +3,7 @@ import { ShieldCheck } from 'lucide-react';
 import Tabs from '../../ui/Tabs';
 import Modal from '../../ui/Modal';
 import DataGrid from './DataGrid';
-import { indexBook, trialBalance, ledgerStatement } from '../../../../../_shared/lib/otherBooks';
+import { indexBook, trialBalance, ledgerStatement, statementReports } from '../../../../../_shared/lib/otherBooks';
 import { card, colors } from '../../../../../_shared/theme/tokens';
 
 const fmt = (n) => (n === null || n === undefined || n === '' ? '' : Number(n).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 }));
@@ -12,7 +12,8 @@ const input = { padding: '7px 10px', borderRadius: 8, border: `1px solid ${color
 
 const LABELS = { groups: 'Account groups', ledgers: 'Ledgers', balances: 'Balances', vouchers: 'Vouchers', entries: 'Entries', locations: 'Branches', cost_centres: 'Cost centres', voucher_items: 'Voucher lines',
   voucher_taxes: 'Voucher taxes', bill_refs: 'Bill references', customers: 'Customers', suppliers: 'Suppliers', products: 'Products', variants: 'Product options', stock: 'Stock on hand',
-  batches: 'Batches', batch_balances: 'Batch balances', movements: 'Stock movements', departments: 'Departments' };
+  batches: 'Batches', batch_balances: 'Batch balances', movements: 'Stock movements', departments: 'Departments',
+  statements: 'Statement lines', financial_years: 'Financial years', year_balances: 'Closing balances of closed years' };
 
 /** Every section as a plain table, whatever it holds: nothing is hidden because this screen has no special view for it. */
 const plainColumns = (rows) => Object.keys(rows[0] ?? {}).map((k) => ({ key: k, label: k.replace(/_/g, ' '), num: typeof rows[0][k] === 'number' }));
@@ -60,10 +61,12 @@ export default function OtherBooksViewer({ doc }) {
 
   const tb = useMemo(() => trialBalance(doc, idx, from || null, to || null), [doc, idx, from, to]);
   const st = useMemo(() => (ledgerId ? ledgerStatement(doc, idx, Number(ledgerId), from || null, to || null) : null), [doc, idx, ledgerId, from, to]);
+  const sr = useMemo(() => statementReports(doc, idx, from || null, to || null), [doc, idx, from, to]);
   const types = useMemo(() => [...new Set((s.vouchers ?? []).map((v) => v.type))].sort(), [s.vouchers]);
 
   const tabs = [
     { id: 'overview', label: 'Overview' }, { id: 'chart', label: 'Chart of accounts' }, { id: 'trial', label: 'Trial balance' },
+    ...(sr ? [{ id: 'statements', label: 'Statements' }] : []),
     ...(doc.level >= 2 ? [{ id: 'ledger', label: 'Ledger statement' }, { id: 'vouchers', label: 'Vouchers' }] : []),
     ...(doc.level >= 3 ? [{ id: 'customers', label: 'Customers' }, { id: 'suppliers', label: 'Suppliers' }] : []),
     ...(doc.level >= 4 ? [{ id: 'stock', label: 'Stock' }, { id: 'movements', label: 'Movements' }] : []),
@@ -128,6 +131,28 @@ export default function OtherBooksViewer({ doc }) {
             </div>
           )}
           {doc.opening_balances_left_out && <p style={{ fontSize: '0.76rem', color: colors.textMuted }}>It will not balance on its own: the file holds one branch and no opening balances.</p>}
+        </>
+      )}
+
+      {tab === 'statements' && sr && (
+        <>
+          {dates}
+          <p style={{ fontSize: '0.76rem', color: colors.textMuted, margin: '0 0 10px' }}>Drawn on this company's own statement lines. The income statement is for the dates above; the balance sheet is as of the end date, with the profit to date as the figure that makes the two sides agree.</p>
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit,minmax(340px,1fr))', gap: 14 }}>
+            {[['Income statement', sr.income, `Profit in the period ${fmt(sr.profit_in_period)}`], ['Balance sheet', sr.balance, `Assets ${fmt(sr.balance.assets)} · liabilities and capital ${fmt(sr.balance.claims)} + profit to date ${fmt(sr.profit_to_date)}`]].map(([title, part, note]) => (
+              <div key={title} style={{ ...card, overflow: 'hidden' }}>
+                <div style={{ padding: '10px 14px', fontWeight: 700, fontSize: '0.85rem' }}>{title} <span style={{ fontWeight: 400, fontSize: '0.74rem', color: colors.textMuted }}>· {note}</span></div>
+                <table style={{ width: '100%', borderCollapse: 'collapse' }}><tbody>
+                  {part.rows.map((r, i) => (
+                    <tr key={i} style={{ background: r.kind === 'heading' && r.depth === 0 ? colors.tint(0.04) : undefined }}>
+                      <td style={{ padding: '5px 14px', paddingLeft: 14 + r.depth * 16, fontSize: '0.78rem', fontWeight: r.kind === 'ledger' ? 400 : 600, borderTop: `1px solid ${colors.tint(0.05)}` }}>{r.name}</td>
+                      <td style={{ padding: '5px 14px', textAlign: 'right', fontSize: '0.78rem', fontVariantNumeric: 'tabular-nums', borderTop: `1px solid ${colors.tint(0.05)}` }}>{title === 'Balance sheet' && r.depth === 0 && r.name === part.rows[0].name ? '' : fmt(r.amount)}</td>
+                    </tr>
+                  ))}
+                </tbody></table>
+              </div>
+            ))}
+          </div>
         </>
       )}
 

@@ -24,7 +24,7 @@ A reader in PHP: `App\Services\Exchange\Wnkjap` (`seal`, `open`). A reader in th
 ```json
 {
   "format": "wnkjap", "version": 1, "level": 3, "level_name": "...", "created_at": "2026-10-09T09:00:00+03:00", "exported_by": "name or null",
-  "company": { "id": "stable 32-hex id", "name", "legal_name", "short_code", "tax_pin", "email", "phone", "address", "city", "country", "base_currency": "KES", "currency_symbol": "KSh" },
+  "company": { "id": "stable 32-hex id", "name", "legal_name", "short_code", "tax_pin", "tax_country", "tax_registrations": [ { "name", "number" } ] | null, "email", "phone", "address", "city", "country", "base_currency": "KES", "currency_symbol": "KSh" },
   "period": { "from": "2026-01-01" | null, "to": "2026-12-31" | null },
   "branch_id": null | 3, "branch_limited": false, "opening_balances_left_out": false,
   "counts": { "<section>": rows },
@@ -39,14 +39,17 @@ Amounts are in the file's own base currency (`company.base_currency`); nothing i
 
 | Level | Name | Sections |
 |---|---|---|
-| 1 | Summary | `groups`, `ledgers`, `balances` |
-| 2 | Books | adds `vouchers`, `entries`, `locations`, `cost_centres` |
+| 1 | Summary | `groups`, `ledgers`, `statements`, `balances` |
+| 2 | Books | adds `vouchers`, `entries`, `locations`, `cost_centres`, `financial_years`, `year_balances` |
 | 3 | Detail | adds `voucher_items`, `voucher_taxes`, `bill_refs`, `customers`, `suppliers` |
 | 4 | Full | adds `products`, `variants`, `stock`, `batches`, `batch_balances`, `movements`, `departments` |
 
 Fields (a field a company does not have is simply missing):
-- `groups`: id, parent_id, name, nature (asset, liability, income, expense), is_primary, affects_gross_profit, sort_order
-- `ledgers`: id, group_id, name, code, opening_balance, opening_side, customer_id, supplier_id, is_active
+- `groups`: id, parent_id, name, nature (asset, liability, income, expense), is_primary, sort_order, statement_id
+- `ledgers`: id, group_id, name, code, opening_balance, opening_side, customer_id, supplier_id, is_active, statement_id (the line the ledger reports under: its own, else its group's; null when it is on none)
+- `statements`: id, parent_id, code, name, kind (`heading` or `line`), nature, normal_side, cash_flow_category, sort_order, is_active. The tree of statement lines under the roots `BS` (balance sheet) and `IS` (income statement); empty when the company has not set statements up
+- `financial_years`: id, name, start_date, end_date, is_closed
+- `year_balances`: financial_year_id, ledger_id, statement_id, closing_amount (debit positive), carried_amount: what each ledger ended a year with and carried forward, from a *locked* year-end close only
 - `balances`: ledger_id, opening, debit, credit, closing (for the period)
 - `vouchers`: id, voucher_number, date, status (posted, cancelled), type, base_type, location_id, cost_centre_id, party_ledger_id, customer_id, party_name, reference_no, supplier_invoice_no, narration, total_amount, base_total, currency, source_voucher_id, due_date (memoranda are left out; the period filters by date)
 - `entries` (posted vouchers only): voucher_id, line_no, ledger_id, side, amount, base_amount, narration, cost_centre_id, location_id
@@ -56,6 +59,11 @@ Fields (a field a company does not have is simply missing):
 - `customers`: id, customer_number, first_name, last_name, company_name, email, phone, tax_id (no passwords or tokens, ever)
 - `suppliers`: id, vendor_number, company_name, contact_name, email, phone, tax_id, city
 - `products`, `variants`, `stock` (product_variant_id, location_id, quantity, reorder_level), `batches`, `batch_balances`, `movements` (in the period), `departments`
+
+### Version rules
+
+The version in the header (byte 6) and in the document stays **1** while a change only *adds* sections or fields: a reader ignores what it does not know, a field a company does not have is simply missing, and the viewer here lists any section it has no special screen for under "All tables". The version goes up only when something a reader depends on changes meaning or is removed in a way that breaks it. Changes so far, all additive:
+- *October 2026 (the report engine):* `statements`, `financial_years`, `year_balances`; `statement_id` on `groups` and `ledgers`; `tax_country` and `tax_registrations` on the company. `affects_gross_profit` is no longer written (the trading section is the statement line), and no reader here used it. A file made before this has none of the new parts; the viewer then simply has no Statements tab.
 
 A file may hold at most 1 500 000 rows in all; a bigger export asks for a shorter period or a lower level.
 

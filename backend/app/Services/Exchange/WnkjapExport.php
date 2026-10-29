@@ -68,13 +68,15 @@ class WnkjapExport
         $base = app(CurrencyConversionService::class)->getBaseCurrency();
 
         $sections = [
-            'groups' => $this->rows(DB::table('ledger_groups')->select($this->cols('ledger_groups', ['id', 'parent_id', 'name', 'nature', 'is_primary', 'sort_order']))->orderBy('id'), 'chart of accounts'),
-            'ledgers' => $this->rows(DB::table('ledgers')->select($this->cols('ledgers', ['id', 'group_id', 'name', 'code', 'opening_balance', 'opening_side', 'customer_id', 'supplier_id', 'is_active']))->orderBy('id'), 'chart of accounts'),
+            'groups' => $this->rows(DB::table('ledger_groups')->select($this->cols('ledger_groups', ['id', 'parent_id', 'name', 'nature', 'is_primary', 'sort_order', 'statement_id']))->orderBy('id'), 'chart of accounts'),
+            'ledgers' => $this->ledgers(),
+            'statements' => $this->statements(),
             'balances' => array_values(array_filter(array_map(fn ($r) => $r['ledger_id'] ? ['ledger_id' => $r['ledger_id'], 'opening' => $r['opening'], 'debit' => $r['debit'], 'credit' => $r['credit'], 'closing' => $r['closing']] : null, $trial['rows']))),
         ];
 
         if ($level >= 2) {
             $sections += $this->books($from, $to, $locationId);
+            $sections += $this->years();
         }
         if ($level >= 3) {
             $sections += $this->detail($sections['vouchers'] ?? []);
@@ -87,13 +89,51 @@ class WnkjapExport
             'format' => 'wnkjap', 'version' => 1, 'level' => $level, 'level_name' => self::LEVELS[$level], 'created_at' => now()->toIso8601String(),
             'exported_by' => $by?->name,
             'company' => ['id' => substr(hash('sha256', 'wnkjap-company|' . config('app.key')), 0, 32), 'name' => $profile->name, 'legal_name' => $profile->legal_name, 'short_code' => $profile->short_code,
-                'tax_pin' => $profile->tax_pin, 'email' => $profile->email, 'phone' => $profile->phone, 'address' => $profile->address, 'city' => $profile->city, 'country' => $profile->country,
+                'tax_pin' => $profile->tax_pin, 'tax_country' => $profile->tax_country, 'tax_registrations' => $profile->tax_registrations ?: null, 'email' => $profile->email, 'phone' => $profile->phone, 'address' => $profile->address, 'city' => $profile->city, 'country' => $profile->country,
                 'base_currency' => $base?->code, 'currency_symbol' => $base?->symbol],
             'period' => ['from' => $from, 'to' => $to], 'branch_id' => $locationId, 'branch_limited' => app(\App\Services\Access\BranchFilter::class)->enforcing('books'),
             'opening_balances_left_out' => (bool) ($trial['filtered'] ?? false),
             'counts' => array_map('count', $sections),
             'sections' => $sections,
         ];
+    }
+
+    /** The ledgers, each with the statement line it reports under (its own, else its group's), so the other side can draw the statements the way these books do. */
+    private function ledgers(): array
+    {
+        $lines = [];
+        foreach (app(\App\Services\Books\Engine\LedgerBalances::class)->ledgers() as $l) {
+            $lines[(int) $l->id] = $l->statement_id ? (int) $l->statement_id : null;
+        }
+        $rows = $this->rows(DB::table('ledgers')->select($this->cols('ledgers', ['id', 'group_id', 'name', 'code', 'opening_balance', 'opening_side', 'customer_id', 'supplier_id', 'is_active']))->orderBy('id'), 'chart of accounts');
+        if (! Schema::hasColumn('ledgers', 'statement_id')) {
+            return $rows;
+        }
+
+        return array_map(fn ($r) => $r + ['statement_id' => $lines[(int) $r['id']] ?? null], $rows);
+    }
+
+    /** The statements tree (balance sheet and income statement lines). Empty until script 227 has been run. */
+    private function statements(): array
+    {
+        if (! Schema::hasTable('statements')) {
+            return [];
+        }
+
+        return $this->rows(DB::table('statements')->select($this->cols('statements', ['id', 'parent_id', 'code', 'name', 'kind', 'nature', 'normal_side', 'cash_flow_category', 'sort_order', 'is_active']))->orderBy('sort_order')->orderBy('id'), 'statement lines');
+    }
+
+    /** The financial years, and for each closed year what every ledger ended with and carried forward (the locked year-end close, script 232). */
+    private function years(): array
+    {
+        $out = ['financial_years' => Schema::hasTable('financial_years')
+            ? $this->rows(DB::table('financial_years')->select($this->cols('financial_years', ['id', 'name', 'start_date', 'end_date', 'is_closed']))->orderBy('start_date'), 'financial years') : []];
+        if (\App\Services\Books\YearCloseService::ready()) {
+            $out['year_balances'] = $this->rows(DB::table('ledger_year_balances as b')->join('year_closes as c', 'c.id', '=', 'b.year_close_id')->where('c.status', 'locked')
+                ->select('b.financial_year_id', 'b.ledger_id', 'b.statement_id', 'b.closing_amount', 'b.carried_amount')->orderBy('b.financial_year_id')->orderBy('b.ledger_id'), 'closing balances');
+        }
+
+        return $out;
     }
 
     private function books(?string $from, ?string $to, ?int $locationId): array

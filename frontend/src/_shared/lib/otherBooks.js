@@ -96,3 +96,62 @@ export function ledgerStatement(doc, idx, ledgerId, from, to) {
 
   return { opening: r2(open), rows, debit: r2(dr), credit: r2(cr), closing: r2(bal) };
 }
+
+/**
+ * The income statement (for [from, to]) and the balance sheet (as of `to`) drawn on the other company's own statement lines, when the file carries them (a file made
+ * before the new report engine does not). Income and expense ledgers show their movement in the period; balance-sheet ledgers their closing balance, with the profit
+ * to date as a line of its own so the two sides agree. A ledger on no line is listed apart, never dropped. Returns null when the file has no statements.
+ */
+export function statementReports(doc, idx, from, to) {
+  const lines = doc.sections.statements ?? [];
+  if (!lines.length) return null;
+  const natureOf = (ledgerId) => idx.groups.get(idx.ledgers.get(ledgerId)?.group_id)?.nature;
+  const period = trialBalance(doc, idx, from, to).rows.filter((r) => r.ledger_id);
+  const upTo = trialBalance(doc, idx, null, to).rows.filter((r) => r.ledger_id);
+  const children = new Map();
+  lines.forEach((n) => { const k = n.parent_id ?? 0; if (!children.has(k)) children.set(k, []); children.get(k).push(n); });
+
+  const build = (rootCode, rows, amountOf, keep) => {
+    const root = lines.find((n) => n.code === rootCode);
+    if (!root) return { rows: [], total: 0 };
+    const own = new Map();
+    const loose = [];
+    rows.forEach((r) => {
+      if (!keep(natureOf(r.ledger_id))) return;
+      const sid = idx.ledgers.get(r.ledger_id)?.statement_id;
+      const a = amountOf(r, natureOf(r.ledger_id));
+      if (!sid || !lines.some((n) => n.id === sid)) { loose.push({ name: r.ledger, amount: a }); return; }
+      if (!own.has(sid)) own.set(sid, []);
+      own.get(sid).push({ name: r.ledger, amount: a });
+    });
+    const out = [];
+    const walk = (node, depth) => {
+      const mark = out.length;
+      out.push({ depth, name: node.name, kind: node.kind, amount: 0 });
+      let sum = 0;
+      (own.get(node.id) ?? []).forEach((l) => { out.push({ depth: depth + 1, name: l.name, kind: 'ledger', amount: r2(l.amount) }); sum += l.amount; });
+      (children.get(node.id) ?? []).sort((a, b) => (a.sort_order ?? 0) - (b.sort_order ?? 0)).forEach((c) => { sum += walk(c, depth + 1); });
+      out[mark].amount = r2(sum);
+      if (Math.abs(sum) < 0.005 && out.length - mark === 1) out.pop();
+      return sum;
+    };
+    let total = walk(root, 0);
+    if (loose.length) {
+      out.push({ depth: 0, name: 'Not on a statement line', kind: 'heading', amount: r2(loose.reduce((t, l) => t + l.amount, 0)) });
+      loose.forEach((l) => out.push({ depth: 1, name: l.name, kind: 'ledger', amount: r2(l.amount) }));
+      total += loose.reduce((t, l) => t + l.amount, 0);
+    }
+    return { rows: out, total: r2(total) };
+  };
+
+  // income counts up and expense down, so every total on the income statement is a profit
+  const income = build('IS', period, (r, n) => (n === 'income' ? r.credit - r.debit : -(r.debit - r.credit)), (n) => n === 'income' || n === 'expense');
+  const profitOf = (rows) => rows.reduce((t, r) => { const n = natureOf(r.ledger_id); return n === 'income' ? t + (r.credit - r.debit) : n === 'expense' ? t - (r.debit - r.credit) : t; }, 0);
+  const balance = build('BS', upTo, (r, n) => (n === 'asset' ? r.closing : -r.closing), (n) => n === 'asset' || n === 'liability');
+  const sideOf = (nature) => r2(upTo.reduce((t, r) => (natureOf(r.ledger_id) === nature ? t + (nature === 'asset' ? r.closing : -r.closing) : t), 0));
+  balance.assets = sideOf('asset');
+  balance.claims = sideOf('liability');
+  const toDate = r2(profitOf(upTo));
+  const diff = openingDifference(doc);
+  return { income, balance, profit_to_date: toDate, profit_in_period: r2(profitOf(period)), opening_difference: diff };
+}

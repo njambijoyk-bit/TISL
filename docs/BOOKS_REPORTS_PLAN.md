@@ -461,6 +461,10 @@ In this order, each with its own parity check against the old report:
 
 - Update the `.wnkjap` export and import (`imports.export`, `imports.view`) for the new tables and columns; check `docs/WNKJAP_FORMAT.md` version rules first.
 - Update `ModuleTables` so the backup claims and restores every new table.
+- **Built (awaiting sign-off).**
+  - *Backup:* every table the new work added is claimed in `ModuleTables` (statements, report settings and log, ledger taxes, Tax control settings and log, tax opt-outs, year closes with their balances and log, reconciliation sessions, statement lines and log); the guard test `BackupMapCoversSqlScriptsTest` passes. New columns (company tax details, ledger and group statement lines) travel with their tables, and the restorer already drops any column the target table no longer has, so a backup taken before script 235 restores after it.
+  - *`.wnkjap` export:* adds `statements`, each ledger's and group's `statement_id`, `financial_years` and `year_balances` (locked closes only), and the company's `tax_country` and `tax_registrations`; no longer writes `affects_gross_profit`. The format version stays 1 (additive; the rule is written in `docs/WNKJAP_FORMAT.md`).
+  - *Viewer (the "import", which never writes to the database):* a **Statements** tab draws the other company's income statement and balance sheet on its own statement lines when the file has them, with the profit to date as the balancing figure; the new sections appear under "All tables". Older files open as before.
 
 ---
 
