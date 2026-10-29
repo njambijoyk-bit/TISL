@@ -41,7 +41,7 @@ final class ModuleTables
             'withholding_clearances', 'withholding_activity_logs',
             // Books: chart of accounts, numbering, vouchers and everything they post.
             'ledger_groups', 'ledgers', 'voucher_types', 'voucher_series', 'payment_methods',
-            'financial_years', 'accounting_settings', 'voucher_edit_limits', 'statements', 'report_settings', 'report_settings_log',   // the statements tree and the Reports settings (scripts 227, 228)
+            'financial_years', 'accounting_settings', 'voucher_edit_limits', 'statements', 'report_settings', 'report_settings_log', 'ledger_taxes', 'tax_control_settings', 'tax_control_log',   // the statements tree, the Reports settings and Tax control (scripts 227, 228, 229)
             'vouchers', 'voucher_items', 'voucher_item_taxes', 'voucher_entries', 'voucher_bill_refs',
             'vendors', 'vendor_products',
             'variant_location_stock', 'customer_carts', 'customer_quote_lists',

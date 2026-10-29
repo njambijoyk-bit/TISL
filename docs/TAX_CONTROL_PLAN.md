@@ -79,7 +79,7 @@ For a purchase from a non-resident or an appointed supplier, the books post: the
 | Step | What | Done when |
 |---|---|---|
 | T1 | This plan agreed. | Owner has signed it off. |
-| T2 | Database script (read-only check, change, result check): the new columns and tables, conversion of existing kinds and modes, the one-row tax list for each account, the settings rows. Tested on a copy with the live groups and ledgers. | A second run changes nothing; every type and account converts; anything unmapped is listed. |
+| T2 (**drafted**: `backend/database/sql/229_tax_control.sql`, not yet run on the real database) | Database script (read-only check, change, result check): the new columns and tables, conversion of existing kinds and modes, the one-row tax list for each account, the settings rows. Tested on a copy with the live groups and ledgers. | A second run changes nothing; every type and account converts; anything unmapped is listed. |
 | T3 | Tax control tab, permissions, audit log. | Each section saves, is refused without its permission, and is logged. |
 | T4 | Tax type form: category, method, jurisdiction, with the combination table; rate form with the new rate types and tax point. | Invalid combinations are refused with a reason. |
 | T5 | Chart of accounts: the Duties & Taxes guard; accounts carrying several taxes. | The guard and the multi-tax form pass their tests. |
@@ -94,3 +94,7 @@ Then the stock reports (steps 6.7 to 6.10) and the rest of the Books reports pla
 - T6 changes the code that posts sales and purchases. The record-and-compare test before changing anything is the safeguard; no step after T2 ships without it.
 - Reverse charge and excise-on-VAT depend on the law of the jurisdiction; the defaults are starting points to be confirmed by the company's tax adviser, and each is a setting, not code.
 - Existing posted documents are never recalculated. Snapshots start with the first document posted after T6.
+
+## 11. Status of T2
+
+`229_tax_control.sql` is drafted and tested on a MariaDB copy built from the tax models' columns (the tax tables are not defined in the repository, so its PART A first checks the live columns it relies on, and the new-column step skips a table that does not exist). The copy used a different default collation from the new tables, as MySQL 8 does, and the script ran clean; a second run changed nothing; with two VAT types, accounts that have a tax nature but no rate of their own are listed instead of guessed. The old columns (`kind`, `application_mode`, `tax_nature`, `tax_rate_ledger_id`) are untouched and stay the ones the app reads until T6; the new ones mirror them for now. The three new tables are added to the backup list.
