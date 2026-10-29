@@ -43,6 +43,10 @@ const taxAPI = {
   updateApplicability: async (id, data) => (await api.put(`/admin/tax/applicability/${id}`, data)).data,
   deleteApplicability: async (id) => (await api.delete(`/admin/tax/applicability/${id}`)).data,
 
+  // ── Opt-outs: the taxes a product or service does not carry ───────────
+  getOptOuts: async (params = {}) => (await api.get('/admin/tax/opt-outs', { params })).data,
+  syncOptOuts: async (data) => (await api.put('/admin/tax/opt-outs', data)).data,
+
   // ── Applications (read-only audit trail, paginated) ────────────────────
   // params: { order_id, classification, page, per_page }
   getApplications: async (params = {}) => (await api.get('/admin/tax/applications', { params })).data,

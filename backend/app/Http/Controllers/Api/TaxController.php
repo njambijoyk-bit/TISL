@@ -220,6 +220,8 @@ class TaxController extends Controller
             'unit_of_measure_id'   => 'nullable|exists:units_of_measure,id|required_if:rate_type,fixed_amount,combined,higher_of,lower_of',
             'currency_id'          => 'nullable|exists:currencies,id,is_active,1',
             'calculation_base'     => 'nullable|in:pre_discount,post_discount,total_payable',
+            'base_includes'        => 'nullable|array',
+            'base_includes.*'      => 'integer|exists:ledger_groups,id',
             'calculation_sequence' => 'nullable|integer',
             'requires_certificate' => 'boolean',
             'valid_from'           => 'required|date',
@@ -235,11 +237,18 @@ class TaxController extends Controller
             return response()->json(['errors' => ['rate_type' => ['A percentage together with an amount per unit can only be used on a tax that is added to the price.']]], 422);
         }
         $newColumns = \Illuminate\Support\Facades\Schema::hasColumn('ledgers', 'tax_point') ? ['secondary_rate_value', 'tax_point'] : [];   // script 229 adds them
+        if (\Illuminate\Support\Facades\Schema::hasColumn('ledgers', 'base_includes')) {   // script 230
+            $newColumns[] = 'base_includes';
+        }
 
         $data = $request->only(array_merge([
             'tax_type_id', 'classification', 'rate_type', 'rate_value', 'unit_of_measure_id',
             'calculation_base', 'calculation_sequence', 'requires_certificate', 'valid_from', 'valid_until',
         ], $newColumns)) + ['is_active' => $request->boolean('is_active', true)];
+
+        if (($data['calculation_base'] ?? null) !== TaxRate::BASE_TOTAL_PAYABLE) {
+            unset($data['base_includes']);   // a list of taxes only means something on a base that includes earlier taxes
+        }
 
         // A fixed amount is money, so it needs a currency. Percentages are
         // currency-neutral and keep currency_id NULL.
@@ -272,6 +281,8 @@ class TaxController extends Controller
             'unit_of_measure_id'   => 'nullable|exists:units_of_measure,id',
             'currency_id'          => 'nullable|exists:currencies,id,is_active,1',
             'calculation_base'     => 'nullable|in:pre_discount,post_discount,total_payable',
+            'base_includes'        => 'nullable|array',
+            'base_includes.*'      => 'integer|exists:ledger_groups,id',
             'calculation_sequence' => 'nullable|integer',
             'requires_certificate' => 'boolean',
             'valid_from'           => 'sometimes|required|date',
@@ -289,7 +300,7 @@ class TaxController extends Controller
         if ($rate->applications()->exists()) {
             $locked = array_intersect(
                 array_keys($request->all()),
-                ['rate_type', 'rate_value', 'secondary_rate_value', 'tax_point', 'classification', 'unit_of_measure_id', 'currency_id', 'calculation_base']
+                ['rate_type', 'rate_value', 'secondary_rate_value', 'tax_point', 'classification', 'unit_of_measure_id', 'currency_id', 'calculation_base', 'base_includes']
             );
 
             if (!empty($locked)) {
@@ -300,10 +311,17 @@ class TaxController extends Controller
         }
 
         $newColumns = \Illuminate\Support\Facades\Schema::hasColumn('ledgers', 'tax_point') ? ['secondary_rate_value', 'tax_point'] : [];   // script 229 adds them
+        if (\Illuminate\Support\Facades\Schema::hasColumn('ledgers', 'base_includes')) {   // script 230
+            $newColumns[] = 'base_includes';
+        }
         $data = $request->only(array_merge([
             'classification', 'rate_type', 'rate_value', 'unit_of_measure_id', 'currency_id',
             'calculation_base', 'calculation_sequence', 'requires_certificate', 'valid_from', 'valid_until', 'is_active',
         ], $newColumns));
+
+        if (array_key_exists('calculation_base', $data) && $data['calculation_base'] !== TaxRate::BASE_TOTAL_PAYABLE) {
+            $data['base_includes'] = null;
+        }
 
         $type = $data['rate_type'] ?? $rate->rate_type;
         if (in_array($type, TaxRate::MIXED_TYPES, true)) {
@@ -588,6 +606,44 @@ class TaxController extends Controller
         }
 
         return response()->json(['applicability' => $query->get()], 200);
+    }
+
+    /** The taxes a product or service does not carry (e.g. not excisable on an account that carries excise). */
+    public function adminIndexOptOuts(Request $request)
+    {
+        $request->validate(['taxable_type' => 'required|in:product,service', 'taxable_id' => 'required|integer']);
+        if (! \Illuminate\Support\Facades\Schema::hasTable('tax_opt_outs')) {
+            return response()->json(['opt_outs' => [], 'ready' => false]);
+        }
+        $taxable = self::TAXABLE_MODELS[$request->taxable_type]::findOrFail($request->taxable_id);
+
+        return response()->json(['ready' => true, 'opt_outs' => \Illuminate\Support\Facades\DB::table('tax_opt_outs')
+            ->where('taxable_type', $taxable->getMorphClass())->where('taxable_id', $taxable->getKey())->get(['tax_type_id', 'reason'])]);
+    }
+
+    /** Replace the list: [{tax_type_id, reason}]. Needs the tax control permission. */
+    public function adminSyncOptOuts(Request $request)
+    {
+        $request->validate([
+            'taxable_type' => 'required|in:product,service', 'taxable_id' => 'required|integer',
+            'opt_outs' => 'present|array', 'opt_outs.*.tax_type_id' => 'required|integer|exists:ledger_groups,id', 'opt_outs.*.reason' => 'nullable|string|max:160',
+        ]);
+        if (! \Illuminate\Support\Facades\Schema::hasTable('tax_opt_outs')) {
+            return response()->json(['message' => 'Run database script 230_tax_resolution.sql first.'], 422);
+        }
+        $taxable = self::TAXABLE_MODELS[$request->taxable_type]::findOrFail($request->taxable_id);
+        $rows = collect($request->input('opt_outs'))->unique('tax_type_id')->map(fn ($o) => [
+            'taxable_type' => $taxable->getMorphClass(), 'taxable_id' => $taxable->getKey(), 'tax_type_id' => (int) $o['tax_type_id'],
+            'reason' => $o['reason'] ?? null, 'created_by' => $request->user()?->id, 'created_at' => now(), 'updated_at' => now(),
+        ])->values()->all();
+        \Illuminate\Support\Facades\DB::transaction(function () use ($taxable, $rows) {
+            \Illuminate\Support\Facades\DB::table('tax_opt_outs')->where('taxable_type', $taxable->getMorphClass())->where('taxable_id', $taxable->getKey())->delete();
+            if ($rows) {
+                \Illuminate\Support\Facades\DB::table('tax_opt_outs')->insert($rows);
+            }
+        });
+
+        return response()->json(['opt_outs' => array_map(fn ($r) => ['tax_type_id' => $r['tax_type_id'], 'reason' => $r['reason']], $rows)]);
     }
 
     public function adminStoreApplicability(Request $request)

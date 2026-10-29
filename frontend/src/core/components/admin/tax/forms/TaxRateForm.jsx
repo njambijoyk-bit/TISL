@@ -44,6 +44,7 @@ export default function TaxRateForm({ rate, defaultTypeId, onClose }) {
     unit_of_measure_id: rate?.unit_of_measure_id ?? '',
     currency_id: rate?.currency_id ?? '',
     calculation_base: rate?.calculation_base ?? 'post_discount',
+    base_includes: rate?.base_includes ?? [],
     calculation_sequence: rate?.calculation_sequence ?? 0,
     requires_certificate: rate?.requires_certificate ?? false,
     valid_from: rate?.valid_from?.slice(0, 10) ?? today(),
@@ -69,6 +70,7 @@ export default function TaxRateForm({ rate, defaultTypeId, onClose }) {
       unit_of_measure_id: perUnit ? form.unit_of_measure_id || null : null,
       currency_id: perUnit ? form.currency_id || null : null,
       secondary_rate_value: mixed ? form.secondary_rate_value : null,
+      base_includes: form.calculation_base === 'total_payable' && form.base_includes.length ? form.base_includes : null,
       tax_point: form.tax_point || null,
       valid_until: form.valid_until || null,
       calculation_sequence: Number(form.calculation_sequence) || 0,
@@ -76,7 +78,7 @@ export default function TaxRateForm({ rate, defaultTypeId, onClose }) {
     if (editing) delete payload.tax_type_id; // not updatable
     if (editing && locked) {
       // Only administrative fields are allowed on a used rate
-      ['rate_type', 'rate_value', 'secondary_rate_value', 'tax_point', 'classification', 'unit_of_measure_id', 'currency_id', 'calculation_base']
+      ['rate_type', 'rate_value', 'secondary_rate_value', 'tax_point', 'classification', 'unit_of_measure_id', 'currency_id', 'calculation_base', 'base_includes']
         .forEach((k) => delete payload[k]);
     }
     try {
@@ -156,6 +158,21 @@ export default function TaxRateForm({ rate, defaultTypeId, onClose }) {
               ))}
             </div>
           </Field>
+
+          {form.calculation_base === 'total_payable' && (
+            <Field label="Which earlier taxes are added to the price first" error={errors.base_includes} hint="Tick none to include all of them. Tick some to include only those, e.g. excise but not a levy.">
+              <div style={{ display: 'grid', gap: 4 }}>
+                {types.filter((t) => t.id !== Number(form.tax_type_id)).map((t) => (
+                  <label key={t.id} style={{ display: 'flex', gap: 8, alignItems: 'center', fontSize: '0.8rem', color: colors.textBody }}>
+                    <input type="checkbox" disabled={moneyDisabled} checked={form.base_includes.includes(t.id)}
+                      onChange={(e) => set('base_includes')(e.target.checked ? [...form.base_includes, t.id] : form.base_includes.filter((i) => i !== t.id))}
+                      style={{ accentColor: colors.primary }} />
+                    {t.name} ({t.code})
+                  </label>
+                ))}
+              </div>
+            </Field>
+          )}
 
           <FormGrid min={150}>
             <Field label="Valid from" htmlFor="tr-from" error={errors.valid_from}>

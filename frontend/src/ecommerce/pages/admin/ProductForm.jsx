@@ -9,6 +9,7 @@ import CurrencySelect from '../../../_shared/components/common/currency/Currency
 import UnitSelect from '../../../_shared/components/common/UnitSelect';
 import useUomStore from '../../../_shared/store/uomStore';
 import TaxOverridesPanel from '../../../core/components/admin/tax/TaxOverridesPanel';
+import TaxOptOutsPanel from '../../../core/components/admin/tax/TaxOptOutsPanel';
 import SalesAccountSelect from '../../../core/components/admin/tax/SalesAccountSelect';
 import BranchStockPanel from '../../../core/components/admin/pickers/BranchStockPanel';
 import useCurrencyStore from '../../../_shared/store/currencyStore';
@@ -1159,7 +1160,7 @@ export default function ProductForm() {
                   onChange={(v) => setFormData((f) => ({ ...f, purchase_ledger_id: v }))} hint="Optional — used when this product is bought." />
               </div>
               {id
-                ? <TaxOverridesPanel taxableType="product" taxableId={Number(id)} readOnly={isView} />
+                ? <><TaxOverridesPanel taxableType="product" taxableId={Number(id)} readOnly={isView} /><TaxOptOutsPanel taxableType="product" taxableId={Number(id)} readOnly={isView} /></>
                 : <p style={{ marginTop: 16, fontSize: '0.75rem', color: 'var(--text-tertiary)' }}>Exemptions for a single customer or district can be added here once the product is saved.</p>}
             </>
           )}

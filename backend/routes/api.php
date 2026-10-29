@@ -2678,6 +2678,7 @@ Route::middleware('auth:sanctum')->group(function () {
                 Route::get('rules',         [TaxController::class, 'adminIndexRules']);
                 Route::get('districts',     [TaxController::class, 'adminIndexDistricts']);
                 Route::get('applicability', [TaxController::class, 'adminIndexApplicability']);
+                Route::get('opt-outs',      [TaxController::class, 'adminIndexOptOuts']);
                 Route::get('applications',  [TaxController::class, 'adminIndexApplications']);
             });
 
@@ -2722,6 +2723,7 @@ Route::middleware('auth:sanctum')->group(function () {
                     Route::post('applicability',        [TaxController::class, 'adminStoreApplicability']);
                     Route::put('applicability/{id}',    [TaxController::class, 'adminUpdateApplicability']);
                     Route::delete('applicability/{id}', [TaxController::class, 'adminDestroyApplicability']);
+                    Route::put('opt-outs',              [TaxController::class, 'adminSyncOptOuts']);
                 });
 
                 Route::prefix('withholding')->group(function () {

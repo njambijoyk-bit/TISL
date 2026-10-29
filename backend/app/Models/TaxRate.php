@@ -36,7 +36,7 @@ class TaxRate extends Ledger
 
     protected $fillable = [
         'name', 'group_id', 'tax_type_id', 'classification', 'rate_type', 'rate_value', 'unit_of_measure_id', 'currency_id',
-        'calculation_base', 'calculation_sequence', 'requires_certificate', 'valid_from', 'valid_until', 'is_active', 'is_system', 'secondary_rate_value', 'tax_point',
+        'calculation_base', 'calculation_sequence', 'requires_certificate', 'valid_from', 'valid_until', 'is_active', 'is_system', 'secondary_rate_value', 'tax_point', 'base_includes',
     ];
 
     protected $appends = ['tax_type_id', 'ledger_output_id', 'ledger_input_id'];
@@ -60,6 +60,20 @@ class TaxRate extends Ledger
     }
 
     // ── the ledger, in tax vocabulary ───────────────────────────────────────
+
+    /** The tax types whose amounts are part of this rate's base (stored as JSON, empty = all earlier taxes). */
+    public function getBaseIncludesAttribute($v): ?array
+    {
+        $list = is_string($v) ? json_decode($v, true) : $v;
+
+        return is_array($list) && $list ? array_map('intval', $list) : null;
+    }
+
+    public function setBaseIncludesAttribute($v): void
+    {
+        $list = is_array($v) ? array_values(array_unique(array_map('intval', $v))) : [];
+        $this->attributes['base_includes'] = $list ? json_encode($list) : null;
+    }
 
     public function getTaxTypeIdAttribute(): ?int { return $this->attributes['group_id'] ?? null; }
     public function setTaxTypeIdAttribute($v): void { $this->attributes['group_id'] = $v; }

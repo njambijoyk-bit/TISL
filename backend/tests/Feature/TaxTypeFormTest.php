@@ -38,7 +38,7 @@ class TaxTypeFormTest extends TestCase
             $t->string('rate_type')->nullable(); $t->decimal('rate_value', 12, 4)->nullable(); $t->date('valid_from')->nullable(); $t->date('valid_until')->nullable(); $t->string('classification')->nullable();
             $t->string('tax_nature')->nullable(); $t->string('side')->nullable(); $t->unsignedBigInteger('tax_rate_ledger_id')->nullable(); $t->unsignedBigInteger('unit_of_measure_id')->nullable();
             $t->unsignedBigInteger('currency_id')->nullable(); $t->string('calculation_base')->nullable(); $t->integer('calculation_sequence')->nullable(); $t->boolean('requires_certificate')->default(0);
-            $t->decimal('secondary_rate_value', 18, 6)->nullable(); $t->string('tax_point', 20)->nullable();
+            $t->decimal('secondary_rate_value', 18, 6)->nullable(); $t->string('tax_point', 20)->nullable(); $t->text('base_includes')->nullable();
         });
         Schema::create('units_of_measure', function ($t) { $t->id(); $t->string('code'); $t->string('name')->nullable(); });
         Schema::create('tax_districts', function ($t) { $t->id(); $t->string('locale')->nullable(); $t->string('level')->nullable(); $t->unsignedBigInteger('parent_id')->nullable(); $t->string('name'); $t->string('code')->nullable(); $t->boolean('is_active')->default(1); $t->timestamps(); });
@@ -198,5 +198,34 @@ class TaxTypeFormTest extends TestCase
         $this->putJson("/api/admin/tax/rates/{$id}", ['rate_type' => 'combined'])->assertStatus(422)->assertJsonValidationErrors(['secondary_rate_value']);
         $this->putJson("/api/admin/tax/rates/{$id}", ['rate_type' => 'combined', 'secondary_rate_value' => 15, 'unit_of_measure_id' => 1, 'tax_point' => 'import'])->assertOk();
         $this->assertSame(['combined', 'import'], [DB::table('ledgers')->where('id', $id)->value('rate_type'), DB::table('ledgers')->where('id', $id)->value('tax_point')]);
+    }
+
+    public function test_a_rate_can_list_the_taxes_its_base_includes(): void
+    {
+        $exc = $this->exciseType();
+        $vat = $this->createType(['name' => 'VAT', 'code' => 'VAT', 'tax_category' => 'vat_gst', 'application_method' => 'added'])->json('tax_type.id');
+        $r = $this->postJson('/api/admin/tax/rates', ['tax_type_id' => $vat, 'rate_type' => 'percentage', 'rate_value' => 16, 'valid_from' => '2026-01-01',
+            'calculation_base' => 'total_payable', 'base_includes' => [$exc]])->assertCreated();
+        $id = $r->json('tax_rate.id');
+        $this->assertSame([$exc], \App\Services\Books\TaxResolver::includes(\App\Models\TaxRate::find($id)));
+        $this->postJson('/api/admin/tax/rates', ['tax_type_id' => $vat, 'rate_type' => 'percentage', 'rate_value' => 16, 'valid_from' => '2026-01-01', 'base_includes' => [999]])->assertStatus(422);
+        $this->putJson("/api/admin/tax/rates/{$id}", ['calculation_base' => 'post_discount'])->assertOk();
+        $this->assertNull(DB::table('ledgers')->where('id', $id)->value('base_includes'), 'a base without earlier taxes has no list');
+    }
+
+    public function test_a_product_can_opt_out_of_a_tax_and_the_list_is_replaced_each_time(): void
+    {
+        foreach (['tax_opt_outs', 'products'] as $t) { Schema::dropIfExists($t); }
+        $this->runSqlScripts('230_tax_resolution.sql');
+        Schema::create('products', function ($t) { $t->id(); $t->string('name')->nullable(); $t->softDeletes(); $t->timestamps(); });
+        DB::table('products')->insert(['id' => 5, 'name' => 'Bread']);
+        $exc = $this->exciseType();
+        $this->putJson('/api/admin/tax/opt-outs', ['taxable_type' => 'product', 'taxable_id' => 5, 'opt_outs' => [['tax_type_id' => $exc, 'reason' => 'Not excisable']]])->assertOk();
+        $this->assertSame([['tax_type_id' => $exc, 'reason' => 'Not excisable']], $this->getJson('/api/admin/tax/opt-outs?taxable_type=product&taxable_id=5')->assertOk()->json('opt_outs'));
+        $this->putJson('/api/admin/tax/opt-outs', ['taxable_type' => 'product', 'taxable_id' => 5, 'opt_outs' => []])->assertOk();
+        $this->assertSame(0, DB::table('tax_opt_outs')->count());
+        $this->putJson('/api/admin/tax/opt-outs', ['taxable_type' => 'product', 'taxable_id' => 5, 'opt_outs' => [['tax_type_id' => 999]]])->assertStatus(422);
+        $this->putJson('/api/admin/tax/opt-outs', ['taxable_type' => 'customer', 'taxable_id' => 5, 'opt_outs' => []])->assertStatus(422);
+        Schema::dropIfExists('tax_opt_outs'); Schema::dropIfExists('products');
     }
 }

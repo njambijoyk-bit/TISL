@@ -15,6 +15,7 @@ import LoadingSpinner from '../../../_shared/components/layout/LoadingSpinner';
 import CurrencySelect from '../../../_shared/components/common/currency/CurrencySelect';
 import ServiceCatalogEditor from '../../components/admin/services/ServiceCatalogEditor';
 import TaxOverridesPanel from '../../../core/components/admin/tax/TaxOverridesPanel';
+import TaxOptOutsPanel from '../../../core/components/admin/tax/TaxOptOutsPanel';
 import SalesAccountSelect from '../../../core/components/admin/tax/SalesAccountSelect';
 import useCurrencyStore from '../../../_shared/store/currencyStore';
 import { getAvailableServices, getAvailableProducts, nextServiceSku } from '../../../_shared/api/services';
@@ -620,7 +621,7 @@ const ServiceForm = () => {
                   hint="The account decides the tax: an exempt service goes on an exempt account, a VAT-able one on a VAT-able account." />
               </SectionCard>
               {isEditMode && id
-                ? <TaxOverridesPanel taxableType="service" taxableId={Number(id)} />
+                ? <><TaxOverridesPanel taxableType="service" taxableId={Number(id)} /><TaxOptOutsPanel taxableType="service" taxableId={Number(id)} /></>
                 : <p style={{ fontSize: '0.75rem', color: 'var(--text-tertiary)', margin: '0 0 16px' }}>Exemptions for a single customer or district can be added once the service is saved.</p>}
 
               {/* Service details */}
