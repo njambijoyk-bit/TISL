@@ -74,3 +74,25 @@ Delete the TEST products, accounts, rates and types (types and rates in use can 
 
 ## If something looks wrong, note
 The screen and step, what you typed, what you expected and what you saw (a screenshot helps). Totals that differ from the tables above are the most useful finding.
+
+## 12. Recoverable and non-recoverable tax (run script 231 first)
+Where to set it: **Tax & Compliance → Tax types → edit the type**. For a tax that is *added to the price* you will see **"When we buy goods with this tax in the price"**: Recoverable, Not recoverable, or Conditional. Excise starts as *Not recoverable*; VAT as *Recoverable*.
+
+**A. Excise as cost.** Make sure TEST Excise is *Not recoverable*. New purchase of **TEST Whisky, 1 × 800** on *TEST Purchases – imports* (excise 10% = 80).
+- *What this will post*: **Dr Stock 880** (not 800), **no debit to the "TEXC 10%" ledger**, supplier credited the full invoice (880 plus any VAT). The excise line still appears under Charges & taxes.
+- Check the stock: **Purchases → Stock reports** (or the Stock journal) shows the whisky at **880** cost, not 800.
+- Check the tax return (Books → Reports → Tax return): the excise shows **no input tax** for this purchase.
+
+**B. Claimed back.** Edit TEST Excise → *Recoverable*. Repeat the purchase: **Dr Stock 800, Dr TEXC 10% 80**, as before. The tax return now shows 80 input.
+
+**C. Conditional.** Edit TEST Excise → *Conditional*. With **The company is: An ordinary purchaser** the purchase posts like A (cost). Change it to **A licensed manufacturer**: it posts like B (claimed).
+
+**D. Charge it elsewhere.** Create an expense ledger *TEST Excise cost*. Edit TEST Excise → Not recoverable → **Charge it to** *TEST Excise cost*. The purchase posts **Dr Stock 800, Dr TEST Excise cost 80**.
+
+**E. A sale is never affected.** Sell TEST Whisky: the excise is still credited to the TEXC 10% ledger as tax owed, whatever the recovery setting.
+
+**F. Credit note / return.** Return a purchase from A with a debit note: the stock cost and the excise reverse the same way.
+
+**G. Health.** Set TEST Excise to *Recoverable* with the company as *An ordinary purchaser*: the red/amber panel at the top of **Books → Configuration → Tax control** warns that excise is being claimed back.
+
+Old purchases already posted never change; only new ones do.
