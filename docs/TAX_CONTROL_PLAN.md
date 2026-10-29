@@ -115,6 +115,21 @@ The case: a sales account carries VAT 16% and excise 10%. Sometimes VAT is charg
 | Price alone | 100.00 | 160.00 (16% of 1,000.00) | 1,260.00 |
 | The product is not excisable | 0.00 | 160.00 | 1,160.00 |
 
+**Owner's answer (29 Oct): all three apply, depending on the sale.** So the product opt-out (C4), the conditions (C3) and the document override (C5) all ship, and they are checked in one fixed order so the same sale always gives the same answer:
+
+| Order | What is checked | If it applies |
+|---|---|---|
+| 1 | A legal exemption: an exemption certificate on the customer or the item, or an exempt or out-of-scope treatment on the account | The tax is not charged. Nothing below can switch it back on, except a tax set to "apply independently of exemptions" where the law permits. |
+| 2 | The item's own opt-out of this tax (not excisable, not subject to the levy) | The tax is not charged on that line. |
+| 3 | The rules and their conditions (customer type, product or service, document type, jurisdiction, date, order value) | The matching rule gives the rate and the base (for example VAT on price plus excise). |
+| 4 | A document or line override, if the tax allows it and the person has the permission | The base the person chose is used instead; their reason is stored in the calculation snapshot and the change is in the audit log. |
+
+An override can only change the base (what a tax is calculated on). It cannot switch off a tax that step 1 or 2 has charged or exempted: that is done by an exemption, which has its own rules and its own audit trail.
+
+The document form shows each line's tax breakdown as it is calculated (excise, then VAT, with the base of each) and, for a tax that allows it, a control to change the base. People without the override permission see the breakdown but not the control.
+
+T3 adds the permissions for this: view Tax control, change Tax control (owner-only), tax administrator, and override the base on a document.
+
 Tests for T6 include each row, a line that opts out of excise, an override with and without the permission, and the same three on a price that includes tax.
 
 ## 10. Risks
