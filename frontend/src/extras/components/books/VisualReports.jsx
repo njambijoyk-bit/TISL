@@ -21,7 +21,7 @@ const CHARTS = [
   { id: 'expense-donut', data: 'expenses', title: 'Where the money went', note: 'The biggest groups of expenses in the period.', render: (d) => <ExpenseDonut d={d} /> },
   { id: 'expense-tree', data: 'expenses', title: 'Expenses by group', note: 'Every expense group and ledger; bigger is more.', wide: true, render: (d) => <GroupTreemap tree={d.tree} /> },
   { id: 'customers', data: 'top_customers', title: 'Top customers', note: 'The ten customers who bought the most in the period.', render: (d) => <TopCustomers d={d} /> },
-  { id: 'sales-purchases', data: 'sales_purchases', title: 'Sales against purchases', note: 'By month. A sale or purchase with a customer or supplier account is credit; without one it is cash.', wide: true, render: (d) => <SalesPurchases d={d} /> },
+  { id: 'sales-purchases', data: 'sales_purchases', title: 'Sales against purchases', note: 'By month. A cash sale is cash; any other sale or purchase that left an open bill is credit, and one that did not is cash.', wide: true, render: (d) => <SalesPurchases d={d} /> },
   { id: 'composition', data: 'composition', title: 'What we own', note: 'Assets on the last day, by group.', wide: true, render: (d) => <GroupTreemap tree={d.tree} /> },
   { id: 'build', data: 'outstanding', title: 'Owed to us and by us', note: 'Receivables, payables and the net position they leave.', render: (d) => <Waterfall steps={d.build} /> },
   { id: 'ageing', data: 'outstanding', title: 'How old the debts are', note: 'Receivables and payables by age.', render: (d) => <AgeingBars rows={d.ageing} /> },

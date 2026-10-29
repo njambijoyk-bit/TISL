@@ -78,26 +78,50 @@ export function ExpenseDonut({ d }) {
   );
 }
 
-/** One rectangle of the treemap: a ledger takes its top group's colour; a group is only outlined, its name drawn when it fits. */
-function TreeCell({ x, y, width, height, name, depth, root, names }) {
-  const idx = Math.max(0, names.indexOf(root?.name ?? name));
-  const leaf = depth > 1;
+const sizeOf = (n) => (n.children ? n.children.reduce((t, c) => t + sizeOf(c), 0) : n.size);
+
+/** One rectangle: its name and amount, in the colour of the top group it belongs to; a group that opens says so. */
+function TreeCell({ x, y, width, height, name, amount, color, opens, depth }) {
+  if (depth !== 1) return null;   // the treemap also draws its own root: that one has nothing to say
   return (
-    <g>
-      <rect x={x} y={y} width={width} height={height} rx={4} fill={leaf ? SERIES[idx % SERIES.length] : 'none'} fillOpacity={leaf ? 0.22 : 1} stroke="var(--surface-card, #fff)" strokeWidth={leaf ? 2 : 4} />
-      {width > 60 && height > 22 && <text x={x + 6} y={y + (leaf ? 32 : 16)} fontWeight={leaf ? 400 : 700} fontSize={11} fill={colors.text} style={{ pointerEvents: 'none' }}>{String(name).slice(0, Math.floor(width / 7))}</text>}
+    <g style={{ cursor: opens ? 'pointer' : 'default' }}>
+      <rect x={x} y={y} width={width} height={height} rx={4} fill={color} fillOpacity={0.22} stroke="var(--surface-card, #fff)" strokeWidth={3} />
+      {width > 60 && height > 24 && <text x={x + 8} y={y + 18} fontSize={12} fontWeight={600} fill={colors.text} style={{ pointerEvents: 'none' }}>{String(name).slice(0, Math.floor(width / 7)) + (opens ? ' ›' : '')}</text>}
+      {width > 60 && height > 42 && <text x={x + 8} y={y + 34} fontSize={11} fill={colors.textMuted} style={{ pointerEvents: 'none' }}>{compact(amount)}</text>}
     </g>
   );
 }
 
-/** A treemap of groups and their ledgers; each top group keeps its own colour. */
+/** A treemap of groups and their ledgers, one level at a time: click a group to go into it, click its name in the trail to come back. Each top group keeps its own colour. */
 export function GroupTreemap({ tree }) {
+  const [path, setPath] = useState([]);
   const names = useMemo(() => tree.map((g) => g.name), [tree]);
   if (!tree.length) return <Empty />;
+  let level = tree;
+  const trail = [];
+  for (const step of path) {
+    const next = level.find((n) => n.name === step && n.children);
+    if (!next) break;
+    trail.push(next.name);
+    level = next.children;
+  }
+  const top = trail.length ? names.indexOf(trail[0]) : -1;
+  const data = level.map((n, i) => ({ name: n.name, size: Math.max(sizeOf(n), 0.01), amount: sizeOf(n), opens: Boolean(n.children), color: SERIES[(top >= 0 ? top : i) % SERIES.length] }));
   return (
-    <Frame h={300}><Treemap data={tree} dataKey="size" aspectRatio={4 / 3} isAnimationActive={false} content={<TreeCell names={names} />}>
-      <Tooltip {...tip} />
-    </Treemap></Frame>
+    <div>
+      <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap', alignItems: 'center', fontSize: '0.78rem', marginBottom: 8 }}>
+        <button type="button" onClick={() => setPath([])} style={{ background: 'none', border: 'none', padding: 0, cursor: trail.length ? 'pointer' : 'default', color: trail.length ? colors.primary : colors.text, fontWeight: 600 }}>All</button>
+        {trail.map((t, i) => (
+          <span key={t}>› <button type="button" onClick={() => setPath(trail.slice(0, i + 1))} style={{ background: 'none', border: 'none', padding: 0, cursor: i < trail.length - 1 ? 'pointer' : 'default', color: i < trail.length - 1 ? colors.primary : colors.text, fontWeight: 600 }}>{t}</button></span>
+        ))}
+        {data.some((d) => d.opens) && <span style={{ color: colors.textFaint }}>· click a group marked › to open it</span>}
+      </div>
+      <Frame h={300}>
+        <Treemap data={data} dataKey="size" aspectRatio={4 / 3} isAnimationActive={false} onClick={(n) => { if (n?.opens) setPath([...trail, n.name]); }} content={<TreeCell />}>
+          <Tooltip formatter={(v, n, p) => [full(p?.payload?.amount ?? v), p?.payload?.name ?? n]} contentStyle={tip.contentStyle} />
+        </Treemap>
+      </Frame>
+    </div>
   );
 }
 

@@ -153,24 +153,29 @@ class VisualsService
 
     private function chartTopCustomers(Scope $scope, string $from, string $to): array
     {
-        $rows = $this->vouchers($scope, $from, $to, ['sales'])->leftJoin('ledgers as l', 'l.id', '=', 'v.party_ledger_id')
+        $rows = $this->vouchers($scope, $from, $to, ['sales', 'cash_sale'])->leftJoin('ledgers as l', 'l.id', '=', 'v.party_ledger_id')
             ->selectRaw('COALESCE(l.name, ?) as party, SUM(' . RestatedBase::total() . ') as total, COUNT(*) as n', ['Walk-in / cash customers'])->groupBy('party')->orderByDesc('total')->limit(10)->get();
 
         return ['rows' => $rows->map(fn ($r) => ['name' => $r->party, 'value' => round((float) $r->total, 2), 'invoices' => (int) $r->n])->all()];
     }
 
-    /** Sales and purchases by month. An invoice with a customer or supplier account is "credit"; one without (a cash sale) is "cash". */
+    /**
+     * Sales and purchases by month. A cash sale is cash. Any other sale or purchase is "credit" when it left an open bill (it was not settled on the spot) and "cash"
+     * when it did not, whether or not it names a customer or supplier account (a cash sale to a walk-in customer still has an account).
+     */
     private function chartSalesPurchases(Scope $scope, string $from, string $to): array
     {
-        $rows = $this->vouchers($scope, $from, $to, ['sales', 'purchase'])
-            ->selectRaw("SUBSTR(v.date, 1, 7) as ym, t.base_type as kind, CASE WHEN v.party_ledger_id IS NULL THEN 'cash' ELSE 'credit' END as how, SUM(" . RestatedBase::total() . ') as total')
+        $hasBills = \Illuminate\Support\Facades\Schema::hasTable('voucher_bill_refs');
+        $credit = $hasBills ? "EXISTS (SELECT 1 FROM voucher_bill_refs br WHERE br.voucher_id = v.id AND br.ref_type = 'new')" : 'v.party_ledger_id IS NOT NULL';
+        $rows = $this->vouchers($scope, $from, $to, ['sales', 'cash_sale', 'purchase'])
+            ->selectRaw("SUBSTR(v.date, 1, 7) as ym, CASE WHEN t.base_type = 'purchase' THEN 'purchases' ELSE 'sales' END as kind, CASE WHEN t.base_type = 'cash_sale' THEN 'cash' WHEN {$credit} THEN 'credit' ELSE 'cash' END as how, SUM(" . RestatedBase::total() . ') as total')
             ->groupBy('ym', 'kind', 'how')->get();
         $months = [];
         for ($d = Carbon::parse($from)->startOfMonth(); $d->lte(Carbon::parse($to)); $d->addMonth()) {
             $months[$d->format('Y-m')] = ['month' => $d->format('Y-m'), 'sales_cash' => 0.0, 'sales_credit' => 0.0, 'purchases_cash' => 0.0, 'purchases_credit' => 0.0];
         }
         foreach ($rows as $r) {
-            $k = ($r->kind === 'sales' ? 'sales_' : 'purchases_') . $r->how;
+            $k = $r->kind . '_' . $r->how;
             if (isset($months[$r->ym])) {
                 $months[$r->ym][$k] = round((float) $r->total, 2);
             }

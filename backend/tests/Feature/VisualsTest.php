@@ -84,6 +84,22 @@ class VisualsTest extends TestCase
         $this->assertCount(10, $c['sales_purchases']['months']);
     }
 
+    public function test_a_cash_sale_and_a_purchase_paid_on_the_spot_are_cash_even_with_an_account_named(): void
+    {
+        DB::table('voucher_types')->insert(['id' => 9, 'code' => 'CS', 'name' => 'Cash sale', 'base_type' => 'cash_sale']);
+        $now = now();
+        DB::table('vouchers')->insert([
+            ['voucher_type_id' => 9, 'party_ledger_id' => 3, 'voucher_number' => 'CS1', 'date' => '2026-10-15', 'status' => 'posted', 'currency_id' => 1, 'total_amount' => 4000, 'base_total' => 4000, 'created_at' => $now, 'updated_at' => $now],
+            ['voucher_type_id' => 4, 'party_ledger_id' => null, 'voucher_number' => 'P10', 'date' => '2026-10-16', 'status' => 'posted', 'currency_id' => 1, 'total_amount' => 266.8, 'base_total' => 266.8, 'created_at' => $now, 'updated_at' => $now],
+        ]);
+        $c = $this->charts();
+        $oct = collect($c['sales_purchases']['months'])->firstWhere('month', '2026-10');
+        $this->assertEquals(4000, $oct['sales_cash']);
+        $this->assertEquals(266.8, $oct['purchases_cash']);
+        $this->assertEquals(20000, $oct['purchases_credit'], 'the bill with an open reference stays credit');
+        $this->assertEquals(104000, collect($c['top_customers']['rows'])->firstWhere('name', 'Customer A')['value'], 'cash sales count towards the customer too');
+    }
+
     public function test_outstanding_builds_up_to_a_net_position_and_each_customer_is_a_bubble(): void
     {
         $o = $this->charts()['outstanding'];
