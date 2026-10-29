@@ -144,12 +144,20 @@ final class BalanceSheetReport extends ReportDefinition
 
         return [
             'ready' => true, 'as_of' => $asOf, 'columns' => $cols, 'rows' => $rows, 'unclassified' => $unclassified, 'year_start' => $yearStart,
+            'asset_ledgers' => $this->listOf($ledgers, 'asset'), 'liability_ledgers' => $this->listOf($ledgers, 'liability'),
             'opening_difference' => $diff, 'retained' => ['prior' => $priorProfit, 'current' => $yearProfit],
             'totals' => ['assets' => $totalAssets, 'equity' => $equity, 'liabilities' => round($liabilitiesAndEquity - $equity, 2), 'liabilities_and_equity' => $liabilitiesAndEquity],
             // the figures the old report gave
             'total_assets' => $totalAssets, 'total_liabilities' => $liabilitiesAndEquity, 'balanced' => abs($totalAssets - $liabilitiesAndEquity) < 0.01,
             'headings' => array_map(fn ($v) => round($v, 2), $heads),
         ];
+    }
+
+    /** The ledgers of one nature that hold something, for modules that list the biggest. @return array<int, array{ledger_id: int, ledger: string, group: string, amount: float}> */
+    private function listOf(array $ledgers, string $nature): array
+    {
+        return array_values(array_map(fn ($l) => ['ledger_id' => $l['id'], 'ledger' => $l['name'], 'group' => $l['group'], 'amount' => $l['amounts']['total']],
+            array_filter($ledgers, fn ($l) => $l['nature'] === $nature && abs($l['amounts']['total']) >= 0.005)));
     }
 
     public function table(array $data, Scope $scope): array

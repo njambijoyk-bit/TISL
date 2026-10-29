@@ -3,7 +3,6 @@
 namespace Tests\Feature;
 
 use App\Models\User;
-use App\Services\Books\ComplianceReportService;
 use App\Services\Books\Engine\LedgerBalances;
 use App\Services\Books\Engine\ReportEngine;
 use App\Services\Books\Engine\Reports\WithholdingReport;
@@ -20,6 +19,7 @@ use Tests\TestCase;
 class WithholdingReportTest extends TestCase
 {
     use Concerns\CreatesBooksLedgerWorld;
+    use Concerns\RecordsGolden;
     use Concerns\StandsInForAccess;
 
     private array $v = [];
@@ -90,7 +90,7 @@ class WithholdingReportTest extends TestCase
     public function test_the_rows_and_totals_are_the_old_registers(): void
     {
         foreach ([[null, null], ['2026-04-01', '2026-06-30'], ['2026-01-01', '2026-12-31']] as [$from, $to]) {
-            $old = app(ComplianceReportService::class)->withholdingRegister($from, $to);
+            $old = $this->golden('withholding', json_encode([$from, $to]));
             $new = $this->run_($from, $to);
             $this->assertSame(array_column($old['rows'], 'certificate_number'), array_column($new['rows'], 'certificate_number'), "{$from}..{$to}: certificates");
             foreach ($old['rows'] as $i => $o) {

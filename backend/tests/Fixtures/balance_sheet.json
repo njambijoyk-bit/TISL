@@ -1,0 +1,358 @@
+{
+    "[\"2024-12-31\",null]": {
+        "as_of": "2024-12-31",
+        "branch_limited": false,
+        "opening_difference": 21000.0,
+        "restated_vouchers": 1,
+        "assets": [
+            {
+                "ledger_id": 1,
+                "ledger": "Cash",
+                "group": "Bank Accounts",
+                "amount": 50000.0
+            }
+        ],
+        "liabilities": [
+            {
+                "ledger_id": 7,
+                "ledger": "Capital",
+                "group": "Capital Account",
+                "amount": 30000.0
+            },
+            {
+                "ledger_id": null,
+                "ledger": "Loss (to date)",
+                "group": "Capital",
+                "amount": -1000.0
+            },
+            {
+                "ledger_id": null,
+                "ledger": "Difference in opening balances",
+                "group": "",
+                "placeholder": true,
+                "amount": 21000.0
+            }
+        ],
+        "total_assets": 50000.0,
+        "total_liabilities": 50000.0,
+        "balanced": true
+    },
+    "[\"2025-12-31\",null]": {
+        "as_of": "2025-12-31",
+        "branch_limited": false,
+        "opening_difference": 21000.0,
+        "restated_vouchers": 1,
+        "assets": [
+            {
+                "ledger_id": 1,
+                "ledger": "Cash",
+                "group": "Bank Accounts",
+                "amount": 45000.0
+            }
+        ],
+        "liabilities": [
+            {
+                "ledger_id": 7,
+                "ledger": "Capital",
+                "group": "Capital Account",
+                "amount": 30000.0
+            },
+            {
+                "ledger_id": null,
+                "ledger": "Loss (to date)",
+                "group": "Capital",
+                "amount": -6000.0
+            },
+            {
+                "ledger_id": null,
+                "ledger": "Difference in opening balances",
+                "group": "",
+                "placeholder": true,
+                "amount": 21000.0
+            }
+        ],
+        "total_assets": 45000.0,
+        "total_liabilities": 45000.0,
+        "balanced": true
+    },
+    "[\"2026-03-31\",null]": {
+        "as_of": "2026-03-31",
+        "branch_limited": false,
+        "opening_difference": 21000.0,
+        "restated_vouchers": 1,
+        "assets": [
+            {
+                "ledger_id": 1,
+                "ledger": "Cash",
+                "group": "Bank Accounts",
+                "amount": 105000.0
+            },
+            {
+                "ledger_id": 3,
+                "ledger": "Customer A",
+                "group": "Sundry Debtors",
+                "amount": 130000.0
+            }
+        ],
+        "liabilities": [
+            {
+                "ledger_id": 7,
+                "ledger": "Capital",
+                "group": "Capital Account",
+                "amount": 30000.0
+            },
+            {
+                "ledger_id": null,
+                "ledger": "Profit & Loss (to date)",
+                "group": "Capital",
+                "amount": 184000.0
+            },
+            {
+                "ledger_id": null,
+                "ledger": "Difference in opening balances",
+                "group": "",
+                "placeholder": true,
+                "amount": 21000.0
+            }
+        ],
+        "total_assets": 235000.0,
+        "total_liabilities": 235000.0,
+        "balanced": true
+    },
+    "[\"2026-06-30\",null]": {
+        "as_of": "2026-06-30",
+        "branch_limited": false,
+        "opening_difference": 21000.0,
+        "restated_vouchers": 1,
+        "assets": [
+            {
+                "ledger_id": 1,
+                "ledger": "Cash",
+                "group": "Bank Accounts",
+                "amount": 170000.0
+            },
+            {
+                "ledger_id": 3,
+                "ledger": "Customer A",
+                "group": "Sundry Debtors",
+                "amount": 130000.0
+            }
+        ],
+        "liabilities": [
+            {
+                "ledger_id": 7,
+                "ledger": "Capital",
+                "group": "Capital Account",
+                "amount": 30000.0
+            },
+            {
+                "ledger_id": 8,
+                "ledger": "Supplier",
+                "group": "Current Liabilities",
+                "amount": 12000.0
+            },
+            {
+                "ledger_id": null,
+                "ledger": "Profit & Loss (to date)",
+                "group": "Capital",
+                "amount": 237000.0
+            },
+            {
+                "ledger_id": null,
+                "ledger": "Difference in opening balances",
+                "group": "",
+                "placeholder": true,
+                "amount": 21000.0
+            }
+        ],
+        "total_assets": 300000.0,
+        "total_liabilities": 300000.0,
+        "balanced": true
+    },
+    "[\"2026-12-31\",[1]]": {
+        "as_of": "2026-12-31",
+        "branch_limited": true,
+        "opening_difference": 21000.0,
+        "restated_vouchers": 1,
+        "assets": [
+            {
+                "ledger_id": 1,
+                "ledger": "Cash",
+                "group": "Bank Accounts",
+                "amount": 211700.0
+            },
+            {
+                "ledger_id": 2,
+                "ledger": "M-Pesa",
+                "group": "Bank Accounts",
+                "amount": -7000.0
+            },
+            {
+                "ledger_id": 3,
+                "ledger": "Customer A",
+                "group": "Sundry Debtors",
+                "amount": 130000.0
+            }
+        ],
+        "liabilities": [
+            {
+                "ledger_id": 7,
+                "ledger": "Capital",
+                "group": "Capital Account",
+                "amount": 30000.0
+            },
+            {
+                "ledger_id": 8,
+                "ledger": "Supplier",
+                "group": "Current Liabilities",
+                "amount": 12000.0
+            },
+            {
+                "ledger_id": 10,
+                "ledger": "Trade Creditor",
+                "group": "Sundry Creditors",
+                "amount": 5000.0
+            },
+            {
+                "ledger_id": null,
+                "ledger": "Profit & Loss (to date)",
+                "group": "Capital",
+                "amount": 266700.0
+            },
+            {
+                "ledger_id": null,
+                "ledger": "Difference in opening balances",
+                "group": "",
+                "placeholder": true,
+                "amount": 21000.0
+            }
+        ],
+        "total_assets": 334700.0,
+        "total_liabilities": 334700.0,
+        "balanced": true
+    },
+    "[\"2026-12-31\",null]": {
+        "as_of": "2026-12-31",
+        "branch_limited": false,
+        "opening_difference": 21000.0,
+        "restated_vouchers": 1,
+        "assets": [
+            {
+                "ledger_id": 1,
+                "ledger": "Cash",
+                "group": "Bank Accounts",
+                "amount": 172500.0
+            },
+            {
+                "ledger_id": 2,
+                "ledger": "M-Pesa",
+                "group": "Bank Accounts",
+                "amount": -7000.0
+            },
+            {
+                "ledger_id": 3,
+                "ledger": "Customer A",
+                "group": "Sundry Debtors",
+                "amount": 130000.0
+            }
+        ],
+        "liabilities": [
+            {
+                "ledger_id": 7,
+                "ledger": "Capital",
+                "group": "Capital Account",
+                "amount": 30000.0
+            },
+            {
+                "ledger_id": 8,
+                "ledger": "Supplier",
+                "group": "Current Liabilities",
+                "amount": 12000.0
+            },
+            {
+                "ledger_id": 10,
+                "ledger": "Trade Creditor",
+                "group": "Sundry Creditors",
+                "amount": 5000.0
+            },
+            {
+                "ledger_id": null,
+                "ledger": "Profit & Loss (to date)",
+                "group": "Capital",
+                "amount": 227500.0
+            },
+            {
+                "ledger_id": null,
+                "ledger": "Difference in opening balances",
+                "group": "",
+                "placeholder": true,
+                "amount": 21000.0
+            }
+        ],
+        "total_assets": 295500.0,
+        "total_liabilities": 295500.0,
+        "balanced": true
+    },
+    "[null,null]": {
+        "as_of": null,
+        "branch_limited": false,
+        "opening_difference": 21000.0,
+        "restated_vouchers": 1,
+        "assets": [
+            {
+                "ledger_id": 1,
+                "ledger": "Cash",
+                "group": "Bank Accounts",
+                "amount": 172500.0
+            },
+            {
+                "ledger_id": 2,
+                "ledger": "M-Pesa",
+                "group": "Bank Accounts",
+                "amount": -7000.0
+            },
+            {
+                "ledger_id": 3,
+                "ledger": "Customer A",
+                "group": "Sundry Debtors",
+                "amount": 130000.0
+            }
+        ],
+        "liabilities": [
+            {
+                "ledger_id": 7,
+                "ledger": "Capital",
+                "group": "Capital Account",
+                "amount": 30000.0
+            },
+            {
+                "ledger_id": 8,
+                "ledger": "Supplier",
+                "group": "Current Liabilities",
+                "amount": 12000.0
+            },
+            {
+                "ledger_id": 10,
+                "ledger": "Trade Creditor",
+                "group": "Sundry Creditors",
+                "amount": 5000.0
+            },
+            {
+                "ledger_id": null,
+                "ledger": "Profit & Loss (to date)",
+                "group": "Capital",
+                "amount": 227500.0
+            },
+            {
+                "ledger_id": null,
+                "ledger": "Difference in opening balances",
+                "group": "",
+                "placeholder": true,
+                "amount": 21000.0
+            }
+        ],
+        "total_assets": 295500.0,
+        "total_liabilities": 295500.0,
+        "balanced": true
+    }
+}

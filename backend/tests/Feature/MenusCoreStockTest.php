@@ -482,7 +482,10 @@ class MenusCoreStockTest extends TestCase
 
     private function movementWorld(): void
     {
-        Schema::table('vouchers', function ($t) { $t->decimal('exchange_rate', 18, 6)->default(1); $t->string('party_name')->nullable(); });
+        Schema::table('vouchers', function ($t) { $t->decimal('exchange_rate', 18, 6)->default(1); $t->string('party_name')->nullable(); $t->decimal('base_total', 15, 2)->default(0); $t->unsignedBigInteger('currency_id')->nullable(); });
+        if (Schema::hasTable('currencies') && ! Schema::hasColumn('currencies', 'conversion_rate')) {
+            Schema::table('currencies', fn ($t) => $t->decimal('conversion_rate', 18, 8)->default(1));
+        }
         Schema::table('voucher_items', fn ($t) => $t->unsignedBigInteger('product_id')->nullable());
         Schema::table('voucher_types', fn ($t) => $t->string('name')->nullable());
         Schema::table('products', function ($t) { $t->string('sku')->nullable(); $t->unsignedBigInteger('default_unit_id')->nullable(); });
@@ -494,9 +497,8 @@ class MenusCoreStockTest extends TestCase
         $this->movementWorld();
         $this->movementVoucher(1, [['product', $this->exe, 10, 1000.0], ['ingredient', $this->exe, 4000, 520.0]]);        // 10 tapes; 2 packs of Exe (4,000 g) at 0.13 a gram
         $this->movementVoucher(9, [['ingredient', $this->exe, 1000, 130.0]], '2026-10-12');                               // 1,000 g sent back on a debit note
-        $report = app(\App\Services\Books\MovementReportService::class);
-
-        $rows = collect($report->ledgerItems($this->supplier, '2026-10-01', '2026-10-31')['rows'])->keyBy(fn ($r) => $r['item_type'].':'.$r['item_id']);
+        $run = fn (array $opts) => (new \App\Services\Books\Engine\Reports\TradeReport())->run(\App\Services\Books\Engine\Scope::dates('2026-10-01', '2026-10-31'), $opts);
+        $rows = collect($run(['ledger_id' => $this->supplier])['rows'])->keyBy(fn ($r) => $r['item_type'] . ':' . $r['item_id']);
         $this->assertCount(2, $rows, 'the tape and the flour are not mixed up although they share a number');
         $this->assertSame(['Duct tape', 1000.0, 10.0], [$rows["product:{$this->exe}"]['name'], $rows["product:{$this->exe}"]['purchase_value'], $rows["product:{$this->exe}"]['purchase_qty']]);
         $flour = $rows["ingredient:{$this->exe}"];
@@ -505,13 +507,13 @@ class MenusCoreStockTest extends TestCase
         $this->assertEquals(0.13, $flour['purchase_rate']);
         $this->assertNull($flour['product_id']);
 
-        $vouchers = $report->itemVouchers($this->exe, $this->supplier, '2026-10-01', '2026-10-31', 'ingredient');
+        $vouchers = $run(['ledger_id' => $this->supplier, 'item' => 'ingredient:' . $this->exe]);
         $this->assertSame('Wheat flour — Exe 2 kg', $vouchers['item']['name']);
         $this->assertCount(2, $vouchers['groups'][0]['rows'], 'the purchase and the debit note');
         $this->assertEquals(3000, $vouchers['groups'][0]['qty']);
-        $this->assertCount(1, $report->itemVouchers($this->exe, null, '2026-10-01', '2026-10-31')['groups'][0]['rows'], 'as a product the number is the tape only');
+        $this->assertCount(1, $run(['ledger_id' => 'all', 'item' => 'product:' . $this->exe])['groups'][0]['rows'], 'as a product the number is the tape only');
 
-        $ledgers = $report->itemLedgers($this->exe, '2026-10-01', '2026-10-31', 'ingredient')['rows'];
+        $ledgers = $run(['item' => 'ingredient:' . $this->exe])['rows'];
         $this->assertSame(['Naivas Wholesale'], array_column($ledgers, 'name'));
         $this->assertEquals(390, $ledgers[0]['purchase_value']);
     }

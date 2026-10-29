@@ -246,7 +246,7 @@ class BooksHealth
         $s = app(ReportSettings::class);
         $missing = array_filter(['debtors' => 'receivables', 'creditors' => 'payables'], fn ($label, $input) => $s->ratioLedgerIds($input) === null, ARRAY_FILTER_USE_BOTH);
         $this->add('control_groups', 'Set-up', 'Receivables and payables groups are chosen', $missing ? 'warn' : 'pass',
-            $missing ? 'The ' . implode(' and ', $missing) . ' control check finds its group by the name "Sundry Debtors" / "Sundry Creditors". Choose the groups in Reports settings → Ratio analysis inputs (Debtors, Creditors).' : 'The control-account checks use the groups chosen in the settings.');
+            $missing ? 'The ' . implode(' and ', $missing) . ' control check is not done until the groups are chosen in Reports settings → Ratio analysis inputs (Debtors, Creditors).' : 'The control-account checks use the groups chosen in the settings.');
     }
 
     private function tax(): void

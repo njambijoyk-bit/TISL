@@ -3,8 +3,7 @@
 namespace App\Services\Insight\Packs;
 
 use App\Models\User;
-use App\Services\Books\BooksReportService;
-use App\Services\Books\RatioAnalysisService;
+use App\Services\Books\Engine\Figures;
 use App\Services\Insight\InsightPack;
 use App\Services\Insight\Lookback;
 use App\Services\Insight\LoyaltyData;
@@ -33,7 +32,7 @@ class ReportPack implements InsightPack
 
     public function answer(array $context, Lookback $lb, User $user, int $example = 0): array
     {
-        $reports = app(BooksReportService::class);
+        $reports = app(Figures::class);
         $b = LoyaltyData::baseCode();
         $to = ! empty($context['to']) ? Carbon::parse($context['to']) : Carbon::today();
         $from = ! empty($context['from']) ? Carbon::parse($context['from']) : $to->copy()->startOfMonth();
@@ -45,7 +44,7 @@ class ReportPack implements InsightPack
         };
     }
 
-    private function pl(BooksReportService $r, Carbon $from, Carbon $to, string $b): array
+    private function pl(Figures $r, Carbon $from, Carbon $to, string $b): array
     {
         $now = $r->profitLoss($from->toDateString(), $to->toDateString());
         $days = max(1, (int) $from->diffInDays($to) + 1);
@@ -84,14 +83,14 @@ class ReportPack implements InsightPack
         return ['title' => 'Profit and loss', 'blocks' => $blocks, 'basis' => 'Read from posted vouchers for the report\'s own dates and the period of equal length before.'];
     }
 
-    private function bs(BooksReportService $r, Carbon $to, string $b): array
+    private function bs(Figures $r, Carbon $to, string $b): array
     {
         $bs = $r->balanceSheet($to->toDateString());
-        $blocks = [['type' => 'facts', 'title' => 'As at ' . $to->toDateString(), 'rows' => [['Total assets', $b . ' ' . number_format($bs['total_assets'], 2)], ['Liabilities and capital', $b . ' ' . number_format($bs['total_liabilities'], 2)], ['Balanced', $bs['balanced'] ? 'yes' : 'no']]]];
+        $blocks = [['type' => 'facts', 'title' => 'As at ' . $to->toDateString(), 'rows' => [['Total assets', $b . ' ' . number_format($bs['totals']['assets'], 2)], ['Liabilities and capital', $b . ' ' . number_format($bs['totals']['liabilities_and_equity'], 2)], ['Balanced', $bs['balanced'] ? 'yes' : 'no']]]];
         $big = fn (array $rows, string $label) => ['type' => 'table', 'title' => $label, 'columns' => ['Ledger', $b], 'rows' => collect($rows)->sortByDesc('amount')->take(5)->map(fn ($x) => [$x['ledger'], number_format((float) $x['amount'], 2)])->values()->all()];
-        $blocks[] = $big($bs['assets'], 'Biggest assets');
-        $blocks[] = $big($bs['liabilities'], 'Biggest liabilities and capital');
-        $ratios = app(RatioAnalysisService::class)->compute(null, $to->toDateString());
+        $blocks[] = $big($bs['asset_ledgers'], 'Biggest assets');
+        $blocks[] = $big($bs['liability_ledgers'], 'Biggest liabilities and capital');
+        $ratios = $r->ratios(null, $to->toDateString());
         $rr = collect($ratios['ratios'])->filter(fn ($x) => $x['value'] !== null);
         if ($rr->isNotEmpty()) {
             $blocks[] = ['type' => 'table', 'title' => 'The ratios', 'columns' => ['Ratio', 'Value', 'Meaning'], 'rows' => $rr->map(fn ($x) => [$x['label'], ($x['kind'] === 'pct' ? number_format($x['value'], 1) . '%' : number_format($x['value'], 2)), $x['note'] ?? ''])->values()->all()];
@@ -106,7 +105,7 @@ class ReportPack implements InsightPack
         return ['title' => 'Balance sheet', 'blocks' => $blocks, 'basis' => 'Read from posted vouchers and opening balances up to the date.'];
     }
 
-    private function tb(BooksReportService $r, Carbon $from, Carbon $to, string $b): array
+    private function tb(Figures $r, Carbon $from, Carbon $to, string $b): array
     {
         $tb = $r->trialBalance($from->toDateString(), $to->toDateString());
         $blocks = [['type' => 'facts', 'title' => 'Closing totals', 'rows' => [['Debits', $b . ' ' . number_format($tb['total_debit'], 2)], ['Credits', $b . ' ' . number_format($tb['total_credit'], 2)], ['Balanced', $tb['balanced'] ? 'yes' : 'no']]]];

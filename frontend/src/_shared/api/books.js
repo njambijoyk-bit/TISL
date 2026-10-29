@@ -56,13 +56,9 @@ const booksAPI = {
   versions: (id) => get(`/admin/books/vouchers/${id}/versions`),
   entitlements: (params) => get('/admin/books/vouchers/entitlements', params),
   checkSupplierInvoice: (params) => get('/admin/books/vouchers/check-supplier-invoice', params),
-  // what moved: stock with a ledger or an item, and money through cash and bank
   ledgerTaxPreview: (id, params) => get(`/admin/books/ledgers/${id}/tax-preview`, params),
-  movementLedgerItems: (params) => get('/admin/books/movement/ledger-items', params),
-  movementItemVouchers: (params) => get('/admin/books/movement/item-vouchers', params),
-  movementItemLedgers: (params) => get('/admin/books/movement/item-ledgers', params),
+  // what moved: the product search the report pickers use
   movementProducts: (q) => get('/admin/books/movement/products', { q }),
-  moneyFlow: (params) => get('/admin/books/movement/money-flow', params),
   lookup: (kind, q, purpose, extra = {}) => get('/admin/books/lookup', { kind, q, purpose, ...extra }),
   productVariants: (productId) => get(`/admin/books/products/${productId}/variants`),
   stockBatches: (variantId, locationId) => get('/admin/books/stock-batches', { variant_id: variantId, location_id: locationId }),
@@ -97,12 +93,10 @@ const booksAPI = {
 
   // reports
   dashboard: (tab, params) => get(`/admin/books/dashboard/${tab}`, params),
-  report: (name, params) => get(`/admin/books/reports/${name}`, params),
   itemAccounts: (type, id) => get('/admin/books/item-accounts', { type, id }),
   saveItemAccounts: (d) => send('put', '/admin/books/item-accounts', d),
   loyaltyTrueUp: () => send('post', '/admin/books/reconciliation/loyalty-true-up'),
   refreshStockUnits: () => send('post', '/admin/books/reconciliation/stock-refresh'),
-  exportReport: (name, params) => saveBlob(`/admin/books/reports/${name}`, params, `${name}.${params.format}`),
   // the report engine (every report on it): run one, or download it as a file
   engineReport: (key, params) => get(`/admin/reports/${key}`, params),
   exportEngineReport: (key, params) => saveBlob(`/admin/reports/${key}`, params, `${key}.${params.format}`),

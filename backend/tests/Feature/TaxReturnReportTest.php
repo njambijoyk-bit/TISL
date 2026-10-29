@@ -3,7 +3,6 @@
 namespace Tests\Feature;
 
 use App\Models\User;
-use App\Services\Books\ComplianceReportService;
 use App\Services\Books\Engine\LedgerBalances;
 use App\Services\Books\Engine\ReportEngine;
 use App\Services\Books\Engine\Reports\TaxReturnReport;
@@ -21,6 +20,7 @@ use Tests\TestCase;
 class TaxReturnReportTest extends TestCase
 {
     use Concerns\CreatesBooksLedgerWorld;
+    use Concerns\RecordsGolden;
     use Concerns\StandsInForAccess;
 
     private array $v = [];
@@ -129,7 +129,7 @@ class TaxReturnReportTest extends TestCase
     public function test_the_rates_bases_and_supplies_are_the_old_returns(): void
     {
         foreach ([['2026-04-01', '2026-06-30'], ['2026-01-01', '2026-12-31'], ['2026-09-01', '2026-09-30']] as [$from, $to]) {
-            $old = app(ComplianceReportService::class)->taxReturn($from, $to);
+            $old = $this->golden('tax_return', json_encode([$from, $to]));
             $new = $this->run_($from, $to);
             $this->assertSame(array_column($old['types'], 'code'), array_column($new['types'], 'code'));
             foreach ($old['types'] as $o) {
@@ -154,8 +154,6 @@ class TaxReturnReportTest extends TestCase
         $d = $this->run_('2026-04-01', '2026-06-30');
         $vat = $this->type($d, 'VAT');
         $this->assertEquals(720, $vat['closing_owed'], 'at 30 June: 16% ledger 640 + 8% ledger 80 + the account 0 after the payment');
-        $old = app(ComplianceReportService::class)->taxReturn('2026-04-01', '2026-06-30');
-        $this->assertEquals(1040, $this->type(['types' => $old['types']], 'VAT')['closing_owed'], 'the old return gave today\'s figure, with September\'s sale in it');
         $this->assertEquals(1040, $this->type($this->run_('2026-04-01', '2026-12-31'), 'VAT')['closing_owed'], 'and for a period that reaches today, today\'s figure');
     }
 

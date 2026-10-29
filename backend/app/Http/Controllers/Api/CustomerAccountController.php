@@ -8,7 +8,7 @@ use App\Models\Books\Ledger;
 use App\Models\Books\VoucherType;
 use App\Models\Customer;
 use App\Services\Books\BooksException;
-use App\Services\Books\BooksReportService;
+use App\Services\Books\Engine\Figures;
 use App\Services\Books\LedgerService;
 use App\Services\Books\VoucherService;
 use App\Services\CurrencyConversionService;
@@ -21,7 +21,7 @@ use Illuminate\Http\Request;
  */
 class CustomerAccountController extends Controller
 {
-    public function __construct(private LedgerService $ledgers, private BooksReportService $reports, private VoucherService $vouchers, private CurrencyConversionService $money) {}
+    public function __construct(private LedgerService $ledgers, private Figures $reports, private VoucherService $vouchers, private CurrencyConversionService $money) {}
 
     private function guard(callable $fn)
     {
@@ -119,8 +119,7 @@ class CustomerAccountController extends Controller
             $limit = $this->limitBase($c);
             $overdue = 0.0;
             if ($ledger) {
-                $a = $this->reports->ageing('receivables', null, $ledger->id)['totals'];
-                $overdue = $a['d1_30'] + $a['d31_60'] + $a['d61_90'] + $a['d90_plus'];
+                $overdue = $this->reports->ageing('receivables', null, $ledger->id)['totals']['overdue'];
             }
 
             return ['id' => $c->id, 'name' => trim(($c->first_name ?? '') . ' ' . ($c->last_name ?? '')) ?: $c->email, 'limit' => round($limit, 2), 'owed' => round($owed, 2),

@@ -7,7 +7,6 @@ use App\Models\Books\VoucherType;
 use App\Models\CompanyProfile;
 use App\Models\User;
 use App\Services\Access\BranchFilter;
-use App\Services\Books\BooksReportService;
 use App\Services\CurrencyConversionService;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Schema;
@@ -64,8 +63,7 @@ class WnkjapExport
     {
         $level = max(1, min(4, $level));
         $this->rows = 0;
-        $reports = app(BooksReportService::class)->withDimensions(null, $locationId);
-        $trial = $reports->trialBalance($from, $to);
+        $trial = app(\App\Services\Books\Engine\Figures::class)->trialBalance($from, $to, $locationId);
         $profile = CompanyProfile::current();
         $base = app(CurrencyConversionService::class)->getBaseCurrency();
 
@@ -91,7 +89,7 @@ class WnkjapExport
             'company' => ['id' => substr(hash('sha256', 'wnkjap-company|' . config('app.key')), 0, 32), 'name' => $profile->name, 'legal_name' => $profile->legal_name, 'short_code' => $profile->short_code,
                 'tax_pin' => $profile->tax_pin, 'email' => $profile->email, 'phone' => $profile->phone, 'address' => $profile->address, 'city' => $profile->city, 'country' => $profile->country,
                 'base_currency' => $base?->code, 'currency_symbol' => $base?->symbol],
-            'period' => ['from' => $from, 'to' => $to], 'branch_id' => $locationId, 'branch_limited' => (bool) ($trial['branch_limited'] ?? false),
+            'period' => ['from' => $from, 'to' => $to], 'branch_id' => $locationId, 'branch_limited' => app(\App\Services\Access\BranchFilter::class)->enforcing('books'),
             'opening_balances_left_out' => (bool) ($trial['filtered'] ?? false),
             'counts' => array_map('count', $sections),
             'sections' => $sections,

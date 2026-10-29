@@ -66,7 +66,7 @@ export default function CreditTab({ customer, notify }) {
         <div><span style={lab}>OWES ({cur})</span><strong style={{ fontSize: '1.2rem', color: acc.owed > 0 ? colors.warningText : colors.successText }}>{money(acc.owed)}</strong></div>
         <div><span style={lab}>LIMIT ({cur})</span><strong style={{ fontSize: '1.2rem' }}>{acc.limit_base ? money(acc.limit_base) : '—'}</strong></div>
         <div><span style={lab}>AVAILABLE ({cur})</span><strong style={{ fontSize: '1.2rem' }}>{acc.limit_base ? money(acc.available) : '—'}</strong></div>
-        <div><span style={lab}>OVERDUE ({cur})</span><strong style={{ fontSize: '1.2rem', color: colors.dangerText }}>{money((acc.ageing.d1_30 || 0) + (acc.ageing.d31_60 || 0) + (acc.ageing.d61_90 || 0) + (acc.ageing.d90_plus || 0))}</strong></div>
+        <div><span style={lab}>OVERDUE ({cur})</span><strong style={{ fontSize: '1.2rem', color: colors.dangerText }}>{money(acc.ageing.overdue || 0)}</strong></div>
         <div style={{ alignSelf: 'end' }}><Link to={`/admin/books?tab=reports&report=ledger&ledger=${acc.ledger.id}`}>Full statement →</Link></div>
       </div>
 

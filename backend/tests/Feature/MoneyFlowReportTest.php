@@ -5,7 +5,6 @@ namespace Tests\Feature;
 use App\Services\Books\Engine\LedgerBalances;
 use App\Services\Books\Engine\Reports\MoneyFlowReport;
 use App\Services\Books\Engine\Scope;
-use App\Services\Books\MovementReportService;
 use Illuminate\Support\Carbon;
 use Illuminate\Support\Facades\DB;
 use Tests\TestCase;
@@ -52,15 +51,16 @@ class MoneyFlowReportTest extends TestCase
         return collect($rows)->groupBy('group')->map(fn ($g) => round($g->sum('amount'), 2))->all();
     }
 
-    public function test_plain_receipts_and_payments_are_the_old_reports_to_the_cent(): void
+    public function test_plain_receipts_and_payments_give_each_account_its_in_and_out(): void
     {
-        $old = app(MovementReportService::class)->moneyFlow('2026-05-01', '2026-12-31');
-        $new = $this->run_([], '2026-05-01', '2026-12-31');
-        $this->assertEquals($old['totals'], array_intersect_key($new['totals'], ['in' => 1, 'out' => 1]));
-        $this->assertEquals($old['accounts'], $new['accounts']);
-        $this->assertEquals($old['series'], $new['series']);
-        $this->assertEquals(array_map(fn ($r) => [$r['group'], $r['name'], $r['amount']], $old['in']), array_map(fn ($r) => [$r['group'], $r['name'], $r['amount']], $new['in']));
-        $this->assertEquals(array_map(fn ($r) => [$r['group'], $r['name'], $r['amount']], $old['out']), array_map(fn ($r) => [$r['group'], $r['name'], $r['amount']], $new['out']));
+        $d = $this->run_([], '2026-05-01', '2026-12-31');
+        $this->assertEquals($d['totals']['in'], array_sum(array_column($d['accounts'], 'in')));
+        $this->assertEquals($d['totals']['out'], array_sum(array_column($d['accounts'], 'out')));
+        $this->assertEquals($d['totals']['in'], array_sum(array_column($d['in'], 'amount')));
+        $this->assertEquals($d['totals']['out'], array_sum(array_column($d['out'], 'amount')));
+        $this->assertEqualsWithDelta($d['totals']['in'], array_sum(array_column($d['series'], 'in')), 0.01);
+        $this->assertEqualsWithDelta($d['totals']['out'], array_sum(array_column($d['series'], 'out')), 0.01);
+        $this->assertGreaterThan(0, $d['totals']['in']);
     }
 
     public function test_a_sale_paid_600_cash_and_400_mpesa_is_attributed_to_the_sales_and_the_vat_not_adjustments(): void

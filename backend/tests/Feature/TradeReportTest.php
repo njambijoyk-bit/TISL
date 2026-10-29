@@ -6,7 +6,6 @@ use App\Services\Books\Engine\LedgerBalances;
 use App\Services\Books\Engine\ReportEngine;
 use App\Services\Books\Engine\Reports\TradeReport;
 use App\Services\Books\Engine\Scope;
-use App\Services\Books\MovementReportService;
 use Illuminate\Support\Carbon;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Schema;
@@ -75,30 +74,19 @@ class TradeReportTest extends TestCase
         return (new TradeReport())->run(Scope::fromInput(['from' => $from, 'to' => $to]), $opts);
     }
 
-    public function test_a_ledgers_items_are_the_old_reports_to_the_cent(): void
+    public function test_a_ledgers_items_are_listed_with_what_was_sold_and_returned(): void
     {
-        $old = app(MovementReportService::class)->ledgerItems(3, '2026-01-01', '2026-12-31');
         $new = $this->run_(['ledger_id' => 3]);
         $this->assertSame('ledger', $new['mode']);
-        $this->assertEquals($old['rows'], $new['rows']);
-        $this->assertEquals($old['totals'], $new['totals']);
         $sugar = collect($new['rows'])->firstWhere('name', 'Sugar');
         $this->assertEquals([8, 800], [$sugar['sale_qty'], $sugar['sale_value']], '10 sold less 2 returned; the draft, the order and last year are left out');
         $this->assertEquals(100.0, $sugar['sale_rate']);
     }
 
-    public function test_an_items_parties_are_the_old_reports_to_the_cent_and_walk_in_names_are_grouped(): void
+    public function test_an_items_parties_are_listed_and_walk_in_names_are_grouped(): void
     {
-        $old = app(MovementReportService::class)->itemLedgers(1, '2026-01-01', '2026-12-31');
         $new = $this->run_(['item' => 'product:1']);
         $this->assertSame('item', $new['mode']);
-        $byName = collect($new['rows'])->keyBy('name');
-        foreach ($old['rows'] as $o) {
-            if (str_contains(strtolower($o['name']), 'walk')) {
-                continue;   // the old report made a row for every spelling
-            }
-            $this->assertEquals($o, $byName[$o['name']] ?? null, $o['name']);
-        }
         $walkIn = collect($new['rows'])->filter(fn ($r) => $r['ledger_id'] === null && str_contains(strtolower($r['name']), 'walk'));
         $this->assertCount(1, $walkIn, 'two spellings of one name are one row (H5)');
         $this->assertEquals([3, 300], [$walkIn->first()['sale_qty'], $walkIn->first()['sale_value']]);
@@ -106,12 +94,11 @@ class TradeReportTest extends TestCase
 
     public function test_a_party_and_an_item_give_the_vouchers_and_every_party_with_all(): void
     {
-        $old = app(MovementReportService::class)->itemVouchers(1, 3, '2026-01-01', '2026-12-31');
         $new = $this->run_(['ledger_id' => 3, 'item' => 'product:1']);
         $this->assertSame('vouchers', $new['mode']);
-        $this->assertEquals($old['groups'], $new['groups']);
+        $this->assertSame([['Sales', 8.0, 800.0, 2]], array_map(fn ($g) => [$g['kind'], (float) $g['qty'], (float) $g['value'], count($g['rows'])], $new['groups']), 'what one customer bought of the item: 10 sold, 2 returned');
         $all = $this->run_(['ledger_id' => 'all', 'item' => 'product:1']);
-        $this->assertEquals(app(MovementReportService::class)->itemVouchers(1, null, '2026-01-01', '2026-12-31')['groups'], $all['groups']);
+        $this->assertSame([['Sales', 12.0, 1200.0, 5], ['Purchases', 100.0, 6000.0, 1]], array_map(fn ($g) => [$g['kind'], (float) $g['qty'], (float) $g['value'], count($g['rows'])], $all['groups']), 'every party: sales and purchases of the item');
     }
 
     public function test_it_asks_for_a_party_or_an_item_first(): void

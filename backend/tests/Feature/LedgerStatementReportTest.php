@@ -3,7 +3,6 @@
 namespace Tests\Feature;
 
 use App\Models\User;
-use App\Services\Books\BooksReportService;
 use App\Services\Books\Engine\LedgerBalances;
 use App\Services\Books\Engine\ReportEngine;
 use App\Services\Books\Engine\Reports\LedgerStatementReport;
@@ -20,6 +19,7 @@ use Tests\TestCase;
 class LedgerStatementReportTest extends TestCase
 {
     use Concerns\CreatesBooksLedgerWorld;
+    use Concerns\RecordsGolden;
     use Concerns\StandsInForAccess;
 
     protected function setUp(): void
@@ -42,7 +42,7 @@ class LedgerStatementReportTest extends TestCase
 
     private function old(int $ledger, ?string $from, ?string $to, ?int $cc = null, ?int $loc = null): array
     {
-        return app(BooksReportService::class)->withDimensions($cc, $loc)->ledgerStatement($ledger, $from, $to);
+        return $this->golden('ledger_statement', json_encode([$ledger, $from, $to, $cc, $loc, $this->limitedTo]));
     }
 
     public function test_it_matches_the_old_statement_to_the_cent(): void

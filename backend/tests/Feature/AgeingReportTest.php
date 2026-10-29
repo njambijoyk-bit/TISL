@@ -3,7 +3,6 @@
 namespace Tests\Feature;
 
 use App\Models\User;
-use App\Services\Books\BooksReportService;
 use App\Services\Books\Engine\LedgerBalances;
 use App\Services\Books\Engine\ReportEngine;
 use App\Services\Books\Engine\Reports\AgeingReport;
@@ -23,6 +22,7 @@ use Tests\TestCase;
 class AgeingReportTest extends TestCase
 {
     use Concerns\CreatesBooksLedgerWorld;
+    use Concerns\RecordsGolden;
     use Concerns\StandsInForAccess;
 
     private const AS_OF = '2026-10-28';
@@ -130,7 +130,7 @@ class AgeingReportTest extends TestCase
     public function test_the_bills_and_buckets_match_the_old_ageing(): void
     {
         foreach (['receivables', 'payables'] as $side) {
-            $old = app(BooksReportService::class)->ageing($side, self::AS_OF);
+            $old = $this->golden('ageing', $side);
             $new = $this->run_($side);
             $this->assertCount(count($old['rows']), array_filter($new['rows'], fn ($r) => $r['bills']), "{$side}: parties with bills");
             $map = ['b0' => 'current', 'b1' => 'd1_30', 'b2' => 'd31_60', 'b3' => 'd61_90', 'b4' => 'd90_plus'];

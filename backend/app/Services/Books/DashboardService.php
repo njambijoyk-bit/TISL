@@ -15,7 +15,7 @@ use Illuminate\Support\Facades\DB;
  */
 class DashboardService
 {
-    public function __construct(private BooksReportService $reports, private LedgerService $ledgers) {}
+    public function __construct(private Engine\Figures $reports, private LedgerService $ledgers) {}
 
     /** Sales / purchases base types and how each counts towards the trend. */
     private const SIDES = [

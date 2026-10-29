@@ -26,6 +26,7 @@ use App\Services\Books\Engine\Reports\BooksHealthReport;
 use App\Services\Books\Engine\Reports\ControlAccountsReport;
 use App\Services\Books\Engine\Reports\DayBookReport;
 use App\Services\Books\Engine\Reports\LedgerStatementReport;
+use App\Services\Books\Engine\Reports\ProfitLossByCostCentreReport;
 use App\Services\Books\Engine\Reports\ProfitLossReport;
 use App\Services\Books\Engine\Reports\TrialBalanceReport;
 use App\Services\Books\ReportSettings;
@@ -58,6 +59,7 @@ final class ReportEngine
         CashFlowReport::class,
         ControlAccountsReport::class,
         BooksHealthReport::class,
+        ProfitLossByCostCentreReport::class,
         StockJournalReport::class,
         StockSummaryReport::class,
         StockLocationSummaryReport::class,

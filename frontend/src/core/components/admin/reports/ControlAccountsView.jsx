@@ -36,6 +36,11 @@ export default function ControlAccountsView({ result, drill }) {
             ))}
           </tbody>
         </table>
+        {d.not_set_up?.length > 0 && (
+          <div style={{ padding: '10px 14px', borderTop: `1px solid ${colors.tint(0.05)}`, fontSize: '0.76rem', color: colors.warningText }}>
+            {d.not_set_up.map((c) => <div key={c.key}><b>{c.title}</b>: not set up. {c.message}</div>)}
+          </div>
+        )}
       </div>
     </div>
   );

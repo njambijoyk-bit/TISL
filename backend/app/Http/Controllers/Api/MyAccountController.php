@@ -6,7 +6,7 @@ use App\Http\Controllers\Controller;
 use App\Models\Books\Ledger;
 use App\Models\Books\Voucher;
 use App\Models\Books\VoucherType;
-use App\Services\Books\BooksReportService;
+use App\Services\Books\Engine\Figures;
 use App\Services\Books\ExportService;
 use Carbon\Carbon;
 use App\Services\Books\LedgerService;
@@ -23,7 +23,7 @@ use Illuminate\Http\Request;
  */
 class MyAccountController extends Controller
 {
-    public function show(Request $request, LedgerService $ledgers, OpenBillsService $open, BooksReportService $reports, PaymentModeService $modes, CurrencyConversionService $money): JsonResponse
+    public function show(Request $request, LedgerService $ledgers, OpenBillsService $open, Figures $reports, PaymentModeService $modes, CurrencyConversionService $money): JsonResponse
     {
         $c = $request->user()?->customer;
         abort_unless($c, 404);
@@ -119,7 +119,7 @@ class MyAccountController extends Controller
     }
 
     /** The customer's statement for the chosen period as a download (pdf, csv, xml, html or json). Always their own ledger. */
-    public function statementExport(Request $request, BooksReportService $reports, ExportService $export, CurrencyConversionService $money)
+    public function statementExport(Request $request, Figures $reports, ExportService $export, CurrencyConversionService $money)
     {
         $c = $request->user()?->customer;
         abort_unless($c, 404);
@@ -155,7 +155,7 @@ class MyAccountController extends Controller
      * "Ledger outstandings": the open bills on my ledger as a formal letter (pdf, html, or csv/xml/json rows). Amounts are in the base
      * currency, taken from the ageing report that already restates foreign-currency bills.
      */
-    public function outstandingsExport(Request $request, OpenBillsService $open, BooksReportService $reports, ExportService $export, CurrencyConversionService $money)
+    public function outstandingsExport(Request $request, OpenBillsService $open, Figures $reports, ExportService $export, CurrencyConversionService $money)
     {
         $c = $request->user()?->customer;
         abort_unless($c, 404);

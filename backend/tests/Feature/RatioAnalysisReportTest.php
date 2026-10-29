@@ -7,7 +7,6 @@ use App\Services\Books\Engine\LedgerBalances;
 use App\Services\Books\Engine\ReportEngine;
 use App\Services\Books\Engine\Reports\RatioAnalysisReport;
 use App\Services\Books\Engine\Scope;
-use App\Services\Books\RatioAnalysisService;
 use Illuminate\Support\Carbon;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Schema;
@@ -21,6 +20,7 @@ use Tests\TestCase;
 class RatioAnalysisReportTest extends TestCase
 {
     use Concerns\CreatesBooksLedgerWorld;
+    use Concerns\RecordsGolden;
     use Concerns\StandsInForAccess;
 
     protected function setUp(): void
@@ -113,7 +113,7 @@ class RatioAnalysisReportTest extends TestCase
     {
         $this->inputs($this->chosen() + ['stock' => [[999], []]]);   // chosen, with nothing in it: the old service counted no stock as 0
         $new = $this->run_();
-        $old = app(RatioAnalysisService::class)->compute('2026-01-01', '2026-10-28');
+        $old = $this->golden('ratio', 'agree');
         foreach (['bank', 'debtors', 'creditors', 'sales', 'purchases', 'net_profit', 'working_capital'] as $k) {
             $o = collect($old['groups'])->firstWhere('key', $k);
             $this->assertEquals($o['amount'], $this->figure($new, $k), "figure {$k}");
@@ -134,7 +134,7 @@ class RatioAnalysisReportTest extends TestCase
         $this->assertEquals(30000 - 6000 + 233500, $e['total']);
         $net = $this->figure($d, 'net_profit');
         $this->assertEquals(round($net / $e['total'] * 100, 2), $this->ratio($d, 'roi')['value'], 'return on investment is over capital plus retained earnings');
-        $old = app(RatioAnalysisService::class)->compute('2026-01-01', '2026-10-28');
+        $old = $this->golden('ratio', 'roi');
         $this->assertNotEquals(collect($old['ratios'])->firstWhere('key', 'roi')['value'], $this->ratio($d, 'roi')['value'], 'the old one used capital plus this period\'s profit only');
     }
 

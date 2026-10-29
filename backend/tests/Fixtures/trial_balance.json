@@ -1,0 +1,1645 @@
+{
+    "[\"2025-12-01\",\"2025-12-31\",null,null,null]": {
+        "from": "2025-12-01",
+        "to": "2025-12-31",
+        "branch_limited": false,
+        "rows": [
+            {
+                "ledger_id": 1,
+                "ledger": "Cash",
+                "group": "Bank Accounts",
+                "nature": "asset",
+                "opening": 50000.0,
+                "debit": 0.0,
+                "credit": 5000.0,
+                "closing": 45000.0
+            },
+            {
+                "ledger_id": 7,
+                "ledger": "Capital",
+                "group": "Capital Account",
+                "nature": "liability",
+                "opening": -30000.0,
+                "debit": 0.0,
+                "credit": 0.0,
+                "closing": -30000.0
+            },
+            {
+                "ledger_id": 6,
+                "ledger": "Rent",
+                "group": "Indirect Expenses",
+                "nature": "expense",
+                "opening": 1000.0,
+                "debit": 5000.0,
+                "credit": 0.0,
+                "closing": 6000.0
+            },
+            {
+                "ledger_id": null,
+                "ledger": "Difference in opening balances",
+                "group": "",
+                "nature": null,
+                "placeholder": true,
+                "opening": -21000.0,
+                "debit": 0,
+                "credit": 0,
+                "closing": -21000.0
+            }
+        ],
+        "total_debit": 51000.0,
+        "total_credit": 51000.0,
+        "balanced": true,
+        "restated_vouchers": 1,
+        "opening_difference": 21000.0,
+        "opening_balances": [
+            {
+                "ledger_id": 1,
+                "ledger": "Cash",
+                "group": "Bank Accounts",
+                "amount": 50000.0,
+                "side": "Dr"
+            },
+            {
+                "ledger_id": 7,
+                "ledger": "Capital",
+                "group": "Capital Account",
+                "amount": 30000.0,
+                "side": "Cr"
+            },
+            {
+                "ledger_id": 6,
+                "ledger": "Rent",
+                "group": "Indirect Expenses",
+                "amount": 1000.0,
+                "side": "Dr"
+            }
+        ],
+        "filtered": false
+    },
+    "[\"2026-01-01\",\"2026-12-31\",10,1,null]": {
+        "from": "2026-01-01",
+        "to": "2026-12-31",
+        "branch_limited": false,
+        "rows": [
+            {
+                "ledger_id": 1,
+                "ledger": "Cash",
+                "group": "Bank Accounts",
+                "nature": "asset",
+                "opening": -5000.0,
+                "debit": 167000.0,
+                "credit": 300.0,
+                "closing": 161700.0
+            },
+            {
+                "ledger_id": 2,
+                "ledger": "M-Pesa",
+                "group": "Bank Accounts",
+                "nature": "asset",
+                "opening": 0.0,
+                "debit": 0.0,
+                "credit": 7000.0,
+                "closing": -7000.0
+            },
+            {
+                "ledger_id": 12,
+                "ledger": "Bank charges",
+                "group": "Indirect Expenses",
+                "nature": "expense",
+                "opening": 0.0,
+                "debit": 300.0,
+                "credit": 0.0,
+                "closing": 300.0
+            },
+            {
+                "ledger_id": 6,
+                "ledger": "Rent",
+                "group": "Indirect Expenses",
+                "nature": "expense",
+                "opening": 5000.0,
+                "debit": 7000.0,
+                "credit": 0.0,
+                "closing": 12000.0
+            },
+            {
+                "ledger_id": 9,
+                "ledger": "Interest income",
+                "group": "Indirect Incomes",
+                "nature": "income",
+                "opening": 0.0,
+                "debit": 0.0,
+                "credit": 2000.0,
+                "closing": -2000.0
+            },
+            {
+                "ledger_id": 5,
+                "ledger": "Purchases",
+                "group": "Purchase Accounts",
+                "nature": "expense",
+                "opening": 0.0,
+                "debit": 5000.0,
+                "credit": 0.0,
+                "closing": 5000.0
+            },
+            {
+                "ledger_id": 4,
+                "ledger": "Sales",
+                "group": "Sales Accounts",
+                "nature": "income",
+                "opening": 0.0,
+                "debit": 0.0,
+                "credit": 295000.0,
+                "closing": -295000.0
+            },
+            {
+                "ledger_id": 10,
+                "ledger": "Trade Creditor",
+                "group": "Sundry Creditors",
+                "nature": "liability",
+                "opening": 0.0,
+                "debit": 0.0,
+                "credit": 5000.0,
+                "closing": -5000.0
+            },
+            {
+                "ledger_id": 3,
+                "ledger": "Customer A",
+                "group": "Sundry Debtors",
+                "nature": "asset",
+                "opening": 0.0,
+                "debit": 130000.0,
+                "credit": 0.0,
+                "closing": 130000.0
+            }
+        ],
+        "total_debit": 309000.0,
+        "total_credit": 309000.0,
+        "balanced": true,
+        "restated_vouchers": 1,
+        "opening_difference": 0.0,
+        "opening_balances": [],
+        "filtered": true
+    },
+    "[\"2026-01-01\",\"2026-12-31\",10,null,null]": {
+        "from": "2026-01-01",
+        "to": "2026-12-31",
+        "branch_limited": false,
+        "rows": [
+            {
+                "ledger_id": 1,
+                "ledger": "Cash",
+                "group": "Bank Accounts",
+                "nature": "asset",
+                "opening": -5000.0,
+                "debit": 167800.0,
+                "credit": 40300.0,
+                "closing": 122500.0
+            },
+            {
+                "ledger_id": 2,
+                "ledger": "M-Pesa",
+                "group": "Bank Accounts",
+                "nature": "asset",
+                "opening": 0.0,
+                "debit": 0.0,
+                "credit": 7000.0,
+                "closing": -7000.0
+            },
+            {
+                "ledger_id": 12,
+                "ledger": "Bank charges",
+                "group": "Indirect Expenses",
+                "nature": "expense",
+                "opening": 0.0,
+                "debit": 300.0,
+                "credit": 0.0,
+                "closing": 300.0
+            },
+            {
+                "ledger_id": 6,
+                "ledger": "Rent",
+                "group": "Indirect Expenses",
+                "nature": "expense",
+                "opening": 5000.0,
+                "debit": 7000.0,
+                "credit": 0.0,
+                "closing": 12000.0
+            },
+            {
+                "ledger_id": 9,
+                "ledger": "Interest income",
+                "group": "Indirect Incomes",
+                "nature": "income",
+                "opening": 0.0,
+                "debit": 0.0,
+                "credit": 2000.0,
+                "closing": -2000.0
+            },
+            {
+                "ledger_id": 11,
+                "ledger": "Misc income",
+                "group": "Other Receipts",
+                "nature": "income",
+                "opening": 0.0,
+                "debit": 0.0,
+                "credit": 800.0,
+                "closing": -800.0
+            },
+            {
+                "ledger_id": 5,
+                "ledger": "Purchases",
+                "group": "Purchase Accounts",
+                "nature": "expense",
+                "opening": 0.0,
+                "debit": 45000.0,
+                "credit": 0.0,
+                "closing": 45000.0
+            },
+            {
+                "ledger_id": 4,
+                "ledger": "Sales",
+                "group": "Sales Accounts",
+                "nature": "income",
+                "opening": 0.0,
+                "debit": 0.0,
+                "credit": 295000.0,
+                "closing": -295000.0
+            },
+            {
+                "ledger_id": 10,
+                "ledger": "Trade Creditor",
+                "group": "Sundry Creditors",
+                "nature": "liability",
+                "opening": 0.0,
+                "debit": 0.0,
+                "credit": 5000.0,
+                "closing": -5000.0
+            },
+            {
+                "ledger_id": 3,
+                "ledger": "Customer A",
+                "group": "Sundry Debtors",
+                "nature": "asset",
+                "opening": 0.0,
+                "debit": 130000.0,
+                "credit": 0.0,
+                "closing": 130000.0
+            }
+        ],
+        "total_debit": 309800.0,
+        "total_credit": 309800.0,
+        "balanced": true,
+        "restated_vouchers": 1,
+        "opening_difference": 0.0,
+        "opening_balances": [],
+        "filtered": true
+    },
+    "[\"2026-01-01\",\"2026-12-31\",11,null,null]": {
+        "from": "2026-01-01",
+        "to": "2026-12-31",
+        "branch_limited": false,
+        "rows": [
+            {
+                "ledger_id": 1,
+                "ledger": "Cash",
+                "group": "Bank Accounts",
+                "nature": "asset",
+                "opening": 0.0,
+                "debit": 800.0,
+                "credit": 40000.0,
+                "closing": -39200.0
+            },
+            {
+                "ledger_id": 6,
+                "ledger": "Rent",
+                "group": "Indirect Expenses",
+                "nature": "expense",
+                "opening": 0.0,
+                "debit": 4000.0,
+                "credit": 0.0,
+                "closing": 4000.0
+            },
+            {
+                "ledger_id": 11,
+                "ledger": "Misc income",
+                "group": "Other Receipts",
+                "nature": "income",
+                "opening": 0.0,
+                "debit": 0.0,
+                "credit": 800.0,
+                "closing": -800.0
+            },
+            {
+                "ledger_id": 5,
+                "ledger": "Purchases",
+                "group": "Purchase Accounts",
+                "nature": "expense",
+                "opening": 0.0,
+                "debit": 40000.0,
+                "credit": 0.0,
+                "closing": 40000.0
+            }
+        ],
+        "total_debit": 44000.0,
+        "total_credit": 40000.0,
+        "balanced": false,
+        "restated_vouchers": 1,
+        "opening_difference": 0.0,
+        "opening_balances": [],
+        "filtered": true
+    },
+    "[\"2026-01-01\",\"2026-12-31\",null,1,null]": {
+        "from": "2026-01-01",
+        "to": "2026-12-31",
+        "branch_limited": false,
+        "rows": [
+            {
+                "ledger_id": 1,
+                "ledger": "Cash",
+                "group": "Bank Accounts",
+                "nature": "asset",
+                "opening": -5000.0,
+                "debit": 167000.0,
+                "credit": 300.0,
+                "closing": 161700.0
+            },
+            {
+                "ledger_id": 2,
+                "ledger": "M-Pesa",
+                "group": "Bank Accounts",
+                "nature": "asset",
+                "opening": 0.0,
+                "debit": 0.0,
+                "credit": 7000.0,
+                "closing": -7000.0
+            },
+            {
+                "ledger_id": 12,
+                "ledger": "Bank charges",
+                "group": "Indirect Expenses",
+                "nature": "expense",
+                "opening": 0.0,
+                "debit": 300.0,
+                "credit": 0.0,
+                "closing": 300.0
+            },
+            {
+                "ledger_id": 6,
+                "ledger": "Rent",
+                "group": "Indirect Expenses",
+                "nature": "expense",
+                "opening": 5000.0,
+                "debit": 7000.0,
+                "credit": 0.0,
+                "closing": 12000.0
+            },
+            {
+                "ledger_id": 9,
+                "ledger": "Interest income",
+                "group": "Indirect Incomes",
+                "nature": "income",
+                "opening": 0.0,
+                "debit": 0.0,
+                "credit": 2000.0,
+                "closing": -2000.0
+            },
+            {
+                "ledger_id": 5,
+                "ledger": "Purchases",
+                "group": "Purchase Accounts",
+                "nature": "expense",
+                "opening": 0.0,
+                "debit": 5000.0,
+                "credit": 0.0,
+                "closing": 5000.0
+            },
+            {
+                "ledger_id": 4,
+                "ledger": "Sales",
+                "group": "Sales Accounts",
+                "nature": "income",
+                "opening": 0.0,
+                "debit": 0.0,
+                "credit": 295000.0,
+                "closing": -295000.0
+            },
+            {
+                "ledger_id": 10,
+                "ledger": "Trade Creditor",
+                "group": "Sundry Creditors",
+                "nature": "liability",
+                "opening": 0.0,
+                "debit": 0.0,
+                "credit": 5000.0,
+                "closing": -5000.0
+            },
+            {
+                "ledger_id": 3,
+                "ledger": "Customer A",
+                "group": "Sundry Debtors",
+                "nature": "asset",
+                "opening": 0.0,
+                "debit": 130000.0,
+                "credit": 0.0,
+                "closing": 130000.0
+            }
+        ],
+        "total_debit": 309000.0,
+        "total_credit": 309000.0,
+        "balanced": true,
+        "restated_vouchers": 1,
+        "opening_difference": 0.0,
+        "opening_balances": [],
+        "filtered": true
+    },
+    "[\"2026-01-01\",\"2026-12-31\",null,2,null]": {
+        "from": "2026-01-01",
+        "to": "2026-12-31",
+        "branch_limited": false,
+        "rows": [
+            {
+                "ledger_id": 1,
+                "ledger": "Cash",
+                "group": "Bank Accounts",
+                "nature": "asset",
+                "opening": 0.0,
+                "debit": 800.0,
+                "credit": 40000.0,
+                "closing": -39200.0
+            },
+            {
+                "ledger_id": 11,
+                "ledger": "Misc income",
+                "group": "Other Receipts",
+                "nature": "income",
+                "opening": 0.0,
+                "debit": 0.0,
+                "credit": 800.0,
+                "closing": -800.0
+            },
+            {
+                "ledger_id": 5,
+                "ledger": "Purchases",
+                "group": "Purchase Accounts",
+                "nature": "expense",
+                "opening": 0.0,
+                "debit": 40000.0,
+                "credit": 0.0,
+                "closing": 40000.0
+            }
+        ],
+        "total_debit": 40000.0,
+        "total_credit": 40000.0,
+        "balanced": true,
+        "restated_vouchers": 1,
+        "opening_difference": 0.0,
+        "opening_balances": [],
+        "filtered": true
+    },
+    "[\"2026-01-01\",\"2026-12-31\",null,null,[1]]": {
+        "from": "2026-01-01",
+        "to": "2026-12-31",
+        "branch_limited": true,
+        "rows": [
+            {
+                "ledger_id": 1,
+                "ledger": "Cash",
+                "group": "Bank Accounts",
+                "nature": "asset",
+                "opening": 45000.0,
+                "debit": 167000.0,
+                "credit": 300.0,
+                "closing": 211700.0
+            },
+            {
+                "ledger_id": 2,
+                "ledger": "M-Pesa",
+                "group": "Bank Accounts",
+                "nature": "asset",
+                "opening": 0.0,
+                "debit": 0.0,
+                "credit": 7000.0,
+                "closing": -7000.0
+            },
+            {
+                "ledger_id": 7,
+                "ledger": "Capital",
+                "group": "Capital Account",
+                "nature": "liability",
+                "opening": -30000.0,
+                "debit": 0.0,
+                "credit": 0.0,
+                "closing": -30000.0
+            },
+            {
+                "ledger_id": 8,
+                "ledger": "Supplier",
+                "group": "Current Liabilities",
+                "nature": "liability",
+                "opening": 0.0,
+                "debit": 0.0,
+                "credit": 12000.0,
+                "closing": -12000.0
+            },
+            {
+                "ledger_id": 12,
+                "ledger": "Bank charges",
+                "group": "Indirect Expenses",
+                "nature": "expense",
+                "opening": 0.0,
+                "debit": 300.0,
+                "credit": 0.0,
+                "closing": 300.0
+            },
+            {
+                "ledger_id": 6,
+                "ledger": "Rent",
+                "group": "Indirect Expenses",
+                "nature": "expense",
+                "opening": 6000.0,
+                "debit": 19000.0,
+                "credit": 0.0,
+                "closing": 25000.0
+            },
+            {
+                "ledger_id": 9,
+                "ledger": "Interest income",
+                "group": "Indirect Incomes",
+                "nature": "income",
+                "opening": 0.0,
+                "debit": 0.0,
+                "credit": 2000.0,
+                "closing": -2000.0
+            },
+            {
+                "ledger_id": 5,
+                "ledger": "Purchases",
+                "group": "Purchase Accounts",
+                "nature": "expense",
+                "opening": 0.0,
+                "debit": 5000.0,
+                "credit": 0.0,
+                "closing": 5000.0
+            },
+            {
+                "ledger_id": 4,
+                "ledger": "Sales",
+                "group": "Sales Accounts",
+                "nature": "income",
+                "opening": 0.0,
+                "debit": 0.0,
+                "credit": 295000.0,
+                "closing": -295000.0
+            },
+            {
+                "ledger_id": 10,
+                "ledger": "Trade Creditor",
+                "group": "Sundry Creditors",
+                "nature": "liability",
+                "opening": 0.0,
+                "debit": 0.0,
+                "credit": 5000.0,
+                "closing": -5000.0
+            },
+            {
+                "ledger_id": 3,
+                "ledger": "Customer A",
+                "group": "Sundry Debtors",
+                "nature": "asset",
+                "opening": 0.0,
+                "debit": 130000.0,
+                "credit": 0.0,
+                "closing": 130000.0
+            },
+            {
+                "ledger_id": null,
+                "ledger": "Difference in opening balances",
+                "group": "",
+                "nature": null,
+                "placeholder": true,
+                "opening": -21000.0,
+                "debit": 0,
+                "credit": 0,
+                "closing": -21000.0
+            }
+        ],
+        "total_debit": 372000.0,
+        "total_credit": 372000.0,
+        "balanced": true,
+        "restated_vouchers": 1,
+        "opening_difference": 21000.0,
+        "opening_balances": [
+            {
+                "ledger_id": 1,
+                "ledger": "Cash",
+                "group": "Bank Accounts",
+                "amount": 50000.0,
+                "side": "Dr"
+            },
+            {
+                "ledger_id": 7,
+                "ledger": "Capital",
+                "group": "Capital Account",
+                "amount": 30000.0,
+                "side": "Cr"
+            },
+            {
+                "ledger_id": 6,
+                "ledger": "Rent",
+                "group": "Indirect Expenses",
+                "amount": 1000.0,
+                "side": "Dr"
+            }
+        ],
+        "filtered": false
+    },
+    "[\"2026-01-01\",\"2026-12-31\",null,null,null]": {
+        "from": "2026-01-01",
+        "to": "2026-12-31",
+        "branch_limited": false,
+        "rows": [
+            {
+                "ledger_id": 1,
+                "ledger": "Cash",
+                "group": "Bank Accounts",
+                "nature": "asset",
+                "opening": 45000.0,
+                "debit": 167800.0,
+                "credit": 40300.0,
+                "closing": 172500.0
+            },
+            {
+                "ledger_id": 2,
+                "ledger": "M-Pesa",
+                "group": "Bank Accounts",
+                "nature": "asset",
+                "opening": 0.0,
+                "debit": 0.0,
+                "credit": 7000.0,
+                "closing": -7000.0
+            },
+            {
+                "ledger_id": 7,
+                "ledger": "Capital",
+                "group": "Capital Account",
+                "nature": "liability",
+                "opening": -30000.0,
+                "debit": 0.0,
+                "credit": 0.0,
+                "closing": -30000.0
+            },
+            {
+                "ledger_id": 8,
+                "ledger": "Supplier",
+                "group": "Current Liabilities",
+                "nature": "liability",
+                "opening": 0.0,
+                "debit": 0.0,
+                "credit": 12000.0,
+                "closing": -12000.0
+            },
+            {
+                "ledger_id": 12,
+                "ledger": "Bank charges",
+                "group": "Indirect Expenses",
+                "nature": "expense",
+                "opening": 0.0,
+                "debit": 300.0,
+                "credit": 0.0,
+                "closing": 300.0
+            },
+            {
+                "ledger_id": 6,
+                "ledger": "Rent",
+                "group": "Indirect Expenses",
+                "nature": "expense",
+                "opening": 6000.0,
+                "debit": 19000.0,
+                "credit": 0.0,
+                "closing": 25000.0
+            },
+            {
+                "ledger_id": 9,
+                "ledger": "Interest income",
+                "group": "Indirect Incomes",
+                "nature": "income",
+                "opening": 0.0,
+                "debit": 0.0,
+                "credit": 2000.0,
+                "closing": -2000.0
+            },
+            {
+                "ledger_id": 11,
+                "ledger": "Misc income",
+                "group": "Other Receipts",
+                "nature": "income",
+                "opening": 0.0,
+                "debit": 0.0,
+                "credit": 800.0,
+                "closing": -800.0
+            },
+            {
+                "ledger_id": 5,
+                "ledger": "Purchases",
+                "group": "Purchase Accounts",
+                "nature": "expense",
+                "opening": 0.0,
+                "debit": 45000.0,
+                "credit": 0.0,
+                "closing": 45000.0
+            },
+            {
+                "ledger_id": 4,
+                "ledger": "Sales",
+                "group": "Sales Accounts",
+                "nature": "income",
+                "opening": 0.0,
+                "debit": 0.0,
+                "credit": 295000.0,
+                "closing": -295000.0
+            },
+            {
+                "ledger_id": 10,
+                "ledger": "Trade Creditor",
+                "group": "Sundry Creditors",
+                "nature": "liability",
+                "opening": 0.0,
+                "debit": 0.0,
+                "credit": 5000.0,
+                "closing": -5000.0
+            },
+            {
+                "ledger_id": 3,
+                "ledger": "Customer A",
+                "group": "Sundry Debtors",
+                "nature": "asset",
+                "opening": 0.0,
+                "debit": 130000.0,
+                "credit": 0.0,
+                "closing": 130000.0
+            },
+            {
+                "ledger_id": null,
+                "ledger": "Difference in opening balances",
+                "group": "",
+                "nature": null,
+                "placeholder": true,
+                "opening": -21000.0,
+                "debit": 0,
+                "credit": 0,
+                "closing": -21000.0
+            }
+        ],
+        "total_debit": 372800.0,
+        "total_credit": 372800.0,
+        "balanced": true,
+        "restated_vouchers": 1,
+        "opening_difference": 21000.0,
+        "opening_balances": [
+            {
+                "ledger_id": 1,
+                "ledger": "Cash",
+                "group": "Bank Accounts",
+                "amount": 50000.0,
+                "side": "Dr"
+            },
+            {
+                "ledger_id": 7,
+                "ledger": "Capital",
+                "group": "Capital Account",
+                "amount": 30000.0,
+                "side": "Cr"
+            },
+            {
+                "ledger_id": 6,
+                "ledger": "Rent",
+                "group": "Indirect Expenses",
+                "amount": 1000.0,
+                "side": "Dr"
+            }
+        ],
+        "filtered": false
+    },
+    "[\"2026-03-01\",null,null,null,null]": {
+        "from": "2026-03-01",
+        "to": null,
+        "branch_limited": false,
+        "rows": [
+            {
+                "ledger_id": 1,
+                "ledger": "Cash",
+                "group": "Bank Accounts",
+                "nature": "asset",
+                "opening": 105000.0,
+                "debit": 67800.0,
+                "credit": 300.0,
+                "closing": 172500.0
+            },
+            {
+                "ledger_id": 2,
+                "ledger": "M-Pesa",
+                "group": "Bank Accounts",
+                "nature": "asset",
+                "opening": 0.0,
+                "debit": 0.0,
+                "credit": 7000.0,
+                "closing": -7000.0
+            },
+            {
+                "ledger_id": 7,
+                "ledger": "Capital",
+                "group": "Capital Account",
+                "nature": "liability",
+                "opening": -30000.0,
+                "debit": 0.0,
+                "credit": 0.0,
+                "closing": -30000.0
+            },
+            {
+                "ledger_id": 8,
+                "ledger": "Supplier",
+                "group": "Current Liabilities",
+                "nature": "liability",
+                "opening": 0.0,
+                "debit": 0.0,
+                "credit": 12000.0,
+                "closing": -12000.0
+            },
+            {
+                "ledger_id": 12,
+                "ledger": "Bank charges",
+                "group": "Indirect Expenses",
+                "nature": "expense",
+                "opening": 0.0,
+                "debit": 300.0,
+                "credit": 0.0,
+                "closing": 300.0
+            },
+            {
+                "ledger_id": 6,
+                "ledger": "Rent",
+                "group": "Indirect Expenses",
+                "nature": "expense",
+                "opening": 6000.0,
+                "debit": 19000.0,
+                "credit": 0.0,
+                "closing": 25000.0
+            },
+            {
+                "ledger_id": 9,
+                "ledger": "Interest income",
+                "group": "Indirect Incomes",
+                "nature": "income",
+                "opening": 0.0,
+                "debit": 0.0,
+                "credit": 2000.0,
+                "closing": -2000.0
+            },
+            {
+                "ledger_id": 11,
+                "ledger": "Misc income",
+                "group": "Other Receipts",
+                "nature": "income",
+                "opening": 0.0,
+                "debit": 0.0,
+                "credit": 800.0,
+                "closing": -800.0
+            },
+            {
+                "ledger_id": 5,
+                "ledger": "Purchases",
+                "group": "Purchase Accounts",
+                "nature": "expense",
+                "opening": 40000.0,
+                "debit": 5000.0,
+                "credit": 0.0,
+                "closing": 45000.0
+            },
+            {
+                "ledger_id": 4,
+                "ledger": "Sales",
+                "group": "Sales Accounts",
+                "nature": "income",
+                "opening": -100000.0,
+                "debit": 0.0,
+                "credit": 195000.0,
+                "closing": -295000.0
+            },
+            {
+                "ledger_id": 10,
+                "ledger": "Trade Creditor",
+                "group": "Sundry Creditors",
+                "nature": "liability",
+                "opening": 0.0,
+                "debit": 0.0,
+                "credit": 5000.0,
+                "closing": -5000.0
+            },
+            {
+                "ledger_id": 3,
+                "ledger": "Customer A",
+                "group": "Sundry Debtors",
+                "nature": "asset",
+                "opening": 0.0,
+                "debit": 130000.0,
+                "credit": 0.0,
+                "closing": 130000.0
+            },
+            {
+                "ledger_id": null,
+                "ledger": "Difference in opening balances",
+                "group": "",
+                "nature": null,
+                "placeholder": true,
+                "opening": -21000.0,
+                "debit": 0,
+                "credit": 0,
+                "closing": -21000.0
+            }
+        ],
+        "total_debit": 372800.0,
+        "total_credit": 372800.0,
+        "balanced": true,
+        "restated_vouchers": 1,
+        "opening_difference": 21000.0,
+        "opening_balances": [
+            {
+                "ledger_id": 1,
+                "ledger": "Cash",
+                "group": "Bank Accounts",
+                "amount": 50000.0,
+                "side": "Dr"
+            },
+            {
+                "ledger_id": 7,
+                "ledger": "Capital",
+                "group": "Capital Account",
+                "amount": 30000.0,
+                "side": "Cr"
+            },
+            {
+                "ledger_id": 6,
+                "ledger": "Rent",
+                "group": "Indirect Expenses",
+                "amount": 1000.0,
+                "side": "Dr"
+            }
+        ],
+        "filtered": false
+    },
+    "[\"2026-04-01\",\"2026-04-30\",null,null,null]": {
+        "from": "2026-04-01",
+        "to": "2026-04-30",
+        "branch_limited": false,
+        "rows": [
+            {
+                "ledger_id": 1,
+                "ledger": "Cash",
+                "group": "Bank Accounts",
+                "nature": "asset",
+                "opening": 105000.0,
+                "debit": 65000.0,
+                "credit": 0.0,
+                "closing": 170000.0
+            },
+            {
+                "ledger_id": 7,
+                "ledger": "Capital",
+                "group": "Capital Account",
+                "nature": "liability",
+                "opening": -30000.0,
+                "debit": 0.0,
+                "credit": 0.0,
+                "closing": -30000.0
+            },
+            {
+                "ledger_id": 6,
+                "ledger": "Rent",
+                "group": "Indirect Expenses",
+                "nature": "expense",
+                "opening": 6000.0,
+                "debit": 0.0,
+                "credit": 0.0,
+                "closing": 6000.0
+            },
+            {
+                "ledger_id": 5,
+                "ledger": "Purchases",
+                "group": "Purchase Accounts",
+                "nature": "expense",
+                "opening": 40000.0,
+                "debit": 0.0,
+                "credit": 0.0,
+                "closing": 40000.0
+            },
+            {
+                "ledger_id": 4,
+                "ledger": "Sales",
+                "group": "Sales Accounts",
+                "nature": "income",
+                "opening": -230000.0,
+                "debit": 0.0,
+                "credit": 65000.0,
+                "closing": -295000.0
+            },
+            {
+                "ledger_id": 3,
+                "ledger": "Customer A",
+                "group": "Sundry Debtors",
+                "nature": "asset",
+                "opening": 130000.0,
+                "debit": 0.0,
+                "credit": 0.0,
+                "closing": 130000.0
+            },
+            {
+                "ledger_id": null,
+                "ledger": "Difference in opening balances",
+                "group": "",
+                "nature": null,
+                "placeholder": true,
+                "opening": -21000.0,
+                "debit": 0,
+                "credit": 0,
+                "closing": -21000.0
+            }
+        ],
+        "total_debit": 346000.0,
+        "total_credit": 346000.0,
+        "balanced": true,
+        "restated_vouchers": 1,
+        "opening_difference": 21000.0,
+        "opening_balances": [
+            {
+                "ledger_id": 1,
+                "ledger": "Cash",
+                "group": "Bank Accounts",
+                "amount": 50000.0,
+                "side": "Dr"
+            },
+            {
+                "ledger_id": 7,
+                "ledger": "Capital",
+                "group": "Capital Account",
+                "amount": 30000.0,
+                "side": "Cr"
+            },
+            {
+                "ledger_id": 6,
+                "ledger": "Rent",
+                "group": "Indirect Expenses",
+                "amount": 1000.0,
+                "side": "Dr"
+            }
+        ],
+        "filtered": false
+    },
+    "[\"2027-01-01\",\"2027-12-31\",null,null,null]": {
+        "from": "2027-01-01",
+        "to": "2027-12-31",
+        "branch_limited": false,
+        "rows": [
+            {
+                "ledger_id": 1,
+                "ledger": "Cash",
+                "group": "Bank Accounts",
+                "nature": "asset",
+                "opening": 172500.0,
+                "debit": 0.0,
+                "credit": 0.0,
+                "closing": 172500.0
+            },
+            {
+                "ledger_id": 2,
+                "ledger": "M-Pesa",
+                "group": "Bank Accounts",
+                "nature": "asset",
+                "opening": -7000.0,
+                "debit": 0.0,
+                "credit": 0.0,
+                "closing": -7000.0
+            },
+            {
+                "ledger_id": 7,
+                "ledger": "Capital",
+                "group": "Capital Account",
+                "nature": "liability",
+                "opening": -30000.0,
+                "debit": 0.0,
+                "credit": 0.0,
+                "closing": -30000.0
+            },
+            {
+                "ledger_id": 8,
+                "ledger": "Supplier",
+                "group": "Current Liabilities",
+                "nature": "liability",
+                "opening": -12000.0,
+                "debit": 0.0,
+                "credit": 0.0,
+                "closing": -12000.0
+            },
+            {
+                "ledger_id": 12,
+                "ledger": "Bank charges",
+                "group": "Indirect Expenses",
+                "nature": "expense",
+                "opening": 300.0,
+                "debit": 0.0,
+                "credit": 0.0,
+                "closing": 300.0
+            },
+            {
+                "ledger_id": 6,
+                "ledger": "Rent",
+                "group": "Indirect Expenses",
+                "nature": "expense",
+                "opening": 25000.0,
+                "debit": 0.0,
+                "credit": 0.0,
+                "closing": 25000.0
+            },
+            {
+                "ledger_id": 9,
+                "ledger": "Interest income",
+                "group": "Indirect Incomes",
+                "nature": "income",
+                "opening": -2000.0,
+                "debit": 0.0,
+                "credit": 0.0,
+                "closing": -2000.0
+            },
+            {
+                "ledger_id": 11,
+                "ledger": "Misc income",
+                "group": "Other Receipts",
+                "nature": "income",
+                "opening": -800.0,
+                "debit": 0.0,
+                "credit": 0.0,
+                "closing": -800.0
+            },
+            {
+                "ledger_id": 5,
+                "ledger": "Purchases",
+                "group": "Purchase Accounts",
+                "nature": "expense",
+                "opening": 45000.0,
+                "debit": 0.0,
+                "credit": 0.0,
+                "closing": 45000.0
+            },
+            {
+                "ledger_id": 4,
+                "ledger": "Sales",
+                "group": "Sales Accounts",
+                "nature": "income",
+                "opening": -295000.0,
+                "debit": 0.0,
+                "credit": 0.0,
+                "closing": -295000.0
+            },
+            {
+                "ledger_id": 10,
+                "ledger": "Trade Creditor",
+                "group": "Sundry Creditors",
+                "nature": "liability",
+                "opening": -5000.0,
+                "debit": 0.0,
+                "credit": 0.0,
+                "closing": -5000.0
+            },
+            {
+                "ledger_id": 3,
+                "ledger": "Customer A",
+                "group": "Sundry Debtors",
+                "nature": "asset",
+                "opening": 130000.0,
+                "debit": 0.0,
+                "credit": 0.0,
+                "closing": 130000.0
+            },
+            {
+                "ledger_id": null,
+                "ledger": "Difference in opening balances",
+                "group": "",
+                "nature": null,
+                "placeholder": true,
+                "opening": -21000.0,
+                "debit": 0,
+                "credit": 0,
+                "closing": -21000.0
+            }
+        ],
+        "total_debit": 372800.0,
+        "total_credit": 372800.0,
+        "balanced": true,
+        "restated_vouchers": 1,
+        "opening_difference": 21000.0,
+        "opening_balances": [
+            {
+                "ledger_id": 1,
+                "ledger": "Cash",
+                "group": "Bank Accounts",
+                "amount": 50000.0,
+                "side": "Dr"
+            },
+            {
+                "ledger_id": 7,
+                "ledger": "Capital",
+                "group": "Capital Account",
+                "amount": 30000.0,
+                "side": "Cr"
+            },
+            {
+                "ledger_id": 6,
+                "ledger": "Rent",
+                "group": "Indirect Expenses",
+                "amount": 1000.0,
+                "side": "Dr"
+            }
+        ],
+        "filtered": false
+    },
+    "[null,\"2026-03-31\",null,null,null]": {
+        "from": null,
+        "to": "2026-03-31",
+        "branch_limited": false,
+        "rows": [
+            {
+                "ledger_id": 1,
+                "ledger": "Cash",
+                "group": "Bank Accounts",
+                "nature": "asset",
+                "opening": 50000.0,
+                "debit": 100000.0,
+                "credit": 45000.0,
+                "closing": 105000.0
+            },
+            {
+                "ledger_id": 7,
+                "ledger": "Capital",
+                "group": "Capital Account",
+                "nature": "liability",
+                "opening": -30000.0,
+                "debit": 0.0,
+                "credit": 0.0,
+                "closing": -30000.0
+            },
+            {
+                "ledger_id": 6,
+                "ledger": "Rent",
+                "group": "Indirect Expenses",
+                "nature": "expense",
+                "opening": 1000.0,
+                "debit": 5000.0,
+                "credit": 0.0,
+                "closing": 6000.0
+            },
+            {
+                "ledger_id": 5,
+                "ledger": "Purchases",
+                "group": "Purchase Accounts",
+                "nature": "expense",
+                "opening": 0.0,
+                "debit": 40000.0,
+                "credit": 0.0,
+                "closing": 40000.0
+            },
+            {
+                "ledger_id": 4,
+                "ledger": "Sales",
+                "group": "Sales Accounts",
+                "nature": "income",
+                "opening": 0.0,
+                "debit": 0.0,
+                "credit": 230000.0,
+                "closing": -230000.0
+            },
+            {
+                "ledger_id": 3,
+                "ledger": "Customer A",
+                "group": "Sundry Debtors",
+                "nature": "asset",
+                "opening": 0.0,
+                "debit": 130000.0,
+                "credit": 0.0,
+                "closing": 130000.0
+            },
+            {
+                "ledger_id": null,
+                "ledger": "Difference in opening balances",
+                "group": "",
+                "nature": null,
+                "placeholder": true,
+                "opening": -21000.0,
+                "debit": 0,
+                "credit": 0,
+                "closing": -21000.0
+            }
+        ],
+        "total_debit": 281000.0,
+        "total_credit": 281000.0,
+        "balanced": true,
+        "restated_vouchers": 1,
+        "opening_difference": 21000.0,
+        "opening_balances": [
+            {
+                "ledger_id": 1,
+                "ledger": "Cash",
+                "group": "Bank Accounts",
+                "amount": 50000.0,
+                "side": "Dr"
+            },
+            {
+                "ledger_id": 7,
+                "ledger": "Capital",
+                "group": "Capital Account",
+                "amount": 30000.0,
+                "side": "Cr"
+            },
+            {
+                "ledger_id": 6,
+                "ledger": "Rent",
+                "group": "Indirect Expenses",
+                "amount": 1000.0,
+                "side": "Dr"
+            }
+        ],
+        "filtered": false
+    },
+    "[null,null,null,null,[2]]": {
+        "from": null,
+        "to": null,
+        "branch_limited": true,
+        "rows": [
+            {
+                "ledger_id": 1,
+                "ledger": "Cash",
+                "group": "Bank Accounts",
+                "nature": "asset",
+                "opening": 50000.0,
+                "debit": 800.0,
+                "credit": 40000.0,
+                "closing": 10800.0
+            },
+            {
+                "ledger_id": 7,
+                "ledger": "Capital",
+                "group": "Capital Account",
+                "nature": "liability",
+                "opening": -30000.0,
+                "debit": 0.0,
+                "credit": 0.0,
+                "closing": -30000.0
+            },
+            {
+                "ledger_id": 8,
+                "ledger": "Supplier",
+                "group": "Current Liabilities",
+                "nature": "liability",
+                "opening": 0.0,
+                "debit": 0.0,
+                "credit": 12000.0,
+                "closing": -12000.0
+            },
+            {
+                "ledger_id": 6,
+                "ledger": "Rent",
+                "group": "Indirect Expenses",
+                "nature": "expense",
+                "opening": 1000.0,
+                "debit": 12000.0,
+                "credit": 0.0,
+                "closing": 13000.0
+            },
+            {
+                "ledger_id": 11,
+                "ledger": "Misc income",
+                "group": "Other Receipts",
+                "nature": "income",
+                "opening": 0.0,
+                "debit": 0.0,
+                "credit": 800.0,
+                "closing": -800.0
+            },
+            {
+                "ledger_id": 5,
+                "ledger": "Purchases",
+                "group": "Purchase Accounts",
+                "nature": "expense",
+                "opening": 0.0,
+                "debit": 40000.0,
+                "credit": 0.0,
+                "closing": 40000.0
+            },
+            {
+                "ledger_id": null,
+                "ledger": "Difference in opening balances",
+                "group": "",
+                "nature": null,
+                "placeholder": true,
+                "opening": -21000.0,
+                "debit": 0,
+                "credit": 0,
+                "closing": -21000.0
+            }
+        ],
+        "total_debit": 63800.0,
+        "total_credit": 63800.0,
+        "balanced": true,
+        "restated_vouchers": 1,
+        "opening_difference": 21000.0,
+        "opening_balances": [
+            {
+                "ledger_id": 1,
+                "ledger": "Cash",
+                "group": "Bank Accounts",
+                "amount": 50000.0,
+                "side": "Dr"
+            },
+            {
+                "ledger_id": 7,
+                "ledger": "Capital",
+                "group": "Capital Account",
+                "amount": 30000.0,
+                "side": "Cr"
+            },
+            {
+                "ledger_id": 6,
+                "ledger": "Rent",
+                "group": "Indirect Expenses",
+                "amount": 1000.0,
+                "side": "Dr"
+            }
+        ],
+        "filtered": false
+    },
+    "[null,null,null,null,null]": {
+        "from": null,
+        "to": null,
+        "branch_limited": false,
+        "rows": [
+            {
+                "ledger_id": 1,
+                "ledger": "Cash",
+                "group": "Bank Accounts",
+                "nature": "asset",
+                "opening": 50000.0,
+                "debit": 167800.0,
+                "credit": 45300.0,
+                "closing": 172500.0
+            },
+            {
+                "ledger_id": 2,
+                "ledger": "M-Pesa",
+                "group": "Bank Accounts",
+                "nature": "asset",
+                "opening": 0.0,
+                "debit": 0.0,
+                "credit": 7000.0,
+                "closing": -7000.0
+            },
+            {
+                "ledger_id": 7,
+                "ledger": "Capital",
+                "group": "Capital Account",
+                "nature": "liability",
+                "opening": -30000.0,
+                "debit": 0.0,
+                "credit": 0.0,
+                "closing": -30000.0
+            },
+            {
+                "ledger_id": 8,
+                "ledger": "Supplier",
+                "group": "Current Liabilities",
+                "nature": "liability",
+                "opening": 0.0,
+                "debit": 0.0,
+                "credit": 12000.0,
+                "closing": -12000.0
+            },
+            {
+                "ledger_id": 12,
+                "ledger": "Bank charges",
+                "group": "Indirect Expenses",
+                "nature": "expense",
+                "opening": 0.0,
+                "debit": 300.0,
+                "credit": 0.0,
+                "closing": 300.0
+            },
+            {
+                "ledger_id": 6,
+                "ledger": "Rent",
+                "group": "Indirect Expenses",
+                "nature": "expense",
+                "opening": 1000.0,
+                "debit": 24000.0,
+                "credit": 0.0,
+                "closing": 25000.0
+            },
+            {
+                "ledger_id": 9,
+                "ledger": "Interest income",
+                "group": "Indirect Incomes",
+                "nature": "income",
+                "opening": 0.0,
+                "debit": 0.0,
+                "credit": 2000.0,
+                "closing": -2000.0
+            },
+            {
+                "ledger_id": 11,
+                "ledger": "Misc income",
+                "group": "Other Receipts",
+                "nature": "income",
+                "opening": 0.0,
+                "debit": 0.0,
+                "credit": 800.0,
+                "closing": -800.0
+            },
+            {
+                "ledger_id": 5,
+                "ledger": "Purchases",
+                "group": "Purchase Accounts",
+                "nature": "expense",
+                "opening": 0.0,
+                "debit": 45000.0,
+                "credit": 0.0,
+                "closing": 45000.0
+            },
+            {
+                "ledger_id": 4,
+                "ledger": "Sales",
+                "group": "Sales Accounts",
+                "nature": "income",
+                "opening": 0.0,
+                "debit": 0.0,
+                "credit": 295000.0,
+                "closing": -295000.0
+            },
+            {
+                "ledger_id": 10,
+                "ledger": "Trade Creditor",
+                "group": "Sundry Creditors",
+                "nature": "liability",
+                "opening": 0.0,
+                "debit": 0.0,
+                "credit": 5000.0,
+                "closing": -5000.0
+            },
+            {
+                "ledger_id": 3,
+                "ledger": "Customer A",
+                "group": "Sundry Debtors",
+                "nature": "asset",
+                "opening": 0.0,
+                "debit": 130000.0,
+                "credit": 0.0,
+                "closing": 130000.0
+            },
+            {
+                "ledger_id": null,
+                "ledger": "Difference in opening balances",
+                "group": "",
+                "nature": null,
+                "placeholder": true,
+                "opening": -21000.0,
+                "debit": 0,
+                "credit": 0,
+                "closing": -21000.0
+            }
+        ],
+        "total_debit": 372800.0,
+        "total_credit": 372800.0,
+        "balanced": true,
+        "restated_vouchers": 1,
+        "opening_difference": 21000.0,
+        "opening_balances": [
+            {
+                "ledger_id": 1,
+                "ledger": "Cash",
+                "group": "Bank Accounts",
+                "amount": 50000.0,
+                "side": "Dr"
+            },
+            {
+                "ledger_id": 7,
+                "ledger": "Capital",
+                "group": "Capital Account",
+                "amount": 30000.0,
+                "side": "Cr"
+            },
+            {
+                "ledger_id": 6,
+                "ledger": "Rent",
+                "group": "Indirect Expenses",
+                "amount": 1000.0,
+                "side": "Dr"
+            }
+        ],
+        "filtered": false
+    }
+}

@@ -1,0 +1,332 @@
+{
+    "agree": {
+        "from": "2026-01-01",
+        "to": "2026-10-28",
+        "days": 301.0,
+        "groups": [
+            {
+                "key": "working_capital",
+                "label": "Working Capital",
+                "note": "Current Assets − Current Liabilities",
+                "amount": 278500.0,
+                "side": "Dr",
+                "bold": true
+            },
+            {
+                "key": "cash",
+                "label": "Cash-in-Hand",
+                "amount": 0.0,
+                "side": "Dr"
+            },
+            {
+                "key": "bank",
+                "label": "Bank Accounts",
+                "amount": 165500.0,
+                "side": "Dr"
+            },
+            {
+                "key": "bank_od",
+                "label": "Bank OD A\/c",
+                "amount": null,
+                "side": "Cr"
+            },
+            {
+                "key": "debtors",
+                "label": "Sundry Debtors",
+                "amount": 130000.0,
+                "side": "Dr"
+            },
+            {
+                "key": "debtors_due",
+                "label": "(overdue)",
+                "amount": 0.0,
+                "side": "Dr",
+                "sub": true
+            },
+            {
+                "key": "creditors",
+                "label": "Sundry Creditors",
+                "amount": 5000.0,
+                "side": "Cr"
+            },
+            {
+                "key": "creditors_due",
+                "label": "(overdue)",
+                "amount": 0.0,
+                "side": "Cr",
+                "sub": true
+            },
+            {
+                "key": "sales",
+                "label": "Sales (direct income)",
+                "amount": 295000.0,
+                "side": "Cr"
+            },
+            {
+                "key": "purchases",
+                "label": "Purchase Accounts",
+                "amount": 45000.0,
+                "side": "Dr"
+            },
+            {
+                "key": "stock",
+                "label": "Stock-in-Hand",
+                "amount": 0.0,
+                "side": "Dr"
+            },
+            {
+                "key": "net_profit",
+                "label": "Nett Profit",
+                "amount": 233500.0,
+                "side": "Cr"
+            },
+            {
+                "key": "wc_turnover",
+                "label": "Wkg. Capital Turnover",
+                "note": "Sales ÷ Working Capital",
+                "value": 1.06
+            },
+            {
+                "key": "inv_turnover",
+                "label": "Inventory Turnover",
+                "note": "Sales ÷ Closing Stock",
+                "value": null
+            }
+        ],
+        "ratios": [
+            {
+                "key": "current",
+                "label": "Current Ratio",
+                "note": "Current Assets : Current Liabilities",
+                "value": 17.38,
+                "kind": "ratio"
+            },
+            {
+                "key": "quick",
+                "label": "Quick Ratio",
+                "note": "Current Assets − Stock-in-Hand : Current Liabilities",
+                "value": 17.38,
+                "kind": "ratio"
+            },
+            {
+                "key": "debt_equity",
+                "label": "Debt\/Equity Ratio",
+                "note": "Loans (Liability) : Capital Account + Nett Profit",
+                "value": -0.0,
+                "kind": "ratio"
+            },
+            {
+                "key": "gross_pct",
+                "label": "Gross Profit %",
+                "value": 84.75,
+                "kind": "pct"
+            },
+            {
+                "key": "net_pct",
+                "label": "Nett Profit %",
+                "value": 79.15,
+                "kind": "pct"
+            },
+            {
+                "key": "op_cost_pct",
+                "label": "Operating Cost %",
+                "note": "as a percentage of Sales",
+                "value": 20.85,
+                "kind": "pct"
+            },
+            {
+                "key": "recv_days",
+                "label": "Recv. Turnover in days",
+                "note": "payment performance of Debtors (Debtors ÷ Sales × 301 days)",
+                "value": 132.64,
+                "kind": "days"
+            },
+            {
+                "key": "roi",
+                "label": "Return on Investment %",
+                "note": "Nett Profit ÷ (Capital Account + Nett Profit)",
+                "value": 88.61,
+                "kind": "pct"
+            },
+            {
+                "key": "rowc",
+                "label": "Return on Wkg. Capital %",
+                "note": "Nett Profit ÷ Working Capital",
+                "value": 83.84,
+                "kind": "pct"
+            }
+        ],
+        "figures": {
+            "current_assets": 295500.0,
+            "current_liabilities": 17000.0,
+            "capital": 30000.0,
+            "loans": -0.0,
+            "gross_profit": 250000.0
+        }
+    },
+    "roi": {
+        "from": "2026-01-01",
+        "to": "2026-10-28",
+        "days": 301.0,
+        "groups": [
+            {
+                "key": "working_capital",
+                "label": "Working Capital",
+                "note": "Current Assets − Current Liabilities",
+                "amount": 278500.0,
+                "side": "Dr",
+                "bold": true
+            },
+            {
+                "key": "cash",
+                "label": "Cash-in-Hand",
+                "amount": 0.0,
+                "side": "Dr"
+            },
+            {
+                "key": "bank",
+                "label": "Bank Accounts",
+                "amount": 165500.0,
+                "side": "Dr"
+            },
+            {
+                "key": "bank_od",
+                "label": "Bank OD A\/c",
+                "amount": null,
+                "side": "Cr"
+            },
+            {
+                "key": "debtors",
+                "label": "Sundry Debtors",
+                "amount": 130000.0,
+                "side": "Dr"
+            },
+            {
+                "key": "debtors_due",
+                "label": "(overdue)",
+                "amount": 0.0,
+                "side": "Dr",
+                "sub": true
+            },
+            {
+                "key": "creditors",
+                "label": "Sundry Creditors",
+                "amount": 5000.0,
+                "side": "Cr"
+            },
+            {
+                "key": "creditors_due",
+                "label": "(overdue)",
+                "amount": 0.0,
+                "side": "Cr",
+                "sub": true
+            },
+            {
+                "key": "sales",
+                "label": "Sales (direct income)",
+                "amount": 295000.0,
+                "side": "Cr"
+            },
+            {
+                "key": "purchases",
+                "label": "Purchase Accounts",
+                "amount": 45000.0,
+                "side": "Dr"
+            },
+            {
+                "key": "stock",
+                "label": "Stock-in-Hand",
+                "amount": 0.0,
+                "side": "Dr"
+            },
+            {
+                "key": "net_profit",
+                "label": "Nett Profit",
+                "amount": 233500.0,
+                "side": "Cr"
+            },
+            {
+                "key": "wc_turnover",
+                "label": "Wkg. Capital Turnover",
+                "note": "Sales ÷ Working Capital",
+                "value": 1.06
+            },
+            {
+                "key": "inv_turnover",
+                "label": "Inventory Turnover",
+                "note": "Sales ÷ Closing Stock",
+                "value": null
+            }
+        ],
+        "ratios": [
+            {
+                "key": "current",
+                "label": "Current Ratio",
+                "note": "Current Assets : Current Liabilities",
+                "value": 17.38,
+                "kind": "ratio"
+            },
+            {
+                "key": "quick",
+                "label": "Quick Ratio",
+                "note": "Current Assets − Stock-in-Hand : Current Liabilities",
+                "value": 17.38,
+                "kind": "ratio"
+            },
+            {
+                "key": "debt_equity",
+                "label": "Debt\/Equity Ratio",
+                "note": "Loans (Liability) : Capital Account + Nett Profit",
+                "value": -0.0,
+                "kind": "ratio"
+            },
+            {
+                "key": "gross_pct",
+                "label": "Gross Profit %",
+                "value": 84.75,
+                "kind": "pct"
+            },
+            {
+                "key": "net_pct",
+                "label": "Nett Profit %",
+                "value": 79.15,
+                "kind": "pct"
+            },
+            {
+                "key": "op_cost_pct",
+                "label": "Operating Cost %",
+                "note": "as a percentage of Sales",
+                "value": 20.85,
+                "kind": "pct"
+            },
+            {
+                "key": "recv_days",
+                "label": "Recv. Turnover in days",
+                "note": "payment performance of Debtors (Debtors ÷ Sales × 301 days)",
+                "value": 132.64,
+                "kind": "days"
+            },
+            {
+                "key": "roi",
+                "label": "Return on Investment %",
+                "note": "Nett Profit ÷ (Capital Account + Nett Profit)",
+                "value": 88.61,
+                "kind": "pct"
+            },
+            {
+                "key": "rowc",
+                "label": "Return on Wkg. Capital %",
+                "note": "Nett Profit ÷ Working Capital",
+                "value": 83.84,
+                "kind": "pct"
+            }
+        ],
+        "figures": {
+            "current_assets": 295500.0,
+            "current_liabilities": 17000.0,
+            "capital": 30000.0,
+            "loans": -0.0,
+            "gross_profit": 250000.0
+        }
+    }
+}

@@ -3,7 +3,6 @@
 namespace Tests\Feature;
 
 use App\Models\User;
-use App\Services\Books\BooksReportService;
 use App\Services\Books\Engine\LedgerBalances;
 use App\Services\Books\Engine\ReportEngine;
 use App\Services\Books\Engine\Reports\DayBookReport;
@@ -19,6 +18,7 @@ use Tests\TestCase;
 class DayBookReportTest extends TestCase
 {
     use Concerns\CreatesBooksLedgerWorld;
+    use Concerns\RecordsGolden;
     use Concerns\StandsInForAccess;
 
     protected function setUp(): void
@@ -46,7 +46,7 @@ class DayBookReportTest extends TestCase
 
     public function test_it_gives_the_vouchers_and_totals_the_old_day_book_gave(): void
     {
-        $old = app(BooksReportService::class)->dayBook(null, null);
+        $old = $this->golden('day_book', 'all');
         $new = $this->run_();
         $this->assertSame(array_column($old['rows'], 'voucher_number'), $this->numbers($new), 'same vouchers, same order, memorandum left out');
         foreach ($old['rows'] as $i => $o) {
@@ -66,7 +66,7 @@ class DayBookReportTest extends TestCase
 
     public function test_the_voucher_type_narrows_the_list_like_the_old_one(): void
     {
-        $old = app(BooksReportService::class)->dayBook(null, null, 2);
+        $old = $this->golden('day_book', 'type2');
         $new = $this->run_(['type' => '2']);
         $this->assertSame(array_column($old['rows'], 'voucher_number'), $this->numbers($new));
         $this->assertSame(['V1'], $this->numbers($new));

@@ -7,16 +7,15 @@ use App\Models\Books\PaymentMethod;
 use App\Models\Books\Voucher;
 use App\Models\Books\VoucherType;
 use App\Services\Books\BooksException;
-use App\Services\Books\BooksReportService;
 use App\Services\Books\ExportService;
 use App\Services\Books\VoucherService;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 
-/** Vouchers, their chain actions, exports and the reports. */
+/** Vouchers, their chain actions and exports. The reports are on the report engine. */
 class BooksVoucherController extends Controller
 {
-    public function __construct(private VoucherService $vouchers, private BooksReportService $reports, private ExportService $export) {}
+    public function __construct(private VoucherService $vouchers, private ExportService $export) {}
 
     /** A voucher the person may look at (branch limits: a voucher at a branch they were not given is "not found"). */
     private function visible(Voucher $v): Voucher
@@ -242,13 +241,11 @@ class BooksVoucherController extends Controller
     public function exportList(Request $request)
     {
         return $this->guard(function () use ($request) {
-            $book = $this->reports->dayBook($request->from, $request->to, $request->filled('voucher_type_id') ? (int) $request->voucher_type_id : null, $request->filled('location_id') ? (int) $request->location_id : null);
+            [$table] = app(\App\Services\Books\Engine\ReportEngine::class)->exportTable('day-book', array_filter([
+                'from' => $request->from, 'to' => $request->to, 'type' => $request->voucher_type_id, 'location_id' => $request->location_id,
+            ], fn ($v) => $v !== null && $v !== ''), $request->user());
 
-            return $this->export->table([
-                'title' => 'Vouchers', 'subtitle' => trim(($request->from ?? '') . ' – ' . ($request->to ?? ''), ' –'),
-                'columns' => ['date' => 'Date', 'voucher_number' => 'Number', 'type' => 'Type', 'party' => 'Party', 'status' => 'Status', 'narration' => 'Narration', 'total' => 'Total'],
-                'rows' => $book['rows'], 'totals' => ['narration' => 'Posted total', 'total' => $book['total']],
-            ], $request->get('format', 'csv'), 'vouchers');
+            return $this->export->table(['title' => 'Vouchers'] + $table, $request->get('format', 'csv'), 'vouchers');
         });
     }
 
@@ -651,111 +648,5 @@ class BooksVoucherController extends Controller
         $n = app(\App\Services\Stock\StockReconciliationService::class)->refreshUnits();
 
         return response()->json(['message' => $n ? "Refreshed {$n} product(s) from their batches." : 'Every number already agrees with the batches.']);
-    }
-
-    public function report(Request $request, string $name)
-    {
-        return $this->guard(function () use ($request, $name) {
-            [$data, $table] = $this->buildReport($request, $name);
-            if ($request->filled('format')) {
-                return $this->export->table($table, $request->format, $name);
-            }
-
-            return response()->json($data);
-        });
-    }
-
-    /** @return array{0: array, 1: array} the report and its flat export table */
-    private function buildReport(Request $r, string $name): array
-    {
-        $from = $r->from;
-        $to = $r->to;
-        $period = trim(($from ?? 'start') . ' to ' . ($to ?? 'today'));
-        $rep = $this->reports->withDimensions($r->filled('cost_centre_id') ? (int) $r->cost_centre_id : null, $r->filled('location_id') ? (int) $r->location_id : null);
-        switch ($name) {
-            case 'day-book':
-                $d = $rep->dayBook($from, $to, $r->filled('voucher_type_id') ? (int) $r->voucher_type_id : null, $r->filled('location_id') ? (int) $r->location_id : null);
-
-                return [$d, ['title' => 'Day Book', 'subtitle' => $period, 'columns' => ['date' => 'Date', 'voucher_number' => 'Number', 'type' => 'Type', 'party' => 'Party', 'status' => 'Status', 'total' => 'Total'], 'rows' => $d['rows'], 'totals' => ['status' => 'Posted total', 'total' => $d['total']]]];
-            case 'ledger':
-                $d = $rep->ledgerStatement((int) $r->ledger_id, $from, $to);
-                $rows = array_merge([['date' => $from, 'voucher_number' => '', 'type' => 'Opening balance', 'debit' => '', 'credit' => '', 'balance' => $d['opening']]], $d['rows']);
-
-                return [$d, ['title' => 'Ledger: ' . $d['ledger']['name'], 'subtitle' => $period, 'columns' => ['date' => 'Date', 'voucher_number' => 'Number', 'type' => 'Type', 'in_currency' => 'In its currency', 'debit' => 'Debit (' . $d['base_currency'] . ')', 'credit' => 'Credit (' . $d['base_currency'] . ')', 'balance' => 'Balance (Dr +, ' . $d['base_currency'] . ')'], 'rows' => $rows, 'totals' => ['type' => 'Totals', 'debit' => $d['debit'], 'credit' => $d['credit'], 'balance' => $d['closing']]]];
-            case 'trial-balance':
-                $d = $rep->trialBalance($from, $to);
-
-                return [$d, ['title' => 'Trial Balance', 'subtitle' => $period, 'columns' => ['group' => 'Group', 'ledger' => 'Ledger', 'opening' => 'Opening', 'debit' => 'Debit', 'credit' => 'Credit', 'closing' => 'Closing (Dr +)'], 'rows' => $d['rows'], 'totals' => ['ledger' => 'Totals (closing Dr / Cr)', 'debit' => $d['total_debit'], 'credit' => $d['total_credit']]]];
-            case 'profit-loss':
-                $d = $rep->profitLoss($from, $to);
-                $rows = [];
-                foreach (['income_direct' => 'Direct income', 'expense_direct' => 'Direct expenses', 'income_indirect' => 'Indirect income', 'expense_indirect' => 'Indirect expenses'] as $k => $label) {
-                    foreach ($d['sections'][$k] as $x) {
-                        $rows[] = ['section' => $label, 'ledger' => $x['ledger'], 'amount' => $x['amount']];
-                    }
-                }
-
-                return [$d, ['title' => 'Profit & Loss', 'subtitle' => $period, 'columns' => ['section' => 'Section', 'ledger' => 'Ledger', 'amount' => 'Amount'], 'rows' => $rows, 'totals' => ['ledger' => 'Net profit', 'amount' => $d['totals']['net_profit']]]];
-            case 'profit-loss-by-cost-centre':
-                $d = $rep->profitLossByCostCentre($from, $to);
-                $rows = array_map(fn ($x) => ['name' => str_repeat('  ', $x['depth']) . $x['name'], 'own_income' => $x['own_income'], 'own_expense' => $x['own_expense'], 'income' => $x['income'], 'expense' => $x['expense'], 'profit' => $x['profit']], $d['rows']);
-
-                return [$d, ['title' => 'Profit & Loss by cost centre', 'subtitle' => $period, 'columns' => ['name' => 'Cost centre', 'own_income' => 'Own income', 'own_expense' => 'Own expenses', 'income' => 'Income (with sub-centres)', 'expense' => 'Expenses (with sub-centres)', 'profit' => 'Profit'], 'rows' => $rows, 'totals' => ['name' => 'Whole company', 'income' => $d['totals']['income'], 'expense' => $d['totals']['expense'], 'profit' => $d['totals']['profit']]]];
-            case 'balance-sheet':
-                $d = $this->reports->balanceSheet($to);
-                $rows = [];
-                foreach ($d['assets'] as $x) {
-                    $rows[] = ['side' => 'Assets', 'ledger' => $x['ledger'], 'amount' => $x['amount']];
-                }
-                foreach ($d['liabilities'] as $x) {
-                    $rows[] = ['side' => 'Liabilities & Capital', 'ledger' => $x['ledger'], 'amount' => $x['amount']];
-                }
-
-                return [$d, ['title' => 'Balance Sheet', 'subtitle' => 'As of ' . ($to ?? 'today'), 'columns' => ['side' => 'Side', 'ledger' => 'Ledger', 'amount' => 'Amount'], 'rows' => $rows, 'totals' => ['ledger' => 'Assets / Liabilities', 'amount' => $d['total_assets']]]];
-            case 'receivables':
-            case 'payables':
-                $d = $this->reports->ageing($name, $to);
-
-                return [$d, ['title' => ucfirst($name) . ' ageing', 'subtitle' => 'As of ' . $d['as_of'], 'columns' => ['party' => 'Party', 'currencies' => 'Open in its currency', 'current' => 'Current', 'd1_30' => '1–30', 'd31_60' => '31–60', 'd61_90' => '61–90', 'd90_plus' => '90+', 'total' => 'Total'], 'rows' => array_map(fn ($x) => array_diff_key($x, ['bills' => 1, 'by_currency' => 1]), $d['rows']), 'totals' => ['party' => 'Total'] + $d['totals']]];
-            case 'tax-return':
-                $d = app(\App\Services\Books\ComplianceReportService::class)->taxReturn($from, $to);
-                $rows = [];
-                foreach ($d['types'] as $t) {
-                    if ($t['brought_forward'] != 0) {
-                        $rows[] = ['tax' => $t['name'], 'rate' => 'Brought forward', 'sales_base' => '', 'output' => '', 'purchases_base' => '', 'input' => '', 'net' => $t['brought_forward']];
-                    }
-                    foreach ($t['rows'] as $x) {
-                        $rows[] = ['tax' => $t['name'], 'rate' => $x['label'], 'sales_base' => $x['sales_base'], 'output' => $x['output'], 'purchases_base' => $x['purchases_base'], 'input' => $x['input'], 'net' => $x['net']];
-                    }
-                    $rows[] = ['tax' => $t['name'], 'rate' => 'Owed at the end', 'sales_base' => '', 'output' => '', 'purchases_base' => '', 'input' => '', 'net' => $t['closing_owed']];
-                }
-                foreach (['standard' => 'taxable', 'zero-rated' => 'zero_rated', 'exempt' => 'exempt', 'out of scope' => 'out_of_scope', 'unclassified' => 'unclassified'] as $label => $key) {
-                    if (! empty($d['supplies']['sales'][$key]) || ! empty($d['supplies']['purchases'][$key])) {
-                        $rows[] = ['tax' => 'Supplies', 'rate' => ucfirst($label), 'sales_base' => $d['supplies']['sales'][$key] ?? 0, 'output' => '', 'purchases_base' => $d['supplies']['purchases'][$key] ?? 0, 'input' => '', 'net' => ''];
-                    }
-                }
-
-                return [$d, ['title' => 'Tax return', 'subtitle' => $period, 'columns' => ['tax' => 'Tax', 'rate' => 'Rate', 'sales_base' => 'Sales value', 'output' => 'Output tax', 'purchases_base' => 'Purchases value', 'input' => 'Input tax', 'net' => 'Net'], 'rows' => $rows, 'totals' => ['rate' => 'Total', 'output' => $d['totals']['output'], 'input' => $d['totals']['input'], 'net' => $d['totals']['owed']]]];
-            case 'withholding':
-                $d = app(\App\Services\Books\ComplianceReportService::class)->withholdingRegister($from, $to);
-
-                return [$d, ['title' => 'Withholding certificates', 'subtitle' => $period, 'columns' => ['date' => 'Date', 'certificate_number' => 'Certificate', 'voucher_number' => 'Voucher', 'direction' => 'Direction', 'party' => 'Party', 'tax' => 'Tax', 'gross_amount' => 'Gross', 'withheld_amount' => 'Withheld', 'status' => 'Certificate', 'credit_status' => 'Credit'], 'rows' => $d['rows'], 'totals' => ['party' => 'Withheld from us / by us', 'gross_amount' => $d['totals']['receivable'], 'withheld_amount' => $d['totals']['payable']]]];
-            case 'ratio-analysis':
-                $d = app(\App\Services\Books\RatioAnalysisService::class)->compute($from, $to);
-                $rows = [];
-                foreach ($d['groups'] as $g) {
-                    $rows[] = ['part' => 'Principal group', 'name' => $g['label'], 'figure' => isset($g['amount']) ? number_format((float) $g['amount'], 2) . ' ' . $g['side'] : ($g['value'] ?? '')];
-                }
-                foreach ($d['ratios'] as $g) {
-                    $rows[] = ['part' => 'Principal ratio', 'name' => $g['label'], 'figure' => $g['value'] === null ? '—' : ($g['kind'] === 'ratio' ? number_format($g['value'], 2) . ' : 1' : ($g['kind'] === 'pct' ? number_format($g['value'], 2) . ' %' : number_format($g['value'], 2) . ' days'))];
-                }
-
-                return [$d, ['title' => 'Ratio analysis', 'subtitle' => $period, 'columns' => ['part' => 'Part', 'name' => 'Item', 'figure' => 'Figure'], 'rows' => $rows]];
-            case 'reconciliation':
-                $d = app(\App\Services\Books\ComplianceReportService::class)->reconciliation($to);
-
-                return [$d, ['title' => 'Reconciliation', 'subtitle' => 'As of ' . $d['as_of'], 'columns' => ['title' => 'Check', 'book' => 'Books', 'register' => 'Register', 'difference' => 'Difference', 'explained' => 'Explained', 'ok' => 'Agrees'], 'rows' => array_map(fn ($c) => $c + ['ok' => $c['ok'] ? 'Yes' : 'No'], $d['checks'])]];
-        }
-        abort(404, 'Unknown report.');
     }
 }

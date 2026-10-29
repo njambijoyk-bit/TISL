@@ -1,0 +1,539 @@
+{
+    "[\"2025-01-01\",\"2025-12-31\",null,null,null]": {
+        "from": "2025-01-01",
+        "to": "2025-12-31",
+        "branch_limited": false,
+        "paid_not_delivered": null,
+        "restated_vouchers": 1,
+        "sections": {
+            "income_direct": [],
+            "expense_direct": [],
+            "income_indirect": [],
+            "expense_indirect": [
+                {
+                    "ledger_id": 6,
+                    "ledger": "Rent",
+                    "group": "Indirect Expenses",
+                    "amount": 5000.0
+                }
+            ]
+        },
+        "totals": {
+            "direct_income": 0.0,
+            "direct_expense": 0.0,
+            "gross_profit": 0.0,
+            "indirect_income": 0.0,
+            "indirect_expense": 5000.0,
+            "net_profit": -5000.0
+        }
+    },
+    "[\"2026-01-01\",\"2026-12-31\",10,1,null]": {
+        "from": "2026-01-01",
+        "to": "2026-12-31",
+        "branch_limited": false,
+        "paid_not_delivered": null,
+        "restated_vouchers": 1,
+        "sections": {
+            "income_direct": [
+                {
+                    "ledger_id": 4,
+                    "ledger": "Sales",
+                    "group": "Sales Accounts",
+                    "amount": 295000.0
+                }
+            ],
+            "expense_direct": [
+                {
+                    "ledger_id": 5,
+                    "ledger": "Purchases",
+                    "group": "Purchase Accounts",
+                    "amount": 5000.0
+                }
+            ],
+            "income_indirect": [
+                {
+                    "ledger_id": 9,
+                    "ledger": "Interest income",
+                    "group": "Indirect Incomes",
+                    "amount": 2000.0
+                }
+            ],
+            "expense_indirect": [
+                {
+                    "ledger_id": 12,
+                    "ledger": "Bank charges",
+                    "group": "Indirect Expenses",
+                    "amount": 300.0
+                },
+                {
+                    "ledger_id": 6,
+                    "ledger": "Rent",
+                    "group": "Indirect Expenses",
+                    "amount": 7000.0
+                }
+            ]
+        },
+        "totals": {
+            "direct_income": 295000.0,
+            "direct_expense": 5000.0,
+            "gross_profit": 290000.0,
+            "indirect_income": 2000.0,
+            "indirect_expense": 7300.0,
+            "net_profit": 284700.0
+        }
+    },
+    "[\"2026-01-01\",\"2026-12-31\",10,null,null]": {
+        "from": "2026-01-01",
+        "to": "2026-12-31",
+        "branch_limited": false,
+        "paid_not_delivered": null,
+        "restated_vouchers": 1,
+        "sections": {
+            "income_direct": [
+                {
+                    "ledger_id": 4,
+                    "ledger": "Sales",
+                    "group": "Sales Accounts",
+                    "amount": 295000.0
+                }
+            ],
+            "expense_direct": [
+                {
+                    "ledger_id": 5,
+                    "ledger": "Purchases",
+                    "group": "Purchase Accounts",
+                    "amount": 45000.0
+                }
+            ],
+            "income_indirect": [
+                {
+                    "ledger_id": 9,
+                    "ledger": "Interest income",
+                    "group": "Indirect Incomes",
+                    "amount": 2000.0
+                },
+                {
+                    "ledger_id": 11,
+                    "ledger": "Misc income",
+                    "group": "Other Receipts",
+                    "amount": 800.0
+                }
+            ],
+            "expense_indirect": [
+                {
+                    "ledger_id": 12,
+                    "ledger": "Bank charges",
+                    "group": "Indirect Expenses",
+                    "amount": 300.0
+                },
+                {
+                    "ledger_id": 6,
+                    "ledger": "Rent",
+                    "group": "Indirect Expenses",
+                    "amount": 7000.0
+                }
+            ]
+        },
+        "totals": {
+            "direct_income": 295000.0,
+            "direct_expense": 45000.0,
+            "gross_profit": 250000.0,
+            "indirect_income": 2800.0,
+            "indirect_expense": 7300.0,
+            "net_profit": 245500.0
+        }
+    },
+    "[\"2026-01-01\",\"2026-12-31\",11,null,null]": {
+        "from": "2026-01-01",
+        "to": "2026-12-31",
+        "branch_limited": false,
+        "paid_not_delivered": null,
+        "restated_vouchers": 1,
+        "sections": {
+            "income_direct": [],
+            "expense_direct": [
+                {
+                    "ledger_id": 5,
+                    "ledger": "Purchases",
+                    "group": "Purchase Accounts",
+                    "amount": 40000.0
+                }
+            ],
+            "income_indirect": [
+                {
+                    "ledger_id": 11,
+                    "ledger": "Misc income",
+                    "group": "Other Receipts",
+                    "amount": 800.0
+                }
+            ],
+            "expense_indirect": [
+                {
+                    "ledger_id": 6,
+                    "ledger": "Rent",
+                    "group": "Indirect Expenses",
+                    "amount": 4000.0
+                }
+            ]
+        },
+        "totals": {
+            "direct_income": 0.0,
+            "direct_expense": 40000.0,
+            "gross_profit": -40000.0,
+            "indirect_income": 800.0,
+            "indirect_expense": 4000.0,
+            "net_profit": -43200.0
+        }
+    },
+    "[\"2026-01-01\",\"2026-12-31\",null,1,null]": {
+        "from": "2026-01-01",
+        "to": "2026-12-31",
+        "branch_limited": false,
+        "paid_not_delivered": null,
+        "restated_vouchers": 1,
+        "sections": {
+            "income_direct": [
+                {
+                    "ledger_id": 4,
+                    "ledger": "Sales",
+                    "group": "Sales Accounts",
+                    "amount": 295000.0
+                }
+            ],
+            "expense_direct": [
+                {
+                    "ledger_id": 5,
+                    "ledger": "Purchases",
+                    "group": "Purchase Accounts",
+                    "amount": 5000.0
+                }
+            ],
+            "income_indirect": [
+                {
+                    "ledger_id": 9,
+                    "ledger": "Interest income",
+                    "group": "Indirect Incomes",
+                    "amount": 2000.0
+                }
+            ],
+            "expense_indirect": [
+                {
+                    "ledger_id": 12,
+                    "ledger": "Bank charges",
+                    "group": "Indirect Expenses",
+                    "amount": 300.0
+                },
+                {
+                    "ledger_id": 6,
+                    "ledger": "Rent",
+                    "group": "Indirect Expenses",
+                    "amount": 7000.0
+                }
+            ]
+        },
+        "totals": {
+            "direct_income": 295000.0,
+            "direct_expense": 5000.0,
+            "gross_profit": 290000.0,
+            "indirect_income": 2000.0,
+            "indirect_expense": 7300.0,
+            "net_profit": 284700.0
+        }
+    },
+    "[\"2026-01-01\",\"2026-12-31\",null,2,null]": {
+        "from": "2026-01-01",
+        "to": "2026-12-31",
+        "branch_limited": false,
+        "paid_not_delivered": null,
+        "restated_vouchers": 1,
+        "sections": {
+            "income_direct": [],
+            "expense_direct": [
+                {
+                    "ledger_id": 5,
+                    "ledger": "Purchases",
+                    "group": "Purchase Accounts",
+                    "amount": 40000.0
+                }
+            ],
+            "income_indirect": [
+                {
+                    "ledger_id": 11,
+                    "ledger": "Misc income",
+                    "group": "Other Receipts",
+                    "amount": 800.0
+                }
+            ],
+            "expense_indirect": []
+        },
+        "totals": {
+            "direct_income": 0.0,
+            "direct_expense": 40000.0,
+            "gross_profit": -40000.0,
+            "indirect_income": 800.0,
+            "indirect_expense": 0.0,
+            "net_profit": -39200.0
+        }
+    },
+    "[\"2026-01-01\",\"2026-12-31\",null,null,[2]]": {
+        "from": "2026-01-01",
+        "to": "2026-12-31",
+        "branch_limited": true,
+        "paid_not_delivered": null,
+        "restated_vouchers": 1,
+        "sections": {
+            "income_direct": [],
+            "expense_direct": [
+                {
+                    "ledger_id": 5,
+                    "ledger": "Purchases",
+                    "group": "Purchase Accounts",
+                    "amount": 40000.0
+                }
+            ],
+            "income_indirect": [
+                {
+                    "ledger_id": 11,
+                    "ledger": "Misc income",
+                    "group": "Other Receipts",
+                    "amount": 800.0
+                }
+            ],
+            "expense_indirect": [
+                {
+                    "ledger_id": 6,
+                    "ledger": "Rent",
+                    "group": "Indirect Expenses",
+                    "amount": 12000.0
+                }
+            ]
+        },
+        "totals": {
+            "direct_income": 0.0,
+            "direct_expense": 40000.0,
+            "gross_profit": -40000.0,
+            "indirect_income": 800.0,
+            "indirect_expense": 12000.0,
+            "net_profit": -51200.0
+        }
+    },
+    "[\"2026-01-01\",\"2026-12-31\",null,null,null]": {
+        "from": "2026-01-01",
+        "to": "2026-12-31",
+        "branch_limited": false,
+        "paid_not_delivered": null,
+        "restated_vouchers": 1,
+        "sections": {
+            "income_direct": [
+                {
+                    "ledger_id": 4,
+                    "ledger": "Sales",
+                    "group": "Sales Accounts",
+                    "amount": 295000.0
+                }
+            ],
+            "expense_direct": [
+                {
+                    "ledger_id": 5,
+                    "ledger": "Purchases",
+                    "group": "Purchase Accounts",
+                    "amount": 45000.0
+                }
+            ],
+            "income_indirect": [
+                {
+                    "ledger_id": 9,
+                    "ledger": "Interest income",
+                    "group": "Indirect Incomes",
+                    "amount": 2000.0
+                },
+                {
+                    "ledger_id": 11,
+                    "ledger": "Misc income",
+                    "group": "Other Receipts",
+                    "amount": 800.0
+                }
+            ],
+            "expense_indirect": [
+                {
+                    "ledger_id": 12,
+                    "ledger": "Bank charges",
+                    "group": "Indirect Expenses",
+                    "amount": 300.0
+                },
+                {
+                    "ledger_id": 6,
+                    "ledger": "Rent",
+                    "group": "Indirect Expenses",
+                    "amount": 19000.0
+                }
+            ]
+        },
+        "totals": {
+            "direct_income": 295000.0,
+            "direct_expense": 45000.0,
+            "gross_profit": 250000.0,
+            "indirect_income": 2800.0,
+            "indirect_expense": 19300.0,
+            "net_profit": 233500.0
+        }
+    },
+    "[\"2026-04-01\",\"2026-04-30\",null,null,null]": {
+        "from": "2026-04-01",
+        "to": "2026-04-30",
+        "branch_limited": false,
+        "paid_not_delivered": null,
+        "restated_vouchers": 1,
+        "sections": {
+            "income_direct": [
+                {
+                    "ledger_id": 4,
+                    "ledger": "Sales",
+                    "group": "Sales Accounts",
+                    "amount": 65000.0
+                }
+            ],
+            "expense_direct": [],
+            "income_indirect": [],
+            "expense_indirect": []
+        },
+        "totals": {
+            "direct_income": 65000.0,
+            "direct_expense": 0.0,
+            "gross_profit": 65000.0,
+            "indirect_income": 0.0,
+            "indirect_expense": 0.0,
+            "net_profit": 65000.0
+        }
+    },
+    "[\"2026-07-01\",\"2026-09-30\",null,null,null]": {
+        "from": "2026-07-01",
+        "to": "2026-09-30",
+        "branch_limited": false,
+        "paid_not_delivered": null,
+        "restated_vouchers": 1,
+        "sections": {
+            "income_direct": [],
+            "expense_direct": [
+                {
+                    "ledger_id": 5,
+                    "ledger": "Purchases",
+                    "group": "Purchase Accounts",
+                    "amount": 5000.0
+                }
+            ],
+            "income_indirect": [
+                {
+                    "ledger_id": 9,
+                    "ledger": "Interest income",
+                    "group": "Indirect Incomes",
+                    "amount": 2000.0
+                },
+                {
+                    "ledger_id": 11,
+                    "ledger": "Misc income",
+                    "group": "Other Receipts",
+                    "amount": 800.0
+                }
+            ],
+            "expense_indirect": [
+                {
+                    "ledger_id": 6,
+                    "ledger": "Rent",
+                    "group": "Indirect Expenses",
+                    "amount": 7000.0
+                }
+            ]
+        },
+        "totals": {
+            "direct_income": 0.0,
+            "direct_expense": 5000.0,
+            "gross_profit": -5000.0,
+            "indirect_income": 2800.0,
+            "indirect_expense": 7000.0,
+            "net_profit": -9200.0
+        }
+    },
+    "[\"2027-01-01\",\"2027-12-31\",null,null,null]": {
+        "from": "2027-01-01",
+        "to": "2027-12-31",
+        "branch_limited": false,
+        "paid_not_delivered": null,
+        "restated_vouchers": 1,
+        "sections": {
+            "income_direct": [],
+            "expense_direct": [],
+            "income_indirect": [],
+            "expense_indirect": []
+        },
+        "totals": {
+            "direct_income": 0.0,
+            "direct_expense": 0.0,
+            "gross_profit": 0.0,
+            "indirect_income": 0.0,
+            "indirect_expense": 0.0,
+            "net_profit": 0.0
+        }
+    },
+    "[null,null,null,null,null]": {
+        "from": null,
+        "to": null,
+        "branch_limited": false,
+        "paid_not_delivered": null,
+        "restated_vouchers": 1,
+        "sections": {
+            "income_direct": [
+                {
+                    "ledger_id": 4,
+                    "ledger": "Sales",
+                    "group": "Sales Accounts",
+                    "amount": 295000.0
+                }
+            ],
+            "expense_direct": [
+                {
+                    "ledger_id": 5,
+                    "ledger": "Purchases",
+                    "group": "Purchase Accounts",
+                    "amount": 45000.0
+                }
+            ],
+            "income_indirect": [
+                {
+                    "ledger_id": 9,
+                    "ledger": "Interest income",
+                    "group": "Indirect Incomes",
+                    "amount": 2000.0
+                },
+                {
+                    "ledger_id": 11,
+                    "ledger": "Misc income",
+                    "group": "Other Receipts",
+                    "amount": 800.0
+                }
+            ],
+            "expense_indirect": [
+                {
+                    "ledger_id": 12,
+                    "ledger": "Bank charges",
+                    "group": "Indirect Expenses",
+                    "amount": 300.0
+                },
+                {
+                    "ledger_id": 6,
+                    "ledger": "Rent",
+                    "group": "Indirect Expenses",
+                    "amount": 24000.0
+                }
+            ]
+        },
+        "totals": {
+            "direct_income": 295000.0,
+            "direct_expense": 45000.0,
+            "gross_profit": 250000.0,
+            "indirect_income": 2800.0,
+            "indirect_expense": 24300.0,
+            "net_profit": 228500.0
+        }
+    }
+}

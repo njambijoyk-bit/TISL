@@ -3,7 +3,6 @@
 namespace Tests\Feature;
 
 use App\Models\User;
-use App\Services\Books\BooksReportService;
 use App\Services\Books\Engine\LedgerBalances;
 use App\Services\Books\Engine\ReportEngine;
 use App\Services\Books\Engine\Reports\BalanceSheetReport;
@@ -22,6 +21,7 @@ use Tests\TestCase;
 class StatementReportsTest extends TestCase
 {
     use Concerns\CreatesBooksLedgerWorld;
+    use Concerns\RecordsGolden;
     use Concerns\StandsInForAccess;
 
     protected function setUp(): void
@@ -55,7 +55,7 @@ class StatementReportsTest extends TestCase
 
     private function oldPl(?string $from, ?string $to, ?int $cc = null, ?int $loc = null): array
     {
-        return app(BooksReportService::class)->withDimensions($cc, $loc)->profitLoss($from, $to);
+        return $this->golden('profit_loss', json_encode([$from, $to, $cc, $loc, $this->limitedTo]));
     }
 
     private function newPl(?string $from, ?string $to, ?int $cc = null, ?int $loc = null, array $options = []): array
@@ -209,7 +209,7 @@ class StatementReportsTest extends TestCase
     public function test_the_balance_sheet_matches_the_old_report(): void
     {
         foreach ([null, '2025-12-31', '2026-03-31', '2026-06-30', '2026-12-31', '2024-12-31'] as $asOf) {
-            $old = app(BooksReportService::class)->balanceSheet($asOf);
+            $old = $this->golden('balance_sheet', json_encode([$asOf, $this->limitedTo]));
             $new = (new BalanceSheetReport())->run(Scope::dates(null, $asOf), []);
             $why = 'as of ' . ($asOf ?? 'today');
             $this->assertEquals($old['total_assets'], $new['total_assets'], "{$why}: total assets");
@@ -235,7 +235,7 @@ class StatementReportsTest extends TestCase
     public function test_the_balance_sheet_matches_for_a_branch_limited_person(): void
     {
         $this->limitedTo = [1];
-        $old = app(BooksReportService::class)->balanceSheet('2026-12-31');
+        $old = $this->golden('balance_sheet', json_encode(['2026-12-31', $this->limitedTo]));
         $new = (new BalanceSheetReport())->run(Scope::dates(null, '2026-12-31'), []);
         $this->assertEquals($old['total_assets'], $new['total_assets']);
         $this->assertEquals($old['total_liabilities'], $new['total_liabilities']);

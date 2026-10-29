@@ -96,7 +96,13 @@ final class ProfitLossReport extends ReportDefinition
         $zero = StatementBuilder::zero($cols);
         $tier = [1 => ['rows' => [], 'profit' => $zero, 'income' => $zero, 'expense' => $zero], 2 => ['rows' => [], 'profit' => $zero, 'income' => $zero, 'expense' => $zero],
             3 => ['rows' => [], 'profit' => $zero, 'income' => $zero, 'expense' => $zero], 4 => ['rows' => [], 'profit' => $zero, 'income' => $zero, 'expense' => $zero]];
+        $sections = ['income_direct' => [], 'expense_direct' => [], 'income_indirect' => [], 'expense_indirect' => []];   // the ledgers behind the totals, for other modules that list the biggest
         foreach ($lines as $ln) {
+            foreach ($ln['ledgers'] as $l) {
+                if (! StatementBuilder::isZero($l['amounts'])) {
+                    $sections[($ln['node']->nature === 'income' ? 'income_' : 'expense_') . ($ln['tier'] === 1 ? 'direct' : 'indirect')][] = ['ledger_id' => $l['id'], 'ledger' => $l['name'], 'amount' => $l['amounts']['total']];
+                }
+            }
             $block = $builder->lineBlock($ln['node'], $ln['ledgers'], $cols, $showZero, 0, '');
             $t = &$tier[$ln['tier']];
             $t['rows'] = array_merge($t['rows'], $block['rows']);
@@ -141,8 +147,8 @@ final class ProfitLossReport extends ReportDefinition
         $sum = fn (array $a, array $b) => round(StatementBuilder::plus($a, $b)['total'], 2);
 
         return [
-            'ready' => true, 'columns' => $cols, 'rows' => $rows, 'unclassified' => $unclassified,
-            // the figures the old report gave, so the two can be compared and anything that read them keeps working
+            'ready' => true, 'columns' => $cols, 'rows' => $rows, 'unclassified' => $unclassified, 'sections' => $sections,
+            // the headline figures, for the dashboard, the insight packs and anything else that needs only the totals
             'totals' => [
                 'direct_income' => round($tier[1]['income']['total'], 2), 'direct_expense' => round($tier[1]['expense']['total'], 2), 'gross_profit' => round($gross['total'], 2),
                 'indirect_income' => $sum(StatementBuilder::plus($tier[2]['income'], $tier[3]['income']), $tier[4]['income']),

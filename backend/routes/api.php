@@ -1212,11 +1212,7 @@ Route::middleware('auth:sanctum')->group(function () {
         Route::get('/vouchers/{id}/customer-copy', [\App\Http\Controllers\Api\DocumentMailController::class, 'copy'])->whereNumber('id');
         Route::get('/mail/documents',           [\App\Http\Controllers\Api\DocumentMailController::class, 'documents']);
         Route::get('/mail/sent',                [\App\Http\Controllers\Api\DocumentMailController::class, 'sent']);
-        Route::get('/movement/ledger-items',    [\App\Http\Controllers\Api\MovementReportController::class, 'ledgerItems']);
-        Route::get('/movement/item-vouchers',   [\App\Http\Controllers\Api\MovementReportController::class, 'itemVouchers']);
-        Route::get('/movement/item-ledgers',    [\App\Http\Controllers\Api\MovementReportController::class, 'itemLedgers']);
         Route::get('/movement/products',        [\App\Http\Controllers\Api\MovementReportController::class, 'products']);
-        Route::get('/movement/money-flow',      [\App\Http\Controllers\Api\MovementReportController::class, 'moneyFlow']);
         Route::get('/vouchers/export',          [BooksVoucherController::class, 'exportList'])->middleware('assurance:export_bulk');
         Route::get('/lookup',                   [BooksVoucherController::class, 'lookup']);
         Route::get('/products/{id}/variants',   [BooksVoucherController::class, 'productVariants']);
@@ -1236,7 +1232,6 @@ Route::middleware('auth:sanctum')->group(function () {
         Route::post('/vouchers/preview',        [BooksVoucherController::class, 'preview']);
         Route::get('/vouchers/{id}',            [BooksVoucherController::class, 'show']);
         Route::get('/vouchers/{id}/export',     [BooksVoucherController::class, 'export']);
-        Route::get('/reports/{name}',           [BooksVoucherController::class, 'report']);
         Route::get('/dashboard/{tab}',          [\App\Http\Controllers\Api\BooksDashboardController::class, 'show']);
         Route::get('/credit/overview',          [CustomerAccountController::class, 'overview']);
         Route::get('/customer-accounts/{customerId}', [CustomerAccountController::class, 'show']);

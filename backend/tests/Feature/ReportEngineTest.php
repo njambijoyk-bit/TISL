@@ -5,7 +5,6 @@ namespace Tests\Feature;
 use App\Models\Books\Ledger;
 use App\Models\Books\LedgerGroup;
 use App\Models\User;
-use App\Services\Books\BooksReportService;
 use App\Services\Books\Engine\Identifiers;
 use App\Services\Books\Engine\LedgerBalances;
 use App\Services\Books\Engine\ReportDefinition;
@@ -28,6 +27,7 @@ use Tests\TestCase;
 class ReportEngineTest extends TestCase
 {
     use Concerns\CreatesBooksLedgerWorld;
+    use Concerns\RecordsGolden;
     use Concerns\StandsInForAccess;
 
     protected function setUp(): void
@@ -59,7 +59,7 @@ class ReportEngineTest extends TestCase
 
     private function oldTrial(?string $from, ?string $to, ?int $cc = null, ?int $loc = null): array
     {
-        return app(BooksReportService::class)->withDimensions($cc, $loc)->trialBalance($from, $to);
+        return $this->golden('trial_balance', json_encode([$from, $to, $cc, $loc, $this->limitedTo]));
     }
 
     private function newTrial(?string $from, ?string $to, ?int $cc = null, ?int $loc = null): array
@@ -214,7 +214,7 @@ class ReportEngineTest extends TestCase
 
     public function test_the_catalogue_lists_only_what_the_person_may_run(): void
     {
-        $this->assertSame(['trial-balance', 'profit-loss', 'balance-sheet', 'changes-in-equity', 'adjusted-trial-balance', 'day-book', 'ledger-statement', 'receivables-ageing', 'payables-ageing', 'tax-return', 'withholding', 'ratio-analysis', 'trade', 'money-flow', 'cash-flow', 'control-accounts', 'books-health'], array_column($this->engine()->catalogue($this->person(['books.view'])), 'key'));
+        $this->assertSame(['trial-balance', 'profit-loss', 'balance-sheet', 'changes-in-equity', 'adjusted-trial-balance', 'day-book', 'ledger-statement', 'receivables-ageing', 'payables-ageing', 'tax-return', 'withholding', 'ratio-analysis', 'trade', 'money-flow', 'cash-flow', 'control-accounts', 'books-health', 'profit-loss-by-cost-centre'], array_column($this->engine()->catalogue($this->person(['books.view'])), 'key'));
         $this->assertSame(['stock-journal', 'stock-summary', 'stock-location-summary', 'stock-query', 'stock-item-monthly', 'stock-item-movements'], array_column($this->engine()->catalogue($this->person(['stock.view'])), 'key'));
     }
 

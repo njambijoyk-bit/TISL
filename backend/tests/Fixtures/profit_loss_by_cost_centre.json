@@ -1,0 +1,212 @@
+{
+    "[\"2026-01-01\",\"2026-12-31\",1]": {
+        "ready": true,
+        "from": "2026-01-01",
+        "to": "2026-12-31",
+        "branch_limited": false,
+        "restated_vouchers": 1,
+        "rows": [
+            {
+                "cost_centre_id": 10,
+                "name": "Head office",
+                "code": null,
+                "purpose": null,
+                "depth": 0,
+                "path": "Head office",
+                "own_income": 297000.0,
+                "own_expense": 8300.0,
+                "own_profit": 288700.0,
+                "income": 297000.0,
+                "expense": 12300.0,
+                "profit": 284700.0
+            },
+            {
+                "cost_centre_id": 11,
+                "name": "Admin",
+                "code": null,
+                "purpose": null,
+                "depth": 1,
+                "path": "Head office › Admin",
+                "own_income": 0.0,
+                "own_expense": 4000.0,
+                "own_profit": -4000.0,
+                "income": 0.0,
+                "expense": 4000.0,
+                "profit": -4000.0
+            }
+        ],
+        "totals": {
+            "income": 297000.0,
+            "expense": 12300.0,
+            "profit": 284700.0
+        }
+    },
+    "[\"2026-01-01\",\"2026-12-31\",2]": {
+        "ready": true,
+        "from": "2026-01-01",
+        "to": "2026-12-31",
+        "branch_limited": false,
+        "restated_vouchers": 1,
+        "rows": [
+            {
+                "cost_centre_id": 10,
+                "name": "Head office",
+                "code": null,
+                "purpose": null,
+                "depth": 0,
+                "path": "Head office",
+                "own_income": 0.0,
+                "own_expense": 0.0,
+                "own_profit": 0.0,
+                "income": 800.0,
+                "expense": 40000.0,
+                "profit": -39200.0
+            },
+            {
+                "cost_centre_id": 11,
+                "name": "Admin",
+                "code": null,
+                "purpose": null,
+                "depth": 1,
+                "path": "Head office › Admin",
+                "own_income": 800.0,
+                "own_expense": 40000.0,
+                "own_profit": -39200.0,
+                "income": 800.0,
+                "expense": 40000.0,
+                "profit": -39200.0
+            }
+        ],
+        "totals": {
+            "income": 800.0,
+            "expense": 40000.0,
+            "profit": -39200.0
+        }
+    },
+    "[\"2026-01-01\",\"2026-12-31\",null]": {
+        "ready": true,
+        "from": "2026-01-01",
+        "to": "2026-12-31",
+        "branch_limited": false,
+        "restated_vouchers": 1,
+        "rows": [
+            {
+                "cost_centre_id": 10,
+                "name": "Head office",
+                "code": null,
+                "purpose": null,
+                "depth": 0,
+                "path": "Head office",
+                "own_income": 297000.0,
+                "own_expense": 8300.0,
+                "own_profit": 288700.0,
+                "income": 297800.0,
+                "expense": 52300.0,
+                "profit": 245500.0
+            },
+            {
+                "cost_centre_id": 11,
+                "name": "Admin",
+                "code": null,
+                "purpose": null,
+                "depth": 1,
+                "path": "Head office › Admin",
+                "own_income": 800.0,
+                "own_expense": 44000.0,
+                "own_profit": -43200.0,
+                "income": 800.0,
+                "expense": 44000.0,
+                "profit": -43200.0
+            }
+        ],
+        "totals": {
+            "income": 297800.0,
+            "expense": 52300.0,
+            "profit": 245500.0
+        }
+    },
+    "[\"2026-06-01\",\"2026-08-31\",null]": {
+        "ready": true,
+        "from": "2026-06-01",
+        "to": "2026-08-31",
+        "branch_limited": false,
+        "restated_vouchers": 1,
+        "rows": [
+            {
+                "cost_centre_id": 10,
+                "name": "Head office",
+                "code": null,
+                "purpose": null,
+                "depth": 0,
+                "path": "Head office",
+                "own_income": 2000.0,
+                "own_expense": 3000.0,
+                "own_profit": -1000.0,
+                "income": 2000.0,
+                "expense": 7000.0,
+                "profit": -5000.0
+            },
+            {
+                "cost_centre_id": 11,
+                "name": "Admin",
+                "code": null,
+                "purpose": null,
+                "depth": 1,
+                "path": "Head office › Admin",
+                "own_income": 0.0,
+                "own_expense": 4000.0,
+                "own_profit": -4000.0,
+                "income": 0.0,
+                "expense": 4000.0,
+                "profit": -4000.0
+            }
+        ],
+        "totals": {
+            "income": 2000.0,
+            "expense": 7000.0,
+            "profit": -5000.0
+        }
+    },
+    "[null,null,null]": {
+        "ready": true,
+        "from": null,
+        "to": null,
+        "branch_limited": false,
+        "restated_vouchers": 1,
+        "rows": [
+            {
+                "cost_centre_id": 10,
+                "name": "Head office",
+                "code": null,
+                "purpose": null,
+                "depth": 0,
+                "path": "Head office",
+                "own_income": 297000.0,
+                "own_expense": 13300.0,
+                "own_profit": 283700.0,
+                "income": 297800.0,
+                "expense": 57300.0,
+                "profit": 240500.0
+            },
+            {
+                "cost_centre_id": 11,
+                "name": "Admin",
+                "code": null,
+                "purpose": null,
+                "depth": 1,
+                "path": "Head office › Admin",
+                "own_income": 800.0,
+                "own_expense": 44000.0,
+                "own_profit": -43200.0,
+                "income": 800.0,
+                "expense": 44000.0,
+                "profit": -43200.0
+            }
+        ],
+        "totals": {
+            "income": 297800.0,
+            "expense": 57300.0,
+            "profit": 240500.0
+        }
+    }
+}

@@ -1,0 +1,141 @@
+{
+    "payables": {
+        "kind": "payables",
+        "as_of": "2026-10-28",
+        "base_currency": "KES",
+        "branch_limited": false,
+        "rows": [
+            {
+                "ledger_id": 8,
+                "party": "Supplier",
+                "current": 0,
+                "d1_30": 40000.0,
+                "d31_60": 0,
+                "d61_90": 0,
+                "d90_plus": 0,
+                "total": 40000.0,
+                "bills": [
+                    {
+                        "voucher_id": 25,
+                        "voucher_number": "B1",
+                        "date": "2026-10-01",
+                        "due_date": "2026-10-20",
+                        "open": 40000.0,
+                        "currency": "KES",
+                        "open_fc": 40000.0,
+                        "foreign": false,
+                        "days_late": 8.0
+                    }
+                ],
+                "by_currency": {
+                    "KES": 40000.0
+                },
+                "currencies": "KES 40,000.00",
+                "has_foreign": false
+            }
+        ],
+        "totals": {
+            "current": 0.0,
+            "d1_30": 40000.0,
+            "d31_60": 0.0,
+            "d61_90": 0.0,
+            "d90_plus": 0.0,
+            "total": 40000.0
+        }
+    },
+    "receivables": {
+        "kind": "receivables",
+        "as_of": "2026-10-28",
+        "base_currency": "KES",
+        "branch_limited": false,
+        "rows": [
+            {
+                "ledger_id": 21,
+                "party": "Customer B",
+                "current": 0,
+                "d1_30": 13000.0,
+                "d31_60": 0,
+                "d61_90": 0,
+                "d90_plus": 80000.0,
+                "total": 93000.0,
+                "bills": [
+                    {
+                        "voucher_id": 17,
+                        "voucher_number": "S3",
+                        "date": "2026-06-01",
+                        "due_date": "2026-07-01",
+                        "open": 80000.0,
+                        "currency": "KES",
+                        "open_fc": 80000.0,
+                        "foreign": false,
+                        "days_late": 119.0
+                    },
+                    {
+                        "voucher_id": 18,
+                        "voucher_number": "S4",
+                        "date": "2026-09-20",
+                        "due_date": "2026-10-10",
+                        "open": 13000.0,
+                        "currency": "USD",
+                        "open_fc": 100.0,
+                        "foreign": true,
+                        "days_late": 18.0
+                    }
+                ],
+                "by_currency": {
+                    "KES": 80000.0,
+                    "USD": 100.0
+                },
+                "currencies": "KES 80,000.00; USD 100.00",
+                "has_foreign": true
+            },
+            {
+                "ledger_id": 3,
+                "party": "Customer A",
+                "current": 50000.0,
+                "d1_30": 0,
+                "d31_60": 20000.0,
+                "d61_90": 0,
+                "d90_plus": 0,
+                "total": 70000.0,
+                "bills": [
+                    {
+                        "voucher_id": 14,
+                        "voucher_number": "S1",
+                        "date": "2026-10-01",
+                        "due_date": "2026-11-15",
+                        "open": 50000.0,
+                        "currency": "KES",
+                        "open_fc": 50000.0,
+                        "foreign": false,
+                        "days_late": 0
+                    },
+                    {
+                        "voucher_id": 15,
+                        "voucher_number": "S2",
+                        "date": "2026-08-01",
+                        "due_date": "2026-08-31",
+                        "open": 20000.0,
+                        "currency": "KES",
+                        "open_fc": 20000.0,
+                        "foreign": false,
+                        "days_late": 58.0
+                    }
+                ],
+                "by_currency": {
+                    "KES": 70000.0
+                },
+                "currencies": "KES 70,000.00",
+                "has_foreign": false
+            }
+        ],
+        "totals": {
+            "current": 50000.0,
+            "d1_30": 13000.0,
+            "d31_60": 20000.0,
+            "d61_90": 0.0,
+            "d90_plus": 80000.0,
+            "total": 163000.0
+        }
+    }
+}

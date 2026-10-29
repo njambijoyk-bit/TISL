@@ -1,4 +1,4 @@
-import { colors, radius } from '../../../../_shared/theme/tokens';
+import { radius } from '../../../../_shared/theme/tokens';
 
 /** Where "new voucher" of a type goes: a memorandum has its own form (it posts nothing and has no items). */
 export const newVoucherPath = (type) => (type?.base_type === 'memorandum' ? '/admin/books/memoranda/new' : `/admin/books/vouchers/new?type=${type?.id}`);
