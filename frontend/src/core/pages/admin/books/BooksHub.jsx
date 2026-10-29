@@ -8,6 +8,7 @@ import ReportsTab from '../../../components/admin/books/ReportsTab';
 import SettingsTab from '../../../components/admin/books/SettingsTab';
 import MailTab from '../../../components/admin/books/MailTab';
 import GiftVouchersTab from '../../../components/admin/books/GiftVouchersTab';
+import VisualReports from '../../../../extras/components/books/VisualReports';
 import ReconTab from '../../../components/admin/books/ReconTab';
 import useAuthStore from '../../../../_shared/store/authStore';
 import { canReadFinance, canWriteFinance, hasPermission } from '../../../../_shared/lib/roles';
@@ -20,6 +21,7 @@ const TABS = [
   { id: 'mail', label: 'Mail' },
   { id: 'recon', label: 'Reconciliation' },
   { id: 'reports', label: 'Reports' },
+  { id: 'visuals', label: 'Visual reports' },
   { id: 'settings', label: 'Configuration' },
 ];
 
@@ -44,6 +46,7 @@ export default function BooksHub() {
             {tab === 'mail' && <MailTab canWrite={canWrite} />}
             {tab === 'recon' && <ReconTab />}
             {tab === 'reports' && <ReportsTab />}
+            {tab === 'visuals' && <VisualReports />}
             {tab === 'settings' && <SettingsTab canSetup={hasPermission(user, 'books.period')} />}
           </>
         )}
