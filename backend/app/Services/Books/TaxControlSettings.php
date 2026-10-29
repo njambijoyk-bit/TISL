@@ -182,7 +182,7 @@ class TaxControlSettings
 
         return [
             'groups' => app(ReportSettings::class)->lookups()['groups'], 'tax_types' => $types, 'ledgers' => $ledgers,
-            'categories' => TaxControlDefinitions::CATEGORIES, 'methods' => TaxControlDefinitions::METHODS, 'exemptions' => TaxControlDefinitions::EXEMPTIONS, 'documents' => TaxControlDefinitions::DOCUMENTS,
+            'countries' => TaxControlDefinitions::countries(), 'categories' => TaxControlDefinitions::CATEGORIES, 'methods' => TaxControlDefinitions::METHODS, 'exemptions' => TaxControlDefinitions::EXEMPTIONS, 'documents' => TaxControlDefinitions::DOCUMENTS,
         ];
     }
 

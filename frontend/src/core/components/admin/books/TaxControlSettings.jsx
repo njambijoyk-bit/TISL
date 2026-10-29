@@ -131,7 +131,14 @@ const control = (saved) => (s, { value, onChange, disabled, error, lookups, id, 
   if (s.unavailable) return wide(<CheckboxRow disabled checked={false} onChange={() => {}} label={s.label} description={s.hint} />);
   switch (s.type) {
     case 'country':
-      return <Field label={s.label} htmlFor={id} hint={s.hint} error={error}><TextInput id={id} disabled={disabled} maxLength={2} style={{ maxWidth: 90, textTransform: 'uppercase' }} value={value ?? ''} onChange={(e) => onChange(e.target.value.toUpperCase())} /></Field>;
+      return (
+        <Field label={s.label} htmlFor={id} hint={s.hint} error={error}>
+          <SelectInput id={id} disabled={disabled} value={value ?? ''} onChange={(e) => onChange(e.target.value)}>
+            <option value="">Not set</option>
+            {Object.entries(lookups.countries ?? {}).map(([code, name]) => <option key={code} value={code}>{name} ({code})</option>)}
+          </SelectInput>
+        </Field>
+      );
     case 'registrations':
       return wide(<Field label={s.label} hint={s.hint} error={error}><Registrations disabled={disabled} value={value} onChange={onChange} max={s.max_items} /></Field>);
     case 'category_list':

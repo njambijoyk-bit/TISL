@@ -131,6 +131,10 @@ class TaxControlSettingsTest extends TestCase
     public function test_values_are_checked(): void
     {
         $this->as(['books.view', 'books.tax.view', 'books.tax.control']);
+        $this->putJson(self::URL . '/jurisdiction', ['values' => ['tax_country' => 'ZZ']])->assertStatus(422)->assertJsonValidationErrors(['values.tax_country']);
+        $this->putJson(self::URL . '/jurisdiction', ['values' => ['tax_country' => 'QQ']])->assertStatus(422);
+        $this->assertSame('Kenya', TaxControlDefinitions::countries()['KE']);
+        $this->assertGreaterThan(200, count(TaxControlDefinitions::countries()));
         $this->putJson(self::URL . '/jurisdiction', ['values' => ['tax_country' => 'KENYA']])->assertStatus(422)->assertJsonValidationErrors(['values.tax_country']);
         $this->putJson(self::URL . '/jurisdiction', ['values' => ['tax_registrations' => [['name' => 'VAT', 'number' => '']]]])->assertStatus(422)->assertJsonValidationErrors(['values.tax_registrations']);
         $this->putJson(self::URL . '/filing', ['values' => ['filing_due_day' => 40]])->assertStatus(422)->assertJsonValidationErrors(['values.filing_due_day']);

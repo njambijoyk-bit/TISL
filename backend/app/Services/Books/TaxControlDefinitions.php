@@ -10,6 +10,32 @@ use InvalidArgumentException;
  */
 class TaxControlDefinitions
 {
+    /** Codes ICU lists as regions that are not countries (groupings, unknown, exceptional reservations). */
+    private const NOT_COUNTRIES = ['ZZ', 'EU', 'UN', 'EZ', 'XA', 'XB', 'QO', 'AC', 'CP', 'DG', 'EA', 'IC', 'TA'];
+
+    /**
+     * The countries a company can be registered in: code => name, from the standard ICU data PHP carries (nothing is typed in by hand).
+     *
+     * @return array<string, string>
+     */
+    public static function countries(): array
+    {
+        static $list = null;
+        if ($list === null) {
+            $list = [];
+            if (class_exists(\Locale::class)) {
+                foreach (array_keys(iterator_to_array(\ResourceBundle::create('en', 'ICUDATA-region')['Countries'])) as $code) {
+                    if (preg_match('/^[A-Z]{2}$/', (string) $code) && ! in_array($code, self::NOT_COUNTRIES, true)) {
+                        $list[$code] = \Locale::getDisplayRegion('-' . $code, 'en');
+                    }
+                }
+                asort($list);
+            }
+        }
+
+        return $list;
+    }
+
     /** What kind of tax it is. key => label. */
     public const CATEGORIES = [
         'vat_gst' => 'VAT / GST', 'sales_tax' => 'Sales tax', 'withholding_income' => 'Withholding income tax', 'withholding_vat' => 'Withholding VAT / GST',
@@ -52,7 +78,7 @@ class TaxControlDefinitions
     {
         return [
             'jurisdiction' => ['title' => 'Jurisdiction', 'hint' => 'The country whose tax rules the books follow, and the tax registrations of the company. One company, one country: the books never mix two countries\' regimes. Saving either copies it to the company details (Books → Configuration → Company), where you choose whether documents print them.', 'permission' => self::ADMIN, 'settings' => [
-                'tax_country' => ['type' => 'country', 'label' => 'Country of registration', 'hint' => 'Two letters, such as KE. Areas within the country (county, state) are kept on the tax types.', 'default' => ''],
+                'tax_country' => ['type' => 'country', 'label' => 'Country of registration', 'hint' => 'Chosen from the list of countries. Areas within the country (county, state) are kept on the tax types.', 'default' => ''],
                 'tax_registrations' => ['type' => 'registrations', 'label' => 'Tax registrations', 'hint' => 'What the company is registered for and its number: VAT, PAYE, excise licence and so on.', 'default' => [], 'max_items' => 12],
             ]],
             'categories' => ['title' => 'Tax categories and how they are applied', 'hint' => 'Which kinds of tax the company uses, and which ways of applying each are allowed. A tax type can only be created with an allowed combination, and a category or method that a tax type already uses cannot be switched off.', 'permission' => self::CONTROL, 'settings' => [
@@ -146,8 +172,9 @@ class TaxControlDefinitions
 
             case 'country':
                 $c = strtoupper(trim((string) $value));
-                if ($c !== '' && ! preg_match('/^[A-Z]{2}$/', $c)) {
-                    throw new InvalidArgumentException("{$label}: use the two-letter country code, such as KE.");
+                $known = self::countries();
+                if ($c !== '' && ($known ? ! isset($known[$c]) : ! preg_match('/^[A-Z]{2}$/', $c))) {
+                    throw new InvalidArgumentException("{$label}: choose a country from the list.");
                 }
 
                 return $c;
