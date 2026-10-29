@@ -58,7 +58,8 @@ final class AdjustedTrialBalanceReport extends ReportDefinition
         }
         $dr = array_sum(array_column($rows, 'debit'));
         $cr = array_sum(array_column($rows, 'credit'));
-        $diff = round($dr - $cr, 2);   // what the opening balances were out by, if they were
+        $net = $balances->openings()['net'];   // what the opening balances are out by, worked out from the ledgers' own openings as the trial balance does, not from the rounded rows
+        $diff = abs($net) < 0.01 ? 0.0 : round($net, 2);
         if (abs($diff) >= 0.01) {
             $rows[] = ['ledger_id' => null, 'name' => 'Difference in opening balances', 'group' => '', 'debit' => $diff < 0 ? -$diff : 0.0, 'credit' => $diff > 0 ? $diff : 0.0, 'placeholder' => true];
             $dr += $diff < 0 ? -$diff : 0.0;
