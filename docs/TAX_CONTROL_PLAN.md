@@ -89,6 +89,34 @@ For a purchase from a non-resident or an appointed supplier, the books post: the
 
 Then the stock reports (steps 6.7 to 6.10) and the rest of the Books reports plan continue.
 
+## 12. Taxes that depend on other taxes (added 29 Oct, before T3)
+
+The case: a sales account carries VAT 16% and excise 10%. Sometimes VAT is charged on the price plus the excise, sometimes on the price alone.
+
+**What the code does today.** There are two separate paths. The *item path* (rules, `calculation_sequence`, a base called "total payable") can already compound: excise is calculated first, then VAT on the price plus the tax already applied. The *account path* (an account's own tax nature and one rate) applies **one** rate on the line's amount, so it cannot compound at all. And nothing says "VAT is on the price plus excise **for this kind of sale only**".
+
+**What the plan adds** (these become part of T4 and T6):
+
+| # | Rule |
+|---|---|
+| C1 | **One resolver, not two.** T6 replaces the item path and the account path with a single resolver that takes the line, finds every tax that applies (item, account, apply-regardless), orders them by sequence, and calculates each on its own base. |
+| C2 | **A tax's base is explicit.** Each rate says what it is calculated on: the price (before or after discount) **plus which other taxes**, chosen from a list ("excise duty", "customs duty"...), not only "everything applied earlier". |
+| C3 | **The base can depend on the situation.** A tax can have several rules with conditions (customer type, product or service, document type, jurisdiction, date, order value), and the rule that matches decides the base. Example: *VAT on price plus excise* for ordinary sales; *VAT on price alone* for a customer type or a document type where the law says so. |
+| C4 | **A line can opt out of a tax** (an item that is not excisable, a customer or item holding an exemption certificate). This already exists for exemptions and carries over per tax, not per line. |
+| C5 | **A document or line override, only where the tax allows it.** A tax can be marked "base may be changed on the document". Changing it needs a permission and a reason, and the reason is stored in the calculation snapshot. |
+| C6 | **Prices that include tax are worked backwards in reverse order.** If a 1,276.00 price includes VAT and excise, the resolver removes VAT first, then excise, so the stored net, excise and VAT are the same as if the price had been entered without tax. |
+| C7 | **The tax return follows the base.** The return shows the base each tax was calculated on, so a VAT figure on price plus excise can be proved from the same lines. |
+
+**Worked example** (price 1,000.00; excise 10% first in sequence; VAT 16% second):
+
+| Base for VAT | Excise | VAT | Total |
+|---|---|---|---|
+| Price plus excise | 100.00 | 176.00 (16% of 1,100.00) | 1,276.00 |
+| Price alone | 100.00 | 160.00 (16% of 1,000.00) | 1,260.00 |
+| The product is not excisable | 0.00 | 160.00 | 1,160.00 |
+
+Tests for T6 include each row, a line that opts out of excise, an override with and without the permission, and the same three on a price that includes tax.
+
 ## 10. Risks
 
 - T6 changes the code that posts sales and purchases. The record-and-compare test before changing anything is the safeguard; no step after T2 ships without it.
