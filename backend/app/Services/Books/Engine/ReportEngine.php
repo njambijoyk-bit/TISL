@@ -6,6 +6,8 @@ use App\Models\User;
 use App\Services\Access\Authorizer;
 use App\Services\Access\BranchFilter;
 use App\Services\Books\Engine\Reports\BalanceSheetReport;
+use App\Services\Books\Engine\Reports\PayablesAgeingReport;
+use App\Services\Books\Engine\Reports\ReceivablesAgeingReport;
 use App\Services\Books\Engine\Reports\DayBookReport;
 use App\Services\Books\Engine\Reports\LedgerStatementReport;
 use App\Services\Books\Engine\Reports\ProfitLossReport;
@@ -28,6 +30,8 @@ final class ReportEngine
         BalanceSheetReport::class,
         DayBookReport::class,
         LedgerStatementReport::class,
+        ReceivablesAgeingReport::class,
+        PayablesAgeingReport::class,
     ];
 
     /** The display settings a screen needs to draw every amount the same way. */

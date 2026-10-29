@@ -213,6 +213,44 @@ class ReportSettings
         };
     }
 
+    /**
+     * The ledgers one ratio input names (Reports settings, Ratio analysis inputs): every ledger in the chosen groups and the groups under them, and every
+     * ledger on the chosen statement lines (or on a line under a chosen heading), counting a ledger's own line before its group's. Null when nothing has
+     * been chosen for it, so a report can say it is not set up instead of guessing from a name.
+     *
+     * @return int[]|null
+     */
+    public function ratioLedgerIds(string $input): ?array
+    {
+        $choice = $this->values()['ratio_inputs'][$input] ?? null;
+        $groups = array_map('intval', $choice['groups'] ?? []);
+        $codes = array_map('strval', $choice['statements'] ?? []);
+        if (! $groups && ! $codes) {
+            return null;
+        }
+        $groupIds = [];
+        foreach ($groups as $g) {
+            $groupIds = array_merge($groupIds, $this->withDescendants($g));
+        }
+        $lineIds = [];
+        if ($codes && Schema::hasTable('statements')) {
+            $frontier = DB::table('statements')->whereIn('code', $codes)->pluck('id')->map(fn ($i) => (int) $i)->all();
+            $lineIds = $frontier;
+            for ($guard = 0; $frontier && $guard < 8; $guard++) {
+                $frontier = DB::table('statements')->whereIn('parent_id', $frontier)->pluck('id')->map(fn ($i) => (int) $i)->all();
+                $lineIds = array_merge($lineIds, $frontier);
+            }
+        }
+        $ids = [];
+        foreach (app(Engine\LedgerBalances::class)->ledgers() as $l) {
+            if (in_array((int) $l->group_id, $groupIds, true) || ($l->statement_id && in_array((int) $l->statement_id, $lineIds, true))) {
+                $ids[] = (int) $l->id;
+            }
+        }
+
+        return $ids;
+    }
+
     /** A group's id plus every group under it. */
     private function withDescendants(int $groupId): array
     {
