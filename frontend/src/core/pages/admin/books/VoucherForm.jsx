@@ -284,7 +284,7 @@ export default function VoucherForm({ api = booksAPI, mode = 'books' }) {
       if (v.type?.has_items) {
         setLines((v.items ?? []).filter((i) => !i.parent_item_id && i.notes !== '__rounding').map((i, idx) => {
           const shared = v.meta?.discount_shares ? Number(v.meta.discount_shares[idx] ?? 0) : (legacy && SHARE_SRC.includes(i.discount_source) ? Number(i.discount_amount) : 0);
-          const b = { key: `i${i.id}`, quantity: Number(i.quantity), discount: Math.max(0, Number(i.discount_amount) - shared) || '', description: i.description, notes: i.notes ?? '' };
+          const b = { key: `i${i.id}`, quantity: Number(i.quantity), discount: Math.max(0, Number(i.discount_amount) - shared) || '', description: i.description, notes: i.notes ?? '', ...(() => { const o = (i.taxes ?? []).map((t) => t.calc_snapshot?.base_override).find(Boolean); return o ? { tax_base: o.to, tax_base_reason: o.reason ?? '' } : {}; })() };
           if (i.item_type === 'product') return { ...b, type: 'product', variant_id: i.variant_id, variant_unit_id: i.variant_unit_id, rate: Number(i.rate), label: `${i.description}${i.variant_label ? ` — ${i.variant_label}` : ''}`, units: [] };
           if (i.item_type === 'service') {
             const materials = (v.items ?? []).filter((c) => c.parent_item_id === i.id && c.material_mode).map((c) => ({
@@ -436,8 +436,9 @@ export default function VoucherForm({ api = booksAPI, mode = 'books' }) {
     if (hasItems) {
       p.lines = lines.map((l) => {
         const b = { type: l.type, quantity: Number(l.quantity) || 0, discount: Number(l.discount) || 0, notes: l.notes || undefined };
-        if (l.type === 'product') return { ...b, variant_id: l.variant_id, variant_unit_id: l.variant_unit_id || undefined, rate: l.rate === '' ? undefined : Number(l.rate), batch_id: l.batch_id || undefined };
-        if (l.type === 'service') return { ...b, service_id: l.service_id, service_variant_id: l.service_variant_id, rate: l.rate === '' ? undefined : Number(l.rate), materials: (l.materials ?? []).map(materialPayload) };
+        const tb = l.tax_base !== undefined && l.tax_base !== '' ? { tax_base: Number(l.tax_base), tax_base_reason: l.tax_base_reason || undefined } : {};   // the tax is worked out on this amount instead
+        if (l.type === 'product') return { ...b, ...tb, variant_id: l.variant_id, variant_unit_id: l.variant_unit_id || undefined, rate: l.rate === '' ? undefined : Number(l.rate), batch_id: l.batch_id || undefined };
+        if (l.type === 'service') return { ...b, ...tb, service_id: l.service_id, service_variant_id: l.service_variant_id, rate: l.rate === '' ? undefined : Number(l.rate), materials: (l.materials ?? []).map(materialPayload) };
         if (l.type === 'ingredient') return { ...b, ingredient_item_id: l.item_id, unit: l.unit || 'base', rate: l.rate === '' ? undefined : Number(l.rate) };
         if (l.type === 'hamper') return { type: 'hamper', hamper_id: l.hamper_id, quantity: b.quantity, discount: b.discount };
         if (l.type === 'charge') return l.kind === 'shipping' && l.shipping_option_id
@@ -784,6 +785,16 @@ export default function VoucherForm({ api = booksAPI, mode = 'books' }) {
                     )}
                     <button type="button" aria-label="Remove line" onClick={() => setLines((ls) => ls.filter((x) => x.key !== l.key))} style={{ ...btnGhost, padding: '6px 8px', color: colors.danger }}><Trash2 size={14} /></button>
                   </div>
+                    {['product', 'service'].includes(l.type) && hasPermission(user, 'books.tax.override') && (l.variant_id || l.service_variant_id) && (
+                      l.tax_base_open || l.tax_base
+                        ? <div style={{ display: 'flex', gap: 8, alignItems: 'center', margin: '4px 0 0 8px', fontSize: '0.72rem', color: colors.textMuted, flexWrap: 'wrap' }}>
+                          <span>Tax is worked out on</span>
+                          <input type="number" step="0.01" min="0" value={l.tax_base ?? ''} aria-label="Amount the tax is worked out on" placeholder={pv ? String(pv.amount) : '0.00'} onChange={(e) => setLine(l.key, { tax_base: e.target.value })} style={{ ...small, width: 100, textAlign: 'right' }} />
+                          <input type="text" maxLength={160} value={l.tax_base_reason ?? ''} aria-label="Reason for changing the tax base" placeholder="Reason" onChange={(e) => setLine(l.key, { tax_base_reason: e.target.value })} style={{ ...small, minWidth: 200 }} />
+                          <button type="button" onClick={() => setLine(l.key, { tax_base: '', tax_base_reason: '', tax_base_open: false })} style={{ ...btnGhost, padding: '2px 8px', fontSize: '0.7rem' }}>Cancel</button>
+                        </div>
+                        : <button type="button" onClick={() => setLine(l.key, { tax_base_open: true })} style={{ ...btnGhost, padding: '2px 10px', fontSize: '0.7rem', margin: '4px 0 0 8px' }}>Change what the tax is worked out on</button>
+                    )}
                     {l.type === 'service' && l.service_variant_id && FEE_DOCS.includes(base) && (
                       <button type="button" onClick={() => addCharges(l)} style={{ ...btnGhost, padding: '3px 10px', fontSize: '0.7rem', margin: '4px 0 0 8px' }}>+ Add this service's ticked charges</button>
                     )}
