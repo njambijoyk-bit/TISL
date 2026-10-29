@@ -11,6 +11,7 @@ use App\Services\Books\Engine\Reports\RatioAnalysisReport;
 use App\Services\Books\Engine\Reports\ReceivablesAgeingReport;
 use App\Services\Books\Engine\Reports\TaxReturnReport;
 use App\Services\Books\Engine\Reports\MoneyFlowReport;
+use App\Services\Books\Engine\Reports\StockJournalReport;
 use App\Services\Books\Engine\Reports\TradeReport;
 use App\Services\Books\Engine\Reports\WithholdingReport;
 use App\Services\Books\Engine\Reports\DayBookReport;
@@ -42,6 +43,7 @@ final class ReportEngine
         RatioAnalysisReport::class,
         TradeReport::class,
         MoneyFlowReport::class,
+        StockJournalReport::class,
     ];
 
     /** The display settings a screen needs to draw every amount the same way. */

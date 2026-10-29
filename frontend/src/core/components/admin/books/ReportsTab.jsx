@@ -18,6 +18,7 @@ import TaxReturnView from '../reports/TaxReturnView';
 import WithholdingView from '../reports/WithholdingView';
 import RatioView from '../reports/RatioView';
 import TradeView from '../reports/TradeView';
+import StockJournalView from '../reports/StockJournalView';
 import { MoneyFlowBody } from './MoneyFlow';
 import { hasPermission } from '../../../../_shared/lib/roles';
 import costCentresAPI from '../../../../_shared/api/costCentres';
@@ -36,6 +37,7 @@ const REPORTS = [
   { id: 'engine-withholding', label: 'Withholding certificates', custom: true, engine: 'withholding' },
   { id: 'engine-ratio-analysis', label: 'Ratio analysis', custom: true, engine: 'ratio-analysis' },
   { id: 'engine-money-flow', label: 'Money flow', custom: true, engine: 'money-flow' },
+  { id: 'engine-stock-journal', label: 'Stock journal', custom: true, engine: 'stock-journal', permission: 'stock.view' },
   { id: 'reconciliation', label: 'Reconciliation', asOf: true },
   { id: 'engine-trade', label: 'Trade by party and item', custom: true, engine: 'trade' },
   { id: 'stock-movement', label: 'Stock movement (old)', custom: true },   // draws itself: it starts from a ledger or an item
@@ -85,7 +87,7 @@ function View(props) {
   );
 }
 
-const ENGINE_ALIAS = { 'day-book': 'engine-day-book', ledger: 'engine-ledger', receivables: 'engine-receivables', payables: 'engine-payables', 'tax-return': 'engine-tax-return', withholding: 'engine-withholding', 'ratio-analysis': 'engine-ratio-analysis', 'trial-balance': 'engine-trial-balance', 'profit-loss': 'engine-profit-loss', 'balance-sheet': 'engine-balance-sheet', trade: 'engine-trade', 'money-flow': 'engine-money-flow' };
+const ENGINE_ALIAS = { 'day-book': 'engine-day-book', ledger: 'engine-ledger', receivables: 'engine-receivables', payables: 'engine-payables', 'tax-return': 'engine-tax-return', withholding: 'engine-withholding', 'ratio-analysis': 'engine-ratio-analysis', 'trial-balance': 'engine-trial-balance', 'profit-loss': 'engine-profit-loss', 'balance-sheet': 'engine-balance-sheet', trade: 'engine-trade', 'money-flow': 'engine-money-flow', 'stock-journal': 'engine-stock-journal' };
 
 /** The screen of each report on the engine. */
 function EngineView({ engine, result, drill }) {
@@ -95,6 +97,7 @@ function EngineView({ engine, result, drill }) {
   if (engine === 'tax-return') return <TaxReturnView result={result} />;
   if (engine === 'withholding') return <WithholdingView result={result} />;
   if (engine === 'ratio-analysis') return <RatioView result={result} />;
+  if (engine === 'stock-journal') return <StockJournalView result={result} />;
   if (engine === 'trade') return <TradeView result={result} drill={drill} />;
   if (engine === 'money-flow') return <MoneyFlowBody data={result.data} />;
   if (engine === 'receivables-ageing' || engine === 'payables-ageing') return <AgeingView result={result} />;

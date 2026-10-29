@@ -83,6 +83,35 @@ class MenusCoreStockTest extends TestCase
         $this->assertCount(0, $this->journal(['kind' => 'product_variant'])['rows']);
     }
 
+    /** The same movements through the engine's stock journal (docs/BOOKS_REPORTS_PLAN.md, step 6.9). */
+    private function engineJournal(array $o = [], ?string $from = null, ?string $to = null, ?int $loc = null): array
+    {
+        return (new \App\Services\Books\Engine\Reports\StockJournalReport())->run(\App\Services\Books\Engine\Scope::fromInput(['from' => $from, 'to' => $to, 'location_id' => $loc], 'stock'), $o);
+    }
+
+    public function test_the_engine_journal_gives_the_old_journals_rows_and_totals_for_the_same_filters(): void
+    {
+        $this->receive($this->exe, 1, 260);
+        $this->receive($this->pembe, 1, 2400, 'pack', ['expiry_date' => '2027-01-01']);
+        foreach ([[[], []], [['q' => 'Pembe'], ['q' => 'Pembe']], [['q' => 'flour'], ['q' => 'flour']], [['kind' => IngredientItemSource::TYPE], ['kind' => IngredientItemSource::TYPE]],
+            [['kind' => 'product_variant'], ['kind' => 'product_variant']], [['type' => 'purchase'], ['type' => 'purchase']], [['type' => 'write_off'], ['type' => 'write_off']]] as [$old, $new]) {
+            $a = $this->journal($old);
+            $b = $this->engineJournal($new);
+            $this->assertEquals($a['rows'], $b['rows'], json_encode($old));
+            $this->assertSame($a['total'], $b['total'], json_encode($old));
+        }
+        $this->assertEquals($this->journal(['from' => '2026-10-11'])['rows'], $this->engineJournal([], '2026-10-11')['rows']);
+        $this->assertEquals(2, $this->engineJournal()['totals']['movements']);
+        $this->assertEquals(array_sum(array_column($this->engineJournal()['rows'], 'value')), $this->engineJournal()['totals']['value'], 'the totals are for the rows that match');
+    }
+
+    public function test_the_engine_journal_finds_a_movement_by_its_voucher_number(): void
+    {
+        $v = $this->receive($this->exe, 1, 260);
+        $this->assertCount(1, $this->engineJournal(['q' => $v->voucher_number])['rows']);
+        $this->assertCount(0, $this->journal(['q' => $v->voucher_number])['rows'], 'the old journal could not');
+    }
+
     public function test_a_cancelled_voucher_takes_its_ingredient_movements_out_of_the_journal(): void
     {
         $v = $this->receive($this->exe, 1, 260);

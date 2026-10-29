@@ -215,7 +215,7 @@ class ReportEngineTest extends TestCase
     public function test_the_catalogue_lists_only_what_the_person_may_run(): void
     {
         $this->assertSame(['trial-balance', 'profit-loss', 'balance-sheet', 'day-book', 'ledger-statement', 'receivables-ageing', 'payables-ageing', 'tax-return', 'withholding', 'ratio-analysis', 'trade', 'money-flow'], array_column($this->engine()->catalogue($this->person(['books.view'])), 'key'));
-        $this->assertSame([], $this->engine()->catalogue($this->person(['stock.view'])));
+        $this->assertSame(['stock-journal'], array_column($this->engine()->catalogue($this->person(['stock.view'])), 'key'));
     }
 
     public function test_an_unknown_report_and_a_backwards_period_are_refused(): void

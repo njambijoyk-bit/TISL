@@ -96,6 +96,8 @@ export default function ReportFrame({ reportKey, initialOpts = {}, children }) {
         )}
         {(rep?.options ?? []).map((o) => (o.type === 'ledger'
           ? <LedgerPicker key={o.key} label={o.label} value={f.opts[o.key] === 'all' ? '' : f.opts[o.key] ?? ''} onChange={(v) => setF((x) => ({ ...x, opts: { ...x.opts, [o.key]: v } }))} />
+          : o.type === 'text'
+          ? <input key={o.key} type="text" aria-label={o.label} placeholder={o.label} value={f.opts[o.key] ?? ''} onChange={(e) => setF((x) => ({ ...x, opts: { ...x.opts, [o.key]: e.target.value } }))} onKeyDown={(e) => { if (e.key === 'Enter') { e.preventDefault(); const next = { ...f, page: 1 }; setF(next); run(next); } }} style={{ ...filterStyle, minWidth: 200 }} />
           : o.type === 'checkbox'
           ? <label key={o.key} style={{ fontSize: '0.75rem', color: colors.textMuted }}><input type="checkbox" checked={Boolean(f.opts[o.key])} onChange={(e) => setF((x) => ({ ...x, opts: { ...x.opts, [o.key]: e.target.checked ? '1' : '' } }))} /> {o.label}</label>
           : o.type === 'item'
