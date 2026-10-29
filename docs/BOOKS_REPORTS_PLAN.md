@@ -448,6 +448,14 @@ In this order, each with its own parity check against the old report:
 
 - Remove the old report methods, the private `movement()` copies, name-based group lookups, and `affects_gross_profit` (after confirming nothing else reads it).
 - **Done when** nothing calls the old code and every test passes.
+- **Built (awaiting sign-off).**
+  - *Removed:* `BooksReportService` (day book, ledger statement, trial balance, P&L, balance sheet, ageing and the private `movement()` copy), `ComplianceReportService` (tax return, withholding register), `RatioAnalysisService`, `MovementReportService`, `StockJournalController`, the old stock report endpoints (only the item search stays), the movement endpoints (only the product search stays), the generic `/admin/books/reports/{name}` endpoint, and every "(old)" screen and screen code in Books → Reports.
+  - *Moved onto the engine:* profit and loss by cost centre is now an engine report (`profit-loss-by-cost-centre`, ported field for field, with a parity test before the old one went). The voucher register export uses the engine's day book.
+  - *`Engine\Figures`:* the one door for parts of the system that are not report screens (the customer's own account and its downloads, the credit tab, the dashboard, the insight packs, the `.wnkjap` export). It runs the same definitions the Reports screens run, so a figure shown anywhere is the figure in the report. The engine's P&L now also returns the ledgers behind its totals (`sections`), the balance sheet its asset and liability ledgers, and the ageing an `overdue` total.
+  - *`ControlAccountChecks`* replaces the control-account part of the old compliance service. Receivables and payables use the Debtors and Creditors groups chosen in the Reports settings; when none is chosen the check is listed as "not set up" instead of being found by the name "Sundry Debtors" (the health panel says so too).
+  - *`affects_gross_profit`:* nothing reads or writes it any more; script `235_retire_affects_gross_profit.sql` drops the column (run it after the application update). The trading/operating split is the statement line (Revenue and Cost of sales).
+  - *Tests:* the old-versus-new parity tests were turned into recorded figures (`tests/Fixtures/*.json`, recorded once from the old code after the owner signed parity off; `RecordsGolden`), so the engine is still held to the numbers the old reports gave. The whole suite passes except `ExampleTest`.
+  - *Not touched (not report code):* posting code that finds cash and bank groups by name (vouchers, POS, payroll, events, delivery) and the cash-flow/money-flow fallback to the Bank Accounts and Cash-in-hand groups when no group is chosen (decision M1).
 
 ### Step 13. Later: other companies' books and backups
 

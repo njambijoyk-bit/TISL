@@ -45,7 +45,7 @@ final class LedgerBalances
     {
         $own = self::hasColumn('ledgers', 'statement_id');
         $grp = self::hasColumn('ledger_groups', 'statement_id');
-        $cols = ['l.id', 'l.name', 'l.group_id', 'l.opening_balance', 'l.opening_side', 'g.name as group_name', 'g.nature', 'g.affects_gross_profit', 'g.parent_id']
+        $cols = ['l.id', 'l.name', 'l.group_id', 'l.opening_balance', 'l.opening_side', 'g.name as group_name', 'g.nature', 'g.parent_id']
             + ($own ? [9 => 'l.statement_id as own_statement_id'] : []) + ($grp ? [10 => 'g.statement_id as group_statement_id'] : []);
         $rows = DB::table('ledgers as l')->join('ledger_groups as g', 'g.id', '=', 'l.group_id')->select(array_values($cols))->orderBy('g.name')->orderBy('l.name')->get();
 

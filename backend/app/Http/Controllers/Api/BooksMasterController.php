@@ -40,7 +40,7 @@ class BooksMasterController extends Controller
         $parent = LedgerGroup::findOrFail($d['parent_id']);   // primary groups are fixed — new groups always hang under one
         app(\App\Services\Books\TaxAccountGuard::class)->assertGroupMayBeMade($parent, $d['behaviour'] ?? null);   // a tax type is made on Tax and compliance, not here
         $line = StatementLines::available() ? ['statement_id' => app(StatementLines::class)->forNewGroup($d['statement_id'] ?? null, $parent->id, $request->user())] : [];   // its parent's line unless another was chosen
-        $g = LedgerGroup::create($line + ['name' => $d['name'], 'parent_id' => $parent->id, 'nature' => $parent->nature, 'is_primary' => false, 'is_system' => false, 'affects_gross_profit' => $parent->affects_gross_profit,
+        $g = LedgerGroup::create($line + ['name' => $d['name'], 'parent_id' => $parent->id, 'nature' => $parent->nature, 'is_primary' => false, 'is_system' => false,
             'behaviour' => $d['behaviour'] ?? $parent->behaviour ?? 'standard', 'settings' => $d['settings'] ?? $parent->settings]);   // a subgroup inherits how its parent behaves
 
         return response()->json(['message' => 'Group added', 'data' => $g], 201);
@@ -68,7 +68,6 @@ class BooksMasterController extends Controller
             $p = LedgerGroup::findOrFail($d['parent_id']);
             $d['nature'] = $p->nature;
             $d['behaviour'] = $d['behaviour'] ?? $p->behaviour ?? 'standard';
-            $d['affects_gross_profit'] = $p->affects_gross_profit;
         }
         $g->update($d);
         if (StatementLines::available() && isset($d['parent_id'])) {

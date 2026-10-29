@@ -68,7 +68,7 @@ class WnkjapExport
         $base = app(CurrencyConversionService::class)->getBaseCurrency();
 
         $sections = [
-            'groups' => $this->rows(DB::table('ledger_groups')->select($this->cols('ledger_groups', ['id', 'parent_id', 'name', 'nature', 'is_primary', 'affects_gross_profit', 'sort_order']))->orderBy('id'), 'chart of accounts'),
+            'groups' => $this->rows(DB::table('ledger_groups')->select($this->cols('ledger_groups', ['id', 'parent_id', 'name', 'nature', 'is_primary', 'sort_order']))->orderBy('id'), 'chart of accounts'),
             'ledgers' => $this->rows(DB::table('ledgers')->select($this->cols('ledgers', ['id', 'group_id', 'name', 'code', 'opening_balance', 'opening_side', 'customer_id', 'supplier_id', 'is_active']))->orderBy('id'), 'chart of accounts'),
             'balances' => array_values(array_filter(array_map(fn ($r) => $r['ledger_id'] ? ['ledger_id' => $r['ledger_id'], 'opening' => $r['opening'], 'debit' => $r['debit'], 'credit' => $r['credit'], 'closing' => $r['closing']] : null, $trial['rows']))),
         ];

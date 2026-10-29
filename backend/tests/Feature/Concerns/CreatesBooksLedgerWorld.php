@@ -39,7 +39,7 @@ trait CreatesBooksLedgerWorld
         });
         Schema::create('ledger_groups', function ($t) {
             $t->id(); $t->unsignedBigInteger('parent_id')->nullable(); $t->string('name'); $t->string('nature'); $t->boolean('is_primary')->default(0); $t->boolean('is_system')->default(0);
-            $t->boolean('affects_gross_profit')->default(0); $t->integer('sort_order')->default(0); $t->string('behaviour')->default('standard'); $t->text('settings')->nullable(); $t->unsignedBigInteger('statement_id')->nullable(); $t->timestamps();
+            $t->integer('sort_order')->default(0); $t->string('behaviour')->default('standard'); $t->text('settings')->nullable(); $t->unsignedBigInteger('statement_id')->nullable(); $t->timestamps();
         });
         Schema::create('ledgers', function ($t) {
             $t->id(); $t->unsignedBigInteger('group_id'); $t->string('name'); $t->string('code')->nullable(); $t->decimal('opening_balance', 15, 2)->default(0); $t->string('opening_side', 1)->default('D');
@@ -88,7 +88,7 @@ trait CreatesBooksLedgerWorld
             [8, null, 'Indirect Expenses', 'expense', 0, 11, 'standard'], [9, null, 'Indirect Incomes', 'income', 0, 17, 'standard'], [10, 2, 'Sundry Creditors', 'liability', 0, 16, 'party'],
             [11, null, 'Other Receipts', 'income', 0, null, 'standard'],   // no statement line: its ledgers are "not on a statement line"
         ] as [$id, $parent, $name, $nature, $gp, $line, $behaviour]) {
-            DB::table('ledger_groups')->insert(['id' => $id, 'parent_id' => $parent, 'name' => $name, 'nature' => $nature, 'is_primary' => $parent ? 0 : 1, 'affects_gross_profit' => $gp, 'statement_id' => $line, 'behaviour' => $behaviour, 'sort_order' => $id, 'created_at' => $now, 'updated_at' => $now]);
+            DB::table('ledger_groups')->insert(['id' => $id, 'parent_id' => $parent, 'name' => $name, 'nature' => $nature, 'is_primary' => $parent ? 0 : 1, 'statement_id' => $line, 'behaviour' => $behaviour, 'sort_order' => $id, 'created_at' => $now, 'updated_at' => $now]);
         }
         foreach ([
             [1, 4, 'Cash', 50000, 'D'], [2, 4, 'M-Pesa', 0, 'D'], [3, 5, 'Customer A', 0, 'D'], [4, 6, 'Sales', 0, 'D'], [5, 7, 'Purchases', 0, 'D'], [6, 8, 'Rent', 1000, 'D'], [7, 1, 'Capital', 30000, 'C'], [8, 2, 'Supplier', 0, 'D'],

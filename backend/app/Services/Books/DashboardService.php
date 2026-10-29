@@ -126,16 +126,19 @@ class DashboardService
             'top_orders' => $this->topPendingOrders($c['order'], $loc),
             'top_items' => $this->topItems($c['plus'], $c['minus'], $from, $to, $loc),
             'top_items_label' => $c['move'],
-            'open' => ['label' => ucfirst($c['ageing']), 'total' => $open, 'overdue' => round($open - (float) $ageing['totals']['current'], 2)],
+            'open' => ['label' => ucfirst($c['ageing']), 'total' => $open, 'overdue' => (float) $ageing['totals']['overdue']],
             'ratios' => $turnover,
         ];
     }
 
+    /** Cash and bank on the last day: one line per group chosen in the Reports settings (Cash and bank accounts), else the Cash-in-hand and Bank Accounts groups. */
     private function cashBank(string $to): array
     {
+        $chosen = ReportSettings::ready() ? array_map('intval', (array) app(ReportSettings::class)->get('money_account_groups')) : [];
+        $groups = $chosen ? LedgerGroup::whereIn('id', $chosen)->orderBy('name')->get()->map(fn ($g) => [$g->name, $g])
+            : collect(['Cash-in-hand' => 'Cash-in-hand', 'Bank Accounts' => 'Bank accounts'])->map(fn ($label, $name) => [$label, LedgerGroup::where('name', $name)->first()])->values();
         $out = [];
-        foreach (['Cash-in-hand' => 'Cash-in-hand', 'Bank Accounts' => 'Bank accounts'] as $name => $label) {
-            $g = LedgerGroup::where('name', $name)->first();
+        foreach ($groups as [$label, $g]) {
             $ids = $g ? Ledger::whereIn('group_id', $g->selfAndDescendantIds())->pluck('id') : collect();
             $out[] = ['label' => $label, 'value' => round($ids->sum(fn ($id) => $this->ledgers->balance((int) $id, $to)), 2)];
         }

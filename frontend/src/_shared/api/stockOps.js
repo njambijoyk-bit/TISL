@@ -1,6 +1,6 @@
 import api from './axios';
 
-/** Stock counts and the stock journal. Admin / finance / manager (acting: admin / finance). */
+/** Stock counts and jobs. Admin / finance / manager (acting: admin / finance). */
 export const stockCountsAPI = {
   list: async () => (await api.get('/admin/stock/counts')).data,
   show: async (id) => (await api.get(`/admin/stock/counts/${id}`)).data,
@@ -8,10 +8,6 @@ export const stockCountsAPI = {
   save: async (id, counted, ingredients) => (await api.put(`/admin/stock/counts/${id}`, { counted, ingredients })).data,
   post: async (id, counted, ingredients) => (await api.post(`/admin/stock/counts/${id}/post`, { counted, ingredients })).data,
   cancel: async (id) => (await api.post(`/admin/stock/counts/${id}/cancel`)).data,
-};
-
-export const stockJournalAPI = {
-  list: async (params) => (await api.get('/admin/stock/journal', { params })).data,
 };
 
 export const stockJobsAPI = {
@@ -25,11 +21,7 @@ export const stockJobsAPI = {
   cancel: async (id) => (await api.post(`/admin/stock/jobs/${id}/cancel`)).data,
 };
 
-/** Stock reports: summary / location summary, an item's months and vouchers, and the stock query card. Works for every kind of stocked item. */
+/** Finding a stocked item of any kind for the stock report pickers (the reports themselves run on the report engine). */
 export const stockReportsAPI = {
-  summary: async (params) => (await api.get('/admin/stock/reports/summary', { params })).data,
-  monthly: async (params) => (await api.get('/admin/stock/reports/monthly', { params })).data,
-  movements: async (params) => (await api.get('/admin/stock/reports/movements', { params })).data,
-  query: async (params) => (await api.get('/admin/stock/reports/query', { params })).data,
   find: async (q) => (await api.get('/admin/stock/reports/find', { params: { q } })).data,
 };

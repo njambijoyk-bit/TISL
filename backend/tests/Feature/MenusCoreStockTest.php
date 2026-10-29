@@ -2,7 +2,6 @@
 
 namespace Tests\Feature;
 
-use App\Http\Controllers\Admin\StockJournalController;
 use App\Models\Books\StockMovement;
 use App\Models\Menus\StockBatch;
 use App\Models\Menus\StockMove;
@@ -55,7 +54,7 @@ class MenusCoreStockTest extends TestCase
 
     private function journal(array $query = []): array
     {
-        return app(StockJournalController::class)->index(Request::create('/x', 'GET', $query))->getData(true);
+        return $this->engineJournal($query, $query['from'] ?? null, $query['to'] ?? null);
     }
 
     // ------------------------------------------------------------ the stock journal
@@ -70,7 +69,8 @@ class MenusCoreStockTest extends TestCase
         $row = $out['rows'][0];
         $this->assertEquals(['Wheat flour — Exe 2 kg', 'Purchase', 20000, 'g', IngredientItemSource::TYPE], [$row['product'], $row['label'], $row['quantity'], $row['unit'], $row['kind']]);
         $this->assertEquals(2600, $row['value'], '20000 g at 0.13');
-        $this->assertContains(IngredientItemSource::TYPE, collect($out['kinds'])->pluck('type')->all(), 'a kind to filter by');
+        $kinds = collect((new \App\Services\Books\Engine\Reports\StockJournalReport())->options())->firstWhere('key', 'kind')['choices'];
+        $this->assertArrayHasKey(IngredientItemSource::TYPE, $kinds, 'a kind to filter by');
     }
 
     public function test_the_journal_can_be_searched_by_ingredient_or_variant_and_filtered_to_ingredients(): void
@@ -89,27 +89,23 @@ class MenusCoreStockTest extends TestCase
         return (new \App\Services\Books\Engine\Reports\StockJournalReport())->run(\App\Services\Books\Engine\Scope::fromInput(['from' => $from, 'to' => $to, 'location_id' => $loc], 'stock'), $o);
     }
 
-    public function test_the_engine_journal_gives_the_old_journals_rows_and_totals_for_the_same_filters(): void
+    public function test_the_journal_narrows_by_every_filter_and_its_totals_are_for_the_rows_that_match(): void
     {
         $this->receive($this->exe, 1, 260);
         $this->receive($this->pembe, 1, 2400, 'pack', ['expiry_date' => '2027-01-01']);
-        foreach ([[[], []], [['q' => 'Pembe'], ['q' => 'Pembe']], [['q' => 'flour'], ['q' => 'flour']], [['kind' => IngredientItemSource::TYPE], ['kind' => IngredientItemSource::TYPE]],
-            [['kind' => 'product_variant'], ['kind' => 'product_variant']], [['type' => 'purchase'], ['type' => 'purchase']], [['type' => 'write_off'], ['type' => 'write_off']]] as [$old, $new]) {
-            $a = $this->journal($old);
-            $b = $this->engineJournal($new);
-            $this->assertEquals($a['rows'], $b['rows'], json_encode($old));
-            $this->assertSame($a['total'], $b['total'], json_encode($old));
+        foreach ([[[], 2], [['q' => 'Pembe'], 1], [['q' => 'flour'], 2], [['kind' => IngredientItemSource::TYPE], 2], [['kind' => 'product_variant'], 0], [['type' => 'purchase'], 2], [['type' => 'write_off'], 0]] as [$filter, $count]) {
+            $j = $this->engineJournal($filter);
+            $this->assertCount($count, $j['rows'], json_encode($filter));
+            $this->assertEquals($count, $j['totals']['movements'], json_encode($filter));
+            $this->assertEquals(array_sum(array_column($j['rows'], 'value')), $j['totals']['value'], 'the totals are for the rows that match: ' . json_encode($filter));
         }
-        $this->assertEquals($this->journal(['from' => '2026-10-11'])['rows'], $this->engineJournal([], '2026-10-11')['rows']);
-        $this->assertEquals(2, $this->engineJournal()['totals']['movements']);
-        $this->assertEquals(array_sum(array_column($this->engineJournal()['rows'], 'value')), $this->engineJournal()['totals']['value'], 'the totals are for the rows that match');
+        $this->assertCount(0, $this->engineJournal([], '2026-10-11')['rows'], 'both movements are dated 10 October');
     }
 
     public function test_the_engine_journal_finds_a_movement_by_its_voucher_number(): void
     {
         $v = $this->receive($this->exe, 1, 260);
         $this->assertCount(1, $this->engineJournal(['q' => $v->voucher_number])['rows']);
-        $this->assertCount(0, $this->journal(['q' => $v->voucher_number])['rows'], 'the old journal could not');
     }
 
     /** Step 6.10: each stock report through the engine gives the service's answer, field for field. */

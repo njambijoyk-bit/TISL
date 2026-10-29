@@ -35,7 +35,6 @@ class TaxType extends LedgerGroup
             $t->behaviour = 'tax';
             $t->is_primary = false;
             $t->is_system = true;
-            $t->affects_gross_profit = false;
             $t->sort_order = $t->sort_order ?: 50;
         });
     }

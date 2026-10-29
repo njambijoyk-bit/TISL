@@ -15,14 +15,13 @@ class LedgerGroup extends Model
 {
     protected $table = 'ledger_groups';
 
-    protected $fillable = ['parent_id', 'name', 'nature', 'is_primary', 'is_system', 'affects_gross_profit', 'sort_order', 'behaviour', 'settings',
+    protected $fillable = ['parent_id', 'name', 'nature', 'is_primary', 'is_system', 'sort_order', 'behaviour', 'settings',
         'statement_id', 'code', 'is_active', 'application_mode', 'is_compound', 'kind', 'control_ledger_id', 'payable_ledger_id', 'receivable_ledger_id',
         'tax_category', 'application_method', 'jurisdiction_id', 'input_ledger_id', 'cost_ledger_id', 'recovery', 'company_role'];
 
     protected $casts = [
         'is_primary'           => 'boolean',
         'is_system'            => 'boolean',
-        'affects_gross_profit' => 'boolean',
         'settings'             => 'array',
         'is_active'            => 'boolean',
         'is_compound'          => 'boolean',
