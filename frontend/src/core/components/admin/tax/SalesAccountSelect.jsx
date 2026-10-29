@@ -16,6 +16,7 @@ const flat = (nodes, out = [], inherited = null) => {
  */
 export default function SalesAccountSelect({ value, onChange, kind = 'sales', scope = 'product', required = false, disabled = false, label, hint, error, style, amount, currencyCode }) {
   const [rows, setRows] = useState(null);
+  const [preview, setPreview] = useState(null);   // what every tax on the chosen account comes to on the price, worked out by the server
 
   useEffect(() => {
     (async () => {
@@ -30,10 +31,18 @@ export default function SalesAccountSelect({ value, onChange, kind = 'sales', sc
   }, [kind, scope]);
 
   const chosen = rows?.find((l) => Number(l.id) === Number(value));
+  const net = Number(amount);
+  const several = (chosen?.taxes?.length ?? 0) > 1;
+  useEffect(() => {
+    setPreview(null);
+    if (!chosen || !several || !(net > 0)) return undefined;
+    let live = true;
+    const t = setTimeout(() => booksAPI.ledgerTaxPreview(chosen.id, { amount: net, side: kind === 'sales' ? 'output' : 'input' }).then((r) => { if (live) setPreview(r); }).catch(() => {}), 250);
+    return () => { live = false; clearTimeout(t); };
+  }, [chosen?.id, several, net, kind]);   // eslint-disable-line react-hooks/exhaustive-deps
   const usable = (rows ?? []).filter((l) => l.tax_nature);
   const untreated = (rows ?? []).filter((l) => !l.tax_nature);
   const pct = chosen && chosen.tax_nature === 'taxable' && chosen.tax_rate_ledger?.rate_value != null ? Number(chosen.tax_rate_ledger.rate_value) : 0;
-  const net = Number(amount);
   const nf = (n) => `${currencyCode ? `${currencyCode} ` : ''}${n.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
   const text = label ?? (kind === 'sales' ? (scope === 'service' ? 'Service income account' : 'Sales account') : 'Purchase account');
   const sel = { padding: '9px 10px', borderRadius: 8, border: `1.5px solid ${error ? colors.danger : 'var(--line)'}`, fontSize: '0.85rem', width: '100%', background: 'var(--surface-card, #fff)', color: 'var(--text-primary)', ...style };
@@ -45,13 +54,17 @@ export default function SalesAccountSelect({ value, onChange, kind = 'sales', sc
       </label>
       <select value={value ?? ''} disabled={disabled} required={required} onChange={(e) => onChange(e.target.value ? Number(e.target.value) : '', usable.find((l) => String(l.id) === e.target.value) ?? null)} style={sel}>
         <option value="">{required ? 'Choose the account this is sold under…' : `Default ${kind} account`}</option>
-        {usable.map((l) => <option key={l.id} value={l.id}>{l.name} — {NATURE[l.tax_nature]}{l.tax_nature === 'taxable' || l.tax_nature === 'zero_rated' ? ` (${l.tax_rate_ledger?.name ?? 'rate set'})` : ''}</option>)}
+        {usable.map((l) => <option key={l.id} value={l.id}>{l.name} — {NATURE[l.tax_nature]}{l.tax_nature === 'taxable' || l.tax_nature === 'zero_rated' ? ` (${(l.taxes?.length ?? 0) > 1 ? l.taxes.map((t) => t.rate ?? t.tax_type).join(' + ') : (l.tax_rate_ledger?.name ?? 'rate set')})` : ''}</option>)}
       </select>
-      {chosen && <p style={{ margin: '5px 0 0', fontSize: '0.72rem', color: colors.textMuted }}>Tax on this account: <strong>{NATURE[chosen.tax_nature] ?? 'not set'}</strong>{chosen.tax_rate_ledger?.name ? ` — ${chosen.tax_rate_ledger.name}` : ''}</p>}
+      {chosen && (several
+        ? <p style={{ margin: '5px 0 0', fontSize: '0.72rem', color: colors.textMuted }}>Taxes on this account, in the order they are worked out: {chosen.taxes.map((t, i) => <span key={i}>{i > 0 ? ' → ' : ''}<strong>{t.rate ?? t.tax_type}</strong></span>)}</p>
+        : <p style={{ margin: '5px 0 0', fontSize: '0.72rem', color: colors.textMuted }}>Tax on this account: <strong>{NATURE[chosen.tax_nature] ?? 'not set'}</strong>{chosen.tax_rate_ledger?.name ? ` — ${chosen.tax_rate_ledger.name}` : ''}</p>)}
       {chosen && net > 0 && (
         <p style={{ margin: '5px 0 0', fontSize: '0.72rem', color: colors.textMuted }}>
           The price you enter is <strong>excluding tax</strong>.{' '}
-          {pct > 0
+          {several && preview
+            ? <>{nf(net)}{preview.taxes.map((t, i) => <span key={i}> + {t.label} {nf(t.amount)}</span>)} = customer pays <strong>{nf(preview.gross)}</strong>.</>
+            : several ? <>Working out the taxes…</> : pct > 0
             ? <>{nf(net)} + {chosen.tax_rate_ledger?.name ?? 'tax'} {nf(net * pct / 100)} = customer pays <strong>{nf(net * (1 + pct / 100))}</strong>.</>
             : <>No tax is added — customer pays <strong>{nf(net)}</strong>.</>}
         </p>

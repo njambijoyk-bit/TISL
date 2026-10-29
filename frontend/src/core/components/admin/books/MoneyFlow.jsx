@@ -41,18 +41,39 @@ export default function MoneyFlow({ accounts = [] }) {
   const [from, setFrom] = useState(monthStart());
   const [to, setTo] = useState(today());
   const [ledgerId, setLedgerId] = useState('');
+  const [showTransfers, setShowTransfers] = useState(false);
   const [data, setData] = useState(null);
   const [busy, setBusy] = useState(false);
 
   useEffect(() => {
     let live = true;
     setBusy(true);
-    booksAPI.moneyFlow({ from, to, ledger_id: ledgerId || undefined })
-      .then((d) => { if (live) setData(d); }).catch((e) => toast.error(errMsg(e, 'Could not load the money movement')))
+    booksAPI.engineReport('money-flow', { from, to, ...(ledgerId ? { ledger_id: ledgerId } : {}), ...(showTransfers ? { show_transfers: 1 } : {}) })
+      .then((r) => { if (live) setData(r.data); }).catch((e) => toast.error(errMsg(e, 'Could not load the money movement')))
       .finally(() => { if (live) setBusy(false); });
     return () => { live = false; };
-  }, [from, to, ledgerId]);
+  }, [from, to, ledgerId, showTransfers]);
 
+  return (
+    <div style={{ marginTop: 28 }}>
+      <div style={{ display: 'flex', alignItems: 'center', gap: 10, flexWrap: 'wrap', marginBottom: 12 }}>
+        <h2 style={{ margin: 0, fontSize: '1rem', fontWeight: 800, marginRight: 'auto' }}>Money movement</h2>
+        <select value={ledgerId} onChange={(e) => setLedgerId(e.target.value)} style={{ ...filterStyle, minWidth: 200 }} aria-label="Account">
+          <option value="">All cash &amp; bank accounts</option>
+          {accounts.map((a) => <option key={a.ledger_id} value={a.ledger_id}>{a.name}</option>)}
+        </select>
+        <label style={{ fontSize: '0.75rem', color: colors.textMuted }}><input type="checkbox" checked={showTransfers} onChange={(e) => setShowTransfers(e.target.checked)} /> Show transfers</label>
+        <label style={{ fontSize: '0.75rem', color: colors.textMuted }}>From <input type="date" value={from} onChange={(e) => setFrom(e.target.value)} style={filterStyle} /></label>
+        <label style={{ fontSize: '0.75rem', color: colors.textMuted }}>To <input type="date" value={to} onChange={(e) => setTo(e.target.value)} style={filterStyle} /></label>
+      </div>
+      {busy && !data && <p style={{ color: colors.textMuted }}>Loading…</p>}
+      {data && <MoneyFlowBody data={data} />}
+    </div>
+  );
+}
+
+/** The figures, charts and lists of a money flow answer (the Cash page and the Reports page both draw it). */
+export function MoneyFlowBody({ data }) {
   const sankey = useMemo(() => {
     if (!data || data.flows.length === 0) return null;
     const idx = new Map();
@@ -106,19 +127,8 @@ export default function MoneyFlow({ accounts = [] }) {
   };
 
   return (
-    <div style={{ marginTop: 28 }}>
-      <div style={{ display: 'flex', alignItems: 'center', gap: 10, flexWrap: 'wrap', marginBottom: 12 }}>
-        <h2 style={{ margin: 0, fontSize: '1rem', fontWeight: 800, marginRight: 'auto' }}>Money movement</h2>
-        <select value={ledgerId} onChange={(e) => setLedgerId(e.target.value)} style={{ ...filterStyle, minWidth: 200 }} aria-label="Account">
-          <option value="">All cash &amp; bank accounts</option>
-          {accounts.map((a) => <option key={a.ledger_id} value={a.ledger_id}>{a.name}</option>)}
-        </select>
-        <label style={{ fontSize: '0.75rem', color: colors.textMuted }}>From <input type="date" value={from} onChange={(e) => setFrom(e.target.value)} style={filterStyle} /></label>
-        <label style={{ fontSize: '0.75rem', color: colors.textMuted }}>To <input type="date" value={to} onChange={(e) => setTo(e.target.value)} style={filterStyle} /></label>
-      </div>
-
-      {busy && !data && <p style={{ color: colors.textMuted }}>Loading…</p>}
-      {data && (
+    <div>
+      {(
         <>
           <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit,minmax(180px,1fr))', gap: 10, marginBottom: 12 }}>
             <div style={{ ...card, padding: 14 }}><div style={{ fontSize: '0.68rem', color: colors.textFaint, fontWeight: 700 }}>MONEY IN</div><div style={{ fontSize: '1.2rem', fontWeight: 800, color: IN }}>{money(data.totals.in)}</div></div>
@@ -158,6 +168,22 @@ export default function MoneyFlow({ accounts = [] }) {
                 <Side title="Came from" rows={data.in} colour={IN} />
                 <Side title="Went to" rows={data.out} colour={OUT} />
               </div>
+
+              {data.transfers?.length > 0 && (
+                <div style={{ ...card, overflow: 'hidden', marginTop: 12 }}>
+                  <div style={{ padding: '10px 12px', fontWeight: 800, fontSize: '0.8rem' }}>Transfers between our own accounts <span style={{ fontWeight: 400, color: colors.textFaint }}>· {data.show_transfers ? 'counted in the totals above' : 'not counted in money in and out; tick Show transfers to count them'}</span></div>
+                  <table style={{ width: '100%', borderCollapse: 'collapse' }}>
+                    <tbody>
+                      {data.transfers.map((t, i) => (
+                        <tr key={i}>
+                          <td style={{ padding: '7px 12px', fontSize: '0.78rem', borderTop: `1px solid ${colors.tint(0.05)}` }}>{t.direction === 'in' ? `Into ${t.account}, from ${t.other}` : `Out of ${t.account}, to ${t.other}`}<span style={{ color: colors.textFaint, fontSize: '0.68rem' }}> · {t.vouchers} voucher{t.vouchers === 1 ? '' : 's'}</span></td>
+                          <td style={{ padding: '7px 12px', fontSize: '0.78rem', borderTop: `1px solid ${colors.tint(0.05)}`, textAlign: 'right', fontVariantNumeric: 'tabular-nums' }}>{money(t.amount)}</td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+              )}
             </>
           )}
         </>

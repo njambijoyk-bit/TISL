@@ -1247,6 +1247,7 @@ Route::middleware('auth:sanctum')->group(function () {
         Route::get('/statement-lines',          [\App\Http\Controllers\Api\StatementController::class, 'lines']);
         Route::get('/item-accounts',            [BooksMasterController::class, 'itemAccounts']);
         Route::get('/ledgers',                  [BooksMasterController::class, 'ledgers']);
+        Route::get('/ledgers/{id}/tax-preview', [BooksMasterController::class, 'taxPreview'])->whereNumber('id');
         Route::get('/voucher-types',            [BooksMasterController::class, 'types']);
         Route::get('/payment-methods',          [BooksMasterController::class, 'paymentMethods']);
         Route::get('/settings',                 [BooksMasterController::class, 'settings']);

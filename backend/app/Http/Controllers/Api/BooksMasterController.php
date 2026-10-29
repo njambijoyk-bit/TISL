@@ -94,6 +94,20 @@ class BooksMasterController extends Controller
 
     // ── Ledgers ──────────────────────────────────────────────────────────
 
+    /** What every tax on an account comes to on a price (excluding tax), the way a document would work it out: for the item forms. */
+    public function taxPreview(Request $request, $id): JsonResponse
+    {
+        $request->validate(['amount' => 'required|numeric|min:0', 'side' => 'nullable|in:output,input']);
+        $ledger = Ledger::findOrFail($id);
+        $amount = round((float) $request->query('amount'), 2);
+        $rows = $ledger->tax_nature
+            ? app(\App\Services\Books\TaxLineService::class)->fromAccount($ledger, $amount, $amount, 1.0, (string) $request->query('side', 'output'), null, null, today()->toDateString())
+            : [];
+        $tax = round(array_sum(array_column($rows, 'tax_amount')), 2);
+
+        return response()->json(['net' => $amount, 'taxes' => array_map(fn ($r) => ['label' => $r['label'], 'base' => $r['base_amount'], 'amount' => $r['tax_amount']], $rows), 'tax' => $tax, 'gross' => round($amount + $tax, 2)]);
+    }
+
     public function ledgers(Request $request): JsonResponse
     {
         $q = Ledger::with(['group:id,name,nature,behaviour', 'taxRateLedger:id,name,rate_value'])

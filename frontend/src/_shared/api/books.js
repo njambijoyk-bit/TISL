@@ -57,6 +57,7 @@ const booksAPI = {
   entitlements: (params) => get('/admin/books/vouchers/entitlements', params),
   checkSupplierInvoice: (params) => get('/admin/books/vouchers/check-supplier-invoice', params),
   // what moved: stock with a ledger or an item, and money through cash and bank
+  ledgerTaxPreview: (id, params) => get(`/admin/books/ledgers/${id}/tax-preview`, params),
   movementLedgerItems: (params) => get('/admin/books/movement/ledger-items', params),
   movementItemVouchers: (params) => get('/admin/books/movement/item-vouchers', params),
   movementItemLedgers: (params) => get('/admin/books/movement/item-ledgers', params),

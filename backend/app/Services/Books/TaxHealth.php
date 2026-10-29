@@ -65,6 +65,12 @@ class TaxHealth
                     $add('account_rate_ended', 'warning', "The account {$x->account} carries the rate " . ($x->rate ?? 'that was removed') . ', which is no longer in force. Choose the current rate.', "ledger:{$x->ledger_id}");
                 }
             }
+            // a reverse charge is only for purchases: on a sales account it charges nothing
+            $sales = DB::table('ledger_taxes as lt')->join('ledgers as l', 'l.id', '=', 'lt.ledger_id')->join('ledger_groups as lg', 'lg.id', '=', 'l.group_id')->join('ledger_groups as tg', 'tg.id', '=', 'lt.tax_type_id')
+                ->where('lg.behaviour', 'sales')->where('tg.application_method', 'reverse_charge')->get(['l.id as ledger_id', 'l.name as account', 'tg.name as tax']);
+            foreach ($sales as $x) {
+                $add('reverse_on_sales', 'warning', "The sales account {$x->account} carries {$x->tax}, which is a reverse charge. A reverse charge applies to purchases only, so nothing is charged on sales. Use an ordinary (added) tax type here.", "ledger:{$x->ledger_id}");
+            }
             // a sales or purchase account with a tax nature but none of the new rows (for example created before script 229)
             $unmapped = DB::table('ledgers as l')->whereNotNull('l.tax_nature')->whereIn('l.tax_nature', ['taxable', 'zero_rated'])
                 ->whereNotExists(fn ($q) => $q->select(DB::raw(1))->from('ledger_taxes as lt')->whereColumn('lt.ledger_id', 'l.id'))->limit(20)->pluck('l.name');

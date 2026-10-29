@@ -145,4 +145,10 @@ class TaxReverseChargeTest extends TestCase
         DB::table('ledgers')->where('id', 85)->update(['base_includes' => json_encode([999])]);
         $this->assertContains('base_missing_type', $this->codes());
     }
+
+    public function test_health_a_reverse_charge_on_a_sales_account_is_flagged(): void
+    {
+        DB::table('ledger_groups')->where('id', 6)->update(['behaviour' => 'sales']);
+        $this->assertContains('reverse_on_sales', $this->codes());
+    }
 }
