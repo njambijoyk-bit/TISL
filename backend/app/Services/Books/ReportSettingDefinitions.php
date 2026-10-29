@@ -62,6 +62,9 @@ class ReportSettingDefinitions
                 'reconcile_amount_tolerance' => ['type' => 'number', 'label' => 'Amount tolerance', 'hint' => 'A statement line matches a book entry when the amounts differ by no more than this.', 'default' => 0, 'min' => 0, 'max' => 1000],
                 'reconcile_date_window_days' => ['type' => 'int', 'label' => 'Date window (days)', 'hint' => 'A statement line matches a book entry dated within this many days of it.', 'default' => 3, 'min' => 0, 'max' => 60],
             ]],
+            'health' => ['title' => 'Books health', 'hint' => 'What the Books health checks need to know about your chart of accounts. Nothing is found by name.', 'permission' => 'books.reports.format', 'settings' => [
+                'suspense_groups' => ['type' => 'group_list', 'label' => 'Suspense groups', 'hint' => 'The ledger groups that hold suspense accounts (money not yet placed). The health check fails while any of them has a balance.', 'default' => []],
+            ]],
             'approvals' => ['title' => 'Approvals', 'hint' => 'Whether a second person must approve before a reconciliation or the year-end close is final. Every change here is logged.', 'permission' => 'books.reports.approval', 'settings' => [
                 'second_approver_reconcile' => ['type' => 'bool', 'label' => 'A reconciliation needs a second approver', 'hint' => 'On: the person who prepared it cannot approve it.', 'default' => true],
                 'second_approver_close' => ['type' => 'bool', 'label' => 'The year-end close needs a second approver', 'hint' => 'On: the person who prepared the close cannot approve it.', 'default' => true],

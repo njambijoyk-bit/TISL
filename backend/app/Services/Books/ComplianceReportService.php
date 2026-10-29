@@ -234,6 +234,11 @@ class ComplianceReportService
 
     private function groupBalance(string $groupName, string $asOf): float
     {
+        $chosen = ['Sundry Debtors' => 'debtors', 'Sundry Creditors' => 'creditors'][$groupName] ?? null;
+        $ids = $chosen && ReportSettings::ready() ? app(ReportSettings::class)->ratioLedgerIds($chosen) : null;   // the groups chosen in the settings; the name only when none is chosen
+        if ($ids !== null) {
+            return round(array_sum(array_map(fn ($id) => $this->ledgers->balance((int) $id, $asOf), $ids)), 2);
+        }
         $group = LedgerGroup::where('name', $groupName)->first();
         if (! $group) {
             return 0.0;

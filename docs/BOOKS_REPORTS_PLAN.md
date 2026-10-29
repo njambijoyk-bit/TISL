@@ -430,6 +430,9 @@ In this order, each with its own parity check against the old report:
 
 - The checks in section 8, each drilling down.
 - **Done when** every check can be made to fail on test data and shows where.
+- **Built (awaiting sign-off).** `books-health` on the engine (Books → Reports → Books health; `BooksHealth` service, `BooksHealthReport`, `BooksHealthView`). Each check is pass / check / fail / not set up, lists the findings (first 25, with the total) and opens the voucher, ledger or report behind it. Checks: trial balance agrees; balance sheet balances; opening balances net to nothing (lists the ledgers); no drafts in the period; nothing back-dated into a closed year; cash/bank and stock not below zero; every ledger in use on a statement line; suspense groups empty; near-duplicate ledger names; vouchers shown at a changed currency rate; unmatched statement lines in unlocked reconciliations; reconcilable ledgers with an unconfirmed kind; receivables/payables groups chosen; the tax set-up (TaxHealth). Nothing is found by name: stock and cash groups come from the existing settings, and a new **Books health → Suspense groups** setting; a check without its set-up says "not set up".
+- The control-account checks (receivables, payables) now read the Debtors and Creditors groups chosen in Ratio analysis inputs; the name "Sundry Debtors / Sundry Creditors" is used only while none is chosen, and the health panel says so.
+- Not built: "entries back-dated into a locked-before date" (the date lock keeps no record of when it was set).
 
 ### Step 11. Extras visuals
 

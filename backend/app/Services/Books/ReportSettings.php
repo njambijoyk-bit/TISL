@@ -252,7 +252,7 @@ class ReportSettings
     }
 
     /** A group's id plus every group under it. */
-    private function withDescendants(int $groupId): array
+    public function withDescendants(int $groupId): array
     {
         $ids = [$groupId];
         $frontier = [$groupId];
