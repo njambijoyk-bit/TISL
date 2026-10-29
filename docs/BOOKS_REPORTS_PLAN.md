@@ -374,6 +374,7 @@ In this order, each with its own parity check against the old report:
 5. Withholding certificates
 6. Ratio analysis (inputs from settings)
 7. Trade by party and item (the renamed Stock movement; decision 18)
+   - **Status: built (awaiting sign-off).** `TradeReport` on the engine (key `trade`). Choose a party to see its items, an item to see its parties, or both for the vouchers ("all parties" for an item's every voucher); rows on screen narrow it. Same figures as the old report to the cent (parity tests); changes: today's-base currency rule (H3), walk-in names grouped ignoring case and spacing (H5), the financial year by default (H1), export and the branch and restated banners (H6), renamed (H2). The old screen stays as "Stock movement (old)" until sign-off.
 8. Money flow on the Cash page (transfers behind a "Show transfers" checkbox; split tenders; a test case for a 600 cash + 400 M-Pesa sale first, *M4*)
 9. Stock journal, ported line by line (5.3); parity check on identical responses; tab kept on the Purchases page and listed in the Reports page
 10. Stock reports (summary, location summary, query, monthly and movements drill-downs, dashboard data), ported line by line the same way

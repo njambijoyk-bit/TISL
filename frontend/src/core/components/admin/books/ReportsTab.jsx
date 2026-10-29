@@ -17,6 +17,7 @@ import AgeingView from '../reports/AgeingView';
 import TaxReturnView from '../reports/TaxReturnView';
 import WithholdingView from '../reports/WithholdingView';
 import RatioView from '../reports/RatioView';
+import TradeView from '../reports/TradeView';
 import { hasPermission } from '../../../../_shared/lib/roles';
 import costCentresAPI from '../../../../_shared/api/costCentres';
 import locationsAPI from '../../../../_shared/api/locations';
@@ -34,7 +35,8 @@ const REPORTS = [
   { id: 'engine-withholding', label: 'Withholding certificates', custom: true, engine: 'withholding' },
   { id: 'engine-ratio-analysis', label: 'Ratio analysis', custom: true, engine: 'ratio-analysis' },
   { id: 'reconciliation', label: 'Reconciliation', asOf: true },
-  { id: 'stock-movement', label: 'Stock movement', custom: true },   // draws itself: it starts from a ledger or an item
+  { id: 'engine-trade', label: 'Trade by party and item', custom: true, engine: 'trade' },
+  { id: 'stock-movement', label: 'Stock movement (old)', custom: true },   // draws itself: it starts from a ledger or an item
 ];
 
 const th = { padding: '8px 12px', fontSize: '0.65rem', fontWeight: 700, color: colors.textFaint, textAlign: 'left', whiteSpace: 'nowrap' };
@@ -81,16 +83,17 @@ function View(props) {
   );
 }
 
-const ENGINE_ALIAS = { 'day-book': 'engine-day-book', ledger: 'engine-ledger', receivables: 'engine-receivables', payables: 'engine-payables', 'tax-return': 'engine-tax-return', withholding: 'engine-withholding', 'ratio-analysis': 'engine-ratio-analysis', 'trial-balance': 'engine-trial-balance', 'profit-loss': 'engine-profit-loss', 'balance-sheet': 'engine-balance-sheet' };
+const ENGINE_ALIAS = { 'day-book': 'engine-day-book', ledger: 'engine-ledger', receivables: 'engine-receivables', payables: 'engine-payables', 'tax-return': 'engine-tax-return', withholding: 'engine-withholding', 'ratio-analysis': 'engine-ratio-analysis', 'trial-balance': 'engine-trial-balance', 'profit-loss': 'engine-profit-loss', 'balance-sheet': 'engine-balance-sheet', trade: 'engine-trade' };
 
 /** The screen of each report on the engine. */
-function EngineView({ engine, result }) {
+function EngineView({ engine, result, drill }) {
   if (engine === 'trial-balance') return <TrialBalanceView result={result} />;
   if (engine === 'day-book') return <DayBookView result={result} />;
   if (engine === 'ledger-statement') return <LedgerStatementView result={result} />;
   if (engine === 'tax-return') return <TaxReturnView result={result} />;
   if (engine === 'withholding') return <WithholdingView result={result} />;
   if (engine === 'ratio-analysis') return <RatioView result={result} />;
+  if (engine === 'trade') return <TradeView result={result} drill={drill} />;
   if (engine === 'receivables-ageing' || engine === 'payables-ageing') return <AgeingView result={result} />;
   return <StatementView result={result} />;
 }
@@ -374,7 +377,7 @@ export default function ReportsTab() {
           </button>
         ))}
       </div>
-      {def.engine && <ReportFrame key={def.engine + (params.get('ledger') ?? '')} reportKey={def.engine} initialOpts={def.engine === 'ledger-statement' && params.get('ledger') ? { ledger_id: params.get('ledger') } : {}}>{(r) => <EngineView engine={def.engine} result={r} />}</ReportFrame>}
+      {def.engine && <ReportFrame key={def.engine + (params.get('ledger') ?? '')} reportKey={def.engine} initialOpts={def.engine === 'ledger-statement' && params.get('ledger') ? { ledger_id: params.get('ledger') } : {}}>{(r, api) => <EngineView engine={def.engine} result={r} drill={api?.drill} />}</ReportFrame>}
       {def.custom && !def.engine && <StockMovement />}
       {!def.custom && <div style={{ display: 'flex', gap: 10, alignItems: 'center', flexWrap: 'wrap', marginBottom: 14 }}>
         {id === 'ledger' && (
