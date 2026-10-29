@@ -90,6 +90,12 @@ export default function ReportsTab() {
           {(r, api) => <EngineView engine={def.engine} result={r} drill={api?.drill} opts={api?.opts} />}
         </ReportFrame>
         <ReportGuide report={def} reports={visible} open={open} />
+        {!dev && (
+          <div style={{ textAlign: 'right', marginTop: 8 }}>
+            <button type="button" onClick={flipDev} title="Developer guide (Shift + D + E + V together)"
+              style={{ background: 'none', border: 'none', cursor: 'pointer', padding: '2px 4px', fontFamily: 'ui-monospace, monospace', fontSize: '0.7rem', color: colors.textFaint }}>//dev</button>
+          </div>
+        )}
         {dev && <DevGuide report={def} onClose={flipDev} />}
       </div>
       <style>{`@media (max-width: 800px) { .reports-layout { grid-template-columns: minmax(0, 1fr) !important; } }`}</style>
