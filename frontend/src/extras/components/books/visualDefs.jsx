@@ -1,5 +1,5 @@
 import {
-  AccountBars, ActivityCalendar, AgeingBars, AgeingBubbles, AssetsVsClaims, CashLine, Collection, Concentration, DueChart, ExpenseDonut, ExpensesStacked, GroupTreemap, Margins, MoneyInOut, MonthLine, Overdue,
+  AccountBars, ActivityCalendar, AgeingBars, AgeingBubbles, AssetsVsClaims, BudgetChart, CashForecast, CashLine, Collection, Concentration, DueChart, ExpenseDonut, ExpensesStacked, GroupTreemap, Margins, MoneyInOut, MonthLine, Overdue,
   ProfitTrend, ReconAreas, ReconStatus, SalesPurchases, Scorecard, SlowMovers, StockValue, TopCustomers, TopItems, Turnover, VatFlow, Waterfall,
 } from './visualCharts';
 
@@ -20,6 +20,11 @@ const zipRows = (a, b, f) => a.map((x, i) => ({ ...x, ...(b?.[i] ? f(b[i]) : {})
  * takes the order from the server's list.
  */
 export const DEFS = {
+  'cash-forecast': { title: 'Cash forecast, next 90 days', note: 'Where cash is heading: bills owed in and out, regular payments and receipts, and tax, with what is confirmed kept apart from what is a guess.', wide: true, compare: 'none',
+    render: (d, c, x) => <CashForecast d={d} onPlanning={x.openPlanning} />,
+    table: (d) => ({ columns: [col('date', 'Date'), col('label', 'What'), col('direction', 'In or out'), col('certainty', 'How sure'), col('source', 'From'), col('amount', 'Amount', true)], rows: d.flows }) },
+  budget: { title: 'Budget against actual', note: 'Each budgeted expense against what was spent in the period. Red is over budget.', wide: true, compare: 'none', render: (d) => <BudgetChart d={d} />,
+    table: (d) => ({ columns: [col('name', 'Expense'), col('budget', 'Budget', true), col('actual', 'Spent', true), col('variance', 'Left', true), col('used_pct', 'Used %', true)], rows: d.rows }) },
   cash: { title: 'Cash and bank balance', note: 'The running balance of all cash and bank accounts.', compare: 'overlay', render: (d, c) => <CashLine d={d} c={c} />,
     table: (d, c) => ({ columns: [col('bucket', 'Date'), col('balance', 'Balance', true), ...(c ? [col('cmp', 'Earlier period', true)] : [])], rows: zipRows(d.series, c?.series, (x) => ({ cmp: x.balance })) }) },
   inout: { title: 'Money in and out', note: 'What came into the cash and bank accounts and what went out.', compare: 'overlay', render: (d, c) => <MoneyInOut d={d} c={c} />,
@@ -79,5 +84,5 @@ export const DEFS = {
 
 /** The figures a card draws, by the name the server gives them (several cards can draw the same figures). */
 export const SOURCE = { cash: 'money', inout: 'money', accounts: 'money', 'expense-donut': 'expenses', 'expense-tree': 'expenses', customers: 'top_customers', 'sales-purchases': 'sales_purchases', composition: 'composition',
-  build: 'outstanding', ageing: 'outstanding', bubbles: 'outstanding', calendar: 'heatmap', waterfall: 'waterfall', balance: 'balance', trend: 'profit_trend', recon: 'recon', scorecard: 'scorecard', 'sales-year': 'sales_year', margins: 'margins', 'expenses-stacked': 'expenses_stacked', concentration: 'concentration', 'top-items': 'top_items',
+  build: 'outstanding', ageing: 'outstanding', bubbles: 'outstanding', calendar: 'heatmap', waterfall: 'waterfall', balance: 'balance', trend: 'profit_trend', recon: 'recon', 'cash-forecast': 'cash_forecast', budget: 'budget', scorecard: 'scorecard', 'sales-year': 'sales_year', margins: 'margins', 'expenses-stacked': 'expenses_stacked', concentration: 'concentration', 'top-items': 'top_items',
   'vat-flow': 'vat_flow', due: 'due', overdue: 'overdue', collection: 'collection', 'stock-value': 'stock_value', turnover: 'turnover', 'slow-movers': 'slow_movers', 'recon-areas': 'recon_areas' };

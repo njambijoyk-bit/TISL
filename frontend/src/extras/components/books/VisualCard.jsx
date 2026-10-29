@@ -12,7 +12,7 @@ const cell = (c, v) => (c.num && v !== '' && v != null && !Number.isNaN(Number(v
 const tool = { ...btnGhost, padding: '3px 8px', fontSize: '0.7rem', gap: 4 };
 
 /** One chart on the page. It fetches its own figures when it scrolls into view (and again whenever the period changes), draws them, and offers the same figures as a table, a copy, and a picture. */
-export default function VisualCard({ def, chartKey, params, sample, openLedger }) {
+export default function VisualCard({ def, chartKey, params, sample, openLedger, openPlanning }) {
   const ref = useRef(null);
   const [seen, setSeen] = useState(Boolean(sample));
   const [state, setState] = useState(sample ? { data: sample, cmp: null, ready: true } : { loading: true });
@@ -72,7 +72,7 @@ export default function VisualCard({ def, chartKey, params, sample, openLedger }
               </table>
               {!table.rows.length && <p style={{ fontSize: '0.8rem', color: colors.textFaint }}>Nothing for this period.</p>}
             </div>
-          ) : <div key={`${state.range?.from}${state.range?.to}${state.cmpRange?.from ?? ''}`}>{def.render(data, cmp?.ready === false ? null : cmp, { openLedger })}</div>}
+          ) : <div key={`${state.range?.from}${state.range?.to}${state.cmpRange?.from ?? ''}`}>{def.render(data, cmp?.ready === false ? null : cmp, { openLedger, openPlanning })}</div>}
       </div>
       <style>{'@keyframes vis-shimmer { from { background-position: 200% 0; } to { background-position: -200% 0; } }'}</style>
     </section>

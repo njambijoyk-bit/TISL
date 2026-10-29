@@ -36,11 +36,13 @@ class VisualsService
     public const CATALOG = [
         'scorecard' => ['title' => 'At a glance', 'note' => 'Revenue, profit, cash and what is owed, each with its month by month line.', 'source' => 'scorecard', 'wide' => true, 'compare' => 'delta'],
         'cash' => ['title' => 'Cash and bank balance', 'note' => 'The running balance of all cash and bank accounts.', 'source' => 'money', 'compare' => 'overlay'],
+        'cash-forecast' => ['title' => 'Cash forecast, next 90 days', 'note' => 'Where cash is heading: bills owed in and out, regular payments and receipts, and tax, with what is confirmed kept apart from what is a guess.', 'source' => 'cash_forecast', 'wide' => true, 'compare' => 'none'],
         'inout' => ['title' => 'Money in and out', 'note' => 'What came into the cash and bank accounts and what went out.', 'source' => 'money', 'compare' => 'overlay'],
         'sales-year' => ['title' => 'Sales over time', 'note' => 'Revenue by month; set against another period it shows growth.', 'source' => 'sales_year', 'compare' => 'overlay'],
         'margins' => ['title' => 'Margins', 'note' => 'Gross and net profit as a share of revenue, by month.', 'source' => 'margins', 'compare' => 'overlay'],
         'trend' => ['title' => 'Profit month by month', 'note' => 'Income and expenses as bars, profit as the line.', 'source' => 'profit_trend', 'wide' => true, 'compare' => 'overlay'],
         'waterfall' => ['title' => 'From income to profit', 'note' => 'How the income of the period turns into profit.', 'source' => 'waterfall', 'compare' => 'delta'],
+        'budget' => ['title' => 'Budget against actual', 'note' => 'Each budgeted expense against what was spent in the period. Red is over budget.', 'source' => 'budget', 'wide' => true, 'compare' => 'none'],
         'expense-donut' => ['title' => 'Where the money went', 'note' => 'The biggest groups of expenses in the period. Click a slice to open it.', 'source' => 'expenses', 'compare' => 'delta'],
         'expense-tree' => ['title' => 'Expenses by group', 'note' => 'Every expense group and ledger; bigger is more. Click a group to open it.', 'source' => 'expenses', 'wide' => true, 'compare' => 'none'],
         'expenses-stacked' => ['title' => 'Expenses month by month', 'note' => 'The biggest expense groups, stacked, to see which cost is growing.', 'source' => 'expenses_stacked', 'wide' => true, 'compare' => 'none'],

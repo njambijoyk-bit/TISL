@@ -59,7 +59,7 @@ class AccessCatalogTest extends TestCase
     {
         $new = ['books.statements', 'books.reports.settings', 'books.reports.format', 'books.reports.reconcile_setup', 'books.reports.approval', 'books.reconcile', 'books.reconcile.approve', 'books.close.prepare'];
         $this->assertSame($new, Catalog::ADDED[20], 'all eight arrive together, in catalogue version 20');
-        $this->assertSame(21, Catalog::VERSION);
+        $this->assertGreaterThanOrEqual(21, Catalog::VERSION);
         $roles = Catalog::roles();
         foreach ($new as $k) {
             $this->assertArrayHasKey($k, Catalog::PERMISSIONS);

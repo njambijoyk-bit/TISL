@@ -1310,6 +1310,15 @@ Route::middleware('auth:sanctum')->group(function () {
         Route::post('/recon/sessions/{id}/reopen', [\App\Http\Controllers\Api\ReconController::class, 'reopen'])->whereNumber('id')->middleware('permission:books.period');
 
         Route::get('/company',                          [\App\Http\Controllers\Api\CompanyProfileController::class, 'adminShow']);
+        // Planning: budgets and the cash forecast's recurring items. Seeing them needs books.view (the group above); changing them books.planning
+        Route::get('/planning',                         [\App\Http\Controllers\Api\PlanningController::class, 'show']);
+        Route::middleware('permission:books.planning')->group(function () {
+            Route::put('/planning/budgets',             [\App\Http\Controllers\Api\PlanningController::class, 'saveBudgets']);
+            Route::delete('/planning/budgets/{type}/{id}', [\App\Http\Controllers\Api\PlanningController::class, 'removeBudget'])->whereNumber('id')->where('type', 'group|ledger');
+            Route::post('/planning/items',              [\App\Http\Controllers\Api\PlanningController::class, 'saveItem']);
+            Route::put('/planning/items/{id}',          [\App\Http\Controllers\Api\PlanningController::class, 'saveItem'])->whereNumber('id');
+            Route::delete('/planning/items/{id}',       [\App\Http\Controllers\Api\PlanningController::class, 'deleteItem'])->whereNumber('id');
+        });
         // Visual reports (the Extras module): the state of the page is open to the books; the figures are refused unless Extras is licensed and on
         Route::get('/visuals/status',                   [\App\Http\Controllers\Api\VisualsController::class, 'status']);
         Route::get('/visuals/catalog',                  [\App\Http\Controllers\Api\VisualsController::class, 'catalog'])->middleware('module:extras');

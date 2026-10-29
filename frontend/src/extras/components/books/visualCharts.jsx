@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useState } from 'react';
 import {
-  Area, AreaChart, Bar, BarChart, CartesianGrid, Cell, ComposedChart, Legend, Line, Pie, PieChart, ResponsiveContainer, Scatter, ScatterChart, Tooltip, Treemap, XAxis, YAxis, ZAxis,
+  Area, AreaChart, Bar, BarChart, CartesianGrid, Cell, ComposedChart, Legend, Line, Pie, PieChart, ReferenceLine, ResponsiveContainer, Scatter, ScatterChart, Tooltip, Treemap, XAxis, YAxis, ZAxis,
 } from 'recharts';
 import { colors } from '../../../_shared/theme/tokens';
 import { change } from './visualPeriods';
@@ -603,6 +603,102 @@ export function ReconAreas({ d }) {
       <div style={{ display: 'flex', flexWrap: 'wrap', gap: '4px 16px', fontSize: '0.74rem', color: colors.textBody }}>
         {d.areas.map((a) => <span key={a.area}>{a.area}: {a.reconciled} of {a.accounts} reconciled</span>)}
       </div>
+    </div>
+  );
+}
+
+/** Each budgeted expense against what was spent: the budget as a quiet bar, the spending beside it, red when it went over. Click an expense for its months. */
+export function BudgetChart({ d }) {
+  const [sel, setSel] = useState(null);
+  const row = sel ? d.rows.find((r) => `${r.type}:${r.id}` === sel) : null;
+  const t = d.totals;
+  return (
+    <div>
+      <div style={{ display: 'flex', gap: 18, flexWrap: 'wrap', fontSize: '0.78rem', marginBottom: 8 }}>
+        <span><b style={{ fontSize: '1.05rem' }}><CountUp value={t.budget} /></b> <span style={{ color: colors.textFaint }}>budgeted</span></span>
+        <span><b style={{ fontSize: '1.05rem' }}><CountUp value={t.actual} /></b> <span style={{ color: colors.textFaint }}>spent{t.used_pct !== null ? `, ${t.used_pct}% of budget` : ''}</span></span>
+        <span><b style={{ fontSize: '1.05rem', color: t.over_count ? colors.dangerText : colors.successText }}>{t.over_count}</b> <span style={{ color: colors.textFaint }}>over budget</span></span>
+      </div>
+      {row ? (
+        <div>
+          <button type="button" onClick={() => setSel(null)} style={{ background: 'none', border: 'none', cursor: 'pointer', color: colors.primary, fontWeight: 600, fontFamily: 'inherit', fontSize: '0.78rem', padding: 0, marginBottom: 6 }}>‹ All expenses</button>
+          <div style={{ fontWeight: 700, fontSize: '0.85rem' }}>{row.name}</div>
+          <Frame h={240}><BarChart data={row.months} margin={{ top: 8, right: 8, left: 0, bottom: 0 }} barGap={2}>
+            <CartesianGrid stroke={GRID} vertical={false} /><XAxis dataKey="month" {...axis} tickFormatter={month} /><YAxis {...axis} tickFormatter={compact} width={48} />
+            <Tooltip {...tip} labelFormatter={month} /><Legend {...legend} />
+            <Bar {...anim} dataKey="budget" name="Budget" fill={GHOST} fillOpacity={0.55} radius={[4, 4, 0, 0]} />
+            <Bar {...anim} dataKey="actual" name="Spent" fill={SERIES[0]} radius={[4, 4, 0, 0]}>{row.months.map((m) => <Cell key={m.month} fill={m.budget > 0 && m.actual > m.budget ? BAD : SERIES[0]} />)}</Bar>
+          </BarChart></Frame>
+        </div>
+      ) : (
+        <Frame h={Math.max(H, d.rows.length * 52 + 50)}><BarChart data={d.rows} layout="vertical" margin={{ top: 4, right: 16, left: 8, bottom: 0 }} barGap={2}
+          onClick={(e) => { const n = e?.activePayload?.[0]?.payload; if (n) setSel(`${n.type}:${n.id}`); }}>
+          <CartesianGrid stroke={GRID} horizontal={false} /><XAxis type="number" {...axis} tickFormatter={compact} /><YAxis type="category" dataKey="name" {...axis} width={130} />
+          <Tooltip contentStyle={tip.contentStyle} formatter={(v, n, p) => [`${full(v)}${n === 'Spent' && p.payload.used_pct !== null ? `  (${p.payload.used_pct}% of budget)` : ''}`, n]} /><Legend {...legend} />
+          <Bar {...anim} dataKey="budget" name="Budget" fill={GHOST} fillOpacity={0.55} radius={[0, 4, 4, 0]} style={{ cursor: 'pointer' }} />
+          <Bar {...anim} dataKey="actual" name="Spent" fill={SERIES[0]} radius={[0, 4, 4, 0]} style={{ cursor: 'pointer' }}>{d.rows.map((r) => <Cell key={`${r.type}${r.id}`} fill={r.over ? BAD : SERIES[0]} />)}</Bar>
+        </BarChart></Frame>
+      )}
+      {!row && <div style={{ fontSize: '0.72rem', color: colors.textFaint }}>Click an expense to see it month by month.</div>}
+    </div>
+  );
+}
+
+const GREEN_SOFT = '#7fd6a8';
+const ORANGE_SOFT = '#f3b093';
+
+/**
+ * The next 90 days of cash by week. Money in and out are bars, solid where confirmed and lighter where it is an estimate; the lines are the cash balance with every
+ * flow and with only the confirmed ones. A switch drops the estimates. The assumptions it runs on are listed beside it.
+ */
+export function CashForecast({ d, onPlanning }) {
+  const [estimates, setEstimates] = useState(true);
+  const weeks = useMemo(() => d.weeks.map((w) => ({ ...w, label: w.start.slice(5), out_confirmed_n: -w.out_confirmed, out_estimate_n: -w.out_estimate, line: estimates ? w.balance : w.confirmed_only })), [d.weeks, estimates]);
+  const s = d.summary;
+  const low = estimates ? s.lowest : s.lowest_confirmed_only;
+  const runsOut = estimates ? s.shortfall_from : (d.days.find((x) => x.confirmed_only < 0)?.date ?? null);
+  const tile = (label, value, tone) => <span key={label}><b style={{ fontSize: '1.05rem', color: tone }}>{value}</b> <span style={{ color: colors.textFaint }}>{label}</span></span>;
+  return (
+    <div style={{ display: 'grid', gridTemplateColumns: 'minmax(0, 2fr) minmax(220px, 1fr)', gap: 18 }} className="vis-forecast">
+      <div style={{ minWidth: 0 }}>
+        <div style={{ display: 'flex', gap: 18, flexWrap: 'wrap', fontSize: '0.78rem', marginBottom: 8, alignItems: 'baseline' }}>
+          {tile('now', <CountUp value={d.opening} />)}
+          {tile(`lowest, on ${low.date}`, <CountUp value={low.balance} />, low.balance < 0 ? colors.dangerText : undefined)}
+          {tile(estimates ? 'in 90 days' : 'in 90 days, confirmed only', <CountUp value={estimates ? s.closing : s.closing_confirmed_only} />)}
+          {runsOut ? <b style={{ color: colors.dangerText }}>Cash runs out on {runsOut}</b> : <b style={{ color: colors.successText }}>Stays above zero</b>}
+        </div>
+        <label style={{ display: 'inline-flex', alignItems: 'center', gap: 6, fontSize: '0.76rem', marginBottom: 6, cursor: 'pointer' }}>
+          <input type="checkbox" checked={estimates} onChange={(e) => setEstimates(e.target.checked)} /> Include estimates
+        </label>
+        <Frame h={300}><ComposedChart data={weeks} margin={{ top: 8, right: 8, left: 0, bottom: 0 }} stackOffset="sign">
+          <CartesianGrid stroke={GRID} vertical={false} /><XAxis dataKey="label" {...axis} interval={1} /><YAxis {...axis} tickFormatter={compact} width={52} />
+          <Tooltip contentStyle={tip.contentStyle} labelFormatter={(l, p) => (p?.[0] ? `Week of ${p[0].payload.start}` : l)} formatter={(v, n) => [full(Math.abs(v)), n]} /><Legend {...legend} />
+          <ReferenceLine y={0} stroke={BAD} strokeDasharray="4 4" />
+          <Bar {...anim} dataKey="in_confirmed" stackId="f" name="In, confirmed" fill={GOOD} />
+          {estimates && <Bar {...anim} dataKey="in_estimate" stackId="f" name="In, estimate" fill={GREEN_SOFT} />}
+          <Bar {...anim} dataKey="out_confirmed_n" stackId="f" name="Out, confirmed" fill={SERIES[1]} />
+          {estimates && <Bar {...anim} dataKey="out_estimate_n" stackId="f" name="Out, estimate" fill={ORANGE_SOFT} />}
+          <Line {...anim} type="monotone" dataKey="line" name={estimates ? 'Cash balance' : 'Cash balance, confirmed only'} stroke={SERIES[0]} strokeWidth={3} dot={{ r: 3 }} />
+          {estimates && <Line {...anim} type="monotone" dataKey="confirmed_only" name="Cash balance, confirmed only" stroke={GHOST} strokeWidth={2} strokeDasharray="5 4" dot={false} />}
+        </ComposedChart></Frame>
+      </div>
+      <aside aria-label="Forecast assumptions" style={{ minWidth: 0, borderLeft: `1px solid ${colors.tint(0.08)}`, paddingLeft: 16 }}>
+        <div style={{ fontSize: '0.7rem', fontWeight: 700, letterSpacing: '0.08em', textTransform: 'uppercase', color: colors.textFaint, marginBottom: 6 }}>What this assumes</div>
+        <div style={{ display: 'grid', gap: 8 }}>
+          {d.assumptions.map((a) => (
+            <div key={a.key} style={{ fontSize: '0.76rem', lineHeight: 1.45 }}>
+              <div><b>{a.label}</b> <span style={{ color: colors.textMuted }}>{a.value}</span></div>
+              <div style={{ color: colors.textFaint }}>{a.detail}</div>
+            </div>
+          ))}
+        </div>
+        <div style={{ marginTop: 10, fontSize: '0.72rem', color: colors.textBody }}>
+          <div>Confirmed out: <b>{full(s.out_confirmed)}</b> · estimated out: <b>{full(s.out_estimate)}</b></div>
+          <div>Confirmed in: <b>{full(s.in_confirmed)}</b> · estimated in: <b>{full(s.in_estimate)}</b></div>
+        </div>
+        {onPlanning && <button type="button" onClick={onPlanning} style={{ marginTop: 10, background: 'none', border: 'none', color: colors.primary, cursor: 'pointer', fontFamily: 'inherit', fontSize: '0.76rem', fontWeight: 600, padding: 0 }}>Change the assumptions and regular items →</button>}
+      </aside>
+      <style>{'@media (max-width: 800px) { .vis-forecast { grid-template-columns: minmax(0, 1fr) !important; } .vis-forecast aside { border-left: 0 !important; padding-left: 0 !important; } }'}</style>
     </div>
   );
 }

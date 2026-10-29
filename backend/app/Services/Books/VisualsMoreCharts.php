@@ -412,4 +412,21 @@ trait VisualsMoreCharts
 
         return ['areas' => array_values(array_map(fn ($a) => array_map(fn ($v) => is_float($v) ? round($v, 2) : $v, $a), $out))];
     }
+
+    /** Each budgeted expense against what was spent in the same months, the biggest overspend first. */
+    private function chartBudget(Scope $scope, string $from, string $to): array
+    {
+        $r = app(BudgetService::class)->against($scope, $from, $to);
+        if (! $r['rows']) {
+            throw new \RuntimeException('No budget is set for this period yet. Set one under Books → Configuration → Planning.');
+        }
+
+        return $r;
+    }
+
+    /** Cash for the next 90 days from today: what is owed in and out, confirmed apart from estimated, with the assumptions it runs on. The period chosen on the page does not move it. */
+    private function chartCashForecast(Scope $scope, string $from, string $to): array
+    {
+        return app(ForecastService::class)->build($scope, today()->toDateString(), 90);
+    }
 }

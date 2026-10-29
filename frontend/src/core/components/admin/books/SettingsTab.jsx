@@ -16,6 +16,7 @@ import { hasPermission } from '../../../../_shared/lib/roles';
 import ReportsSettings from './ReportsSettings';
 import TaxControlSettings from './TaxControlSettings';
 import YearCloseWizard from './YearCloseWizard';
+import PlanningSettings from './PlanningSettings';
 
 const SUBS = [
   { id: 'numbering', label: 'Voucher numbering' },
@@ -23,6 +24,7 @@ const SUBS = [
   { id: 'tax', label: 'Tax control', permission: 'books.tax.view' },   // shown to people who may open Tax control
   { id: 'period', label: 'Period control' },
   { id: 'defaults', label: 'Default ledgers' },
+  { id: 'planning', label: 'Planning' },
   { id: 'reports', label: 'Reports', permission: 'books.reports.settings' },   // shown to people who may open the Reports settings
   { id: 'company', label: 'Company' },
 ];
@@ -571,6 +573,7 @@ export default function SettingsTab({ canSetup }) {
       {sub === 'tax' && <TaxControlSettings />}
       {sub === 'period' && <PeriodSection canSetup={canSetup} />}
       {sub === 'defaults' && <DefaultsSection canSetup={canSetup} />}
+      {sub === 'planning' && <PlanningSettings />}
       {sub === 'company' && <CompanySection canSetup={canSetup} />}
       {sub === 'reports' && <ReportsSettings canEditStatements={hasPermission(null, 'books.statements')} />}
     </div>

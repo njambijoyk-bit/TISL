@@ -47,6 +47,7 @@ export default function VisualReports() {
   const other = useMemo(() => compareFor(mode, period, { n: back, custom: cmpCustom, years }), [mode, period, back, cmpCustom, years]);
   const params = useMemo(() => ({ from: period.from, to: period.to, ...(other ? { compare_from: other.from, compare_to: other.to } : {}) }), [period, other]);
   const openLedger = (id) => nav(`/admin/books?tab=reports&report=ledger&ledger=${id}`);
+  const openPlanning = () => nav('/admin/books?tab=settings&sub=planning');
 
   if (state === null) return <p style={{ fontSize: '0.85rem', color: colors.textFaint }}>Loading…</p>;
   if (state === 'error') return null;
@@ -102,7 +103,7 @@ export default function VisualReports() {
       </div>
       {!catalog ? <p style={{ fontSize: '0.85rem', color: colors.textFaint }}>Loading…</p> : (
         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(340px, 1fr))', gap: 16 }}>
-          {keys.map((k) => <VisualCard key={k} def={DEFS[k]} chartKey={k} params={params} openLedger={openLedger} />)}
+          {keys.map((k) => <VisualCard key={k} def={DEFS[k]} chartKey={k} params={params} openLedger={openLedger} openPlanning={openPlanning} />)}
         </div>
       )}
     </div>
