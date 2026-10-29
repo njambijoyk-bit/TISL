@@ -4,6 +4,7 @@ import toast from 'react-hot-toast';
 import booksAPI from '../../../../_shared/api/books';
 import { errMsg } from '../../../../_shared/store/helpers/apiState';
 import { Field, TextInput, SelectInput, FormGrid, CheckboxRow } from '../ui/Form';
+import { AlertOctagon, AlertTriangle, CheckCircle2 } from 'lucide-react';
 import { btnGhost, colors } from '../../../../_shared/theme/tokens';
 import { ChangeLog, ChipPicker, Section, SettingsSection } from './ReportsSettings';
 
@@ -161,14 +162,25 @@ const HealthPanel = () => {
   useEffect(() => { booksAPI.taxControlHealth().then((r) => setChecks(r.checks ?? [])).catch(() => setChecks([])); }, []);
   if (checks === null) return null;
 
+  // the colour follows the worst finding: red for something to fix, amber for something to check, green when all is well
+  const errors = checks.filter((c) => c.level === 'error').length;
+  const tone = errors ? { main: colors.danger, text: colors.dangerText, bg: colors.dangerBg, Icon: AlertOctagon } : checks.length ? { main: colors.warning, text: colors.warningText, bg: colors.warningBg, Icon: AlertTriangle } : { main: colors.success, text: colors.successText, bg: colors.successBg, Icon: CheckCircle2 };
+  const heading = errors ? `${errors} thing${errors === 1 ? '' : 's'} to fix in the tax set-up` : checks.length ? `${checks.length} thing${checks.length === 1 ? '' : 's'} to check in the tax set-up` : 'The tax set-up is healthy';
+
   return (
-    <Section title="Health of the tax set-up" hint={checks.length ? 'These could make a document tax wrongly or leave a tax with nowhere to post. Nothing here changes by itself.' : 'No problems found.'}>
-      {checks.map((c, i) => (
-        <p key={i} style={{ margin: '0 0 6px', fontSize: '0.8rem', color: c.level === 'error' ? colors.danger : colors.warningText }}>
-          <strong>{c.level === 'error' ? 'Fix: ' : 'Check: '}</strong>{c.message}
-        </p>
-      ))}
-    </Section>
+    <div role={checks.length ? 'alert' : 'status'} style={{ marginBottom: 16, padding: '14px 18px', borderRadius: 12, background: tone.bg, border: `1px solid ${tone.main}`, borderLeft: `6px solid ${tone.main}` }}>
+      <p style={{ margin: 0, display: 'flex', alignItems: 'center', gap: 8, fontWeight: 800, color: tone.text }}><tone.Icon size={18} color={tone.main} /> {heading}</p>
+      <p style={{ margin: '4px 0 0', fontSize: '0.75rem', color: tone.text, opacity: 0.85 }}>{checks.length ? 'These could make a document tax wrongly or leave a tax with nowhere to post. Nothing here changes by itself.' : 'No problems found.'}</p>
+      {checks.length > 0 && (
+        <ul style={{ margin: '10px 0 0', paddingLeft: 18 }}>
+          {checks.map((c, i) => (
+            <li key={i} style={{ margin: '0 0 5px', fontSize: '0.8rem', color: c.level === 'error' ? colors.dangerText : colors.warningText }}>
+              <strong>{c.level === 'error' ? 'Fix: ' : 'Check: '}</strong>{c.message}
+            </li>
+          ))}
+        </ul>
+      )}
+    </div>
   );
 };
 
@@ -186,11 +198,11 @@ export default function TaxControlSettings() {
 
   return (
     <>
+      <HealthPanel />
       {data.sections.map((section) => (
         <SettingsSection key={section.id} section={section} lookups={data.lookups} ledgers={[]} onSaved={onSaved} save={booksAPI.saveTaxControl}
           renderControl={control(categories)} />
       ))}
-      <HealthPanel />
       <ChangeLog fetchLog={booksAPI.taxControlLog} title="Change log" hint="Every change to Tax control: what, who and when. Documents already posted are never recalculated by a change." />
     </>
   );
