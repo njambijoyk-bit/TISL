@@ -1297,6 +1297,13 @@ Route::middleware('auth:sanctum')->group(function () {
             Route::post('/financial-years',         [BooksMasterController::class, 'storeYear']);
         });
 
+        // Tax control (Books -> Configuration -> Tax control): the tab needs books.tax.view; each section's own permission is checked in the service
+        Route::middleware('permission:books.tax.view')->group(function () {
+            Route::get('/tax-control',             [\App\Http\Controllers\Api\TaxControlController::class, 'show']);
+            Route::get('/tax-control/log',         [\App\Http\Controllers\Api\TaxControlController::class, 'log']);
+            Route::put('/tax-control/{section}',   [\App\Http\Controllers\Api\TaxControlController::class, 'update'])->where('section', '[a-z_]+');
+        });
+
         // Reports settings and the statements tree (Books -> Configuration -> Reports): the tab needs books.reports.settings; each section's own permission is checked in the controller
         Route::middleware('permission:books.reports.settings')->group(function () {
             Route::get('/report-settings',          [\App\Http\Controllers\Api\ReportSettingsController::class, 'show']);

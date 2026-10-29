@@ -14,10 +14,12 @@ import { btnPrimary, btnGhost, card, colors } from '../../../../_shared/theme/to
 import noSlash from '../../../../_shared/lib/noSlash';
 import { hasPermission } from '../../../../_shared/lib/roles';
 import ReportsSettings from './ReportsSettings';
+import TaxControlSettings from './TaxControlSettings';
 
 const SUBS = [
   { id: 'numbering', label: 'Voucher numbering' },
   { id: 'methods', label: 'Payment methods' },
+  { id: 'tax', label: 'Tax control', permission: 'books.tax.view' },   // shown to people who may open Tax control
   { id: 'period', label: 'Period control' },
   { id: 'defaults', label: 'Default ledgers' },
   { id: 'company', label: 'Company' },
@@ -551,6 +553,7 @@ export default function SettingsTab({ canSetup }) {
       </div>
       {sub === 'numbering' && <NumberingSection branches={branches} />}
       {sub === 'methods' && <MethodsSection />}
+      {sub === 'tax' && <TaxControlSettings />}
       {sub === 'period' && <PeriodSection canSetup={canSetup} />}
       {sub === 'defaults' && <DefaultsSection canSetup={canSetup} />}
       {sub === 'company' && <CompanySection canSetup={canSetup} />}

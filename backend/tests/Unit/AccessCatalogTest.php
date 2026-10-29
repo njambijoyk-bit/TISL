@@ -28,12 +28,38 @@ class AccessCatalogTest extends TestCase
         $this->assertNotContains('units.manage', $roles['sales_rep']['permissions']);
     }
 
+    /** Tax control (docs/TAX_CONTROL_PLAN.md, step T3): who holds the four tax permissions by default. */
+    public function test_the_tax_control_permissions_are_held_as_the_plan_says(): void
+    {
+        $new = ['books.tax.view', 'books.tax.control', 'books.tax.admin', 'books.tax.override'];
+        $this->assertSame($new, Catalog::ADDED[21]);
+        $roles = Catalog::roles();
+        foreach ($new as $k) {
+            $this->assertArrayHasKey($k, Catalog::PERMISSIONS);
+            $this->assertSame('books', Catalog::areaOf($k));
+            $this->assertSame(21, Catalog::since($k));
+        }
+        foreach (['books.tax.control', 'books.tax.admin'] as $k) {
+            $this->assertContains($k, Catalog::OWNER_ONLY, "{$k} is the owner's by default");
+            $this->assertNotContains($k, $roles['admin']['permissions']);
+            $this->assertNotContains($k, $roles['senior_accountant']['permissions']);
+        }
+        foreach (['books.tax.view', 'books.tax.override'] as $k) {
+            $this->assertNotContains($k, Catalog::OWNER_ONLY);
+            $this->assertContains($k, $roles['admin']['permissions']);
+            $this->assertContains($k, $roles['senior_accountant']['permissions']);
+        }
+        foreach (['manager', 'finance', 'logistics', 'sales_rep', 'cashier', 'chef', 'driver'] as $r) {
+            $this->assertSame([], array_values(array_intersect($new, $roles[$r]['permissions'])), "{$r} holds none of them by default");
+        }
+    }
+
     /** The books reports rebuild (docs/BOOKS_REPORTS_PLAN.md, section 10): who holds the new permissions by default. */
     public function test_the_reports_permissions_are_held_as_the_plan_says(): void
     {
         $new = ['books.statements', 'books.reports.settings', 'books.reports.format', 'books.reports.reconcile_setup', 'books.reports.approval', 'books.reconcile', 'books.reconcile.approve', 'books.close.prepare'];
         $this->assertSame($new, Catalog::ADDED[20], 'all eight arrive together, in catalogue version 20');
-        $this->assertSame(20, Catalog::VERSION);
+        $this->assertSame(21, Catalog::VERSION);
         $roles = Catalog::roles();
         foreach ($new as $k) {
             $this->assertArrayHasKey($k, Catalog::PERMISSIONS);

@@ -13,7 +13,7 @@ import StatementsEditor from './StatementsEditor';
  * Ledger lists and kinds (reconciliation) and the ratio figures have their own small editors; every other kind is a plain control.
  */
 
-const Section = ({ title, hint, children, footer }) => (
+export const Section = ({ title, hint, children, footer }) => (
   <div style={{ ...card, padding: 18, marginBottom: 16 }}>
     <p style={{ margin: 0, fontWeight: 700, color: colors.text }}>{title}</p>
     {hint && <p style={{ margin: '3px 0 12px', fontSize: '0.75rem', color: colors.textMuted, maxWidth: 640, lineHeight: 1.5 }}>{hint}</p>}
@@ -23,7 +23,7 @@ const Section = ({ title, hint, children, footer }) => (
 );
 
 /** Chosen values shown as chips, with a drop-down to add another. options: [{ value, label }]. */
-function ChipPicker({ options, selected, onChange, placeholder, disabled, label }) {
+export function ChipPicker({ options, selected, onChange, placeholder, disabled, label }) {
   const byValue = useMemo(() => Object.fromEntries(options.map((o) => [String(o.value), o.label])), [options]);
   const chosen = new Set(selected.map(String));
   return (
@@ -135,8 +135,10 @@ function ReconcilableLedgers({ ledgers, disabledIds, kinds, kindOptions, onDisab
 
 const HIDDEN_IN_LOOP = ['ledger_list', 'ledger_kinds'];   // drawn by ReconcilableLedgers
 
-function SettingControl({ s, value, onChange, disabled, error, lookups }) {
+function SettingControl({ s, value, onChange, disabled, error, lookups, renderControl, draft }) {
   const id = `report-setting-${s.key}`;   // ties each label to its control
+  const custom = renderControl?.(s, { value, onChange, disabled, error, lookups, id, draft });   // a kind of setting this screen does not know (Tax control brings its own)
+  if (custom) return custom;
   switch (s.type) {
     case 'bool':
       return <CheckboxRow disabled={disabled} checked={value} onChange={onChange} label={s.label} description={s.hint} />;
@@ -177,7 +179,7 @@ function SettingControl({ s, value, onChange, disabled, error, lookups }) {
   }
 }
 
-function SettingsSection({ section, lookups, ledgers, onSaved }) {
+export function SettingsSection({ section, lookups, ledgers, onSaved, save: saveFn, renderControl }) {
   const initial = useMemo(() => Object.fromEntries(section.settings.map((s) => [s.key, s.value])), [section]);
   const [draft, setDraft] = useState(initial);
   const [errs, setErrs] = useState({});
@@ -192,7 +194,7 @@ function SettingsSection({ section, lookups, ledgers, onSaved }) {
     setBusy(true); setErrs({});
     try {
       const changed = Object.fromEntries(Object.keys(draft).filter((k) => JSON.stringify(draft[k]) !== JSON.stringify(initial[k])).map((k) => [k, draft[k]]));
-      const r = await booksAPI.saveReportSettings(section.id, changed);
+      const r = await (saveFn ?? booksAPI.saveReportSettings)(section.id, changed);
       toast.success(r.changed?.length ? 'Saved' : 'Nothing had changed');
       onSaved(r, section.id);
     } catch (e) {
@@ -214,7 +216,7 @@ function SettingsSection({ section, lookups, ledgers, onSaved }) {
       )}>
       <FormGrid min={260}>
         {section.settings.filter((s) => !HIDDEN_IN_LOOP.includes(s.type)).map((s) => (
-          <SettingControl key={s.key} s={s} value={draft[s.key]} onChange={set(s.key)} disabled={disabled} error={errs[s.key]} lookups={lookups} />
+          <SettingControl key={s.key} s={s} value={draft[s.key]} onChange={set(s.key)} disabled={disabled} error={errs[s.key]} lookups={lookups} renderControl={renderControl} draft={draft} />
         ))}
       </FormGrid>
       {reconcile && (
@@ -231,12 +233,12 @@ function SettingsSection({ section, lookups, ledgers, onSaved }) {
 
 const show = (v) => (v === null || v === undefined ? '—' : typeof v === 'object' ? JSON.stringify(v) : String(v));
 
-function ChangeLog() {
+export function ChangeLog({ fetchLog = booksAPI.reportSettingsLog, title = 'Change log', hint = 'Every change to these settings: what, who and when. The approval rules are logged too.' }) {
   const [rows, setRows] = useState(null);
   const [open, setOpen] = useState(false);
-  useEffect(() => { if (open) booksAPI.reportSettingsLog({ limit: 100 }).then((r) => setRows(r.rows)).catch((e) => toast.error(errMsg(e, 'Could not load the log'))); }, [open]);
+  useEffect(() => { if (open) fetchLog({ limit: 100 }).then((r) => setRows(r.rows)).catch((e) => toast.error(errMsg(e, 'Could not load the log'))); }, [open]);   // eslint-disable-line react-hooks/exhaustive-deps
   return (
-    <Section title="Change log" hint="Every change to these settings: what, who and when. The approval rules are logged too.">
+    <Section title={title} hint={hint}>
       <button type="button" style={btnGhost} onClick={() => setOpen((o) => !o)}>{open ? 'Hide the log' : 'Show the last 100 changes'}</button>
       {open && (rows === null ? <p style={{ color: colors.textMuted }}>Loading…</p> : !rows.length ? <p style={{ fontSize: '0.8rem', color: colors.textMuted }}>No change has been made yet.</p> : (
         <div style={{ overflowX: 'auto', marginTop: 10 }}>

@@ -80,7 +80,7 @@ For a purchase from a non-resident or an appointed supplier, the books post: the
 |---|---|---|
 | T1 | This plan agreed. | Owner has signed it off. |
 | T2 (**drafted**: `backend/database/sql/229_tax_control.sql`, not yet run on the real database) | Database script (read-only check, change, result check): the new columns and tables, conversion of existing kinds and modes, the one-row tax list for each account, the settings rows. Tested on a copy with the live groups and ledgers. | A second run changes nothing; every type and account converts; anything unmapped is listed. |
-| T3 | Tax control tab, permissions, audit log. | Each section saves, is refused without its permission, and is logged. |
+| T3 (**built**) | Tax control tab, permissions, audit log. | Each section saves, is refused without its permission, and is logged. |
 | T4 | Tax type form: category, method, jurisdiction, with the combination table; rate form with the new rate types and tax point. | Invalid combinations are refused with a reason. |
 | T5 | Chart of accounts: the Duties & Taxes guard; accounts carrying several taxes. | The guard and the multi-tax form pass their tests. |
 | T6 | Tax resolution in the posting code (item, account, apply regardless, exemptions), reverse charge, and calculation snapshots. **First** a record of what every existing setup posts today; the new code must post the same, to the cent. | Old and new post identically for every existing case; new cases (several taxes on one account, reverse charge, an always-apply levy, excise with VAT on top) have tests. |
@@ -141,3 +141,13 @@ Tests for T6 include each row, a line that opts out of excise, an override with 
 ## 11. Status of T2
 
 `229_tax_control.sql` is drafted and tested on a MariaDB copy built from the tax models' columns (the tax tables are not defined in the repository, so its PART A first checks the live columns it relies on, and the new-column step skips a table that does not exist). The copy used a different default collation from the new tables, as MySQL 8 does, and the script ran clean; a second run changed nothing; with two VAT types, accounts that have a tax nature but no rate of their own are listed instead of guessed. The old columns (`kind`, `application_mode`, `tax_nature`, `tax_rate_ledger_id`) are untouched and stay the ones the app reads until T6; the new ones mirror them for now. The three new tables are added to the backup list.
+
+## 13. Status of T3
+
+Built: Books, Configuration, **Tax control** (between Payment methods and Period control), with six sections: Jurisdiction, Tax categories and how they are applied, Where taxes are kept, Calculation, Taxes that apply regardless, and Returns and certificates. It follows the Reports settings tab: the server describes each section, the screen draws it, every change is validated, and a change log records who changed what and when. It needs script 229 (it says so when the script has not been run).
+
+Permissions (catalogue version 21): `books.tax.view` opens the tab (held by admin and senior accountant by default); `books.tax.control` changes how tax behaves and is the owner's by default; `books.tax.admin` can be handed to a tax administrator and changes only the registrations and the filing settings; `books.tax.override` is for changing a tax's base on a document (used from T6). Whoever holds the control permission changes every section.
+
+Checks the server makes: country is a two-letter code; a registration has both a name and a number; a category in use has at least one allowed method; **a category or a method that an existing tax type uses cannot be switched off**; the group and ledgers named must exist; a tax that applies regardless must be a real tax type, listed once, with its exemption behaviour and documents.
+
+Nothing in the posting code reads these settings yet: T4 (the tax type form) and T6 (the posting code) do.
