@@ -34,7 +34,7 @@ class ChartStarterService
             ['root' => 'Indirect Expenses', 'groups' => [
                 ['name' => 'Administrative Expenses', 'groups' => [
                     ['name' => 'Office Expenses', 'ledgers' => ['Stationery & Printing', 'Intern Allowances', 'Audit & Accountancy Fees', 'Legal & Professional Fees', 'Telephone & Internet', 'Postage & Courier', 'Software & Subscriptions']],
-                    ['name' => 'Other Administrative Expenses', 'ledgers' => ['Miscellaneous Administrative Expenses']],
+                    ['name' => 'Other Administrative Expenses', 'ledgers' => ['Miscellaneous Administrative Expenses', 'Test Starter Account']],
                 ]],
                 ['name' => 'Other Operating Expenses', 'ledgers' => ['Donations', 'Penalties & Fines', 'Loss on Disposal of Assets', 'Miscellaneous Operating Expenses']],
             ]],
