@@ -331,7 +331,13 @@ class BooksMasterController extends Controller
             throw \Illuminate\Validation\ValidationException::withMessages(['tax_nature' => 'Choose the tax for this account — a tax rate from the system, exempt, or out of scope.']);
         }
         if (! empty($d['tax_nature'])) {
-            if (! in_array(\App\Services\Books\AccountTaxes::effectiveBehaviour($groupId), ['sales', 'purchase', 'charge', 'optional'], true)) {
+            $taxBehaviour = \App\Services\Books\AccountTaxes::effectiveBehaviour($groupId);
+            if ($taxBehaviour === 'party') {   // a customer or supplier is exempt, zero-rated or out of scope; "taxable" is just the sales or purchase account's own tax
+                if (! in_array($d['tax_nature'], ['exempt', 'zero_rated', 'out_of_scope'], true)) {
+                    throw \Illuminate\Validation\ValidationException::withMessages(['tax_nature' => 'A customer or supplier is exempt, zero-rated or out of scope. Leave it empty to follow the sales or purchase account.']);
+                }
+                $d['tax_rate_ledger_id'] = null;
+            } elseif (! in_array($taxBehaviour, ['sales', 'purchase', 'charge', 'optional'], true)) {
                 throw \Illuminate\Validation\ValidationException::withMessages(['tax_nature' => 'A tax nature belongs on a sales, purchase, charge, expense, asset or income account.']);
             }
             if ($d['tax_nature'] === 'taxable' && empty($d['tax_rate_ledger_id'])) {

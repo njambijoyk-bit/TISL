@@ -1077,6 +1077,7 @@ class VoucherService
         $line['taxes'] = $taxable && $ctx['type']->base_type !== VoucherType::OPENING_STOCK
             ? $this->taxes->forLine($taxable, $module, $pre, $post, $line['quantity'], $unitId, $this->side($ctx), $ctx['customer'], $ctx['locationId'], $ctx['currency'], $account)
             : [];
+        $line['taxes'] = $this->taxes->forParty($line['taxes'], $ctx['party'] ?? null);   // a customer or supplier account that is exempt or zero-rated overrides the item's tax
         if ($override) {
             foreach ($line['taxes'] as &$t) {
                 $t['snapshot'] = ($t['snapshot'] ?? []) + ['base_override' => $override];   // kept with the line: what it was, what it became, why and by whom
@@ -1403,6 +1404,7 @@ class VoucherService
             $line['taxes'] = $account?->tax_nature
                 ? $this->taxes->fromAccount($account, $override['to'] ?? $line['amount'] + $line['discount_amount'], $override['to'] ?? $line['amount'], $line['quantity'], $this->side($ctx), $ctx['customer'], $ctx['currency'])
                 : [];
+            $line['taxes'] = $this->taxes->forParty($line['taxes'], $ctx['party'] ?? null);
             if ($override) {
                 foreach ($line['taxes'] as &$t) {
                     $t['snapshot'] = ($t['snapshot'] ?? []) + ['base_override' => $override];

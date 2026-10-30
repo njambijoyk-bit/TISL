@@ -38,6 +38,29 @@ class TaxLineService
         ], $this), $side);
     }
 
+    /**
+     * What the other side of the voucher (a customer's or supplier's account) says about tax. Left empty, the sales or purchase account decides, as always. Exempt or out of scope: no tax
+     * is charged to or by them, however vatable the line. Zero-rated: the lines are listed with a tax of nothing.
+     */
+    public function forParty(array $rows, ?Ledger $party): array
+    {
+        $treatment = $party?->tax_nature;
+        if (in_array($treatment, ['exempt', 'out_of_scope'], true)) {
+            return [];
+        }
+        if ($treatment === 'zero_rated') {
+            foreach ($rows as &$r) {
+                $r['tax_amount'] = 0.0;
+                if (isset($r['reverse_amount'])) {
+                    $r['reverse_amount'] = 0.0;
+                }
+            }
+            unset($r);
+        }
+
+        return $rows;
+    }
+
     /** The item path: the tax rules that match the item, the customer and the branch, in the order of their rates' sequence. */
     private function fromRules(?Model $taxable, string $module, float $pre, float $post, float $qty, ?int $unitId, string $side, ?Customer $customer, ?int $locationId, ?Currency $currency): array
     {

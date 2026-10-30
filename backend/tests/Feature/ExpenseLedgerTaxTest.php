@@ -58,4 +58,33 @@ class ExpenseLedgerTaxTest extends TestCase
         $this->postJson('/api/admin/books/ledgers', ['name' => 'Reserve', 'group_id' => 1, 'tax_nature' => 'exempt'])->assertStatus(422)->assertJsonValidationErrors('tax_nature');
         $this->postJson('/api/admin/books/ledgers', ['name' => 'Taxable rent', 'group_id' => 8, 'tax_nature' => 'taxable'])->assertStatus(422)->assertJsonValidationErrors('tax_rate_ledger_id');
     }
+
+    public function test_a_customer_or_supplier_account_may_be_exempt_zero_rated_or_out_of_scope_but_never_taxable(): void
+    {
+        $this->assertSame('party', AccountTaxes::effectiveBehaviour(5), 'Sundry Debtors');
+        $this->assertSame('party', AccountTaxes::effectiveBehaviour(10), 'Sundry Creditors');
+        $this->postJson('/api/admin/books/ledgers', ['name' => 'Charity Ltd', 'group_id' => 5, 'tax_nature' => 'exempt'])->assertCreated();
+        $this->assertSame('exempt', Ledger::where('name', 'Charity Ltd')->value('tax_nature'));
+        $this->postJson('/api/admin/books/ledgers', ['name' => 'Export Co', 'group_id' => 5, 'tax_nature' => 'zero_rated'])->assertCreated();
+        $this->postJson('/api/admin/books/ledgers', ['name' => 'Plain Co', 'group_id' => 5])->assertCreated();
+        $this->assertNull(Ledger::where('name', 'Plain Co')->value('tax_nature'), 'empty means follow the sales account');
+        $this->postJson('/api/admin/books/ledgers', ['name' => 'Taxable Co', 'group_id' => 5, 'tax_nature' => 'taxable'])->assertStatus(422)->assertJsonValidationErrors('tax_nature');
+        $id = Ledger::where('name', 'Charity Ltd')->value('id');
+        $this->putJson("/api/admin/books/ledgers/{$id}", ['tax_nature' => null])->assertOk();
+        $this->assertNull(Ledger::find($id)->tax_nature);
+    }
+
+    public function test_the_party_overrides_the_lines_tax(): void
+    {
+        $svc = app(\App\Services\Books\TaxLineService::class);
+        $rows = [['tax_rate_id' => 1, 'label' => 'VAT 16%', 'base_amount' => 1000.0, 'tax_amount' => 160.0]];
+        $none = new Ledger(['tax_nature' => null]);
+        $this->assertSame($rows, $svc->forParty($rows, $none), 'no treatment on the party: the sales account decides');
+        $this->assertSame($rows, $svc->forParty($rows, null));
+        $this->assertSame([], $svc->forParty($rows, new Ledger(['tax_nature' => 'exempt'])), 'an exempt customer is not charged VAT on vatable goods');
+        $this->assertSame([], $svc->forParty($rows, new Ledger(['tax_nature' => 'out_of_scope'])));
+        $zero = $svc->forParty($rows, new Ledger(['tax_nature' => 'zero_rated']));
+        $this->assertSame(0.0, $zero[0]['tax_amount']);
+        $this->assertSame(1000.0, $zero[0]['base_amount']);
+    }
 }

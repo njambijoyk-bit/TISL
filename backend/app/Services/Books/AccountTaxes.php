@@ -25,6 +25,9 @@ class AccountTaxes
     /** Where a tax is optional: costs and assets bought with VAT, and income earned with it. */
     private const OPTIONAL_UNDER = ['Indirect Expenses', 'Direct Expenses', 'Fixed Assets', 'Indirect Incomes'];
 
+    /** A customer's or supplier's account holds a treatment that overrides the sales or purchase account's tax. */
+    public const PARTY_GROUPS = ['Sundry Debtors', 'Sundry Creditors'];
+
     /** …except under these: depreciation is not bought, and an accumulated depreciation or work in progress account is not taxed when posted. */
     private const NOT_TAXED = ['Depreciation', 'Accumulated Depreciation', 'Capital Work in Progress'];
 
@@ -36,6 +39,10 @@ class AccountTaxes
             return $own;
         }
         $under = fn (array $names) => LedgerGroup::whereIn('name', $names)->get()->contains(fn ($g) => in_array($groupId, array_map('intval', $g->selfAndDescendantIds()), true));
+
+        if ($under(self::PARTY_GROUPS)) {
+            return 'party';   // a customer's or supplier's account: only says whether they are exempt, zero-rated or out of scope (it carries no rate)
+        }
 
         return $under(self::OPTIONAL_UNDER) && ! $under(self::NOT_TAXED) ? 'optional' : $own;
     }

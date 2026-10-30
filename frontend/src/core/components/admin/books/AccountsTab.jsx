@@ -133,7 +133,8 @@ function LedgerForm({ ledger, groups, defaultGroupId, onClose, onSaved }) {
       // a delivery charge's tax is kept with its settings (the same place the Shipping settings page puts it); what else is there stays
       if (behaviour === 'delivery') body.settings = { ...(ledger?.settings ?? {}), tax_rate_id: !expense && f.delivery_tax_rate_id ? Number(f.delivery_tax_rate_id) : null };
       if (charging) body.settings = { charge_kind: f.charge_kind, timing: f.timing, refundable: Boolean(f.refundable), default_on: Boolean(f.default_on), free_days: Number(f.free_days) || 0, tax_follows: f.tax_follows };
-      if (!taxed) { body.tax_nature = null; body.tax_rate_ledger_id = null; body.affects_stock = false; } else {
+      if (isParty) { body.tax_nature = f.tax_nature || null; body.tax_rate_ledger_id = null; body.affects_stock = false; delete body.taxes; }   // a customer or supplier only says exempt, zero-rated or out of scope
+      else if (!taxed) { body.tax_nature = null; body.tax_rate_ledger_id = null; body.affects_stock = false; } else {
         body.tax_nature = f.tax_nature || null;
         body.tax_rate_ledger_id = (f.tax_nature === 'taxable' || f.tax_nature === 'zero_rated') ? blank(f.tax_rate_ledger_id) : null;
         // the taxes in order: the first is the one chosen above, then the others; the server keeps the old tax fields in step with the first
@@ -171,6 +172,17 @@ function LedgerForm({ ledger, groups, defaultGroupId, onClose, onSaved }) {
           {stmt.ready && (
             <StatementLineField lines={stmt.lines} nature={chosenGroup?.nature} inheritedId={chosenGroup?.statement_id ?? null} inheritedFrom="its group"
               value={f.statement_id} onChange={set('statement_id')} canChange={canChangeLine} error={errs.statement_id} />
+          )}
+          {isParty && (
+            <Field label="Tax treatment of this customer or supplier" error={errs.tax_nature}
+              hint="Leave on the first choice to use the tax of the sales or purchase account. Exempt (or out of scope): no VAT is charged to a customer, or claimed from a supplier, even on VAT-able items. Zero-rated: lines show a tax of nothing.">
+              <SelectInput value={f.tax_nature ?? ''} onChange={(e) => setF((p) => ({ ...p, tax_nature: e.target.value, tax_rate_ledger_id: '' }))}>
+                <option value="">Follow the sales or purchase account</option>
+                <option value="exempt">Exempt</option>
+                <option value="zero_rated">Zero-rated</option>
+                <option value="out_of_scope">Out of scope</option>
+              </SelectInput>
+            </Field>
           )}
           {taxed && (
             <>
