@@ -557,6 +557,8 @@ export default function SettingsTab({ canSetup }) {
   const subs = SUBS.filter((x) => !x.permission || hasPermission(null, x.permission));
   const [sub, setSub] = useState(subs.some((x) => x.id === params.get('sub')) ? params.get('sub') : 'numbering');
   const [branches, setBranches] = useState([]);
+  const wanted = params.get('sub');
+  useEffect(() => { if (wanted && subs.some((x) => x.id === wanted)) setSub(wanted); }, [wanted]);   // eslint-disable-line react-hooks/exhaustive-deps -- a link from another page changes ?sub= while this tab stays mounted
   useEffect(() => { locationsAPI.getAdmin().then((r) => setBranches(r.locations ?? [])).catch(() => {}); }, []);
   return (
     <div>
