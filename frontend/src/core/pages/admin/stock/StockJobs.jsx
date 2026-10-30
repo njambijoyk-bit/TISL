@@ -80,7 +80,7 @@ function InvoiceJobModal({ job, onClose, onDone }) {
   const [preview, setPreview] = useState(null);
   const [busy, setBusy] = useState(false);
   const [err, setErr] = useState(null);
-  useEffect(() => { booksAPI.ledgers({ all: 1, active_only: 1 }).then((r) => setLedgers((Array.isArray(r) ? r : r.data ?? []).filter((l) => !['Sundry Debtors', 'Sundry Creditors', 'Cash-in-hand', 'Bank Accounts'].includes(l.group?.name)))).catch(() => {}); }, []);
+  useEffect(() => { booksAPI.ledgers({ all: 1, active_only: 1 }).then((r) => setLedgers((Array.isArray(r) ? r : r.data ?? []).filter((l) => !['customer', 'supplier', 'cash', 'bank'].includes(l.kind)))).catch(() => {}); }, []);
   useEffect(() => {
     if (q.length < 2) { setFound([]); return undefined; }
     const t = setTimeout(() => booksAPI.lookup('customer', q).then(setFound).catch(() => setFound([])), 250);

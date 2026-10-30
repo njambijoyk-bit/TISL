@@ -114,7 +114,7 @@ const materialPayload = (m) => {
 /** The parts a service used, filed under its line: from stock (charged or included), bought elsewhere, or the customer's own. */
 function MaterialsEditor({ api, materials, onChange, ledgers }) {
   const set = (key, patch) => onChange(materials.map((m) => (m.key === key ? { ...m, ...patch } : m)));
-  const payFrom = ledgers.filter((l) => ['Sundry Creditors', 'Cash-in-hand', 'Bank Accounts'].includes(l.group?.name));
+  const payFrom = ledgers.filter((l) => ['supplier', 'cash', 'bank'].includes(l.kind));
   return (
     <div style={{ borderTop: `1px dashed ${colors.tint(0.15)}`, marginTop: 8, paddingTop: 8 }}>
       <label style={label}>Materials used</label>
@@ -547,9 +547,9 @@ export default function VoucherForm({ api = booksAPI, mode = 'books' }) {
   };
 
   // lines post to income/expense accounts — customers', suppliers', cash and bank accounts are moved with receipts, payments, journals and notes
-  const lineLedgers = ledgers.filter((l) => !['Sundry Debtors', 'Sundry Creditors', 'Cash-in-hand', 'Bank Accounts'].includes(l.group?.name) && !(['purchase', 'debit_note'].includes(base) && notForPurchaseLines(l)));
+  const lineLedgers = ledgers.filter((l) => !['customer', 'supplier', 'cash', 'bank'].includes(l.kind) && !(['purchase', 'debit_note'].includes(base) && notForPurchaseLines(l)));
   const partyLedgers = ledgers.filter((l) => ['Sundry Debtors', 'Sundry Creditors'].includes(l.group?.name));
-  const moneyLedgers = ledgers.filter((l) => ['Cash-in-hand', 'Bank Accounts'].includes(l.group?.name));
+  const moneyLedgers = ledgers.filter((l) => ['cash', 'bank'].includes(l.kind));
 
   if (!canWrite) return <AdminLayout><div style={{ padding: 32 }}><NoAccess what="the voucher form" /></div></AdminLayout>;
 

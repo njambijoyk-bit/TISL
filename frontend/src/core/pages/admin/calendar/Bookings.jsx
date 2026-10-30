@@ -132,7 +132,7 @@ function CompleteModal({ b, onClose, onDone }) {
   const [pv, setPv] = useState(null);
   const [busy, setBusy] = useState(false);
   const [err, setErr] = useState(null);
-  useEffect(() => { booksAPI.ledgers({ all: 1, active_only: 1 }).then((r) => setLedgers((Array.isArray(r) ? r : r.data ?? []).filter((l) => !['Sundry Debtors', 'Sundry Creditors', 'Cash-in-hand', 'Bank Accounts'].includes(l.group?.name)))).catch(() => {}); }, []);
+  useEffect(() => { booksAPI.ledgers({ all: 1, active_only: 1 }).then((r) => setLedgers((Array.isArray(r) ? r : r.data ?? []).filter((l) => !['customer', 'supplier', 'cash', 'bank'].includes(l.kind)))).catch(() => {}); }, []);
   const rows = useMemo(() => extra.filter((x) => Number(x.amount) > 0), [extra]);
   useEffect(() => { setPv(null); setErr(null); bookingsAPI.complete(b.id, rows, true).then((r) => setPv(r.preview)).catch((e) => setErr(errMsg(e, 'Could not work out the invoice'))); }, [b.id, rows]);
   const setX = (i, k, v) => setExtra((xs) => xs.map((x, n) => (n === i ? { ...x, [k]: v } : x)));
