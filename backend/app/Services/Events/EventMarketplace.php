@@ -244,8 +244,9 @@ final class EventMarketplace
             $rows = $rows->filter(fn ($v) => collect($v->service_areas ?? [])->contains(fn ($a) => mb_strtolower((string) $a) === $area));
         }
         $spaces = $type === 'venue' ? DB::table('event_venue_spaces')->whereIn('venue_id', $rows->pluck('id'))->where('is_active', 1)->get()->groupBy('venue_id') : collect();
-        $out = $rows->map(function ($p) use ($type, $spaces) {
-            $row = $this->shape($type, $p);
+        $ratings = Schema::hasTable('event_reviews') ? DB::table('event_reviews')->where('provider_type', $type)->selectRaw('provider_id, ROUND(AVG(rating),1) AS r')->groupBy('provider_id')->pluck('r', 'provider_id') : collect();
+        $out = $rows->map(function ($p) use ($type, $spaces, $ratings) {
+            $row = $this->shape($type, $p) + ['rating' => isset($ratings[$p->id]) ? (float) $ratings[$p->id] : null];
             if ($type === 'venue') {
                 $row['max_capacity'] = (int) ($spaces[$p->id] ?? collect())->max('capacity');
             }

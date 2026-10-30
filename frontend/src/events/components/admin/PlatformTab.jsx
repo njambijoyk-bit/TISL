@@ -2,6 +2,7 @@ import { useCallback, useEffect, useState } from 'react';
 import toast from 'react-hot-toast';
 import { Check, ChevronRight, Pencil, Plus, Sparkles, Trash2, X } from 'lucide-react';
 import booksAPI from '../../../_shared/api/books';
+import { Advertising, BookingMoney, Templates } from './PlatformMore';
 import eventsAPI from '../../../_shared/api/events';
 import { errMsg } from '../../../_shared/store/helpers/apiState';
 import Modal from '../../../core/components/admin/ui/Modal';
@@ -10,7 +11,7 @@ import { CheckboxRow, Field, FormGrid, FormStack, ModalActions, NumberInput, Sel
 import { btnGhost, btnPrimary, card, colors } from '../../../_shared/theme/tokens';
 
 const small = { ...btnGhost, padding: '4px 10px', fontSize: '0.74rem' };
-const SECTIONS = [{ id: 'categories', label: 'Categories' }, { id: 'organisers', label: 'Organisers' }, { id: 'vendors', label: 'Vendors' }, { id: 'venues', label: 'Venues' }, { id: 'payouts', label: 'Payouts' }];
+const SECTIONS = [{ id: 'categories', label: 'Categories' }, { id: 'organisers', label: 'Organisers' }, { id: 'vendors', label: 'Vendors' }, { id: 'venues', label: 'Venues' }, { id: 'payouts', label: 'Payouts' }, { id: 'bookings', label: 'Bookings' }, { id: 'ads', label: 'Advertising' }, { id: 'templates', label: 'Templates' }];
 const TONE = { verified: [colors.successBg, colors.successText], pending: [colors.warningBg, colors.warningText], suspended: [colors.dangerBg, colors.dangerText], rejected: [colors.dangerBg, colors.dangerText] };
 
 function Pill({ status }) {
@@ -29,7 +30,7 @@ export default function PlatformTab() {
             style={{ ...btnGhost, padding: '6px 14px', fontSize: '0.8rem', ...(section === s.id ? { background: colors.primary, color: '#fff', borderColor: colors.primary } : {}) }}>{s.label}</button>
         ))}
       </div>
-      {section === 'categories' ? <Categories /> : section === 'payouts' ? <Payouts /> : <Providers key={section} kind={section} />}
+      {section === 'categories' ? <Categories /> : section === 'payouts' ? <Payouts /> : section === 'bookings' ? <BookingMoney /> : section === 'ads' ? <Advertising /> : section === 'templates' ? <Templates /> : <Providers key={section} kind={section} />}
     </div>
   );
 }

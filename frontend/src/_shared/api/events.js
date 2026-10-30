@@ -97,3 +97,96 @@ export const eventsPlatformAPI = {
 };
 
 export default eventsAPI;
+
+const d = (r) => r.data;
+
+/** Planning requests ("plan my event"): the customer's side. */
+export const eventsEnquiryAPI = {
+  create: (body) => api.post('/events/enquiries', body).then(d),
+  mine: () => api.get('/events/enquiries/mine').then((r) => r.data.data),
+  accept: (id) => api.post(`/events/enquiries/${id}/accept`).then(d),
+};
+
+/** Planning requests: staff (events.admin). */
+export const eventsEnquiryAdminAPI = {
+  list: (status) => api.get('/admin/events/enquiries', { params: { status: status || undefined } }).then((r) => r.data.data),
+  update: (id, body) => api.put(`/admin/events/enquiries/${id}`, body).then((r) => r.data.data),
+  quote: (id, lines) => api.post(`/admin/events/enquiries/${id}/quote`, { lines }).then(d),
+  accept: (id) => api.post(`/admin/events/enquiries/${id}/accept`).then(d),
+  invoice: (id) => api.post(`/admin/events/enquiries/${id}/invoice`).then(d),
+  project: (id) => api.post(`/admin/events/enquiries/${id}/project`).then(d),
+};
+
+/** The planning workspace of one event. */
+export const eventsPlanAPI = {
+  overview: (id) => api.get(`/admin/events/${id}/plan`).then(d),
+  templates: () => api.get('/admin/events/templates').then((r) => r.data.data),
+  applyTemplate: (id, template_id, event_date) => api.post(`/admin/events/${id}/plan/template`, { template_id, event_date: event_date || undefined }).then(d),
+  list: (id, what) => api.get(`/admin/events/${id}/plan/${what}`).then(d),
+  save: (id, what, rowId, body) => (rowId ? api.put(`/admin/events/${id}/plan/${what}/${rowId}`, body) : api.post(`/admin/events/${id}/plan/${what}`, body)).then((r) => r.data.data ?? r.data),
+  remove: (id, what, rowId) => api.delete(`/admin/events/${id}/plan/${what}/${rowId}`).then(d),
+  comments: (id, taskId) => api.get(`/admin/events/${id}/plan/tasks/${taskId}/comments`).then((r) => r.data.data),
+  addComment: (id, taskId, body) => api.post(`/admin/events/${id}/plan/tasks/${taskId}/comments`, { body }).then((r) => r.data.data),
+  // admin templates
+  adminTemplates: () => api.get('/admin/events/platform/templates').then((r) => r.data.data),
+  saveTemplate: (tid, body) => (tid ? api.put(`/admin/events/platform/templates/${tid}`, body) : api.post('/admin/events/platform/templates', body)).then((r) => r.data.data),
+  removeTemplate: (tid) => api.delete(`/admin/events/platform/templates/${tid}`).then(d),
+  standardTemplates: () => api.post('/admin/events/platform/templates/standard').then(d),
+};
+
+/** Invited guests and RSVPs. */
+export const eventsGuestAPI = {
+  list: (id, params) => api.get(`/admin/events/${id}/invitees`, { params }).then(d),
+  save: (id, gid, body) => (gid ? api.put(`/admin/events/${id}/invitees/${gid}`, body) : api.post(`/admin/events/${id}/invitees`, body)).then((r) => r.data.data),
+  remove: (id, gid) => api.delete(`/admin/events/${id}/invitees/${gid}`).then(d),
+  import: (id, text) => api.post(`/admin/events/${id}/invitees/import`, { text }).then(d),
+  send: (id, body) => api.post(`/admin/events/${id}/invitees/send`, body).then(d),
+  doorPack: (id) => api.get(`/admin/events/${id}/door-pack`).then(d),
+  doorSync: (id, guest_ids) => api.post(`/admin/events/${id}/door-sync`, { guest_ids }).then(d),
+  // the guest's own page (no sign-in)
+  view: (token) => api.get(`/events/rsvp/${token}`).then(d),
+  respond: (token, body) => api.post(`/events/rsvp/${token}`, body).then(d),
+};
+
+/** Promotion. */
+export const eventsAdAPI = {
+  products: () => api.get('/admin/events/ads/products').then(d),
+  request: (eventId, body) => api.post(`/admin/events/${eventId}/promote`, body).then(d),
+  campaigns: (status) => api.get('/admin/events/ads/campaigns', { params: { status: status || undefined } }).then((r) => r.data.data),
+  cancel: (id) => api.post(`/admin/events/ads/campaigns/${id}/cancel`).then(d),
+  adminProducts: () => api.get('/admin/events/platform/ads/products').then(d),
+  saveProduct: (pid, body) => (pid ? api.put(`/admin/events/platform/ads/products/${pid}`, body) : api.post('/admin/events/platform/ads/products', body)).then((r) => r.data.data),
+  removeProduct: (pid) => api.delete(`/admin/events/platform/ads/products/${pid}`).then(d),
+  standardProducts: () => api.post('/admin/events/platform/ads/products/standard').then(d),
+  decide: (id, approve, note) => api.post(`/admin/events/platform/ads/campaigns/${id}/decide`, { approve, note: note || undefined }).then(d),
+  invoice: (id) => api.post(`/admin/events/platform/ads/campaigns/${id}/invoice`).then(d),
+  promoted: (kind, category_id) => api.get('/events/promoted', { params: { kind, category_id: category_id || undefined } }).then((r) => r.data.data),
+  track: (campaignId, what) => api.post(`/events/ads/${campaignId}/${what}`).catch(() => {}),
+};
+
+/** Booking vendors and venues. */
+export const eventsBookingAPI = {
+  forEvent: (eventId) => api.get(`/admin/events/${eventId}/bookings`).then((r) => r.data.data),
+  request: (eventId, body) => api.post(`/admin/events/${eventId}/bookings`, body).then(d),
+  accept: (id) => api.post(`/admin/events/bookings/${id}/accept`).then(d),
+  cancel: (id, reason) => api.post(`/admin/events/bookings/${id}/cancel`, { reason: reason || undefined }).then(d),
+  complete: (id) => api.post(`/admin/events/bookings/${id}/complete`).then(d),
+  review: (id, rating, comment) => api.post(`/admin/events/bookings/${id}/review`, { rating, comment: comment || undefined }).then(d),
+  providerList: (plural, id) => api.get(`/events/market/${plural}/${id}/bookings`).then(d),
+  quote: (id, body) => api.post(`/events/bookings/${id}/quote`, body).then(d),
+  decline: (id, note) => api.post(`/events/bookings/${id}/decline`, { note: note || undefined }).then(d),
+  deliver: (id) => api.post(`/events/bookings/${id}/deliver`).then(d),
+  availability: (plural, id, from, to) => api.get(`/events/market/${plural}/${id}/availability`, { params: { from, to } }).then(d),
+  block: (plural, id, days, blocked) => api.post(`/events/market/${plural}/${id}/block`, { days, blocked }).then(d),
+  adminList: (status) => api.get('/admin/events/platform/bookings', { params: { status: status || undefined } }).then(d),
+  payment: (id, body) => api.post(`/admin/events/platform/bookings/${id}/payment`, body).then(d),
+  refund: (id, body) => api.post(`/admin/events/platform/bookings/${id}/refund`, body).then(d),
+  adminComplete: (id) => api.post(`/admin/events/platform/bookings/${id}/complete`).then(d),
+  payout: (plural, id, body) => api.post(`/admin/events/platform/${plural}/${id}/payout`, body).then(d),
+};
+
+/** The public directory of vendors and venues. */
+export const eventsDirectoryAPI = {
+  list: (plural, params) => api.get(`/events/directory/${plural}`, { params }).then((r) => r.data),
+  show: (plural, slug) => api.get(`/events/directory/${plural}/${slug}`).then((r) => r.data.data),
+};

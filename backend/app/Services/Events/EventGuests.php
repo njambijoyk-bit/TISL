@@ -197,8 +197,8 @@ final class EventGuests
     /** Everything the door needs to check people in while offline: tickets and guests. */
     public function doorPack(Event $e): array
     {
-        $tickets = Schema::hasTable('event_tickets') ? DB::table('event_tickets')->where('event_id', $e->id)->where('state', 'valid')->get(['id', 'reference', 'holder_name', 'buyer_name'])
-            ->map(fn ($t) => ['kind' => 'ticket', 'id' => (int) $t->id, 'code' => $t->reference, 'name' => $t->holder_name ?: $t->buyer_name])->all() : [];
+        $tickets = Schema::hasTable('event_tickets') ? \App\Models\Events\EventTicket::where('event_id', $e->id)->where('state', 'valid')->get()
+            ->map(fn ($t) => ['kind' => 'ticket', 'id' => (int) $t->id, 'code' => TicketCodes::code($t), 'name' => $t->holder_name ?: $t->buyer_name, 'reference' => $t->reference])->all() : [];
         $guests = DB::table('event_guests')->where('event_id', $e->id)->where('rsvp', '!=', 'no')->get(['id', 'name', 'token', 'attending', 'table_label'])
             ->map(fn ($g) => ['kind' => 'guest', 'id' => (int) $g->id, 'code' => $g->token, 'name' => $g->name, 'party' => max(1, (int) $g->attending), 'table' => $g->table_label])->all();
 

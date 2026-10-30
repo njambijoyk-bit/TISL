@@ -134,6 +134,7 @@ export default function EventForm() {
             <h1 style={{ margin: '0 0 6px', fontSize: '1.5rem', fontWeight: 800, color: colors.primary, letterSpacing: '-0.02em' }}>{id ? (event.title || 'Event') : 'New event'}</h1>
             {id && <StatusBadge status={status} />}
           </div>
+          {id && <Link to={`/admin/events/${id}/plan`} style={{ ...btnGhost, textDecoration: 'none' }}>Plan</Link>}
           {id && status !== 'draft' && <Link to={`/admin/events/${id}/door`} style={{ ...btnGhost, textDecoration: 'none' }}><ScanLine size={14} /> Door</Link>}
           {canEdit && !readOnly && (
             <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>

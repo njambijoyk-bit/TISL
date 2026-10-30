@@ -376,6 +376,11 @@ const FindTicketsPage = lazy(() => import('./events/pages/public/FindTicketsPage
 const MyEventTickets = lazy(() => import('./events/pages/public/MyEventTickets'));
 const QrRedirect = lazy(() => import('./core/pages/customer/QrRedirect'));
 const ProviderPage = lazy(() => import('./events/pages/public/ProviderPage'));
+const PlanMyEventPage = lazy(() => import('./events/pages/public/PlanMyEventPage'));
+const RsvpPage = lazy(() => import('./events/pages/public/RsvpPage'));
+const DirectoryPage = lazy(() => import('./events/pages/public/DirectoryPage'));
+const DirectoryDetailPage = lazy(() => import('./events/pages/public/DirectoryDetailPage'));
+const AdminEventPlan = lazy(() => import('./events/pages/admin/EventPlan'));
 const OrganisePage = lazy(() => import('./events/pages/public/OrganisePage'));
 const EventsPage = lazy(() => import('./events/pages/public/EventsPage'));
 const EventPage = lazy(() => import('./events/pages/public/EventPage'));
@@ -592,6 +597,10 @@ function App() {
             <Route path="/menu/request/:token" element={<ModuleRoute module="menus"><CustomRequestPage /></ModuleRoute>} />
             <Route path="/events" element={<ModuleRoute module="events"><EventsPage /></ModuleRoute>} />
             <Route path="/organise/:plural/:id" element={<ProtectedRoute><ModuleRoute module="events"><ProviderPage /></ModuleRoute></ProtectedRoute>} />
+            <Route path="/plan-my-event" element={<ProtectedRoute><ModuleRoute module="events"><PlanMyEventPage /></ModuleRoute></ProtectedRoute>} />
+            <Route path="/rsvp/:token" element={<ModuleRoute module="events"><RsvpPage /></ModuleRoute>} />
+            <Route path="/event-directory/:plural" element={<ModuleRoute module="events"><DirectoryPage /></ModuleRoute>} />
+            <Route path="/event-directory/:plural/:slug" element={<ModuleRoute module="events"><DirectoryDetailPage /></ModuleRoute>} />
             <Route path="/organise" element={<ProtectedRoute><ModuleRoute module="events"><OrganisePage /></ModuleRoute></ProtectedRoute>} />
             <Route path="/events/:slug" element={<ModuleRoute module="events"><EventPage /></ModuleRoute>} />
             <Route path="/campaigns" element={<ModuleRoute module="campaigns"><CampaignsPage /></ModuleRoute>} />
@@ -1305,6 +1314,7 @@ function App() {
               <Route path="/admin/codes" element={<ProtectedRoute requireAdmin permission="codes.view"><Codes /></ProtectedRoute>} />
               <Route path="/admin/events" element={<ProtectedRoute requireAdmin permission="events.view"><ModuleRoute module="events" redirectTo="/admin"><AdminEvents /></ModuleRoute></ProtectedRoute>} />
               <Route path="/admin/events/:id/door" element={<ProtectedRoute requireAdmin permission="events.checkin,events.view"><ModuleRoute module="events" redirectTo="/admin"><AdminEventDoor /></ModuleRoute></ProtectedRoute>} />
+              <Route path="/admin/events/:id/plan" element={<ProtectedRoute requireAdmin permission="events.view"><ModuleRoute module="events" redirectTo="/admin"><AdminEventPlan /></ModuleRoute></ProtectedRoute>} />
               <Route path="/admin/events/new" element={<ProtectedRoute requireAdmin permission="events.edit"><ModuleRoute module="events" redirectTo="/admin"><AdminEventForm /></ModuleRoute></ProtectedRoute>} />
               <Route path="/admin/events/:id" element={<ProtectedRoute requireAdmin permission="events.view"><ModuleRoute module="events" redirectTo="/admin"><AdminEventForm /></ModuleRoute></ProtectedRoute>} />
               <Route path="/admin/price-lists" element={<ProtectedRoute requireAdmin permission="catalogue.pricelists"><ModuleRoute module="ecommerce" redirectTo="/admin"><PriceLists /></ModuleRoute></ProtectedRoute>} />

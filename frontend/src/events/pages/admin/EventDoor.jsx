@@ -1,13 +1,13 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { Link, useParams } from 'react-router-dom';
 import toast from 'react-hot-toast';
-import { ArrowLeft, Download, Search, UserCheck, Undo2 } from 'lucide-react';
+import { ArrowLeft, CloudDownload, Download, Search, UserCheck, Undo2, WifiOff } from 'lucide-react';
 import AdminLayout from '../../../_shared/components/layout/AdminLayout';
 import Tabs from '../../../core/components/admin/ui/Tabs';
 import ConfirmModal from '../../../core/components/admin/ui/ConfirmModal';
 import { SelectInput, TextInput } from '../../../core/components/admin/ui/Form';
 import CodeScanner from '../../../core/components/admin/codes/CodeScanner';
-import eventsAPI from '../../../_shared/api/events';
+import eventsAPI, { eventsGuestAPI } from '../../../_shared/api/events';
 import useAuthStore from '../../../_shared/store/authStore';
 import { hasPermission } from '../../../_shared/lib/roles';
 import { errMsg } from '../../../_shared/store/helpers/apiState';
@@ -36,6 +36,22 @@ export default function EventDoor() {
   const [page, setPage] = useState(1);
   const [refunding, setRefunding] = useState(null);
   const queue = useRef(Promise.resolve());
+  // offline: the list of valid tickets is kept on the phone; scans made without internet are remembered and sent when it comes back
+  const packKey = `eventDoorPack:${id}`;
+  const waitKey = `eventDoorWaiting:${id}`;
+  const read = (k, fallback) => { try { return JSON.parse(localStorage.getItem(k)) ?? fallback; } catch { return fallback; } };
+  const [pack, setPack] = useState(() => read(packKey, null));
+  const [waiting, setWaiting] = useState(() => read(waitKey, []).length);
+  const savePack = async () => { try { const p = await eventsGuestAPI.doorPack(id); localStorage.setItem(packKey, JSON.stringify(p)); setPack(p); toast.success(`${p.entries.length} tickets and guests saved on this phone`); } catch (e) { toast.error(errMsg(e, 'Could not save the list')); } };
+  const sync = useCallback(async () => {
+    const list = read(waitKey, []);
+    if (!list.length) return;
+    const left = [];
+    for (const code of list) { try { await eventsAPI.checkin(id, code, null); } catch (e) { if (!e?.response) left.push(code); } }   // answered (even refused) = done; no answer = try again later
+    localStorage.setItem(waitKey, JSON.stringify(left)); setWaiting(left.length);
+    if (left.length < list.length) { toast.success(`${list.length - left.length} offline check-ins sent`); load(); }
+  }, [id, waitKey, load]);
+  useEffect(() => { window.addEventListener('online', sync); sync(); return () => window.removeEventListener('online', sync); }, [sync]);
 
   const load = useCallback(() => eventsAPI.door(id, sessionId).then((d) => { setDoor(d); setSessionId((cur) => cur ?? d.current_session_id); }).catch((e) => toast.error(errMsg(e, 'Could not load the door'))), [id, sessionId]);
   useEffect(() => { load(); const t = setInterval(load, 10000); return () => clearInterval(t); }, [load]);   // other devices at the same door keep the numbers fresh
@@ -46,7 +62,14 @@ export default function EventDoor() {
   // scans are answered one after another, so two quick scans never overtake each other
   const scan = useCallback((code) => {
     queue.current = queue.current.then(async () => {
-      try { const r = await eventsAPI.checkin(id, code, sessionId); setLast(r); load(); } catch (e) { toast.error(errMsg(e, 'Could not check that ticket')); }
+      try { const r = await eventsAPI.checkin(id, code, sessionId); setLast(r); load(); } catch (e) {
+        const known = !e?.response && pack?.entries.find((x) => x.kind === 'ticket' && String(code).includes(x.code));
+        if (known) {   // no internet: the saved list says the ticket was valid; it is sent when the phone is back online
+          const list = read(waitKey, []); if (list.includes(code)) { toast.error('Already scanned on this phone'); return; }
+          localStorage.setItem(waitKey, JSON.stringify([...list, code])); setWaiting(list.length + 1);
+          setLast({ ok: true, result: 'ok', message: `Offline: ${known.name || 'ticket'} is on the list`, holder_name: known.name, reference: known.reference });
+        } else toast.error(!e?.response ? 'No internet, and this ticket is not on the saved list' : errMsg(e, 'Could not check that ticket'));
+      }
     });
   }, [id, sessionId, load]);
 
@@ -68,6 +91,11 @@ export default function EventDoor() {
       <div style={{ padding: '20px 16px 48px', maxWidth: 760, margin: '0 auto' }}>
         <Link to="/admin/events" style={{ display: 'inline-flex', alignItems: 'center', gap: 6, fontSize: '0.8rem', color: colors.textMuted, textDecoration: 'none', marginBottom: 10 }}><ArrowLeft size={14} /> Events</Link>
         <h1 style={{ margin: '0 0 4px', fontSize: '1.4rem', fontWeight: 800, color: colors.primary }}>{door?.event.title ?? 'Door'}</h1>
+        <div style={{ display: 'flex', gap: 8, alignItems: 'center', flexWrap: 'wrap', fontSize: '0.78rem', color: colors.textMuted, marginBottom: 6 }}>
+          {can.checkin && <button type="button" style={{ ...btnGhost, padding: '4px 10px', fontSize: '0.74rem' }} onClick={savePack}><CloudDownload size={12} /> {pack ? 'Refresh the offline list' : 'Save the list for offline use'}</button>}
+          {pack && <span>Saved list: {pack.entries.length} entries ({String(pack.generated_at).slice(11, 16)})</span>}
+          {waiting > 0 && <span style={{ color: colors.warningText, fontWeight: 700, display: 'inline-flex', gap: 4, alignItems: 'center' }}><WifiOff size={12} /> {waiting} waiting to be sent <button type="button" style={{ ...btnGhost, padding: '2px 8px', fontSize: '0.72rem' }} onClick={sync}>Send now</button></span>}
+        </div>
         {door?.event.status === 'cancelled' && <p role="alert" style={{ color: colors.dangerText, fontWeight: 700 }}>This event is cancelled.</p>}
 
         {door && (

@@ -13,6 +13,7 @@ export default function EventCard({ e }) {
         {e.image_url
           ? <img src={e.image_url} alt="" loading="lazy" style={{ width: '100%', height: '100%', objectFit: 'cover', display: 'block' }} />
           : <span aria-hidden="true" style={{ position: 'absolute', inset: 0, display: 'grid', placeItems: 'center', color: 'var(--color-primary-500)' }}><CalendarDays size={40} /></span>}
+        {(e.promoted || e.sponsored) && <span style={{ position: 'absolute', top: 10, right: 10, padding: '3px 10px', borderRadius: 999, background: 'rgba(17,24,39,0.8)', color: '#fff', fontSize: '0.7rem', fontWeight: 700 }}>Promoted</span>}
         {e.sold_out && <span style={{ position: 'absolute', top: 10, left: 10, padding: '3px 10px', borderRadius: 999, background: '#111827', color: '#fff', fontSize: '0.72rem', fontWeight: 800 }}>Sold out</span>}
         {e.status === 'cancelled' && <span style={{ position: 'absolute', top: 10, left: 10, padding: '3px 10px', borderRadius: 999, background: '#b91c1c', color: '#fff', fontSize: '0.72rem', fontWeight: 800 }}>Cancelled</span>}
         {e.status === 'postponed' && <span style={{ position: 'absolute', top: 10, left: 10, padding: '3px 10px', borderRadius: 999, background: '#b45309', color: '#fff', fontSize: '0.72rem', fontWeight: 800 }}>Postponed</span>}

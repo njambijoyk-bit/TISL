@@ -19,7 +19,7 @@ export default function EventSettingsTab({ canEdit }) {
   const set = (k) => (e) => setS((x) => ({ ...x, [k]: e.target.value }));
   const save = async () => {
     setBusy(true);
-    try { const r = await eventsAPI.saveSettings({ hold_minutes: Number(s.hold_minutes), reminder_hours: Number(s.reminder_hours), sales_ledger_id: s.sales_ledger_id || null, ticket_note: s.ticket_note ?? '', reminders_on: Boolean(s.reminders_on), commission_percent: Number(s.commission_percent), require_approval: Boolean(s.require_approval), organiser_payable_ledger_id: s.organiser_payable_ledger_id || null }); setS(r.settings); toast.success('Saved'); }
+    try { const r = await eventsAPI.saveSettings({ hold_minutes: Number(s.hold_minutes), reminder_hours: Number(s.reminder_hours), sales_ledger_id: s.sales_ledger_id || null, ticket_note: s.ticket_note ?? '', reminders_on: Boolean(s.reminders_on), commission_percent: Number(s.commission_percent), require_approval: Boolean(s.require_approval), organiser_payable_ledger_id: s.organiser_payable_ledger_id || null, planning_ledger_id: s.planning_ledger_id || null, ads_ledger_id: s.ads_ledger_id || null, provider_payable_ledger_id: s.provider_payable_ledger_id || null, commission_income_ledger_id: s.commission_income_ledger_id || null }); setS(r.settings); toast.success('Saved'); }
     catch (e) { toast.error(errMsg(e, 'Could not save'), { duration: 8000 }); } finally { setBusy(false); }
   };
 
@@ -48,6 +48,12 @@ export default function EventSettingsTab({ canEdit }) {
               </Field>
               <LedgerSelect id="ev-owed" label="Money owed to organisers is held in" value={s.organiser_payable_ledger_id} disabled={!canEdit} onChange={(v) => setS((x) => ({ ...x, organiser_payable_ledger_id: v }))}
                 hint="A liability account, for example 'Event organiser payables'. Their share of every ticket moves here from ticket income until you pay them out. Needs database script 254." />
+            </FormGrid>
+            <FormGrid min={220}>
+              <LedgerSelect id="ev-plan" label="Event planning fees are invoiced to" value={s.planning_ledger_id} disabled={!canEdit} onChange={(v) => setS((x) => ({ ...x, planning_ledger_id: v }))} hint="An income account. Used for quotations when a customer hires TISL to plan an event." />
+              <LedgerSelect id="ev-ads" label="Advertising is invoiced to" value={s.ads_ledger_id} disabled={!canEdit} onChange={(v) => setS((x) => ({ ...x, ads_ledger_id: v }))} hint="An income account for promotions." />
+              <LedgerSelect id="ev-prov" label="Money held for vendors and venues is in" value={s.provider_payable_ledger_id} disabled={!canEdit} onChange={(v) => setS((x) => ({ ...x, provider_payable_ledger_id: v }))} hint="A liability account. Deposits and balances paid to TISL wait here." />
+              <LedgerSelect id="ev-comm-inc" label="Commission on bookings is income in" value={s.commission_income_ledger_id} disabled={!canEdit} onChange={(v) => setS((x) => ({ ...x, commission_income_ledger_id: v }))} hint="An income account. Taken when a booking is completed." />
             </FormGrid>
             <CheckboxRow checked={s.require_approval} disabled={!canEdit} onChange={(v) => setS((x) => ({ ...x, require_approval: v }))} label="Check an outside organiser's event before it can be published" description="Recommended. TISL approves each event first." />
           </FormStack>

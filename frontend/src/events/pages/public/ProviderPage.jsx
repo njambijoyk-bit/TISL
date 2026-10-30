@@ -7,6 +7,7 @@ import Footer from '../../../_shared/components/layout/Footer';
 import { eventsPlatformAPI } from '../../../_shared/api/events';
 import { errMsg } from '../../../_shared/store/helpers/apiState';
 import MediaPanel from '../../components/admin/MediaPanel';
+import ProviderBookings from '../../components/admin/ProviderBookings';
 
 const box = { padding: 16, borderRadius: 14, border: '1px solid var(--line)', background: 'var(--surface-card, #fff)', display: 'grid', gap: 12 };
 const input = { width: '100%', padding: '9px 11px', borderRadius: 10, border: '1px solid var(--line)', font: 'inherit', background: 'transparent', color: 'inherit' };
@@ -114,6 +115,8 @@ export default function ProviderPage() {
             </form>
           ) : <div><button type="button" style={ghost} onClick={() => setOffer(blankOffer(plural))}>{vendor ? 'Add a package' : 'Add a space'}</button></div>}
         </section>
+
+        <ProviderBookings plural={plural} id={id} />
 
         <section style={box}>
           <strong>Proof for TISL</strong>

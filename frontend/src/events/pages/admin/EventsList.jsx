@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import { Link, useNavigate, useSearchParams } from 'react-router-dom';
 import toast from 'react-hot-toast';
-import { CalendarDays, Plus, Search, Pencil, Eye, EyeOff, Ban, Trash2, ScanLine, CalendarClock } from 'lucide-react';
+import { CalendarDays, Plus, Search, Pencil, Eye, EyeOff, Ban, Trash2, ScanLine, CalendarClock, ClipboardList } from 'lucide-react';
 import AdminLayout from '../../../_shared/components/layout/AdminLayout';
 import HubHeader, { Toolbar } from '../../../core/components/admin/ui/HubHeader';
 import Tabs from '../../../core/components/admin/ui/Tabs';
@@ -19,9 +19,10 @@ import StatusBadge from '../../components/admin/StatusBadge';
 import EventSettingsTab from '../../components/admin/EventSettingsTab';
 import RefundsTab from '../../components/admin/RefundsTab';
 import PlatformTab from '../../components/admin/PlatformTab';
+import EnquiriesTab from '../../components/admin/EnquiriesTab';
 import { whenText } from '../../lib/eventFormat';
 
-const BASE_TABS = [{ id: 'events', label: 'Events' }, { id: 'refunds', label: 'Refunds' }, { id: 'platform', label: 'Platform' }, { id: 'settings', label: 'Configuration' }];
+const BASE_TABS = [{ id: 'events', label: 'Events' }, { id: 'refunds', label: 'Refunds' }, { id: 'enquiries', label: 'Enquiries' }, { id: 'platform', label: 'Platform' }, { id: 'settings', label: 'Configuration' }];
 const small = { ...btnGhost, padding: '4px 10px', fontSize: '0.74rem' };
 
 /** Admin → Events: every event with what is sold, and the buttons to put it on sale, take it down or cancel it. */
@@ -31,7 +32,7 @@ export default function EventsList() {
   const user = useAuthStore((s) => s.user);
   const can = { edit: hasPermission(user, 'events.edit'), del: hasPermission(user, 'events.delete'), refund: hasPermission(user, 'events.refund'), platform: hasPermission(user, 'events.admin'), door: hasPermission(user, 'events.checkin') || hasPermission(user, 'events.view') };
   const [waiting, setWaiting] = useState(null);
-  const TABS = BASE_TABS.filter((t) => (t.id !== 'refunds' || can.refund) && (t.id !== 'platform' || can.platform)).map((t) => (t.id === 'refunds' && waiting ? { ...t, count: waiting } : t));
+  const TABS = BASE_TABS.filter((t) => (t.id !== 'refunds' || can.refund) && ((t.id !== 'platform' && t.id !== 'enquiries') || can.platform)).map((t) => (t.id === 'refunds' && waiting ? { ...t, count: waiting } : t));
   const tab = TABS.some((t) => t.id === params.get('tab')) ? params.get('tab') : 'events';
   const { adminCurrencies, fetchAdminCurrencies } = useCurrencyStore();
   const [q, setQ] = useState('');
@@ -93,6 +94,7 @@ export default function EventsList() {
     { key: 'act', label: '', align: 'right', render: (r) => (
       <span style={{ display: 'inline-flex', gap: 6, flexWrap: 'wrap', justifyContent: 'flex-end' }}>
         {can.door && r.status !== 'draft' && <button type="button" style={small} onClick={() => navigate(`/admin/events/${r.id}/door`)} aria-label={`Door of ${r.title}`}><ScanLine size={12} /> Door</button>}
+        <button type="button" style={small} onClick={() => navigate(`/admin/events/${r.id}/plan`)} aria-label={`Plan ${r.title}`}><ClipboardList size={12} /> Plan</button>
         {can.edit && <button type="button" style={small} onClick={() => navigate(`/admin/events/${r.id}`)} aria-label={`Edit ${r.title}`}><Pencil size={12} /> Edit</button>}
         {can.edit && r.status === 'draft' && <button type="button" style={small} onClick={() => setAsk({ kind: 'publish', row: r })}><Eye size={12} /> Put on sale</button>}
         {can.edit && r.status === 'published' && !r.over && <button type="button" style={small} onClick={() => setAsk({ kind: 'unpublish', row: r })}><EyeOff size={12} /> Take down</button>}
@@ -112,7 +114,7 @@ export default function EventsList() {
           action={can.edit && <Link to="/admin/events/new" style={{ ...btnPrimary, textDecoration: 'none' }}><Plus size={14} /> New event</Link>} />
         <Tabs tabs={TABS} active={tab} onChange={(id) => setParams(id === 'events' ? {} : { tab: id })} />
 
-        {tab === 'settings' ? <EventSettingsTab canEdit={can.edit} /> : tab === 'platform' ? <PlatformTab /> : tab === 'refunds' ? <RefundsTab onCount={setWaiting} /> : (
+        {tab === 'settings' ? <EventSettingsTab canEdit={can.edit} /> : tab === 'platform' ? <PlatformTab /> : tab === 'enquiries' ? <EnquiriesTab /> : tab === 'refunds' ? <RefundsTab onCount={setWaiting} /> : (
           <>
             {!ready && <p role="status" style={{ margin: '0 0 12px', fontSize: '0.82rem', color: colors.textMuted }}>Run database script 120_events.sql, then reload: events can not be saved until then.</p>}
             <Toolbar right={<span style={{ fontSize: '0.78rem', color: colors.textMuted }}>{totals.live} on sale · {totals.sold} ticket{totals.sold === 1 ? '' : 's'} sold</span>}>
