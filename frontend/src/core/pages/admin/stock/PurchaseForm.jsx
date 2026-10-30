@@ -19,7 +19,7 @@ import { defaultUnit, lookupStock, searchPlaceholder, stockKinds } from '../../.
 import { btnPrimary, btnGhost, card, colors, input } from '../../../../_shared/theme/tokens';
 import LedgerPicker from '../../../components/admin/books/LedgerPicker';
 import WithSidePanel from '../../../components/admin/books/VoucherSidePanel';
-import { useCtrlKeys } from '../../../components/admin/books/voucherKeys';
+import { useCtrlKeys, useFKeys, voucherJumps } from '../../../components/admin/books/voucherKeys';
 
 /**
  * Purchases, Goods received notes and Opening stock: stock coming in, entered as a voucher.
@@ -385,6 +385,11 @@ export default function PurchaseForm({ kind = 'purchase' }) {
     }
     setAcct(!acct);
   };
+  const goTo = (t) => { if (t.base_type !== 'purchase') nav(`/admin/books/vouchers/new?type=${t.id}`); };   // what is typed here stays saved as a draft
+  const jumps = voucherJumps(types, mode === 'purchase' ? 'purchase' : '', goTo);
+  const dateRef = useRef(null);
+  const focusDate = () => { const el = dateRef.current; if (el) { el.focus(); try { el.showPicker?.(); } catch { /* not allowed here: focus is enough */ } } };
+  useFKeys(editing ? {} : { f2: focusDate, ...jumps.keyMap });
   useCtrlKeys({ h: changeMode, s: () => { if (ready && !saving) save(); } });
   const lineAmount = (l) => Math.max(0, (Number(l.quantity) || 0) * (Number(l.rate) || 0) - (Number(l.discount) || 0));
   const subtotal = lines.reduce((s, l) => s + lineAmount(l), 0);
@@ -395,11 +400,11 @@ export default function PurchaseForm({ kind = 'purchase' }) {
     <AdminLayout>
       <div style={{ padding: '28px 24px', maxWidth: 1360, margin: '0 auto' }}>
       <WithSidePanel actions={[
+        ...(!editing ? [{ keys: 'F2', label: 'Date', note: 'Change the date', onClick: focusDate }, { gap: true }, ...jumps.actions, { gap: true }] : []),
         ...(canAcct ? [{ keys: 'Ctrl+H', label: 'Change mode', note: acct ? 'Now: Accounting invoice' : 'Now: Item invoice', onClick: changeMode, active: acct }] : []),
         { keys: 'Ctrl+S', label: editing ? 'Save changes' : 'Accept', onClick: () => { if (ready && !saving) save(); }, disabled: !ready || saving },
         { gap: true },
         { keys: '', label: 'Cancel', onClick: () => nav(listPath) },
-        { keys: '', label: 'Other vouchers', note: 'Sales, payment, receipt, journal…', onClick: () => nav('/admin/books/vouchers/new') },
       ]}>
       <div style={{ maxWidth: 1100 }}>
         <Link to={listPath} style={{ display: 'inline-flex', gap: 6, alignItems: 'center', fontSize: '0.78rem', color: colors.textMuted, textDecoration: 'none', marginBottom: 10 }}><ArrowLeft size={14} /> {opening ? 'Opening stock' : 'Purchases'}</Link>
@@ -457,7 +462,7 @@ export default function PurchaseForm({ kind = 'purchase' }) {
                   <div><label style={label}>Their PIN / tax ID</label><input value={h.party_tax_id} onChange={(e) => setH((x) => ({ ...x, party_tax_id: e.target.value }))} style={small} /></div>
                 </>
               )}
-              <div><label style={label}>Date</label><input type="date" value={h.date} onChange={(e) => setH((x) => ({ ...x, date: e.target.value }))} style={small} /></div>
+              <div><label style={label}>Date</label><input ref={dateRef} type="date" value={h.date} onChange={(e) => setH((x) => ({ ...x, date: e.target.value }))} style={small} /></div>
               <div>
                 <label style={label}>Received at branch</label>
                 <select value={h.location_id} onChange={(e) => setH((x) => ({ ...x, location_id: e.target.value }))} style={small}>

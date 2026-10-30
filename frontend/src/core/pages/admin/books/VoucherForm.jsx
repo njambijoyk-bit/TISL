@@ -25,7 +25,7 @@ import { money, today } from '../../../components/admin/books/booksFmt';
 import noSlash from '../../../../_shared/lib/noSlash';
 import LedgerPicker from '../../../components/admin/books/LedgerPicker';
 import WithSidePanel from '../../../components/admin/books/VoucherSidePanel';
-import { useCtrlKeys } from '../../../components/admin/books/voucherKeys';
+import { useCtrlKeys, useFKeys, voucherJumps } from '../../../components/admin/books/voucherKeys';
 
 // Sales-side voucher bases sell to customers; the rest buy or adjust, so they may pick "not for sale" materials.
 const SALES_SIDE = ['quotation', 'sales_order', 'delivery_note', 'sales', 'cash_sale', 'credit_note'];
@@ -168,12 +168,19 @@ const CLEAR_BTN = { border: '1px solid #fecaca', background: '#fef2f2', color: '
 const CHANGE_LINK = { border: 'none', background: 'none', color: '#b91c1c', cursor: 'pointer', fontSize: '0.74rem', fontWeight: 700, padding: 0, marginTop: 4, textDecoration: 'underline' };
 const colHead = { fontSize: '0.68rem', fontWeight: 800, textTransform: 'uppercase', letterSpacing: '0.06em', color: colors.textFaint };
 
+// What is half-typed on each kind of voucher is kept in the browser, so going to another voucher and back finds it as it was.
+const draftKey = (tid) => `voucher-draft:${tid}`;
+const readDraft = (tid) => { try { return JSON.parse(window.localStorage.getItem(draftKey(tid)) || 'null'); } catch { return null; } };
+const writeDraft = (tid, d) => { try { window.localStorage.setItem(draftKey(tid), JSON.stringify(d)); } catch { /* not kept: fine */ } };
+const clearDraft = (tid) => { try { window.localStorage.removeItem(draftKey(tid)); } catch { /* nothing to clear */ } };
+const blankEntries = () => [{ ledger_id: '', side: 'D', amount: '' }, { ledger_id: '', side: 'C', amount: '' }];
+
 const emptyLine = (type) => ({ key: Math.random().toString(36).slice(2), type, item_id: '', unit: '', units: [], quantity: 1, rate: '', discount: '', description: '', kind: 'shipping', amount: '', ledger_id: '', shipping_option_id: '' });
 
 export default function VoucherForm({ api = booksAPI, mode = 'books' }) {
   const nav = useNavigate();
   const { id } = useParams();
-  const [params] = useSearchParams();
+  const [params, setParams] = useSearchParams();
   const user = useAuthStore((s) => s.user);
   const canWrite = mode === 'quotation' ? hasPermission(user, 'quotes.write') : canWriteFinance(user);
   const home = mode === 'quotation' ? '/admin/quotes' : '/admin/books';
@@ -182,6 +189,9 @@ export default function VoucherForm({ api = booksAPI, mode = 'books' }) {
 
   const [types, setTypes] = useState([]);
   const [typeId, setTypeId] = useState(params.get('type') ?? '');
+  const [draftLoaded, setDraftLoaded] = useState('');   // the voucher type whose saved draft has been put back (nothing is saved before then)
+  const [restored, setRestored] = useState(false);
+  const draftFirst = useRef(true);
   const [methods, setMethods] = useState([]);
   const [ledgers, setLedgers] = useState([]);
   const [branches, setBranches] = useState([]);
@@ -190,7 +200,7 @@ export default function VoucherForm({ api = booksAPI, mode = 'books' }) {
 
   const [h, setH] = useState({ date: today(), location_id: '', party_ledger_id: '', customer: null, payment_method_id: '', reference_no: '', party_name: '', party_phone: '', party_address: '', party_tax_id: '', narration: '', due_date: '', paid_ledger_id: '', currency_id: '', series_id: '', voucher_number: '', amount: '', ledger_id: '', valid_until: '', cost_centre_id: '', initiative_id: '' });
   const [lines, setLines] = useState([]);
-  const [entries, setEntries] = useState([{ ledger_id: '', side: 'D', amount: '' }, { ledger_id: '', side: 'C', amount: '' }]);
+  const [entries, setEntries] = useState(blankEntries);
   const [cc, setCc] = useState({ ready: false, line_override: false, data: [] });
   useEffect(() => { costCentresAPI.options().then(setCc).catch(() => {}); }, []);
   const [ini, setIni] = useState({ ready: false, data: [] });   // initiatives a voucher can be posted to (script 244)
@@ -235,6 +245,28 @@ export default function VoucherForm({ api = booksAPI, mode = 'books' }) {
   const [currencies, setCurrencies] = useState([]);              // for the currency choice when an old voucher's currency is not the base any more
   const [cashPurchase, setCashPurchase] = useState(false);   // a purchase paid at once: cash or bank instead of the supplier
   const needsMethod = ['cash_sale', 'receipt', 'payment'].includes(base);
+
+  // put back what was half-typed on this kind of voucher; a kind with nothing saved starts clean (keeping the date and branch)
+  useEffect(() => {
+    if (editing || mode !== 'books' || !typeId || draftLoaded === String(typeId)) return;
+    const d = readDraft(typeId);
+    if (d) {
+      setH((x) => ({ ...x, ...d.h, location_id: d.h?.location_id || x.location_id }));
+      setLines(d.lines ?? []); setEntries(d.entries?.length ? d.entries : blankEntries()); setTenders(d.tenders ?? []); setAcct(Boolean(d.acct));
+    } else if (!draftFirst.current) {
+      setH((x) => ({ date: x.date, location_id: x.location_id, party_ledger_id: '', customer: null, payment_method_id: '', reference_no: '', party_name: '', party_phone: '', party_address: '', party_tax_id: '', narration: '', due_date: '', paid_ledger_id: '', currency_id: '', series_id: '', voucher_number: '', amount: '', ledger_id: '', valid_until: '', cost_centre_id: x.cost_centre_id ?? '', initiative_id: '' }));
+      setLines([]); setEntries(blankEntries()); setTenders([]); setAcct(false);
+    }
+    draftFirst.current = false;
+    setRestored(Boolean(d));
+    setDraftLoaded(String(typeId));
+  }, [typeId, editing, mode, draftLoaded]);
+  useEffect(() => {
+    if (editing || mode !== 'books' || !typeId || draftLoaded !== String(typeId)) return;
+    const worth = lines.length > 0 || entries.some((e) => e.ledger_id || e.amount) || h.amount || h.party_ledger_id || h.customer || h.narration || h.party_name;
+    if (worth) writeDraft(typeId, { h, lines, entries, tenders, acct }); else clearDraft(typeId);
+  }, [h, lines, entries, tenders, acct, typeId, draftLoaded, editing, mode]);
+  useEffect(() => { const t = params.get('type'); if (!editing && t && t !== String(typeId)) setTypeId(t); }, [params]); // eslint-disable-line react-hooks/exhaustive-deps -- the back button changes the address
 
   // purchases, goods received notes and opening stock are entered on the Purchases page (batches, expiry, create-a-product)
   useEffect(() => {
@@ -549,6 +581,7 @@ export default function VoucherForm({ api = booksAPI, mode = 'books' }) {
     try {
       const res = editing ? await api.updateVoucher(id, payload) : await api.createVoucher(payload);
       toast.success(res.message ?? 'Saved');
+      if (!editing) { clearDraft(typeId); setDraftLoaded(''); }
       nav(viewPath(res.data.id));
     } catch (e) { const m = errMsg(e, 'Could not save the voucher'); setSaveErr(m); toast.error(m, { duration: 7000 }); }
     finally { setSaving(false); }
@@ -561,6 +594,12 @@ export default function VoucherForm({ api = booksAPI, mode = 'books' }) {
   const partyLedgers = ledgers.filter((l) => ['Sundry Debtors', 'Sundry Creditors'].includes(l.group?.name));
   const moneyLedgers = ledgers.filter((l) => ['cash', 'bank'].includes(l.kind));
 
+  const switchType = (tid) => { setTypeId(String(tid)); setPreview(null); if (!editing) setParams({ type: String(tid) }, { replace: true }); };
+  const goTo = (t) => { if (t.base_type === 'purchase') nav('/admin/purchases/new'); else if (String(t.id) !== String(typeId)) switchType(t.id); };
+  const jumps = voucherJumps(types, base, goTo);
+  const dateRef = useRef(null);
+  const focusDate = () => { const el = dateRef.current; if (el) { el.focus(); try { el.showPicker?.(); } catch { /* not allowed here: focus is enough */ } } };
+  useFKeys(editing || mode !== 'books' ? {} : { f2: focusDate, ...jumps.keyMap });
   useCtrlKeys({ h: () => { if (canAcct && !editing) chooseAcct(!acct); }, s: () => { if (!saving && type && !insMissing) save(); } });
 
   if (!canWrite) return <AdminLayout><div style={{ padding: 32 }}><NoAccess what="the voucher form" /></div></AdminLayout>;
@@ -569,6 +608,7 @@ export default function VoucherForm({ api = booksAPI, mode = 'books' }) {
     <AdminLayout>
       <div style={{ padding: '28px 24px', maxWidth: 1360, margin: '0 auto' }}>
       <WithSidePanel actions={[
+        ...(mode === 'books' && !editing ? [{ keys: 'F2', label: 'Date', note: 'Change the date', onClick: focusDate }, { gap: true }, ...jumps.actions, { gap: true }] : []),
         ...(canAcct && !editing ? [{ keys: 'Ctrl+H', label: 'Change mode', note: acct ? 'Now: Accounting invoice' : 'Now: Item invoice', onClick: () => chooseAcct(!acct), active: acct }] : []),
         { keys: 'Ctrl+S', label: editing ? 'Save changes' : mode === 'quotation' ? 'Save prices' : 'Post voucher', onClick: () => { if (!saving && type && !insMissing) save(); }, disabled: saving || !type || insMissing },
         { gap: true },
@@ -579,6 +619,12 @@ export default function VoucherForm({ api = booksAPI, mode = 'books' }) {
         <h1 style={{ fontSize: '1.4rem', fontWeight: 800, color: colors.primary, margin: '0 0 16px' }}>{editing ? `Edit ${h.voucher_number}` : type ? `New ${type.name}` : 'New voucher'}</h1>
         {loading ? <p style={{ color: colors.textMuted }}>Loading…</p> : (
           <div style={{ display: 'grid', gridTemplateColumns: 'minmax(0,1fr)', gap: 16 }}>
+            {restored && !editing && (
+              <div role="status" style={{ ...card, padding: '8px 14px', display: 'flex', gap: 12, alignItems: 'center', fontSize: '0.8rem', color: colors.textMuted }}>
+                <span>Your unfinished {type?.name ?? 'voucher'} was put back.</span>
+                <button type="button" style={{ ...btnGhost, padding: '3px 10px', fontSize: '0.75rem' }} onClick={() => { clearDraft(typeId); setDraftLoaded(''); setRestored(false); draftFirst.current = false; setRestored(false); }}>Discard it</button>
+              </div>
+            )}
             {!editing && ['credit_note', 'debit_note'].includes(base) && <InvoiceFinder base={base} />}
             {canAcct && (
               <div style={{ ...card, padding: '10px 14px', display: 'flex', gap: 12, alignItems: 'center', flexWrap: 'wrap' }}>
@@ -596,7 +642,7 @@ export default function VoucherForm({ api = booksAPI, mode = 'books' }) {
             <div style={{ ...card, padding: 18, display: 'grid', gridTemplateColumns: 'repeat(auto-fit,minmax(200px,1fr))', gap: 14 }}>
               <div>
                 <label style={label}>Voucher type</label>
-                <select value={typeId} disabled={editing} onChange={(e) => { setTypeId(e.target.value); setLines([]); setPreview(null); setAcct(false); }} style={small}>
+                <select value={typeId} disabled={editing} onChange={(e) => switchType(e.target.value)} style={small}>
                   <option value="">Choose…</option>
                   {types.map((t) => <option key={t.id} value={t.id}>{t.name}</option>)}
                 </select>
@@ -610,7 +656,7 @@ export default function VoucherForm({ api = booksAPI, mode = 'books' }) {
                   <p style={{ margin: '4px 0 0', fontSize: '0.68rem', color: colors.textMuted }}>Made in {currencies.find((c) => String(c.id) === String(origCurrency.current))?.code ?? 'another currency'}; the base is now {currencies.find((c) => c.is_base)?.code}. Keep it, or change it.</p>
                 </div>
               )}
-              <div><label style={label}>Date</label><input type="date" value={h.date} onChange={(e) => setH((x) => ({ ...x, date: e.target.value }))} style={small} /></div>
+              <div><label style={label}>Date</label><input ref={dateRef} type="date" value={h.date} onChange={(e) => setH((x) => ({ ...x, date: e.target.value }))} style={small} /></div>
               <div>
                 <label style={label}>Branch</label>
                 <select value={h.location_id} onChange={(e) => setH((x) => ({ ...x, location_id: e.target.value }))} style={small}>
