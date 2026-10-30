@@ -22,7 +22,7 @@ class PlanningTest extends TestCase
     use Concerns\RunsSqlScripts;
     use Concerns\StandsInForAccess;
 
-    private const TABLES = ['budget_lines', 'forecast_items', 'voucher_bill_refs', 'report_settings', 'report_settings_log'];
+    private const TABLES = ['locations', 'budget_lines', 'budget_rows', 'budget_initiatives', 'forecast_items', 'voucher_bill_refs', 'report_settings', 'report_settings_log'];
 
     protected function setUp(): void
     {
@@ -31,7 +31,16 @@ class PlanningTest extends TestCase
         foreach (self::TABLES as $t) {
             Schema::dropIfExists($t);
         }
-        $this->runSqlScripts('237_planning.sql');
+        $this->runSqlScripts('237_planning.sql', '239_budgeting.sql');
+        // script 239 replaces budget_lines' old (period, target) key with (row_id, period); SQLite here cannot drop an inline key, so the table is rebuilt as the script leaves it
+        Schema::dropIfExists('budget_lines');
+        Schema::create('budget_lines', function ($t) {
+            $t->id(); $t->unsignedBigInteger('row_id')->nullable(); $t->string('period', 7); $t->string('target_type', 10); $t->unsignedBigInteger('target_id'); $t->decimal('amount', 18, 2)->default(0); $t->string('note', 160)->nullable();
+            $t->unsignedBigInteger('created_by')->nullable(); $t->timestamps(); $t->unique(['row_id', 'period']);
+        });
+        Schema::dropIfExists('locations');
+        Schema::create('locations', function ($t) { $t->id(); $t->string('name'); $t->unsignedBigInteger('cost_centre_id')->nullable(); $t->timestamps(); });
+        DB::table('locations')->insert([['id' => 1, 'name' => 'Nairobi'], ['id' => 2, 'name' => 'Mombasa']]);
         Schema::create('report_settings', function ($t) { $t->string('setting_key')->primary(); $t->text('value'); $t->unsignedBigInteger('updated_by')->nullable(); $t->timestamps(); });
         Schema::create('report_settings_log', function ($t) { $t->id(); $t->string('setting_key'); $t->text('old_value')->nullable(); $t->text('new_value'); $t->unsignedBigInteger('changed_by')->nullable(); $t->string('changed_by_name')->nullable(); $t->timestamp('created_at')->nullable(); });
         Schema::create('voucher_bill_refs', function ($t) {
@@ -77,7 +86,7 @@ class PlanningTest extends TestCase
     public function test_a_budget_is_set_by_month_and_set_against_what_was_spent(): void
     {
         $svc = app(BudgetService::class);
-        $svc->save([['type' => 'group', 'id' => 8, 'months' => ['2026-06' => 20000, '2026-07' => 5000]]], null);
+        $svc->save([['type' => 'group', 'target_id' => 8, 'months' => ['2026-06' => 20000, '2026-07' => 5000]]], null);
         $r = $svc->against(Scope::dates('2026-01-01', '2026-10-28'), '2026-01-01', '2026-10-28');
         $row = $r['rows'][0];
         $this->assertSame('Indirect Expenses', $row['name']);
@@ -91,34 +100,136 @@ class PlanningTest extends TestCase
         $this->assertEquals(0, $r['totals']['over_count'], 'over for the year only when the whole is over');
     }
 
-    public function test_only_expenses_can_be_budgeted_and_a_zero_removes_a_month(): void
+    public function test_a_row_is_checked_and_a_zero_removes_a_month_and_a_row_goes_with_its_months(): void
     {
         $svc = app(BudgetService::class);
-        try {
-            $svc->save([['type' => 'group', 'id' => 6, 'months' => ['2026-06' => 100]]], null);   // Sales Accounts: income
-            $this->fail('an income group was accepted');
-        } catch (ValidationException $e) {
-            $this->assertStringContainsString('not an expense', $e->errors()['rows.0'][0]);
+        foreach ([
+            ['type' => 'ledger', 'target_id' => 6, 'is_recovery' => true, 'months' => ['2026-06' => 1]] + [],   // Rent: an expense, a recovery is fine
+        ] as $ok) {
+            $this->assertCount(1, $svc->save([$ok], null));
         }
-        $this->assertSame(0, DB::table('budget_lines')->count(), 'nothing is written unless every row is valid');
-        $svc->save([['type' => 'ledger', 'id' => 6, 'months' => ['2026-06' => 500, '2026-07' => 600]]], null);
-        $svc->save([['type' => 'ledger', 'id' => 6, 'months' => ['2026-07' => 0, '2026-06' => 700]]], null);
+        $this->assertSame(1, DB::table('budget_rows')->where('is_recovery', 1)->count());
+        foreach ([
+            [['type' => 'group', 'target_id' => 6, 'is_recovery' => true, 'months' => ['2026-06' => 100]], 'rows.0.is_recovery'],   // Sales Accounts: income cannot be a recovery
+            [['type' => 'group', 'target_id' => 99999, 'months' => ['2026-06' => 100]], 'rows.0'],
+            [['type' => 'ledger', 'target_id' => 6, 'method' => 'magic', 'months' => []], 'rows.0.method'],
+            [['type' => 'ledger', 'target_id' => 6, 'months' => ['2026-06' => -5]], 'rows.0.months.2026-06'],
+            [['type' => 'ledger', 'target_id' => 6, 'months' => ['June' => 5]], 'rows.0.months'],
+            [['type' => 'ledger', 'target_id' => 6, 'cost_centre_id' => 4040, 'months' => ['2026-06' => 5]], 'rows.0.cost_centre_id'],
+        ] as [$row, $key]) {
+            try {
+                $svc->save([$row], null);
+                $this->fail("{$key} was accepted");
+            } catch (ValidationException $e) {
+                $this->assertArrayHasKey($key, $e->errors());
+            }
+        }
+        DB::table('budget_rows')->delete();
+        DB::table('budget_lines')->delete();
+        $ids = $svc->save([['type' => 'ledger', 'target_id' => 6, 'months' => ['2026-06' => 500, '2026-07' => 600]]], null);
+        $svc->save([['row_id' => $ids[0], 'type' => 'ledger', 'target_id' => 6, 'months' => ['2026-07' => 0, '2026-06' => 700]]], null);
         $this->assertSame([['2026-06', 700.0]], DB::table('budget_lines')->get(['period', 'amount'])->map(fn ($r) => [$r->period, (float) $r->amount])->all());
-        $this->assertSame(1, $svc->remove('ledger', 6, '2026-01-01', '2026-12-31'));
-        $this->expectException(ValidationException::class);
-        $svc->save([['type' => 'ledger', 'id' => 6, 'months' => ['June' => 5]]], null);
+        $this->assertSame(1, DB::table('budget_rows')->count(), 'the same row was updated, not a second one made');
+        $this->assertSame(1, $svc->remove($ids[0]));
+        $this->assertSame(0, DB::table('budget_rows')->count());
     }
 
-    public function test_the_planning_screen_is_seen_with_books_view_and_changed_with_books_planning(): void
+    public function test_income_and_balance_sheet_lines_can_be_planned_too_and_stay_out_of_the_expense_chart(): void
+    {
+        $svc = app(BudgetService::class);
+        $svc->save([['type' => 'group', 'target_id' => 6, 'months' => ['2026-01' => 100000]], ['type' => 'group', 'target_id' => 8, 'months' => ['2026-01' => 10]]], null);
+        $all = $svc->against(Scope::dates('2026-01-01', '2026-01-31'), '2026-01-01', '2026-01-31');
+        $this->assertEqualsCanonicalizing(['income', 'expense'], array_column($all['rows'], 'section'));
+        $income = collect($all['rows'])->firstWhere('section', 'income');
+        $this->assertEquals(100000, $income['actual'], 'earnings are credits less debits: the January sale');
+        $this->assertFalse($income['over']);
+        $exp = $svc->against(Scope::dates('2026-01-01', '2026-01-31'), '2026-01-01', '2026-01-31', ['expense']);
+        $this->assertSame(['expense'], array_column($exp['rows'], 'section'));
+    }
+
+    public function test_a_row_can_be_for_one_cost_centre_and_is_read_from_that_cost_centres_entries(): void
+    {
+        $svc = app(BudgetService::class);
+        $svc->save([
+            ['type' => 'ledger', 'target_id' => 6, 'cost_centre_id' => 11, 'months' => ['2026-07' => 5000]],
+            ['type' => 'ledger', 'target_id' => 6, 'cost_centre_id' => 10, 'months' => ['2026-07' => 5000]],
+        ], null);
+        $r = $svc->against(Scope::dates('2026-07-01', '2026-07-31'), '2026-07-01', '2026-07-31');
+        $by = collect($r['rows'])->keyBy(fn ($x) => implode(',', $x['dimensions']));
+        $this->assertEquals(4000, $by['Admin']['actual'], 'the split voucher put 4,000 of July rent on Admin');
+        $this->assertEquals(7000, $by['Head office']['actual'], 'Head office includes the cost centres under it');
+        $this->assertCount(2, DB::table('budget_rows')->get(), 'the same account with two cost centres is two rows');
+        $svc->save([['type' => 'ledger', 'target_id' => 6, 'cost_centre_id' => 11, 'months' => ['2026-08' => 1]]], null);
+        $this->assertCount(2, DB::table('budget_rows')->get(), 'the same combination again is the same row, with another month');
+        $this->assertSame(2, DB::table('budget_lines')->where('row_id', DB::table('budget_rows')->where('cost_centre_id', 11)->value('id'))->count());
+    }
+
+    public function test_a_recovery_lowers_the_net_spend_on_its_account(): void
+    {
+        $svc = app(BudgetService::class);
+        $svc->save([['type' => 'ledger', 'target_id' => 6, 'months' => ['2026-07' => 10000]], ['type' => 'ledger', 'target_id' => 6, 'is_recovery' => true, 'months' => ['2026-07' => 4000]]], null);
+        $r = $svc->against(Scope::dates('2026-07-01', '2026-07-31'), '2026-07-01', '2026-07-31');
+        $this->assertCount(1, $r['rows'], 'an expense and its recovery are one line');
+        $this->assertEquals(6000, $r['rows'][0]['budget']);
+        $this->assertTrue($r['rows'][0]['has_recovery']);
+        $this->assertEquals(7000, $r['rows'][0]['actual']);
+    }
+
+    public function test_an_initiative_nests_cannot_sit_under_itself_and_is_switched_off_when_it_is_in_use(): void
+    {
+        $svc = app(BudgetService::class);
+        $cash = $svc->saveInitiative(['name' => 'Cash sales'], null);
+        $travel = $svc->saveInitiative(['name' => 'Travel', 'parent_id' => $cash], null);
+        $this->assertSame(['Cash sales', 'Cash sales › Travel'], array_column($svc->initiatives(), 'path'));
+        $this->assertEqualsCanonicalizing([$cash, $travel], $svc->initiativeWithDescendants($cash));
+        try {
+            $svc->saveInitiative(['name' => 'Cash sales', 'parent_id' => $travel], null, $cash);
+            $this->fail('a loop was accepted');
+        } catch (ValidationException $e) {
+            $this->assertArrayHasKey('parent_id', $e->errors());
+        }
+        $svc->save([['type' => 'ledger', 'target_id' => 6, 'initiative_id' => $travel, 'months' => ['2026-07' => 1000]]], null);
+        $r = $svc->against(Scope::dates('2026-07-01', '2026-07-31'), '2026-07-01', '2026-07-31');
+        $this->assertTrue($r['rows'][0]['actual_pending'], 'the books do not carry an initiative yet, so there is no actual to show');
+        $this->assertSame(['Travel'], $r['rows'][0]['dimensions']);
+        try {
+            $svc->removeInitiative($cash);
+            $this->fail('an initiative with children was removed');
+        } catch (ValidationException $e) {
+            $this->assertArrayHasKey('id', $e->errors());
+        }
+        $this->assertSame('switched_off', $svc->removeInitiative($travel));
+        $this->assertFalse(collect($svc->initiatives())->firstWhere('id', $travel)['is_active']);
+        $other = $svc->saveInitiative(['name' => 'Spare'], null);
+        $this->assertSame('removed', $svc->removeInitiative($other));
+    }
+
+    public function test_last_years_actuals_are_offered_month_by_month_for_the_year_being_planned(): void
+    {
+        $h = app(BudgetService::class)->history(['type' => 'ledger', 'target_id' => 6], 2026 + 1 - 1 + 1);   // 2027 plans from 2026
+        $this->assertSame('2027-06', array_keys($h)[5]);
+        $this->assertEquals(12000, $h['2027-06'], 'June 2026 rent');
+        $this->assertEquals(7000, $h['2027-07']);
+        $this->assertEquals(0, $h['2027-01']);
+    }
+
+    public function test_the_budgeting_screen_is_seen_with_books_view_and_changed_with_books_planning(): void
     {
         $this->as(['books.view']);
-        $this->getJson('/api/admin/books/planning?from=2026-01-01&to=2026-12-31')->assertOk()->assertJsonPath('budgets_ready', true)->assertJsonCount(12, 'months');
-        $this->putJson('/api/admin/books/planning/budgets', ['rows' => [['type' => 'group', 'id' => 8, 'months' => ['2026-06' => 1]]]])->assertForbidden();
+        $this->getJson('/api/admin/books/planning?from=2026-01-01&to=2026-12-31')->assertOk()->assertJsonPath('budgets_ready', true)->assertJsonCount(12, 'months')->assertJsonPath('choices.initiatives', []);
+        $this->putJson('/api/admin/books/planning/budgets', ['rows' => [['type' => 'group', 'target_id' => 8, 'months' => ['2026-06' => 1]]]])->assertForbidden();
+        $this->postJson('/api/admin/books/planning/initiatives', ['name' => 'X'])->assertForbidden();
         $this->as(['books.view', 'books.planning']);
-        $this->putJson('/api/admin/books/planning/budgets', ['rows' => [['type' => 'group', 'id' => 8, 'months' => ['2026-06' => 1000]]]])->assertOk();
-        $this->getJson('/api/admin/books/planning?from=2026-01-01&to=2026-12-31')->assertJsonPath('lines.0.months.2026-06', 1000);
-        $this->putJson('/api/admin/books/planning/budgets', ['rows' => [['type' => 'group', 'id' => 6, 'months' => ['2026-06' => 1]]]])->assertStatus(422);
-        $this->deleteJson('/api/admin/books/planning/budgets/group/8?from=2026-01-01&to=2026-12-31')->assertOk()->assertJsonPath('removed', 1);
+        $this->putJson('/api/admin/books/planning/budgets', ['rows' => [['type' => 'group', 'target_id' => 8, 'months' => ['2026-06' => 1000], 'method' => 'fixed', 'method_params' => ['amount' => 1000]]]])->assertOk()->assertJsonCount(1, 'ids');
+        $this->getJson('/api/admin/books/planning?from=2026-01-01&to=2026-12-31')->assertJsonPath('lines.0.months.2026-06', 1000)->assertJsonPath('lines.0.method', 'fixed')->assertJsonPath('lines.0.method_params.amount', 1000);
+        $this->putJson('/api/admin/books/planning/budgets', ['rows' => [['type' => 'group', 'target_id' => 6, 'is_recovery' => true, 'months' => ['2026-06' => 1]]]])->assertStatus(422);
+        $this->getJson('/api/admin/books/planning/budgets/history?type=ledger&target_id=6&year=2027')->assertOk()->assertJsonPath('months.2027-06', 12000);
+        $id = $this->postJson('/api/admin/books/planning/initiatives', ['name' => 'Website redesign'])->assertOk()->json('id');
+        $this->putJson("/api/admin/books/planning/initiatives/{$id}", ['name' => 'Website', 'note' => 'IT'])->assertOk();
+        $this->getJson('/api/admin/books/planning?from=2026-01-01&to=2026-12-31')->assertJsonPath('choices.initiatives.0.name', 'Website');
+        $this->deleteJson("/api/admin/books/planning/initiatives/{$id}")->assertOk()->assertJsonPath('result', 'removed');
+        $rowId = DB::table('budget_rows')->value('id');
+        $this->deleteJson("/api/admin/books/planning/budgets/{$rowId}")->assertOk()->assertJsonPath('removed', 1);
     }
 
     // ── the forecast ───────────────────────────────────────────────────
@@ -200,7 +311,7 @@ class PlanningTest extends TestCase
         $svc = app(\App\Services\Books\VisualsService::class);
         $b = $svc->chart('budget', Scope::dates('2026-01-01', '2026-10-28'))['data'];
         $this->assertFalse($b['ready'], 'no budget yet says so');
-        $this->assertStringContainsString('Planning', $b['message']);
+        $this->assertStringContainsString('Budgeting', $b['message']);
         app(BudgetService::class)->save([['type' => 'group', 'id' => 8, 'months' => ['2026-06' => 20000]]], null);
         $this->assertTrue($svc->chart('budget', Scope::dates('2026-01-01', '2026-10-28'))['data']['ready']);
         $f = $svc->chart('cash-forecast', Scope::dates('2026-01-01', '2026-10-28'))['data'];

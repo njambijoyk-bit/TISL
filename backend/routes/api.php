@@ -1314,7 +1314,11 @@ Route::middleware('auth:sanctum')->group(function () {
         Route::get('/planning',                         [\App\Http\Controllers\Api\PlanningController::class, 'show']);
         Route::middleware('permission:books.planning')->group(function () {
             Route::put('/planning/budgets',             [\App\Http\Controllers\Api\PlanningController::class, 'saveBudgets']);
-            Route::delete('/planning/budgets/{type}/{id}', [\App\Http\Controllers\Api\PlanningController::class, 'removeBudget'])->whereNumber('id')->where('type', 'group|ledger');
+            Route::delete('/planning/budgets/{id}',     [\App\Http\Controllers\Api\PlanningController::class, 'removeBudget'])->whereNumber('id');
+            Route::get('/planning/budgets/history',     [\App\Http\Controllers\Api\PlanningController::class, 'history']);
+            Route::post('/planning/initiatives',        [\App\Http\Controllers\Api\PlanningController::class, 'saveInitiative']);
+            Route::put('/planning/initiatives/{id}',    [\App\Http\Controllers\Api\PlanningController::class, 'saveInitiative'])->whereNumber('id');
+            Route::delete('/planning/initiatives/{id}', [\App\Http\Controllers\Api\PlanningController::class, 'removeInitiative'])->whereNumber('id');
             Route::post('/planning/items',              [\App\Http\Controllers\Api\PlanningController::class, 'saveItem']);
             Route::put('/planning/items/{id}',          [\App\Http\Controllers\Api\PlanningController::class, 'saveItem'])->whereNumber('id');
             Route::delete('/planning/items/{id}',       [\App\Http\Controllers\Api\PlanningController::class, 'deleteItem'])->whereNumber('id');

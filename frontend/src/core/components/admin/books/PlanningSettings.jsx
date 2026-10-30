@@ -1,16 +1,17 @@
-import { useCallback, useEffect, useMemo, useState } from 'react';
+import { useCallback, useEffect, useState } from 'react';
 import { Plus, Trash2, Pencil } from 'lucide-react';
 import toast from 'react-hot-toast';
 import booksAPI from '../../../../_shared/api/books';
 import { errMsg } from '../../../../_shared/store/helpers/apiState';
 import { hasPermission } from '../../../../_shared/lib/roles';
 import { btnGhost, btnPrimary, card, colors } from '../../../../_shared/theme/tokens';
+import BudgetGrid from './BudgetGrid';
+import BudgetInitiatives from './BudgetInitiatives';
 import ReportsSettings from './ReportsSettings';
 import { CheckboxRow, Field, FormGrid, NumberInput, SelectInput, TextInput } from '../ui/Form';
 
 const th = { padding: '6px 6px', fontSize: '0.64rem', fontWeight: 700, color: colors.textFaint, textAlign: 'left', whiteSpace: 'nowrap' };
 const money = (n) => Number(n || 0).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 });
-const monthName = (ym) => new Date(`${ym}-01T00:00:00Z`).toLocaleDateString(undefined, { month: 'short', timeZone: 'UTC' });
 const BLANK = { id: null, label: '', kind: 'rent', direction: 'out', amount: '', frequency: 'monthly', start_date: '', end_date: '', certainty: 'confirmed', is_active: true, note: '' };
 
 const Section = ({ title, hint, children }) => (
@@ -20,97 +21,6 @@ const Section = ({ title, hint, children }) => (
     {children}
   </div>
 );
-
-/** Budgets: a row per expense group or ledger, a box per month. */
-function Budgets({ data, year, setYear, reload, canEdit }) {
-  const [draft, setDraft] = useState({});   // 'type:id' -> { 'YYYY-MM': text }
-  const [extra, setExtra] = useState([]);   // rows added here and not saved yet
-  const [pick, setPick] = useState('');
-  const [fill, setFill] = useState({});
-  const [busy, setBusy] = useState(false);
-  useEffect(() => { setDraft({}); setExtra([]); }, [data]);
-
-  const rows = useMemo(() => [...data.lines, ...extra.filter((e) => !data.lines.some((l) => l.type === e.type && l.id === e.id))], [data.lines, extra]);
-  const cellOf = (r, ym) => draft[`${r.type}:${r.id}`]?.[ym] ?? (r.months[ym] ?? '');
-  const setCell = (r, ym, v) => setDraft((d) => ({ ...d, [`${r.type}:${r.id}`]: { ...d[`${r.type}:${r.id}`], [ym]: v } }));
-  const dirty = Object.keys(draft).length > 0;
-  const colTotal = (ym) => rows.reduce((t, r) => t + (Number(cellOf(r, ym)) || 0), 0);
-
-  const add = () => {
-    if (!pick) return;
-    const [type, id] = pick.split(':');
-    const name = type === 'group' ? data.choices.groups.find((g) => g.id === Number(id))?.path : data.choices.ledgers.find((l) => l.id === Number(id))?.name;
-    setExtra((e) => [...e, { type, id: Number(id), name, months: {} }]);
-    setPick('');
-  };
-  const save = async () => {
-    setBusy(true);
-    try {
-      await booksAPI.saveBudgets(Object.entries(draft).map(([k, months]) => { const [type, id] = k.split(':'); return { type, id: Number(id), months: Object.fromEntries(Object.entries(months).map(([ym, v]) => [ym, v === '' ? 0 : Number(v)])) }; }));
-      toast.success('Budget saved');
-      reload();
-    } catch (e) { toast.error(errMsg(e, 'Could not save the budget')); } finally { setBusy(false); }
-  };
-  const remove = async (r) => {
-    if (!data.lines.some((l) => l.type === r.type && l.id === r.id)) { setExtra((e) => e.filter((x) => !(x.type === r.type && x.id === r.id))); return; }
-    try { await booksAPI.removeBudget(r.type, r.id, { from: data.from, to: data.to }); toast.success('Removed'); reload(); } catch (e) { toast.error(errMsg(e, 'Could not remove it')); }
-  };
-  const apply = (r) => { const v = fill[`${r.type}:${r.id}`]; if (v === undefined || v === '') return; data.months.forEach((ym) => setCell(r, ym, v)); };
-
-  return (
-    <Section title="Budgets" hint="What you plan to spend on an expense group (and every group under it) or on one ledger, month by month. The Visual reports chart 'Budget against actual' sets this against what the books show. Leave a month empty for no budget.">
-      {!data.budgets_ready && <p style={{ color: colors.warningText, fontSize: '0.8rem' }}>Run database script 237_planning.sql to turn budgets on.</p>}
-      <div style={{ display: 'flex', gap: 8, alignItems: 'center', marginBottom: 10, flexWrap: 'wrap' }}>
-        <button type="button" style={btnGhost} onClick={() => setYear((y) => y - 1)}>‹</button><b>{year}</b><button type="button" style={btnGhost} onClick={() => setYear((y) => y + 1)}>›</button>
-        {canEdit && data.budgets_ready && (
-          <>
-            <SelectInput aria-label="Add a budget row" value={pick} onChange={(e) => setPick(e.target.value)} style={{ maxWidth: 280 }}>
-              <option value="">Add an expense group or ledger…</option>
-              <optgroup label="Groups">{data.choices.groups.map((g) => <option key={`g${g.id}`} value={`group:${g.id}`}>{g.path}</option>)}</optgroup>
-              <optgroup label="Ledgers">{data.choices.ledgers.map((l) => <option key={`l${l.id}`} value={`ledger:${l.id}`}>{l.name} ({l.group})</option>)}</optgroup>
-            </SelectInput>
-            <button type="button" style={btnGhost} onClick={add} disabled={!pick}><Plus size={13} /> Add</button>
-          </>
-        )}
-        <span style={{ flex: 1 }} />
-        {canEdit && <button type="button" style={{ ...btnPrimary, opacity: dirty && !busy ? 1 : 0.6 }} disabled={!dirty || busy} onClick={save}>{busy ? 'Saving…' : 'Save budget'}</button>}
-      </div>
-      {rows.length === 0 ? <p style={{ fontSize: '0.8rem', color: colors.textFaint }}>No budget for {year} yet.</p> : (
-        <div style={{ overflowX: 'auto' }}>
-          <table style={{ borderCollapse: 'collapse', minWidth: 900 }}>
-            <thead><tr><th style={th}>Expense</th>{data.months.map((ym) => <th key={ym} style={{ ...th, textAlign: 'right' }}>{monthName(ym)}</th>)}<th style={{ ...th, textAlign: 'right' }}>Year</th>{canEdit && <th style={th}>Same every month</th>}<th /></tr></thead>
-            <tbody>
-              {rows.map((r) => (
-                <tr key={`${r.type}:${r.id}`}>
-                  <td style={{ padding: '3px 6px', fontSize: '0.78rem', whiteSpace: 'nowrap' }}>{r.name}<span style={{ marginLeft: 6, fontSize: '0.64rem', color: colors.textFaint }}>{r.type === 'group' ? 'group' : 'ledger'}</span></td>
-                  {data.months.map((ym) => (
-                    <td key={ym} style={{ padding: '2px 2px' }}>
-                      <input type="number" min="0" step="0.01" disabled={!canEdit} value={cellOf(r, ym)} onChange={(e) => setCell(r, ym, e.target.value)} aria-label={`${r.name} ${ym}`}
-                        style={{ width: 84, padding: '4px 6px', fontSize: '0.74rem', textAlign: 'right', borderRadius: 6, border: `1px solid ${colors.tint(0.15)}`, background: 'var(--bg-primary)', color: colors.text }} />
-                    </td>
-                  ))}
-                  <td style={{ padding: '3px 6px', fontSize: '0.76rem', textAlign: 'right', fontWeight: 700, fontVariantNumeric: 'tabular-nums' }}>{money(data.months.reduce((t, ym) => t + (Number(cellOf(r, ym)) || 0), 0))}</td>
-                  {canEdit && <td style={{ padding: '2px 6px', whiteSpace: 'nowrap' }}>
-                    <input type="number" min="0" step="0.01" placeholder="amount" value={fill[`${r.type}:${r.id}`] ?? ''} onChange={(e) => setFill((f) => ({ ...f, [`${r.type}:${r.id}`]: e.target.value }))} aria-label={`Same amount every month for ${r.name}`}
-                      style={{ width: 80, padding: '4px 6px', fontSize: '0.74rem', borderRadius: 6, border: `1px solid ${colors.tint(0.15)}`, background: 'var(--bg-primary)', color: colors.text }} />
-                    <button type="button" style={{ ...btnGhost, padding: '3px 8px', fontSize: '0.7rem', marginLeft: 4 }} onClick={() => apply(r)}>Fill</button>
-                  </td>}
-                  <td>{canEdit && <button type="button" aria-label={`Remove ${r.name}`} onClick={() => remove(r)} style={{ background: 'none', border: 'none', cursor: 'pointer', color: colors.textMuted }}><Trash2 size={14} /></button>}</td>
-                </tr>
-              ))}
-              <tr style={{ background: colors.tint(0.03), fontWeight: 700 }}>
-                <td style={{ padding: '4px 6px', fontSize: '0.76rem' }}>Total</td>
-                {data.months.map((ym) => <td key={ym} style={{ padding: '4px 6px', textAlign: 'right', fontSize: '0.74rem', fontVariantNumeric: 'tabular-nums' }}>{money(colTotal(ym))}</td>)}
-                <td style={{ padding: '4px 6px', textAlign: 'right', fontSize: '0.76rem' }}>{money(data.months.reduce((t, ym) => t + colTotal(ym), 0))}</td><td colSpan={canEdit ? 2 : 1} />
-              </tr>
-            </tbody>
-          </table>
-        </div>
-      )}
-      <p style={{ margin: '8px 0 0', fontSize: '0.72rem', color: colors.textFaint }}>A group and one of its own ledgers should not both be budgeted: the ledger's spending would be counted twice in the totals.</p>
-    </Section>
-  );
-}
 
 /** The recurring and one-off money in and out the books cannot know yet, each marked confirmed or estimate. */
 function Items({ data, reload, canEdit }) {
@@ -187,7 +97,8 @@ export default function PlanningSettings() {
   return (
     <div>
       {!canEdit && <p style={{ fontSize: '0.78rem', color: colors.textFaint }}>You can look at these; changing them needs the Planning permission (budgets and forecast).</p>}
-      <Budgets data={data} year={year} setYear={setYear} reload={load} canEdit={canEdit} />
+      <BudgetGrid data={data} year={year} setYear={setYear} reload={load} canEdit={canEdit} />
+      <BudgetInitiatives initiatives={data.choices.initiatives} canEdit={canEdit} reload={load} />
       <Items data={data} reload={load} canEdit={canEdit} />
       <ReportsSettings only="forecast" />
     </div>

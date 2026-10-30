@@ -9,7 +9,7 @@ use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 
 /**
- * Books -> Configuration -> Planning: budgets and the cash forecast's recurring items. Seeing them needs books.view; changing them needs books.planning (routes).
+ * Books -> Configuration -> Budgeting: budgets and the cash forecast's recurring items. Seeing them needs books.view; changing them needs books.planning (routes).
  * The forecast's assumptions (collection delay, supplier terms ...) are Reports settings, section "Cash forecast assumptions".
  */
 class PlanningController extends Controller
@@ -31,17 +31,36 @@ class PlanningController extends Controller
 
     public function saveBudgets(Request $request): JsonResponse
     {
-        $rows = $request->validate(['rows' => 'required|array|max:300', 'rows.*.type' => 'required|string', 'rows.*.id' => 'required|integer', 'rows.*.months' => 'nullable|array'])['rows'];
-        $this->budgets->save($rows, $request->user());
+        $rows = $request->validate([
+            'rows' => 'required|array|max:300', 'rows.*.type' => 'required|string', 'rows.*.target_id' => 'required|integer', 'rows.*.row_id' => 'nullable|integer', 'rows.*.months' => 'nullable|array',
+            'rows.*.cost_centre_id' => 'nullable|integer', 'rows.*.department_id' => 'nullable|integer', 'rows.*.location_id' => 'nullable|integer', 'rows.*.initiative_id' => 'nullable|integer',
+            'rows.*.is_recovery' => 'nullable|boolean', 'rows.*.method' => 'nullable|string|max:20', 'rows.*.method_params' => 'nullable|array', 'rows.*.note' => 'nullable|string|max:160',
+        ])['rows'];
 
-        return response()->json(['ok' => true]);
+        return response()->json(['ok' => true, 'ids' => $this->budgets->save($rows, $request->user())]);
     }
 
-    public function removeBudget(Request $request, string $type, int $id): JsonResponse
+    public function removeBudget(int $id): JsonResponse
     {
-        $in = $request->validate(['from' => 'required|date_format:Y-m-d', 'to' => 'required|date_format:Y-m-d|after_or_equal:from']);
+        return response()->json(['removed' => $this->budgets->remove($id)]);
+    }
 
-        return response()->json(['removed' => $this->budgets->remove($type, $id, $in['from'], $in['to'])]);
+    /** Last year's actual figures for an account and dimensions, month by month, to start "last year plus growth" from. */
+    public function history(Request $request): JsonResponse
+    {
+        $in = $request->validate(['type' => 'required|in:group,ledger', 'target_id' => 'required|integer', 'year' => 'required|integer|min:2000|max:2100', 'cost_centre_id' => 'nullable|integer', 'department_id' => 'nullable|integer', 'location_id' => 'nullable|integer']);
+
+        return response()->json(['months' => $this->budgets->history($in, (int) $in['year'])]);
+    }
+
+    public function saveInitiative(Request $request, ?int $id = null): JsonResponse
+    {
+        return response()->json(['id' => $this->budgets->saveInitiative($request->all(), $request->user(), $id)]);
+    }
+
+    public function removeInitiative(int $id): JsonResponse
+    {
+        return response()->json(['result' => $this->budgets->removeInitiative($id)]);
     }
 
     public function saveItem(Request $request, ?int $id = null): JsonResponse

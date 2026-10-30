@@ -416,7 +416,7 @@ trait VisualsMoreCharts
     /** Each budgeted expense against what was spent in the same months, the biggest overspend first. */
     private function chartBudget(Scope $scope, string $from, string $to): array
     {
-        $r = app(BudgetService::class)->against($scope, $from, $to);
+        $r = app(BudgetService::class)->against($scope, $from, $to, ['expense']);
         if (! $r['rows']) {
             throw new \RuntimeException('No budget is set for this period yet. Set one under Books → Configuration → Budgeting.');
         }
