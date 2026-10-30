@@ -17,6 +17,8 @@ import { canWriteFinance, hasPermission } from '../../../../_shared/lib/roles';
 import { errMsg } from '../../../../_shared/store/helpers/apiState';
 import { defaultUnit, lookupStock, searchPlaceholder, stockKinds } from '../../../lib/stockKinds';
 import { btnPrimary, btnGhost, card, colors, input } from '../../../../_shared/theme/tokens';
+import WithSidePanel from '../../../components/admin/books/VoucherSidePanel';
+import { useCtrlKeys } from '../../../components/admin/books/voucherKeys';
 
 /**
  * Purchases, Goods received notes and Opening stock: stock coming in, entered as a voucher.
@@ -162,6 +164,7 @@ export default function PurchaseForm({ kind = 'purchase' }) {
   const [branches, setBranches] = useState([]);
   const [h, setH] = useState(() => ({ ...blankHeader(), ...(draft0?.h ?? {}) }));
   const [lines, setLines] = useState(() => draft0?.lines ?? []);
+  const [acct, setAcct] = useState(Boolean(draft0?.acct));   // an accounting invoice: ledger lines only (rent, fees, utilities), no items or stock
   const [loading, setLoading] = useState(editing);
   const [choose, setChoose] = useState(null);           // variants of a product just created / changed, to pick from
   const [preview, setPreview] = useState(null);
@@ -197,7 +200,8 @@ export default function PurchaseForm({ kind = 'purchase' }) {
       if ((v.items ?? []).some((i) => !['product', 'ingredient', 'custom', 'charge'].includes(i.item_type))) { nav(`/admin/books/vouchers/${id}/edit`, { replace: true }); return; }
       setMode(base === 'opening_stock' ? 'opening' : base === 'receipt_note' ? 'receipt' : 'purchase');
       const d = readDraft(key);
-      if (d) { setH({ ...blankHeader(), ...d.h }); setLines(d.lines ?? []); setRestored(true); return; }
+      if (d) { setH({ ...blankHeader(), ...d.h }); setLines(d.lines ?? []); setAcct(Boolean(d.acct)); setRestored(true); return; }
+      setAcct(v.meta?.invoice_mode === 'accounting');
       setH({ ...blankHeader(), date: v.date, location_id: v.location_id ?? '', party_ledger_id: v.party_ledger_id ?? '', currency_id: v.currency?.code && v.exchange_rate && Number(v.exchange_rate) !== 1 ? v.currency_id : '', exchange_rate: Number(v.exchange_rate) !== 1 ? v.exchange_rate : '', reference_no: v.reference_no ?? '', supplier_invoice_no: v.supplier_invoice_no ?? '', payment_method_id: v.payment_method_id ?? '', party_name: v.party_name ?? '', party_phone: v.party_phone ?? '', party_address: v.party_address ?? '', party_tax_id: v.party_tax_id ?? '', due_date: v.due_date ?? '', narration: v.narration ?? '' });
       const products = [...new Set((v.items ?? []).filter((i) => i.item_type === 'product').map((i) => i.product_id))];
       const info = {};
@@ -227,8 +231,8 @@ export default function PurchaseForm({ kind = 'purchase' }) {
   // Keep the half-filled purchase while the admin is away creating a product
   useEffect(() => {
     if (loading) return;
-    writeDraft(key, { h, lines });
-  }, [h, lines, loading, key]);
+    writeDraft(key, { h, lines, acct });
+  }, [h, lines, acct, loading, key]);
 
   const addVariant = (row) => setLines((ls) => [...ls, row.type === 'ingredient' ? ingredientLineFrom(row, currencyIsBase) : lineFrom(row, currencyIsBase)]);
   // Scan what arrived: a product already on the purchase counts one more; a carton code buys one carton.
@@ -282,11 +286,11 @@ export default function PurchaseForm({ kind = 'purchase' }) {
   }, [h.supplier_invoice_no, h.party_ledger_id, receipt, id]);
 
   const goProduct = (path, extra = '') => {
-    writeDraft(key, { h, lines });
+    writeDraft(key, { h, lines, acct });
     nav(`${path}?returnTo=${encodeURIComponent(selfPath)}${extra}`);
   };
   const createProduct = (name) => goProduct('/admin/products/create', name ? `&name=${encodeURIComponent(name)}` : '');
-  const createStock = (name) => { writeDraft(key, { h, lines }); nav(`/admin/menus/ingredients?new=${encodeURIComponent(name || '')}&returnTo=${encodeURIComponent(selfPath)}`); };
+  const createStock = (name) => { writeDraft(key, { h, lines, acct }); nav(`/admin/menus/ingredients?new=${encodeURIComponent(name || '')}&returnTo=${encodeURIComponent(selfPath)}`); };
   const addVariantTo = (productId) => goProduct(`/admin/products/${productId}/edit`, '&tab=variants');
 
   const canOverrideTax = hasPermission(user, 'books.tax.override');
@@ -303,6 +307,7 @@ export default function PurchaseForm({ kind = 'purchase' }) {
           rate: l.rate === '' ? undefined : Number(l.rate), discount: Number(l.discount) || 0,
           batch_no: l.track_expiry || l.batch_no ? l.batch_no || undefined : undefined, mfg_date: l.mfg_date || undefined, expiry_date: l.expiry_date || undefined, ...taxBase(l) })),
     };
+    if (acct && mode === 'purchase') p.meta = { invoice_mode: 'accounting' };
     if (opening) p.opening_ledger_id = h.opening_ledger_id || undefined;
     else {
       p.party_ledger_id = h.party_ledger_id || null; p.due_date = receipt ? null : h.due_date || null;
@@ -312,7 +317,7 @@ export default function PurchaseForm({ kind = 'purchase' }) {
       }
     }
     return p;
-  }, [type, h, lines, opening, receipt]);
+  }, [type, h, lines, opening, receipt, acct, mode]);
 
   const ready = Boolean(type) && lines.length > 0 && lines.every((l) => (l.other ? l.description && l.rate !== '' && l.ledger_id : l.ingredient ? l.item_id && Number(l.quantity) > 0 && l.rate !== '' && (!l.track_expiry || l.expiry_date) : l.variant_id && Number(l.quantity) > 0 && l.rate !== '')) && (opening || Boolean(h.party_ledger_id) || Boolean(h.payment_method_id));
 
@@ -368,7 +373,18 @@ export default function PurchaseForm({ kind = 'purchase' }) {
   };
 
   const suppliers = ledgers.filter((l) => l.group?.name === 'Sundry Creditors');
-  const chargeLedgers = purchaseChargeLedgers(ledgers);   // the "Other charge" lines are expenses
+  const canAcct = mode === 'purchase' && !editing;   // a purchase (not a goods received note or opening stock) can be an accounting invoice
+  // an accounting invoice buys what an expense or asset ledger stands for, so only those are offered
+  const chargeLedgers = purchaseChargeLedgers(ledgers).filter((l) => !acct || (!['tax', 'stock', 'accumulated_depreciation', 'capital'].includes(l.kind) && ['expense', 'asset'].includes(l.group?.nature)));   // the "Other charge" lines are expenses
+  const changeMode = () => {
+    if (!canAcct) return;
+    if (!acct) {
+      if (lines.some((l) => !l.other) && !window.confirm('Switching to an accounting invoice removes the item lines. Continue?')) return;
+      setLines((ls) => (ls.length && ls.every((l) => l.other) ? ls : [blankOther()]));
+    }
+    setAcct(!acct);
+  };
+  useCtrlKeys({ h: changeMode, s: () => { if (ready && !saving) save(); } });
   const lineAmount = (l) => Math.max(0, (Number(l.quantity) || 0) * (Number(l.rate) || 0) - (Number(l.discount) || 0));
   const subtotal = lines.reduce((s, l) => s + lineAmount(l), 0);
 
@@ -376,7 +392,15 @@ export default function PurchaseForm({ kind = 'purchase' }) {
 
   return (
     <AdminLayout>
-      <div style={{ padding: '28px 24px', maxWidth: 1100, margin: '0 auto' }}>
+      <div style={{ padding: '28px 24px', maxWidth: 1360, margin: '0 auto' }}>
+      <WithSidePanel actions={[
+        ...(canAcct ? [{ keys: 'Ctrl+H', label: 'Change mode', note: acct ? 'Now: Accounting invoice' : 'Now: Item invoice', onClick: changeMode, active: acct }] : []),
+        { keys: 'Ctrl+S', label: editing ? 'Save changes' : 'Accept', onClick: () => { if (ready && !saving) save(); }, disabled: !ready || saving },
+        { gap: true },
+        { keys: '', label: 'Cancel', onClick: () => nav(listPath) },
+        { keys: '', label: 'Other vouchers', note: 'Sales, payment, receipt, journal…', onClick: () => nav('/admin/books/vouchers/new') },
+      ]}>
+      <div style={{ maxWidth: 1100 }}>
         <Link to={listPath} style={{ display: 'inline-flex', gap: 6, alignItems: 'center', fontSize: '0.78rem', color: colors.textMuted, textDecoration: 'none', marginBottom: 10 }}><ArrowLeft size={14} /> {opening ? 'Opening stock' : 'Purchases'}</Link>
         <h1 style={{ fontSize: '1.4rem', fontWeight: 800, color: colors.primary, margin: '0 0 6px' }}>{editing ? 'Edit' : 'New'} {noun}</h1>
         <p style={{ margin: '0 0 16px', fontSize: '0.8rem', color: colors.textMuted }}>
@@ -469,10 +493,12 @@ export default function PurchaseForm({ kind = 'purchase' }) {
             </div>
 
             <div style={{ ...card, padding: 18 }}>
-              <div style={{ marginBottom: 12 }}>
+              {canAcct && <p style={{ margin: '0 0 10px', fontSize: '0.78rem', color: colors.textMuted }}><strong style={{ color: colors.primary }}>{acct ? 'Accounting invoice' : 'Item invoice'}</strong> · press Ctrl+H to change{acct ? ' · a bill with no stock: choose the expense or asset ledger, a description and the amount' : ''}</p>}
+              {editing && acct && <p style={{ margin: '0 0 10px', fontSize: '0.78rem', color: colors.textMuted }}><strong style={{ color: colors.primary }}>Accounting invoice</strong> (ledger lines)</p>}
+              {!acct && <div style={{ marginBottom: 12 }}>
                 <ItemSearch onPick={addVariant} onCreate={createProduct} onCreateStock={createStock} onAddVariant={addVariantTo} locationId={h.location_id} />
                 {stockKinds().products && <div style={{ marginTop: 8 }}><CodeScanner autoFocus={false} placeholder="…or scan what arrived (a carton code buys a carton)" onScan={scanAdd} /></div>}
-              </div>
+              </div>}
 
               {choose && (
                 <div style={{ ...card, padding: 12, marginBottom: 12, background: colors.tint(0.04) }}>
@@ -489,14 +515,14 @@ export default function PurchaseForm({ kind = 'purchase' }) {
               )}
 
               {lines.length === 0 ? (
-                <p style={{ fontSize: '0.8rem', color: colors.textMuted, margin: 0 }}>No items yet. Search above{stockKinds().products ? ', or create a new product if it is not in the system' : ''}.</p>
+                <p style={{ fontSize: '0.8rem', color: colors.textMuted, margin: 0 }}>{acct ? 'No lines yet. Add a ledger line below.' : <>No items yet. Search above{stockKinds().products ? ', or create a new product if it is not in the system' : ''}.</>}</p>
               ) : (
                 <div style={{ display: 'grid', gap: 10 }}>
                   {lines.map((l) => (
                     <div key={l.key} style={{ border: `1px solid ${colors.tint(0.12)}`, borderRadius: 10, padding: 10 }}>
                       {l.other ? (
                         <div style={{ display: 'grid', gridTemplateColumns: 'minmax(160px,2fr) 70px 100px minmax(120px,1fr) 100px 30px', gap: 8, alignItems: 'end' }}>
-                          <div><label style={label}>Other charge (freight, duty…)</label><input value={l.description} onChange={(e) => setLine(l.key, { description: e.target.value })} style={small} /></div>
+                          <div><label style={label}>{acct ? 'Description' : 'Other charge (freight, duty…)'}</label><input value={l.description} onChange={(e) => setLine(l.key, { description: e.target.value })} style={small} /></div>
                           <div><label style={label}>Qty</label><input type="number" min="0" step="any" value={l.quantity} onChange={(e) => setLine(l.key, { quantity: e.target.value })} style={small} /></div>
                           <div><label style={label}>Amount each</label><input type="number" min="0" step="any" value={l.rate} onChange={(e) => setLine(l.key, { rate: e.target.value })} style={small} /></div>
                           <div>
@@ -599,7 +625,7 @@ export default function PurchaseForm({ kind = 'purchase' }) {
               )}
 
               <div style={{ marginTop: 12 }}>
-                <button type="button" style={{ ...btnGhost, padding: '5px 10px', fontSize: '0.75rem' }} onClick={() => setLines((ls) => [...ls, blankOther()])}><Plus size={13} /> Service or other charge</button>
+                <button type="button" style={{ ...btnGhost, padding: '5px 10px', fontSize: '0.75rem' }} onClick={() => setLines((ls) => [...ls, blankOther()])}><Plus size={13} /> {acct ? 'Add ledger line' : 'Service or other charge'}</button>
               </div>
             </div>
 
@@ -662,6 +688,8 @@ export default function PurchaseForm({ kind = 'purchase' }) {
             </div>
           </div>
         )}
+      </div>
+      </WithSidePanel>
       </div>
     </AdminLayout>
   );

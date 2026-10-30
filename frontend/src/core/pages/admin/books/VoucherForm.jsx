@@ -23,6 +23,8 @@ import taxAPI from '../../../../_shared/api/tax';
 import currencyAPI from '../../../../_shared/api/currency';
 import { money, today } from '../../../components/admin/books/booksFmt';
 import noSlash from '../../../../_shared/lib/noSlash';
+import WithSidePanel from '../../../components/admin/books/VoucherSidePanel';
+import { useCtrlKeys } from '../../../components/admin/books/voucherKeys';
 
 // Sales-side voucher bases sell to customers; the rest buy or adjust, so they may pick "not for sale" materials.
 const SALES_SIDE = ['quotation', 'sales_order', 'delivery_note', 'sales', 'cash_sale', 'credit_note'];
@@ -558,11 +560,20 @@ export default function VoucherForm({ api = booksAPI, mode = 'books' }) {
   const partyLedgers = ledgers.filter((l) => ['Sundry Debtors', 'Sundry Creditors'].includes(l.group?.name));
   const moneyLedgers = ledgers.filter((l) => ['cash', 'bank'].includes(l.kind));
 
+  useCtrlKeys({ h: () => { if (canAcct && !editing) chooseAcct(!acct); }, s: () => { if (!saving && type && !insMissing) save(); } });
+
   if (!canWrite) return <AdminLayout><div style={{ padding: 32 }}><NoAccess what="the voucher form" /></div></AdminLayout>;
 
   return (
     <AdminLayout>
-      <div style={{ padding: '28px 24px', maxWidth: 1100, margin: '0 auto' }}>
+      <div style={{ padding: '28px 24px', maxWidth: 1360, margin: '0 auto' }}>
+      <WithSidePanel actions={[
+        ...(canAcct && !editing ? [{ keys: 'Ctrl+H', label: 'Change mode', note: acct ? 'Now: Accounting invoice' : 'Now: Item invoice', onClick: () => chooseAcct(!acct), active: acct }] : []),
+        { keys: 'Ctrl+S', label: editing ? 'Save changes' : mode === 'quotation' ? 'Save prices' : 'Post voucher', onClick: () => { if (!saving && type && !insMissing) save(); }, disabled: saving || !type || insMissing },
+        { gap: true },
+        { keys: '', label: 'Cancel', onClick: () => nav(-1) },
+      ]}>
+      <div style={{ maxWidth: 1100 }}>
         <Link to={home} style={{ display: 'inline-flex', gap: 6, alignItems: 'center', fontSize: '0.78rem', color: colors.textMuted, textDecoration: 'none', marginBottom: 10 }}><ArrowLeft size={14} /> {mode === 'quotation' ? 'Quotations' : 'Books'}</Link>
         <h1 style={{ fontSize: '1.4rem', fontWeight: 800, color: colors.primary, margin: '0 0 16px' }}>{editing ? `Edit ${h.voucher_number}` : type ? `New ${type.name}` : 'New voucher'}</h1>
         {loading ? <p style={{ color: colors.textMuted }}>Loading…</p> : (
@@ -1079,6 +1090,8 @@ export default function VoucherForm({ api = booksAPI, mode = 'books' }) {
             </div>
           </div>
         )}
+      </div>
+      </WithSidePanel>
       </div>
     </AdminLayout>
   );
