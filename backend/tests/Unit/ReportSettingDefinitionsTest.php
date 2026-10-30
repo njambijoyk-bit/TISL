@@ -37,7 +37,7 @@ class ReportSettingDefinitionsTest extends TestCase
         $by = array_map(fn ($s) => $s['permission'], D::sections());
         $this->assertSame([
             'display' => 'books.reports.format', 'ageing' => 'books.reports.format', 'ratios' => 'books.reports.format',
-            'money' => 'books.reports.reconcile_setup', 'reconciliation' => 'books.reports.reconcile_setup', 'health' => 'books.reports.format', 'forecast' => 'books.planning', 'approvals' => 'books.reports.approval',
+            'money' => 'books.reports.reconcile_setup', 'reconciliation' => 'books.reports.reconcile_setup', 'health' => 'books.reports.format', 'forecast' => 'books.planning', 'budget_control' => 'books.planning', 'approvals' => 'books.reports.approval',
         ], $by);
     }
 

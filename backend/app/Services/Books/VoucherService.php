@@ -44,6 +44,14 @@ class VoucherService
     /** Marks the automatic rounding line so an edit form can leave it out and work it out again. */
     public const ROUNDING_NOTE = '__rounding';
 
+    /** What the budget check found for the voucher this service last saved (read by the screen that asked). @var array<string, mixed>|null */
+    private ?array $budgetCheck = null;
+
+    public function budgetCheck(): ?array
+    {
+        return $this->budgetCheck;
+    }
+
     public function __construct(
         private NumberingService $numbering,
         private PeriodGuard $guard,
@@ -71,7 +79,13 @@ class VoucherService
             }
         }
 
-        return $this->describe($plan);
+        $out = $this->describe($plan);
+        $check = app(BudgetControl::class)->assess($plan, $type, $data, $user);
+        if ($check['breaches']) {
+            $out['budget'] = $check;   // the screen can warn before it is saved
+        }
+
+        return $out;
     }
 
     public function create(array $data, ?User $user = null): Voucher
@@ -81,8 +95,13 @@ class VoucherService
         return DB::transaction(function () use ($data, $type, $user) {
             $plan = $this->plan($data, $type, null, $user);
             $this->guard->assert('create', $plan['date'], $user, $type->id);
+            $budget = $this->budgetCheck = app(BudgetControl::class)->assess($plan, $type, $data, $user);
+            if ($budget['action'] === 'block') {
+                throw new BooksException(app(BudgetControl::class)->message($budget));
+            }
 
             $voucher = $this->persist($plan, $data, $user, null);
+            app(BudgetControl::class)->record($voucher, $budget, $user);
             $this->audit($voucher, 'created', $user);
             $this->versionHook($voucher, 'created', $user);
             $this->rewardHook($voucher);
@@ -151,8 +170,13 @@ class VoucherService
             $voucher->entries()->delete();
             $voucher->billRefs()->delete();
 
+            $budget = $this->budgetCheck = app(BudgetControl::class)->assess($plan, $type, $data, $user);   // after its old entries are gone, so they are not counted twice
+            if ($budget['action'] === 'block') {
+                throw new BooksException(app(BudgetControl::class)->message($budget));
+            }
             $before = $voucher->only(['date', 'total_amount', 'party_ledger_id', 'narration']);
             $voucher = $this->persist($plan, $data, $user, $voucher);
+            app(BudgetControl::class)->record($voucher, $budget, $user);
             $this->audit($voucher, 'altered', $user, ['before' => $before]);
             $this->versionHook($voucher, 'altered', $user);
             $this->rewardHook($voucher);
@@ -196,6 +220,7 @@ class VoucherService
                 'status' => Voucher::CANCELLED, 'cancelled_at' => now(), 'cancelled_by' => $user?->id,
                 'cancel_reason' => $reason, 'fulfilment_status' => $voucher->fulfilment_status ? 'closed' : null,
             ]);
+            app(BudgetControl::class)->withdraw($voucher->id);
             $this->audit($voucher, 'cancelled', $user, ['reason' => $reason]);
             app(InstrumentService::class)->void($voucher);
             if (! empty($voucher->meta['bounce'])) {

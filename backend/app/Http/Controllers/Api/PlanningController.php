@@ -3,6 +3,7 @@
 namespace App\Http\Controllers\Api;
 
 use App\Http\Controllers\Controller;
+use App\Services\Books\BudgetControl;
 use App\Services\Books\BudgetService;
 use App\Services\Books\BudgetTemplateService;
 use App\Services\Books\ForecastService;
@@ -15,7 +16,7 @@ use Illuminate\Http\Request;
  */
 class PlanningController extends Controller
 {
-    public function __construct(private BudgetService $budgets, private ForecastService $forecast, private BudgetTemplateService $templates) {}
+    public function __construct(private BudgetService $budgets, private ForecastService $forecast, private BudgetTemplateService $templates, private BudgetControl $control) {}
 
     public function show(Request $request): JsonResponse
     {
@@ -26,7 +27,8 @@ class PlanningController extends Controller
         $version = BudgetService::ready() ? $this->budgets->resolveVersion($in['version_id'] ?? null) : null;
 
         return response()->json([
-            'version_id' => $version, 'budgets' => $this->budgets->budgets(), 'approvals' => $version ? $this->budgets->approvalLog($version) : [], 'budget_types' => BudgetService::TYPES, 'templates' => $this->templates->templates(), 'templates_ready' => BudgetTemplateService::ready(),
+            'version_id' => $version, 'budgets' => $this->budgets->budgets(), 'approvals' => $version ? $this->budgets->approvalLog($version) : [], 'budget_types' => BudgetService::TYPES, 'controls' => ['ready' => BudgetControl::ready(), 'rules' => $this->control->rules(), 'overrides' => $this->control->overrides(), 'settings' => $this->control->settings(), 'modes' => BudgetControl::MODES],
+            'templates' => $this->templates->templates(), 'templates_ready' => BudgetTemplateService::ready(),
             'budgets_ready' => BudgetService::ready(), 'forecast_ready' => ForecastService::ready(), 'from' => $from, 'to' => $to, 'months' => BudgetService::months($from, $to),
             'choices' => $this->budgets->choices(), 'lines' => $this->budgets->lines($from, $to, $version), 'items' => $this->forecast->items(),
             'kinds' => ForecastService::KINDS, 'frequencies' => ForecastService::FREQUENCIES, 'certainty' => ForecastService::CERTAINTY,
@@ -55,6 +57,26 @@ class PlanningController extends Controller
         $in = $request->validate(['type' => 'required|in:group,ledger', 'target_id' => 'required|integer', 'year' => 'required|integer|min:2000|max:2100', 'cost_centre_id' => 'nullable|integer', 'department_id' => 'nullable|integer', 'location_id' => 'nullable|integer']);
 
         return response()->json(['months' => $this->budgets->history($in, (int) $in['year'])]);
+    }
+
+    public function saveRule(Request $request): JsonResponse
+    {
+        return response()->json(['id' => $this->control->saveRule($request->all(), $request->user())]);
+    }
+
+    public function removeRule(int $id): JsonResponse
+    {
+        $this->control->removeRule($id);
+
+        return response()->json(['ok' => true]);
+    }
+
+    /** Accept or turn down an overspend that is waiting (needs books.budget.approve: the route). */
+    public function decideOverride(Request $request, int $id, string $action): JsonResponse
+    {
+        $in = $request->validate(['note' => 'nullable|string|max:255']);
+
+        return response()->json(['status' => $this->control->decide($id, $action, $request->user(), $in['note'] ?? null)]);
     }
 
     public function createBudget(Request $request): JsonResponse

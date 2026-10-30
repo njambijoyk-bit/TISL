@@ -560,7 +560,7 @@ class BudgetService
     }
 
     /** The ledgers a row covers (a group's include every group under it). @return int[] */
-    private function ledgerIds(string $type, int $id, \Illuminate\Support\Collection $ledgerGroup): array
+    public function ledgerIds(string $type, int $id, \Illuminate\Support\Collection $ledgerGroup): array
     {
         return $type === 'group'
             ? $ledgerGroup->filter(fn ($g) => in_array($g, app(ReportSettings::class)->withDescendants($id), true))->keys()->map(fn ($i) => (int) $i)->all()

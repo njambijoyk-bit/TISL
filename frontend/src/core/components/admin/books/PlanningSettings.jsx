@@ -6,6 +6,7 @@ import { errMsg } from '../../../../_shared/store/helpers/apiState';
 import { hasPermission } from '../../../../_shared/lib/roles';
 import { btnGhost, btnPrimary, card, colors } from '../../../../_shared/theme/tokens';
 import BudgetBar from './BudgetBar';
+import BudgetControls from './BudgetControls';
 import BudgetGrid from './BudgetGrid';
 import BudgetInitiatives from './BudgetInitiatives';
 import BudgetTemplates from './BudgetTemplates';
@@ -106,6 +107,7 @@ export default function PlanningSettings() {
       <BudgetBar data={data} versionId={versionId} setVersionId={setVersionId} setYear={setYear} reload={load} />
       <BudgetGrid data={data} year={year} setYear={setYear} reload={load} canEdit={canEdit} versionId={versionId} />
       <BudgetTemplates data={data} versionId={versionId} canEdit={canPlan} reload={load} onMade={(v, y) => { setVersionId(v); setYear(y); }} />
+      <BudgetControls data={data} canEdit={canPlan} reload={load} />
       <BudgetInitiatives initiatives={data.choices.initiatives} canEdit={canPlan} reload={load} />
       <Items data={data} reload={load} canEdit={canPlan} />
       <ReportsSettings only="forecast" />

@@ -105,6 +105,7 @@ class NoRoleNamesInCodeTest extends TestCase
         'books.reconcile' => ['super_admin', 'admin'],
         'books.reconcile.approve' => ['super_admin', 'admin'],
         'books.close.prepare' => ['super_admin'],
+        'books.budget.exceed' => ['super_admin', 'admin'],
         'books.budget.approve' => ['super_admin', 'admin'],
         'books.planning' => ['super_admin', 'admin'],
         'stock.view' => ['super_admin', 'admin', 'manager', 'finance'],

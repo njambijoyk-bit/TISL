@@ -71,6 +71,13 @@ class ReportSettingDefinitions
                 'forecast_supplier_terms_days' => ['type' => 'int', 'label' => 'Supplier bills with no due date are paid this many days after the bill date', 'hint' => 'A bill that has a due date is paid on it. 0 means on the bill date.', 'default' => 0, 'min' => 0, 'max' => 180],
                 'forecast_include_tax' => ['type' => 'bool', 'label' => 'Include the tax now owed, paid on the filing day', 'hint' => 'Counts what the tax return shows as owed, on the next filing due day set in Tax control. It is an estimate.', 'default' => true],
             ]],
+            'budget_control' => ['title' => 'Budget controls', 'hint' => 'What happens when a purchase, payment or journal would take an expense past its budget. Exceptions for one account, department or cost centre are listed below.', 'permission' => 'books.planning', 'settings' => [
+                'budget_control_mode' => ['type' => 'enum', 'label' => 'When a voucher goes over budget', 'hint' => 'Warn: it posts and the person is told. Wait for approval: it posts, and an approver must accept the overspend. Block: it cannot be posted. People who hold the permission to exceed budgets are never stopped.', 'default' => 'off',
+                    'options' => ['off' => 'Do not check', 'warn' => 'Warn and post', 'approval' => 'Post, then wait for approval', 'block' => 'Block']],
+                'budget_control_basis' => ['type' => 'enum', 'label' => 'Check against', 'hint' => 'Year to date adds the budget of every month so far, so a quiet January leaves room for February. The month is stricter; the whole budget is looser.', 'default' => 'ytd',
+                    'options' => ['ytd' => 'The budget year to date', 'month' => 'This month only', 'year' => 'The whole budget']],
+                'budget_alert_percent' => ['type' => 'int', 'label' => 'Warn when this much of the budget is used (%)', 'hint' => 'A voucher that takes a line past this share, but not over it, gets a gentle warning. 0 turns it off.', 'default' => 80, 'min' => 0, 'max' => 100],
+            ]],
             'approvals' => ['title' => 'Approvals', 'hint' => 'Whether a second person must approve before a reconciliation, a budget or the year-end close is final. Every change here is logged.', 'permission' => 'books.reports.approval', 'settings' => [
                 'second_approver_reconcile' => ['type' => 'bool', 'label' => 'A reconciliation needs a second approver', 'hint' => 'On: the person who prepared it cannot approve it.', 'default' => true],
                 'second_approver_budget' => ['type' => 'bool', 'label' => 'A budget needs a second approver', 'hint' => 'On: the person who submitted a budget version cannot approve it.', 'default' => true],

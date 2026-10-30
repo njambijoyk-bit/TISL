@@ -3,6 +3,9 @@
 namespace Tests\Feature;
 
 use App\Models\User;
+use App\Models\Books\Voucher;
+use App\Models\Books\VoucherType;
+use App\Services\Books\BudgetControl;
 use App\Services\Books\BudgetMethods;
 use App\Services\Books\Engine\Reports\BudgetAgainstActualReport;
 use App\Services\Books\BudgetService;
@@ -25,7 +28,7 @@ class PlanningTest extends TestCase
     use Concerns\RunsSqlScripts;
     use Concerns\StandsInForAccess;
 
-    private const TABLES = ['locations', 'budget_lines', 'budget_rows', 'budget_initiatives', 'budgets', 'budget_versions', 'budget_approvals', 'budget_templates', 'budget_template_lines', 'users', 'forecast_items', 'voucher_bill_refs', 'report_settings', 'report_settings_log'];
+    private const TABLES = ['locations', 'budget_lines', 'budget_rows', 'budget_initiatives', 'budgets', 'budget_versions', 'budget_approvals', 'budget_templates', 'budget_template_lines', 'budget_control_rules', 'budget_overrides', 'users', 'forecast_items', 'voucher_bill_refs', 'report_settings', 'report_settings_log'];
 
     protected function setUp(): void
     {
@@ -34,7 +37,7 @@ class PlanningTest extends TestCase
         foreach (self::TABLES as $t) {
             Schema::dropIfExists($t);
         }
-        $this->runSqlScripts('237_planning.sql', '239_budgeting.sql', '240_budget_versions.sql', '241_budget_templates.sql');
+        $this->runSqlScripts('237_planning.sql', '239_budgeting.sql', '240_budget_versions.sql', '241_budget_templates.sql', '242_budget_controls.sql');
         // script 239 replaces budget_lines' old (period, target) key with (row_id, period); SQLite here cannot drop an inline key, so the table is rebuilt as the script leaves it
         Schema::dropIfExists('budget_lines');
         Schema::create('budget_lines', function ($t) {
@@ -502,6 +505,190 @@ class PlanningTest extends TestCase
         $svc->save([['type' => 'ledger', 'target_id' => 6, 'months' => ['2026-01' => 5], 'method' => 'fixed', 'method_params' => ['amount' => 5]]], null, $v);
 
         return $v;
+    }
+
+    // ── controls ───────────────────────────────────────────────────────
+
+    /** An approved budget of 1,000 a month for Rent on Admin; Rent on Admin already has 4,000 booked in July. */
+    private function controlWorld(string $mode = 'warn'): void
+    {
+        $this->setting('budget_control_mode', $mode);
+        $this->setting('second_approver_budget', false);
+        $svc = app(BudgetService::class);
+        $b = $svc->createBudget(['name' => '2026', 'from_month' => '2026-01', 'to_month' => '2026-12'], null);
+        $v = $svc->currentVersion($b);
+        $svc->save([['type' => 'ledger', 'target_id' => 6, 'cost_centre_id' => 11, 'months' => array_combine(array_map(fn ($m) => sprintf('2026-%02d', $m), range(1, 12)), array_fill(0, 12, 1000))]], null, $v);
+        $svc->transition($v, 'submit', $this->user(1));
+        $svc->transition($v, 'approve', $this->user(2));
+    }
+
+    private function purchase(float $amount, string $date = '2026-08-15', int $ledger = 6, ?int $cc = 11): array
+    {
+        $plan = ['date' => Carbon::parse($date), 'location_id' => 1, 'rate' => 1, 'entries' => [
+            ['ledger_id' => $ledger, 'side' => 'D', 'amount' => $amount, 'base_amount' => $amount, 'cost_centre_id' => $cc],
+            ['ledger_id' => 8, 'side' => 'C', 'amount' => $amount, 'base_amount' => $amount, 'is_party' => true],
+        ]];
+
+        return [$plan, new VoucherType(['base_type' => 'purchase']), []];
+    }
+
+    private function check(float $amount, ?User $user = null, string $date = '2026-08-15', int $ledger = 6, ?int $cc = 11): array
+    {
+        [$plan, $type, $data] = $this->purchase($amount, $date, $ledger, $cc);
+
+        return app(BudgetControl::class)->assess($plan, $type, $data, $user ?? $this->user(7));
+    }
+
+    public function test_nothing_is_checked_when_controls_are_off_or_there_is_no_budget_or_the_voucher_is_not_a_purchase(): void
+    {
+        $this->assertSame('none', $this->check(999999)['action'], 'no budget at all');
+        $this->controlWorld('off');
+        $this->assertSame('none', $this->check(999999)['action'], 'controls are off');
+        $this->controlWorld('block');
+        [$plan, , $data] = $this->purchase(999999);
+        $this->assertSame('none', app(BudgetControl::class)->assess($plan, new VoucherType(['base_type' => 'sales']), $data, $this->user(7))['action'], 'a sale is never held up');
+    }
+
+    public function test_a_voucher_inside_its_budget_year_to_date_passes_and_one_over_it_is_caught(): void
+    {
+        $this->controlWorld('warn');
+        $this->assertSame('none', $this->check(2000)['action'], '4,000 + 2,000 is 75% of the 8,000 budgeted January to August: well inside');
+        $this->assertSame('warn', $this->check(3000)['action'], '87.5% is over the 80% line');
+        $this->assertSame('near', $this->check(3000)['breaches'][0]['level']);
+        $this->assertSame('warn', $this->check(5000)['action']);
+        $this->assertSame('over', $this->check(5000)['breaches'][0]['level']);
+    }
+
+    public function test_the_choice_decides_what_follows_an_overspend_and_a_person_who_may_exceed_is_never_stopped(): void
+    {
+        $this->controlWorld('warn');
+        $c = $this->check(5000);   // 4,000 + 5,000 = 9,000 against 8,000
+        $this->assertSame('warn', $c['action']);
+        $this->assertSame('over', $c['breaches'][0]['level']);
+        $this->assertEquals([8000, 4000, 5000, 9000, 1000, 112.5], [$c['breaches'][0]['budget'], $c['breaches'][0]['spent_before'], $c['breaches'][0]['amount'], $c['breaches'][0]['after'], $c['breaches'][0]['over_by'], $c['breaches'][0]['used_pct']]);
+        $this->assertSame('Rent, Admin', $c['breaches'][0]['line']);
+        $this->setting('budget_control_mode', 'approval');
+        $this->assertSame('approval', $this->check(5000)['action']);
+        $this->setting('budget_control_mode', 'block');
+        $blocked = $this->check(5000);
+        $this->assertSame('block', $blocked['action']);
+        $this->assertStringContainsString('It is blocked', app(BudgetControl::class)->message($blocked));
+        $boss = $this->user(9);
+        $this->grant($boss, ['books.budget.exceed']);
+        $allowed = $this->check(5000, $boss);
+        $this->assertSame('allowed', $allowed['action']);
+        $this->assertTrue($allowed['can_exceed']);
+        $this->assertSame('over', $allowed['breaches'][0]['level'], 'they are still told');
+    }
+
+    public function test_a_line_close_to_its_budget_gets_a_gentle_warning_and_the_alert_can_be_turned_off(): void
+    {
+        $this->controlWorld('block');
+        $near = $this->check(2500);   // 6,500 of 8,000 is 81.3%
+        $this->assertSame('warn', $near['action'], 'near is only ever a warning, even when blocking');
+        $this->assertSame('near', $near['breaches'][0]['level']);
+        $this->assertEquals(81.3, $near['breaches'][0]['used_pct']);
+        $this->setting('budget_alert_percent', 0);
+        $this->assertSame('none', $this->check(2500)['action']);
+        $this->assertSame('none', $this->check(1000)['action']);
+    }
+
+    public function test_the_basis_changes_the_budget_a_voucher_is_checked_against(): void
+    {
+        $this->controlWorld('warn');
+        $this->setting('budget_control_basis', 'month');
+        $this->assertSame('warn', $this->check(1500)['action'], 'August has 1,000');
+        $this->assertEquals(1000, $this->check(1500)['breaches'][0]['budget']);
+        $this->setting('budget_control_basis', 'year');
+        $this->assertSame('none', $this->check(5000, null, '2026-08-15')['action'], '4,000 + 5,000 against 12,000 for the year');
+        $this->assertEquals(12000, $this->check(8100)['breaches'][0]['budget']);
+    }
+
+    public function test_the_cost_centre_and_branch_of_the_voucher_decide_which_budget_line_it_counts_against(): void
+    {
+        $this->controlWorld('block');
+        $this->assertSame('none', $this->check(999999, null, '2026-08-15', 6, 10)['action'], 'Head office has no rent budget row of its own: nothing to be over');
+        $this->assertSame('none', $this->check(999999, null, '2026-08-15', 9, 11)['action'], 'another account entirely');
+        $row = DB::table('budget_rows')->first();
+        DB::table('budget_rows')->where('id', $row->id)->update(['location_id' => 2, 'dim_key' => '11-0-2-0-0']);
+        $this->assertSame('none', $this->check(999999)['action'], 'the row is for Mombasa; this voucher is for branch 1');
+    }
+
+    public function test_an_exception_for_an_account_or_department_beats_the_company_wide_choice(): void
+    {
+        $this->controlWorld('block');
+        $c = app(BudgetControl::class);
+        $c->saveRule(['scope_type' => 'ledger', 'scope_id' => 6, 'mode' => 'warn'], null);
+        $this->assertSame('warn', $this->check(5000)['action'], 'rent only warns, whatever the default says');
+        $c->saveRule(['scope_type' => 'ledger', 'scope_id' => 6, 'mode' => 'off'], null);
+        $this->assertSame('none', $this->check(5000)['action'], 'and can be left out altogether');
+        $this->assertCount(1, $c->rules());
+        $this->assertSame('Rent', $c->rules()[0]['name']);
+        $this->setting('budget_control_mode', 'off');
+        $c->saveRule(['scope_type' => 'ledger', 'scope_id' => 6, 'mode' => 'block'], null);
+        $this->assertSame('block', $this->check(5000)['action'], 'an exception can switch a control on when the company default is off');
+        $c->removeRule($c->rules()[0]['id']);
+        $this->assertSame([], $c->rules());
+        $this->expectException(ValidationException::class);
+        $c->saveRule(['scope_type' => 'ledger', 'scope_id' => 99999, 'mode' => 'nope'], null);
+    }
+
+    public function test_an_overspend_is_recorded_waits_for_a_second_person_and_goes_when_the_voucher_is_cancelled(): void
+    {
+        $this->controlWorld('approval');
+        $c = app(BudgetControl::class);
+        $voucher = new Voucher(); $voucher->id = 41;
+        $c->record($voucher, $this->check(5000, $this->user(7)), $this->user(7));
+        $o = $c->overrides();
+        $this->assertCount(1, $o);
+        $this->assertSame(['pending', 'Rent, Admin', 1000.0], [$o[0]['status'], $o[0]['line_label'], (float) $o[0]['over_by']]);
+        $this->setting('second_approver_budget', true);
+        try {
+            $c->decide((int) $o[0]['id'], 'approve', $this->user(7), null);
+            $this->fail('the person who posted it approved it');
+        } catch (ValidationException $e) {
+            $this->assertStringContainsString('second person', $e->errors()['status'][0]);
+        }
+        try {
+            $c->decide((int) $o[0]['id'], 'reject', $this->user(8), '');
+            $this->fail('turned down without a reason');
+        } catch (ValidationException $e) {
+            $this->assertArrayHasKey('note', $e->errors());
+        }
+        $this->assertSame('approved', $c->decide((int) $o[0]['id'], 'approve', $this->user(8), 'Fine'));
+        try {
+            $c->decide((int) $o[0]['id'], 'approve', $this->user(8), null);
+            $this->fail('decided twice');
+        } catch (ValidationException $e) {
+            $this->assertArrayHasKey('status', $e->errors());
+        }
+        $voucher2 = new Voucher(); $voucher2->id = 42;
+        $c->record($voucher2, $this->check(5000, $this->user(7)), $this->user(7));
+        $this->assertSame('pending', $c->overrides('pending')[0]['status']);
+        $c->withdraw(42);
+        $this->assertSame([], $c->overrides('pending'), 'a cancelled voucher needs no approval');
+        $c->record($voucher2, $this->check(2500, $this->user(7)), $this->user(7));
+        $this->assertCount(1, $c->overrides(), 'a voucher only near its budget records nothing, and the approved one stays');
+    }
+
+    public function test_the_controls_screen_and_its_routes_need_the_right_permissions(): void
+    {
+        $this->controlWorld('approval');
+        $c = app(BudgetControl::class);
+        $v = new Voucher(); $v->id = 50;
+        $c->record($v, $this->check(5000), $this->user(7));
+        $id = $c->overrides()[0]['id'];
+        $this->as(['books.view']);
+        $this->getJson('/api/admin/books/planning?from=2026-01-01&to=2026-12-31')->assertOk()->assertJsonPath('controls.ready', true)->assertJsonPath('controls.overrides.0.status', 'pending')->assertJsonPath('controls.settings.mode', 'approval');
+        $this->postJson('/api/admin/books/planning/control-rules', ['scope_type' => 'ledger', 'scope_id' => 6, 'mode' => 'warn'])->assertForbidden();
+        $this->as(['books.view', 'books.planning']);
+        $rule = $this->postJson('/api/admin/books/planning/control-rules', ['scope_type' => 'ledger', 'scope_id' => 6, 'mode' => 'warn'])->assertOk()->json('id');
+        $this->postJson('/api/admin/books/planning/control-rules', ['scope_type' => 'ledger', 'scope_id' => 6, 'mode' => 'x'])->assertStatus(422);
+        $this->postJson("/api/admin/books/planning/overrides/{$id}/approve")->assertForbidden();
+        $this->deleteJson("/api/admin/books/planning/control-rules/{$rule}")->assertOk();
+        $this->as(['books.view', 'books.budget.approve']);
+        $this->postJson("/api/admin/books/planning/overrides/{$id}/reject", [])->assertStatus(422);
+        $this->postJson("/api/admin/books/planning/overrides/{$id}/reject", ['note' => 'No'])->assertOk()->assertJsonPath('status', 'rejected');
     }
 
     // ── the report ─────────────────────────────────────────────────────

@@ -110,13 +110,26 @@ class BooksVoucherController extends Controller
         return $this->guard(fn () => response()->json($this->vouchers->preview($request->all(), $request->user())));
     }
 
+    /** A sentence for the screen when the voucher it just saved went over (or close to) a budget. */
+    private function budgetNote(): string
+    {
+        $b = $this->vouchers->budgetCheck();
+        if (! $b || ! $b['breaches']) {
+            return '';
+        }
+        $first = collect($b['breaches'])->firstWhere('level', 'over') ?? $b['breaches'][0];
+        $what = $first['level'] === 'over' ? 'is over its budget by ' . number_format($first['over_by'], 2) : 'has used ' . $first['used_pct'] . '% of its budget';
+
+        return ". Note: {$first['line']} {$what}" . ($b['action'] === 'approval' ? ' and waits for approval.' : '.');
+    }
+
     public function store(Request $request): JsonResponse
     {
         return $this->guard(function () use ($request) {
             $this->writableAt($request->input('location_id') ?: \App\Models\Location::default()?->id, $request->input('cost_centre_id'));
             $v = $this->vouchers->create($request->all(), $request->user());
 
-            return response()->json(['message' => "{$v->voucher_number} saved", 'data' => $v->load($this->vouchers->relations())], 201);
+            return response()->json(['message' => "{$v->voucher_number} saved" . $this->budgetNote(), 'data' => $v->load($this->vouchers->relations()), 'budget' => $this->vouchers->budgetCheck()], 201);
         });
     }
 
@@ -129,7 +142,7 @@ class BooksVoucherController extends Controller
             }
             $v = $this->vouchers->alter($existing, $request->all(), $request->user());
 
-            return response()->json(['message' => "{$v->voucher_number} updated", 'data' => $v->load($this->vouchers->relations())]);
+            return response()->json(['message' => "{$v->voucher_number} updated" . $this->budgetNote(), 'data' => $v->load($this->vouchers->relations()), 'budget' => $this->vouchers->budgetCheck()]);
         });
     }
 
