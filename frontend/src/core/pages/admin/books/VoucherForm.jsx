@@ -1000,6 +1000,15 @@ export default function VoucherForm({ api = booksAPI, mode = 'books' }) {
             {type && isEntries && (
               <div style={{ ...card, padding: 18 }}>
                 <p style={{ margin: '0 0 10px', fontWeight: 700, color: colors.text }}>Entries</p>
+                {(() => {   // titles over the columns, in the same grid as the rows
+                  const cols = cc.ready && cc.line_override ? '90px minmax(200px,1fr) minmax(140px,200px) 140px auto' : '90px minmax(200px,1fr) 140px auto';
+                  const head = { fontSize: '0.65rem', fontWeight: 700, color: colors.textFaint, textTransform: 'uppercase' };
+                  return (
+                    <div style={{ display: 'grid', gridTemplateColumns: cols, gap: 8, marginBottom: 4 }}>
+                      <span style={head}>Dr / Cr</span><span style={head}>Ledger</span>{cc.ready && cc.line_override && <span style={head}>Cost centre</span>}<span style={head}>Amount</span><span />
+                    </div>
+                  );
+                })()}
                 {entries.map((e, i) => (
                   <div key={i} style={{ display: 'grid', gridTemplateColumns: cc.ready && cc.line_override ? '90px minmax(200px,1fr) minmax(140px,200px) 140px auto' : '90px minmax(200px,1fr) 140px auto', gap: 8, marginBottom: 8, alignItems: 'center' }}>
                     <select value={e.side} onChange={(ev) => setEntry(i, { side: ev.target.value })} style={small}><option value="D">Dr</option><option value="C">Cr</option></select>

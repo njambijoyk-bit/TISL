@@ -29,6 +29,8 @@ function LedgerEditor({ template, ledgers, onSaved, onClose }) {
   const entries = state.entries ?? [];
   const lines = (state.lines ?? []).map((l, i) => [l, i]).filter(([l]) => l.type === 'custom' || l.other);
   const setEntry = (i, patch) => setState((s) => ({ ...s, entries: s.entries.map((e, j) => (j === i ? { ...e, ...patch } : e)) }));
+  const addEntry = () => setState((st) => ({ ...st, entries: [...(st.entries ?? []), { ledger_id: '', side: (st.entries ?? []).filter((e) => e.side === 'D').length > (st.entries ?? []).filter((e) => e.side === 'C').length ? 'C' : 'D', amount: '' }] }));
+  const removeEntry = (i) => setState((st) => ({ ...st, entries: st.entries.filter((_, j) => j !== i) }));
   const setLine = (i, patch) => setState((s) => ({ ...s, lines: s.lines.map((l, j) => (j === i ? { ...l, ...patch } : l)) }));
   const save = async () => {
     setBusy(true);
@@ -42,12 +44,14 @@ function LedgerEditor({ template, ledgers, onSaved, onClose }) {
     <div style={{ marginTop: 8, padding: 12, background: colors.tint(0.04), borderRadius: 8, display: 'grid', gap: 8, width: '100%' }}>
       {entries.length === 0 && lines.length === 0 && <p style={{ margin: 0, fontSize: '0.78rem', color: colors.textMuted }}>This template has no ledger lines to set. Save a form with entries or ledger lines as a template first.</p>}
       {entries.map((e, i) => (
-        <div key={`e${i}`} style={{ display: 'grid', gridTemplateColumns: '60px minmax(0,1fr) 110px', gap: 8, alignItems: 'center' }}>
+        <div key={`e${i}`} style={{ display: 'grid', gridTemplateColumns: '60px minmax(0,1fr) 110px 34px', gap: 8, alignItems: 'center' }}>
           <SelectInput value={e.side} onChange={(ev) => setEntry(i, { side: ev.target.value })} aria-label="Debit or credit"><option value="D">Dr</option><option value="C">Cr</option></SelectInput>
           <LedgerPicker ledgers={ledgers} value={e.ledger_id} style={small} onPick={(l) => setEntry(i, { ledger_id: l.id })} />
           <input type="number" min="0" step="0.01" value={e.amount ?? ''} onChange={(ev) => setEntry(i, { amount: ev.target.value })} placeholder="Amount (optional)" style={small} aria-label="Usual amount" />
+          <button type="button" aria-label="Remove entry" disabled={entries.length <= 2} onClick={() => removeEntry(i)} style={{ ...btnGhost, padding: '4px 6px', opacity: entries.length <= 2 ? 0.4 : 1 }}>✕</button>
         </div>
       ))}
+      {(entries.length > 0 || ['journal', 'contra'].includes(template.base_type)) && entries.length < 8 && <button type="button" style={{ ...btnGhost, alignSelf: 'flex-start', padding: '3px 12px', fontSize: '0.75rem' }} onClick={addEntry}>+ Entry ({entries.length} of 8)</button>}
       {lines.map(([l, i]) => (
         <div key={`l${i}`} style={{ display: 'grid', gridTemplateColumns: 'minmax(0,1fr) minmax(0,1fr) 110px', gap: 8, alignItems: 'center' }}>
           <LedgerPicker ledgers={ledgers} value={l.ledger_id} style={small} onPick={(x) => setLine(i, { ledger_id: x.id, description: l.description || x.name })} />
