@@ -473,6 +473,9 @@ export default function AccountsTab({ canWrite }) {
   const [ledgerForm, setLedgerForm] = useState(null);
   const [groupForm, setGroupForm] = useState(false);
   const [starters, setStarters] = useState(false);
+  const [starterPending, setStarterPending] = useState(0);   // what the starter packs would still add: 0 hides the button
+  const loadStarterPending = useCallback(() => { booksAPI.chartStarters().then((r) => setStarterPending(r.pending ?? 1)).catch(() => setStarterPending(1)); }, []);
+  useEffect(() => { loadStarterPending(); }, [loadStarterPending]);
   const [search, setSearch] = useState('');
   const narrow = useNarrow(900);
   const [showGroups, setShowGroups] = useState(false);   // on a small screen the group picker stays out of the way until asked for
@@ -609,7 +612,7 @@ export default function AccountsTab({ canWrite }) {
               )}
             </span>
             <input value={search} onChange={(e) => setSearch(e.target.value)} placeholder="Search ledgers…" aria-label="Search ledgers" style={{ flex: '1 1 150px', minWidth: 0, padding: '7px 10px', borderRadius: 8, border: `1.5px solid ${colors.tint(0.18)}`, fontSize: '0.8rem' }} />
-            {canWrite && <button type="button" style={btnGhost} onClick={() => setStarters(true)}>Add starter accounts</button>}
+            {canWrite && starterPending > 0 && <button type="button" style={btnGhost} onClick={() => setStarters(true)}>Add starter accounts</button>}
             {canWrite && <button type="button" style={btnPrimary} onClick={() => setLedgerForm('new')}><Plus size={14} /> New ledger</button>}
           </div>
         </div>
@@ -627,7 +630,7 @@ export default function AccountsTab({ canWrite }) {
       </div>
       {ledgerForm && <LedgerForm ledger={ledgerForm === 'new' ? null : ledgerForm} groups={groups} defaultGroupId={sel?.id} onClose={() => setLedgerForm(null)} onSaved={() => { loadLedgers(); loadGroups(); }} />}
       {groupForm && <GroupForm groups={groups} parentId={sel?.id} onClose={() => setGroupForm(false)} onSaved={loadGroups} />}
-      {starters && <StarterAccounts onClose={() => setStarters(false)} onDone={() => { loadGroups(); loadLedgers(); }} />}
+      {starters && <StarterAccounts onClose={() => setStarters(false)} onDone={() => { loadGroups(); loadLedgers(); loadStarterPending(); }} />}
     </div>
   );
 }

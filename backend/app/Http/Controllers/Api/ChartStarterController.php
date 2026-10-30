@@ -14,7 +14,11 @@ class ChartStarterController extends Controller
 
     public function index(): JsonResponse
     {
-        return response()->json(['packs' => $this->starters->packs(), 'log_ready' => ChartStarterService::logReady()]);
+        // what each pack would still add (new groups, new ledgers or moves), so the screen can hide the button when nothing is left
+        $todo = collect($this->starters->preview(array_column($this->starters->packs(), 'key'))['packs'])->mapWithKeys(fn ($p) => [$p['key'] => $p['counts']['new_groups'] + $p['counts']['new_ledgers'] + $p['counts']['moves']]);
+        $packs = array_map(fn ($p) => $p + ['pending' => (int) ($todo[$p['key']] ?? 0)], $this->starters->packs());
+
+        return response()->json(['packs' => $packs, 'pending' => (int) $todo->sum(), 'log_ready' => ChartStarterService::logReady()]);
     }
 
     public function preview(Request $request): JsonResponse

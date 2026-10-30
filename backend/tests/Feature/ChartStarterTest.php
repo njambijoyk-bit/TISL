@@ -146,6 +146,18 @@ class ChartStarterTest extends TestCase
         $this->postJson('/api/admin/books/chart-starters/apply', ['packs' => ['nonsense']])->assertOk()->assertJsonPath('totals.new_groups', 0);
     }
 
+    public function test_the_list_says_what_is_left_to_add_so_the_button_can_hide(): void
+    {
+        $svc = app(ChartStarterService::class);
+        $u = new User();
+        $u->id = 5;
+        $this->grant($u, ['books.view']);
+        Sanctum::actingAs($u, ['*']);
+        $this->getJson('/api/admin/books/chart-starters')->assertOk()->assertJsonPath('packs.0.pending', fn ($n) => $n > 0);
+        $svc->apply(array_column($svc->packs(), 'key'), null);
+        $this->getJson('/api/admin/books/chart-starters')->assertOk()->assertJsonPath('pending', 0);
+    }
+
     public function test_every_pack_can_be_added_to_a_chart_that_has_the_standard_groups_without_clashing(): void
     {
         $keys = array_column(app(ChartStarterService::class)->packs(), 'key');
