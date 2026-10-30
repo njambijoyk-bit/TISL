@@ -29,6 +29,16 @@ class FixedAssetLedgers
         return Schema::hasTable('inventory_categories') && Schema::hasColumn('inventory_categories', 'asset_ledger_id');
     }
 
+    /** The name of the asset type (an Assets category) that posts to this ledger as its asset, accumulated depreciation or depreciation expense account, or null. */
+    public static function typeUsing(int $ledgerId): ?string
+    {
+        if (! self::ready()) {
+            return null;
+        }
+
+        return InventoryCategory::where('asset_ledger_id', $ledgerId)->orWhere('accumulated_ledger_id', $ledgerId)->orWhere('expense_ledger_id', $ledgerId)->value('name');
+    }
+
     /** Is a ledger in this group an asset type? */
     public function isAssetTypeGroup(int $groupId): bool
     {

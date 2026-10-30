@@ -131,6 +131,10 @@ class InventoryController extends Controller
     public function categoriesDestroy(int $id): JsonResponse
     {
         $category = InventoryCategory::findOrFail($id);
+        $inUse = InventoryItem::where('category_id', $category->id)->when(\Illuminate\Support\Facades\Schema::hasColumn('inventory_items', 'accounts_category_id'), fn ($q) => $q->orWhere('accounts_category_id', $category->id))->exists();
+        if ($inUse || InventoryCategory::where('parent_id', $category->id)->exists()) {   // its assets and their depreciation post through it
+            return response()->json(['message' => "\"{$category->name}\" has assets (or asset types) under it, so it cannot be deleted. Move or dispose of them first, or switch the type off."], 422);
+        }
         $category->delete();
 
         return response()->json(['message' => 'Category deleted.']);
@@ -447,6 +451,12 @@ class InventoryController extends Controller
     public function instancesDestroy(int $id): JsonResponse
     {
         $instance = InventoryInstance::findOrFail($id);
+        // an asset with books behind it is never deleted: its cost, depreciation or disposal are in the accounts. It is disposed of or written off instead.
+        $booked = $instance->acquisition_voucher_id || $instance->disposal_voucher_id || $instance->disposed_on || (float) $instance->opening_accumulated > 0
+            || (\Illuminate\Support\Facades\Schema::hasTable('asset_depreciation') && \App\Models\AssetDepreciation::where('instance_id', $instance->id)->exists());
+        if ($booked) {
+            return response()->json(['message' => 'This asset has depreciation, a purchase or a disposal in the books, so it cannot be deleted. Dispose of it (or write it off) instead, and the register and the books stay in step.'], 422);
+        }
         $instance->delete();
         $this->transactions->syncItemQty($instance->item_id);
 

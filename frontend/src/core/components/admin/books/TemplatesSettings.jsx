@@ -67,6 +67,64 @@ function LedgerEditor({ template, ledgers, onSaved, onClose }) {
   );
 }
 
+/** Make a template from scratch: a journal (or contra) with the ledgers it posts to, up to 8 entries, and how often it repeats. */
+function NewTemplate({ ledgers, onSaved, onClose }) {
+  const [types, setTypes] = useState([]);
+  const [f, setF] = useState({ name: '', category: '', type_id: '', narration: '', repeat_every: 'none', repeat_day: '' });
+  const [entries, setEntries] = useState([{ ledger_id: '', side: 'D', amount: '' }, { ledger_id: '', side: 'C', amount: '' }]);
+  const [busy, setBusy] = useState(false);
+  useEffect(() => { booksAPI.types().then((t) => { const j = t.filter((x) => ['journal', 'contra'].includes(x.base_type) && x.is_active); setTypes(j); setF((x) => ({ ...x, type_id: x.type_id || (j.find((y) => y.base_type === 'journal') ?? j[0])?.id || '' })); }).catch(() => {}); }, []);
+  const set = (k) => (e) => setF((x) => ({ ...x, [k]: e.target.value }));
+  const setEntry = (i, patch) => setEntries((es) => es.map((e, j) => (j === i ? { ...e, ...patch } : e)));
+  const save = async (e) => {
+    e.preventDefault();
+    if (!f.name.trim()) { toast.error('Give the template a name.'); return; }
+    if (!f.type_id) { toast.error('There is no journal voucher type to make it for.'); return; }
+    setBusy(true);
+    try {
+      await booksAPI.saveVoucherTemplate({ name: f.name.trim(), category: f.category || null, form: 'voucher', voucher_type_id: Number(f.type_id), form_state: { h: { narration: f.narration }, lines: [], entries, tenders: [], acct: false },
+        repeat_every: f.repeat_every, repeat_day: f.repeat_every === 'none' ? null : Number(f.repeat_day) || null });
+      toast.success('Template made'); onSaved();
+    } catch (x) { toast.error(errMsg(x, 'Could not make the template')); } finally { setBusy(false); }
+  };
+  return (
+    <form onSubmit={save} style={{ ...card, padding: 18, marginBottom: 16, display: 'grid', gap: 10 }}>
+      <strong style={{ fontSize: '0.9rem' }}>New template</strong>
+      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit,minmax(180px,1fr))', gap: 8 }}>
+        <Field label="Name"><TextInput value={f.name} onChange={set('name')} placeholder="e.g. Pay licence fees" /></Field>
+        <Field label="Group (optional)"><TextInput value={f.category} onChange={set('category')} placeholder="Premises, Staff…" /></Field>
+        <Field label="Voucher type"><SelectInput value={f.type_id} onChange={set('type_id')}>{types.map((t) => <option key={t.id} value={t.id}>{t.name}</option>)}</SelectInput></Field>
+        <Field label="Narration"><TextInput value={f.narration} onChange={set('narration')} placeholder="What it is for" /></Field>
+      </div>
+      <div style={{ display: 'grid', gap: 8 }}>
+        {entries.map((e, i) => (
+          <div key={i} style={{ display: 'grid', gridTemplateColumns: '60px minmax(0,1fr) 110px 34px', gap: 8, alignItems: 'center' }}>
+            <SelectInput value={e.side} onChange={(ev) => setEntry(i, { side: ev.target.value })} aria-label="Debit or credit"><option value="D">Dr</option><option value="C">Cr</option></SelectInput>
+            <LedgerPicker ledgers={ledgers} value={e.ledger_id} style={small} onPick={(l) => setEntry(i, { ledger_id: l.id })} />
+            <input type="number" min="0" step="0.01" value={e.amount} onChange={(ev) => setEntry(i, { amount: ev.target.value })} placeholder="Usual amount" style={small} aria-label="Usual amount" />
+            <button type="button" aria-label="Remove entry" disabled={entries.length <= 2} onClick={() => setEntries((es) => es.filter((_, j) => j !== i))} style={{ ...btnGhost, padding: '4px 6px', opacity: entries.length <= 2 ? 0.4 : 1 }}>✕</button>
+          </div>
+        ))}
+        {entries.length < 8 && <button type="button" style={{ ...btnGhost, alignSelf: 'flex-start', padding: '3px 12px', fontSize: '0.75rem' }} onClick={() => setEntries((es) => [...es, { ledger_id: '', side: es.filter((x) => x.side === 'D').length > es.filter((x) => x.side === 'C').length ? 'C' : 'D', amount: '' }])}>+ Entry ({entries.length} of 8)</button>}
+      </div>
+      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit,minmax(170px,1fr))', gap: 8 }}>
+        <Field label="Repeat"><SelectInput value={f.repeat_every} onChange={(e) => setF((x) => ({ ...x, repeat_every: e.target.value, repeat_day: '' }))}>{Object.entries(REPEAT).map(([k, v]) => <option key={k} value={k}>{v}</option>)}</SelectInput></Field>
+        {f.repeat_every !== 'none' && (
+          <Field label={f.repeat_every === 'weekly' ? 'On' : 'On day of the month'}>
+            {f.repeat_every === 'weekly'
+              ? <SelectInput value={f.repeat_day} onChange={set('repeat_day')}><option value="">Monday</option>{DAYS.map((d, i) => <option key={d} value={i + 1}>{d}</option>)}</SelectInput>
+              : <TextInput type="number" min="1" max="31" value={f.repeat_day} onChange={set('repeat_day')} placeholder="1 to 31" />}
+          </Field>
+        )}
+      </div>
+      <div style={{ display: 'flex', gap: 8 }}>
+        <button type="submit" style={btnPrimary} disabled={busy}>Make the template</button>
+        <button type="button" style={btnGhost} onClick={onClose}>Cancel</button>
+      </div>
+    </form>
+  );
+}
+
 /** A template's schedule. */
 function ScheduleEditor({ template, onSaved, onClose }) {
   const [every, setEvery] = useState(template.repeat_every);
@@ -104,6 +162,7 @@ export default function TemplatesSettings({ canWrite }) {
   const [ledgers, setLedgers] = useState([]);
   const [open, setOpen] = useState(null);   // `${id}:ledgers` or `${id}:schedule`
   const [busy, setBusy] = useState(false);
+  const [making, setMaking] = useState(false);
   const load = useCallback(() => booksAPI.voucherTemplates().then(setData).catch((e) => toast.error(errMsg(e, 'Could not load the templates'))), []);
   useEffect(() => { load(); booksAPI.ledgers({ all: 1, active_only: 1 }).then((r) => setLedgers(Array.isArray(r) ? r : r.data ?? [])).catch(() => {}); }, [load]);
 
@@ -128,6 +187,7 @@ export default function TemplatesSettings({ canWrite }) {
       {canWrite && <>
         <button type="button" style={{ ...btnGhost, padding: '4px 10px', fontSize: '0.72rem' }} onClick={() => setOpen(open === `${t.id}:ledgers` ? null : `${t.id}:ledgers`)}>Set ledgers</button>
         <button type="button" style={{ ...btnGhost, padding: '4px 10px', fontSize: '0.72rem' }} onClick={() => setOpen(open === `${t.id}:schedule` ? null : `${t.id}:schedule`)}>Schedule</button>
+        <button type="button" style={{ ...btnGhost, padding: '4px 10px', fontSize: '0.72rem' }} disabled={busy} onClick={() => run(() => booksAPI.saveVoucherTemplate({ name: `${t.name} (copy)`, category: t.category, form: t.form, voucher_type_id: t.voucher_type_id, base_type: t.base_type, form_state: t.form_state, repeat_every: 'none' }), 'Copied: change its name and ledgers')}>Copy</button>
         <button type="button" style={{ ...btnGhost, padding: '4px 10px', fontSize: '0.72rem' }} disabled={busy} onClick={() => run(() => booksAPI.setTemplateActive(t.id, !t.is_active), t.is_active ? 'Paused' : 'Resumed')}>{t.is_active ? 'Pause' : 'Resume'}</button>
         <button type="button" style={{ ...btnGhost, padding: '4px 10px', fontSize: '0.72rem', color: colors.danger }} disabled={busy} onClick={() => confirm(`Delete “${t.name}”? You can restore it from the deleted list below.`) && run(() => booksAPI.deleteVoucherTemplate(t.id), 'Deleted')}>Delete</button>
       </>}
@@ -137,6 +197,8 @@ export default function TemplatesSettings({ canWrite }) {
 
   return (
     <div>
+      {canWrite && !making && <button type="button" style={{ ...btnPrimary, marginBottom: 14 }} onClick={() => setMaking(true)}>New template</button>}
+      {making && <NewTemplate ledgers={ledgers} onSaved={() => { setMaking(false); load(); }} onClose={() => setMaking(false)} />}
       <Section title="Voucher templates" hint="Each template is a saved voucher. Set the ledgers it posts to, and how often it repeats. A repeating template never posts: it leaves a draft in the inbox on the Vouchers tab.">
         {live.length === 0 && <p style={{ margin: 0, fontSize: '0.82rem', color: colors.textMuted }}>No templates yet. Save one from a voucher form (F3), or restore a starter template below.</p>}
         <div style={{ display: 'grid', gap: 6 }}>{inUse.map(rowFor)}</div>

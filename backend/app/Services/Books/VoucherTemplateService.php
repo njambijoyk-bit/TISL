@@ -30,6 +30,7 @@ class VoucherTemplateService
         'Bank charges' => ['Finance', 'journal', 'Bank charges', [['D', ['Bank Charges', 'Bank Service Charges']], ['C', ['Bank', 'Cash']]]],
         'Loan interest' => ['Finance', 'journal', 'Loan interest paid', [['D', ['Loan Interest', 'Interest Expense']], ['C', ['Bank', 'Cash']]]],
         'Petty cash top-up' => ['Cash', 'journal', 'Petty cash topped up', [['D', ['Petty Cash']], ['C', ['Cash', 'Bank']]]],
+        'Disposal of an asset' => ['Assets', 'journal', 'Disposal of asset (delete the gain or loss line that does not apply)', [['D', ['Bank', 'Cash']], ['D', ['Accumulated Depreciation']], ['D', ['Loss on disposal of assets']], ['C', []], ['C', ['Gain on disposal of assets']]]],
         'Capital introduced' => ['Capital', 'journal', 'Capital introduced by the owners', [['D', ['Bank', 'Cash']], ['C', ['Capital', 'Capital Account', 'Owner\'s Capital']]]],
     ];
 

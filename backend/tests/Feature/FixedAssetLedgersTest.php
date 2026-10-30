@@ -51,7 +51,7 @@ class FixedAssetLedgersTest extends TestCase
             $t->string('status')->default('available'); $t->string('condition')->default('new'); $t->decimal('condition_score', 5, 2)->nullable(); $t->decimal('condition_score_override', 5, 2)->nullable();
             $t->unsignedBigInteger('current_location_id')->nullable(); $t->date('purchase_date')->nullable(); $t->decimal('purchase_cost', 18, 2)->nullable(); $t->date('warranty_expiry')->nullable(); $t->integer('useful_life_years')->nullable();
             $t->text('notes')->nullable(); $t->unsignedBigInteger('created_by')->nullable(); $t->unsignedBigInteger('updated_by')->nullable();
-            $t->unsignedBigInteger('currency_id')->nullable(); $t->decimal('exchange_rate', 18, 6)->nullable(); $t->decimal('floor_value', 18, 2)->nullable(); $t->string('depreciation_method')->nullable(); $t->decimal('depreciation_rate', 7, 4)->nullable(); $t->date('in_service_date')->nullable();
+            $t->unsignedBigInteger('currency_id')->nullable(); $t->decimal('exchange_rate', 18, 6)->nullable(); $t->decimal('floor_value', 18, 2)->nullable(); $t->decimal('opening_accumulated', 18, 2)->default(0); $t->unsignedBigInteger('acquisition_voucher_id')->nullable(); $t->unsignedBigInteger('disposal_voucher_id')->nullable(); $t->date('disposed_on')->nullable(); $t->string('depreciation_method')->nullable(); $t->decimal('depreciation_rate', 7, 4)->nullable(); $t->date('in_service_date')->nullable();
             $t->timestamps(); $t->softDeletes();
         });
         $this->fixed = (int) LedgerGroup::create(['name' => 'Fixed Assets', 'nature' => 'asset', 'is_primary' => true, 'is_system' => true, 'sort_order' => 30, 'behaviour' => 'standard'])->id;
@@ -195,5 +195,25 @@ class FixedAssetLedgersTest extends TestCase
         $this->assertSame(1500.0, $c->floorFor(1500), 'never above the cost');
         $this->putJson("/api/admin/inventory/categories/{$id}", ['default_floor_type' => null])->assertOk();
         $this->assertNull($c->fresh()->floorFor(50000));
+    }
+
+    public function test_an_asset_ledger_asset_type_and_booked_asset_cannot_be_deleted(): void
+    {
+        $id = (int) $this->postJson('/api/admin/books/ledgers', ['name' => 'Projectors', 'group_id' => $this->fixed])->assertCreated()->json('data.id');
+        $cat = InventoryCategory::where('name', 'Projectors')->first();
+        $this->deleteJson("/api/admin/books/ledgers/{$id}")->assertStatus(422)->assertJsonPath('message', fn ($m) => str_contains($m, 'asset type "Projectors"'));
+        $acc = (int) $cat->accumulated_ledger_id;
+        $this->deleteJson("/api/admin/books/ledgers/{$acc}")->assertStatus(422);   // its accumulated depreciation too
+        $this->assertNotNull(Ledger::find($id));
+
+        $this->deleteJson("/api/admin/inventory/categories/{$cat->id}")->assertStatus(422)->assertJsonPath('message', fn ($m) => str_contains($m, 'cannot be deleted'));   // it has its asset
+        $this->assertNotNull(InventoryCategory::find($cat->id));
+
+        $instance = \App\Models\Inventory\InventoryInstance::whereHas('item', fn ($q) => $q->where('name', 'Projectors'))->first();
+        $this->assertNotNull($instance);
+        $instance->update(['opening_accumulated' => 100]);
+        $this->deleteJson("/api/admin/inventory/instances/{$instance->id}")->assertStatus(422);
+        $instance->update(['opening_accumulated' => 0]);
+        $this->deleteJson("/api/admin/inventory/instances/{$instance->id}")->assertOk();   // nothing booked: it can go
     }
 }

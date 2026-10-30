@@ -384,6 +384,9 @@ class BooksMasterController extends Controller
         if (PaymentMethod::where('ledger_id', $l->id)->exists()) {
             return response()->json(['message' => 'A payment method points at this ledger. Re-map it first.'], 422);
         }
+        if ($type = \App\Services\Inventory\FixedAssetLedgers::typeUsing((int) $l->id)) {   // an asset type posts to it: deleting it would break the asset register's depreciation
+            return response()->json(['message' => "\"{$l->name}\" is used by the asset type \"{$type}\" in Assets, so it cannot be deleted. Change that asset type's ledgers first, or switch this ledger off."], 422);
+        }
         $l->delete();
 
         return response()->json(['message' => 'Ledger deleted']);

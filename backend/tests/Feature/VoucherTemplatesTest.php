@@ -103,7 +103,8 @@ class VoucherTemplatesTest extends TestCase
         $svc = app(VoucherTemplateService::class);
         $first = $svc->addStarters(null);
         $this->assertContains('Pay rent', $first);
-        $this->assertCount(11, $first);
+        $this->assertCount(12, $first);
+        $this->assertContains('Disposal of an asset', $first);
         $this->assertSame([], $svc->addStarters(null), 'nothing added twice');
         $rent = collect($svc->all())->firstWhere('name', 'Pay rent');
         $this->assertSame('D', $rent['form_state']['entries'][0]['side']);
