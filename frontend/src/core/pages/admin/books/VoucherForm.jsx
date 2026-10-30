@@ -928,7 +928,7 @@ export default function VoucherForm({ api = booksAPI, mode = 'books' }) {
                   );
                 })}
                 <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap', marginTop: 10 }}>
-                  {[['product', 'Product'], ['ingredient', 'Kitchen stock'], ['service', 'Service'], ['hamper', 'Hamper'], ['charge', 'Charge / discount'], ['custom', acct ? 'Add ledger line' : 'Custom line'], ['tax', 'Add tax line']].filter(([t]) => (!acct ? t !== 'tax' : ['custom', 'tax'].includes(t)) && !lineOff(t) && (t !== 'ingredient' || (base === 'purchase_order' && isModuleActive(MODULES.MENUS)))).map(([t, l]) => (
+                  {[['product', 'Product'], ['ingredient', 'Kitchen stock'], ['service', 'Service'], ['hamper', 'Hamper'], ['charge', 'Charge / discount'], ['custom', acct ? 'Add ledger line' : 'Custom line'], ['tax', 'Add tax line']].filter(([t]) => (acct ? ['custom', 'tax'].includes(t) : t !== 'tax' || ['sales', 'cash_sale', 'purchase', 'credit_note', 'debit_note'].includes(base)) && !lineOff(t) && (t !== 'ingredient' || (base === 'purchase_order' && isModuleActive(MODULES.MENUS)))).map(([t, l]) => (
                     <button key={t} type="button" onClick={() => addLine(t)} style={{ ...btnGhost, padding: '5px 12px', fontSize: '0.75rem' }}><Plus size={12} /> {l}</button>
                   ))}
                 </div>

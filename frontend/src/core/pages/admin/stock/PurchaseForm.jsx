@@ -664,7 +664,7 @@ export default function PurchaseForm({ kind = 'purchase' }) {
 
               <div style={{ marginTop: 12, display: 'flex', gap: 8, flexWrap: 'wrap' }}>
                 <button type="button" style={{ ...btnGhost, padding: '5px 10px', fontSize: '0.75rem' }} onClick={() => setLines((ls) => [...ls, blankOther()])}><Plus size={13} /> {acct ? 'Add ledger line' : 'Service or other charge'}</button>
-                {acct && <button type="button" style={{ ...btnGhost, padding: '5px 10px', fontSize: '0.75rem' }} onClick={() => setLines((ls) => [...ls, blankTax()])}><Plus size={13} /> Add tax line</button>}
+                {mode === 'purchase' && <button type="button" style={{ ...btnGhost, padding: '5px 10px', fontSize: '0.75rem' }} onClick={() => setLines((ls) => [...ls, blankTax()])}><Plus size={13} /> Add tax line</button>}
               </div>
             </div>
 
