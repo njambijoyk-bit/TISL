@@ -19,7 +19,8 @@ class VoucherTemplateController extends Controller
 
     public function index(): JsonResponse
     {
-        return $this->off() ?? response()->json(['ready' => true, 'templates' => $this->templates->all(), 'drafts' => $this->templates->drafts()]);
+        return $this->off() ?? response()->json(['ready' => true, 'has_trash' => VoucherTemplateService::hasTrash(), 'templates' => $this->templates->all(), 'drafts' => $this->templates->drafts(),
+            'trash' => $this->templates->trash(), 'starters_missing' => $this->templates->startersMissing(), 'skipped_drafts' => $this->templates->drafts(['skipped'])]);
     }
 
     private function rules(): array
@@ -44,9 +45,9 @@ class VoucherTemplateController extends Controller
         if ($off = $this->off()) {
             return $off;
         }
-        $this->templates->delete($id);
+        $this->templates->delete($id, request()->user());
 
-        return response()->json(['message' => 'Template deleted']);
+        return response()->json(['message' => VoucherTemplateService::hasTrash() ? 'Template deleted. It can be restored in Configuration, Voucher templates.' : 'Template deleted']);
     }
 
     public function starters(Request $request): JsonResponse
@@ -54,9 +55,42 @@ class VoucherTemplateController extends Controller
         if ($off = $this->off()) {
             return $off;
         }
-        $made = $this->templates->addStarters($request->user());
+        $only = $request->validate(['names' => 'nullable|array', 'names.*' => 'string'])['names'] ?? null;
+        $made = $this->templates->addStarters($request->user(), $only);
 
         return response()->json(['made' => $made, 'templates' => $this->templates->all()]);
+    }
+
+    /** Bring a deleted template back (paused). */
+    public function restore(int $id): JsonResponse
+    {
+        if ($off = $this->off()) {
+            return $off;
+        }
+        $this->templates->restore($id);
+
+        return response()->json(['message' => 'Template restored. It is paused until you resume it.']);
+    }
+
+    /** Delete a template for good, with its drafts. */
+    public function purge(int $id): JsonResponse
+    {
+        if ($off = $this->off()) {
+            return $off;
+        }
+        $this->templates->purge($id);
+
+        return response()->json(['message' => 'Deleted for good']);
+    }
+
+    public function setActive(Request $request, int $id): JsonResponse
+    {
+        if ($off = $this->off()) {
+            return $off;
+        }
+        $this->templates->setActive($id, (bool) $request->validate(['active' => 'required|boolean'])['active']);
+
+        return response()->json(['message' => 'Saved']);
     }
 
     /** A draft was opened (its form state is on the form now) or skipped. */

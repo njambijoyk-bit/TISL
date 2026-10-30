@@ -1282,6 +1282,9 @@ Route::middleware('auth:sanctum')->group(function () {
             Route::post('/chart-starters/apply',    [\App\Http\Controllers\Api\ChartStarterController::class, 'apply']);
             Route::post('/voucher-templates',                 [\App\Http\Controllers\Api\VoucherTemplateController::class, 'store']);
             Route::post('/voucher-templates/starters',        [\App\Http\Controllers\Api\VoucherTemplateController::class, 'starters']);
+            Route::post('/voucher-templates/{id}/restore',    [\App\Http\Controllers\Api\VoucherTemplateController::class, 'restore'])->whereNumber('id');
+            Route::delete('/voucher-templates/{id}/purge',    [\App\Http\Controllers\Api\VoucherTemplateController::class, 'purge'])->whereNumber('id');
+            Route::post('/voucher-templates/{id}/active',     [\App\Http\Controllers\Api\VoucherTemplateController::class, 'setActive'])->whereNumber('id');
             Route::put('/voucher-templates/{id}',             [\App\Http\Controllers\Api\VoucherTemplateController::class, 'update'])->whereNumber('id');
             Route::delete('/voucher-templates/{id}',          [\App\Http\Controllers\Api\VoucherTemplateController::class, 'destroy'])->whereNumber('id');
             Route::post('/voucher-templates/{id}/draft-now',  [\App\Http\Controllers\Api\VoucherTemplateController::class, 'draftNow'])->whereNumber('id');

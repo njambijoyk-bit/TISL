@@ -38,6 +38,18 @@ class VoucherTemplateService
         return Schema::hasTable('voucher_templates') && Schema::hasTable('voucher_template_drafts');
     }
 
+    /** Script 251: a deleted template goes to a trash and can be restored. Without it, deleting removes for good as before. */
+    public static function hasTrash(): bool
+    {
+        return Schema::hasColumn('voucher_templates', 'deleted_at');
+    }
+
+    /** The templates in use (not in the trash). */
+    private function live()
+    {
+        return DB::table('voucher_templates')->when(self::hasTrash(), fn ($q) => $q->whereNull('deleted_at'));
+    }
+
     // ── the schedule ─────────────────────────────────────────────────────
 
     /** The first due date after $from for a repeat (a day past the end of a short month falls on the month's last day). */
@@ -73,7 +85,7 @@ class VoucherTemplateService
 
     public function all(): array
     {
-        return DB::table('voucher_templates')->orderBy('category')->orderBy('name')->get()->map(fn ($t) => $this->shape($t))->all();
+        return $this->live()->orderBy('category')->orderBy('name')->get()->map(fn ($t) => $this->shape($t))->all();
     }
 
     private function shape($t): array
@@ -91,8 +103,9 @@ class VoucherTemplateService
             throw ValidationException::withMessages(['repeat_every' => 'Choose none, weekly, monthly, quarterly or yearly.']);
         }
         $name = trim((string) $in['name']);
-        if (DB::table('voucher_templates')->where('name', $name)->when($id, fn ($q) => $q->where('id', '!=', $id))->exists()) {
-            throw ValidationException::withMessages(['name' => 'There is a template called that already.']);
+        $same = DB::table('voucher_templates')->where('name', $name)->when($id, fn ($q) => $q->where('id', '!=', $id))->first();
+        if ($same) {
+            throw ValidationException::withMessages(['name' => ! empty($same->deleted_at) ? 'A deleted template has that name. Restore it, or delete it for good, in Configuration, Voucher templates.' : 'There is a template called that already.']);
         }
         $day = ! empty($in['repeat_day']) ? (int) $in['repeat_day'] : null;
         $type = ! empty($in['voucher_type_id']) ? VoucherType::find($in['voucher_type_id']) : null;
@@ -110,7 +123,19 @@ class VoucherTemplateService
         return $this->shape(DB::table('voucher_templates')->where('id', $id)->first());
     }
 
-    public function delete(int $id): void
+    /** Delete: into the trash when there is one (its drafts wait there with it), else for good. */
+    public function delete(int $id, ?User $by = null): void
+    {
+        if (self::hasTrash()) {
+            DB::table('voucher_templates')->where('id', $id)->update(['deleted_at' => now(), 'deleted_by' => $by?->id, 'is_active' => 0, 'updated_at' => now()]);
+
+            return;
+        }
+        $this->purge($id);
+    }
+
+    /** Delete for good, with its drafts. */
+    public function purge(int $id): void
     {
         DB::transaction(function () use ($id) {
             DB::table('voucher_template_drafts')->where('template_id', $id)->delete();
@@ -118,13 +143,59 @@ class VoucherTemplateService
         });
     }
 
+    /** Bring a deleted template back. It comes back paused, so nothing starts repeating until it is switched on. */
+    public function restore(int $id): void
+    {
+        if (self::hasTrash()) {
+            DB::table('voucher_templates')->where('id', $id)->update(['deleted_at' => null, 'deleted_by' => null, 'is_active' => 0, 'updated_at' => now()]);
+        }
+    }
+
+    /** Pause or resume a template. Resuming a repeating one counts its schedule from today. */
+    public function setActive(int $id, bool $active): void
+    {
+        $t = DB::table('voucher_templates')->where('id', $id)->first();
+        if (! $t) {
+            return;
+        }
+        $next = $t->next_due_on;
+        if ($active && $t->repeat_every !== 'none' && (! $next || Carbon::parse($next)->lt(today()))) {
+            $next = self::firstDue(today(), $t->repeat_every, $t->repeat_day ? (int) $t->repeat_day : null)?->toDateString();
+        }
+        DB::table('voucher_templates')->where('id', $id)->update(['is_active' => $active ? 1 : 0, 'next_due_on' => $next, 'updated_at' => now()]);
+    }
+
+    /** The templates in the trash. */
+    public function trash(): array
+    {
+        return self::hasTrash() ? DB::table('voucher_templates')->whereNotNull('deleted_at')->orderByDesc('deleted_at')->get()->map(fn ($t) => $this->shape($t) + ['deleted_at' => $t->deleted_at])->all() : [];
+    }
+
+    /** The starter templates that are not in use (never added, or deleted), by name. */
+    public function startersMissing(): array
+    {
+        $have = $this->live()->pluck('name')->all();
+
+        return array_values(array_diff(array_keys(self::STARTERS), $have));
+    }
+
     /** Add the starter templates that are not there yet. Returns the names made. */
-    public function addStarters(?User $by): array
+    public function addStarters(?User $by, ?array $only = null): array
     {
         $made = [];
         $journal = VoucherType::where('base_type', VoucherType::JOURNAL)->where('is_active', true)->first();
         foreach (self::STARTERS as $name => [$category, $base, $narration, $sides]) {
-            if (DB::table('voucher_templates')->where('name', $name)->exists()) {
+            if ($only !== null && ! in_array($name, $only, true)) {
+                continue;
+            }
+            $have = DB::table('voucher_templates')->where('name', $name)->first();
+            if ($have && empty($have->deleted_at)) {
+                continue;
+            }
+            if ($have) {   // deleted: the same one comes back (keeping any ledgers set on it), paused
+                $this->restore((int) $have->id);
+                $made[] = $name;
+
                 continue;
             }
             $entries = [];
@@ -154,7 +225,7 @@ class VoucherTemplateService
     {
         $today = ($today ?? today())->copy()->startOfDay();
         $made = 0;
-        foreach (DB::table('voucher_templates')->where('is_active', 1)->where('repeat_every', '!=', 'none')->whereNotNull('next_due_on')->whereDate('next_due_on', '<=', $today)->get() as $t) {
+        foreach ($this->live()->where('is_active', 1)->where('repeat_every', '!=', 'none')->whereNotNull('next_due_on')->whereDate('next_due_on', '<=', $today)->get() as $t) {
             $due = Carbon::parse($t->next_due_on);
             $latest = $due->copy();
             $next = $due;
@@ -175,7 +246,7 @@ class VoucherTemplateService
     /** @return array<int, array> the drafts waiting (or opened but not finished) with their template's name */
     public function drafts(array $statuses = ['pending', 'opened']): array
     {
-        return DB::table('voucher_template_drafts as d')->join('voucher_templates as t', 't.id', '=', 'd.template_id')->whereIn('d.status', $statuses)
+        return DB::table('voucher_template_drafts as d')->join('voucher_templates as t', 't.id', '=', 'd.template_id')->when(self::hasTrash(), fn ($q) => $q->whereNull('t.deleted_at'))->whereIn('d.status', $statuses)
             ->orderBy('d.due_on')->get(['d.id', 'd.due_on', 'd.status', 'd.form_state', 't.id as template_id', 't.name', 't.category', 't.form', 't.voucher_type_id', 't.base_type'])
             ->map(fn ($d) => ['id' => (int) $d->id, 'due_on' => $d->due_on, 'status' => $d->status, 'template_id' => (int) $d->template_id, 'name' => $d->name, 'category' => $d->category, 'form' => $d->form,
                 'voucher_type_id' => $d->voucher_type_id ? (int) $d->voucher_type_id : null, 'base_type' => $d->base_type, 'form_state' => is_string($d->form_state) ? json_decode($d->form_state, true) : $d->form_state])->all();

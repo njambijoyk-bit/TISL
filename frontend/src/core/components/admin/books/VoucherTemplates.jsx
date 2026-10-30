@@ -55,13 +55,10 @@ export default function VoucherTemplates({ form, typeId, getState, onUse, onClos
                   </div>
                   <button type="button" style={{ ...btnPrimary, padding: '4px 12px', fontSize: '0.75rem' }} onClick={() => use(t)}>{form ? 'Use' : 'Open'}</button>
                   {!form && canWrite && t.repeat_every !== 'none' && <button type="button" style={{ ...btnGhost, padding: '4px 10px', fontSize: '0.72rem' }} disabled={busy} onClick={() => run(() => booksAPI.templateDraftNow(t.id), 'A draft is in the inbox')}>Draft now</button>}
-                  {canWrite && <button type="button" style={{ ...btnGhost, padding: '4px 10px', fontSize: '0.72rem', color: colors.danger }} disabled={busy} onClick={() => confirm(`Delete the template “${t.name}”?`) && run(() => booksAPI.deleteVoucherTemplate(t.id), 'Template deleted')}>Delete</button>}
+                  {canWrite && <button type="button" style={{ ...btnGhost, padding: '4px 10px', fontSize: '0.72rem', color: colors.danger }} disabled={busy} onClick={() => confirm(`Delete the template “${t.name}”? It can be restored in Configuration, Voucher templates.`) && run(() => booksAPI.deleteVoucherTemplate(t.id), 'Template deleted')}>Delete</button>}
                 </div>
               ))}
             </div>
-            {canWrite && (!form || form === 'voucher') && !(data?.templates ?? []).some((t) => t.is_starter) && (
-              <button type="button" style={{ ...btnGhost, alignSelf: 'flex-start' }} disabled={busy} onClick={() => run(() => booksAPI.addTemplateStarters(), 'Starter templates added')}>Add the starter templates (rent, electricity, water, deposits…)</button>
-            )}
             {form && canWrite && getState && (
               <form onSubmit={saveCurrent} style={{ borderTop: `1px solid ${colors.tint(0.12)}`, paddingTop: 12, display: 'grid', gap: 8 }}>
                 <strong style={{ fontSize: '0.82rem' }}>Save what is on the form as a template</strong>

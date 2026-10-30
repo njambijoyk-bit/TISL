@@ -27,7 +27,7 @@ class VoucherTemplatesTest extends TestCase
         Schema::create('voucher_templates', function ($t) {
             $t->id(); $t->string('name')->unique(); $t->string('category')->nullable(); $t->string('form')->default('voucher'); $t->unsignedBigInteger('voucher_type_id')->nullable(); $t->string('base_type')->nullable();
             $t->json('form_state')->nullable(); $t->string('repeat_every')->default('none'); $t->unsignedSmallInteger('repeat_day')->nullable(); $t->date('next_due_on')->nullable(); $t->date('last_made_on')->nullable();
-            $t->boolean('is_active')->default(true); $t->boolean('is_starter')->default(false); $t->unsignedBigInteger('created_by')->nullable(); $t->timestamps();
+            $t->boolean('is_active')->default(true); $t->boolean('is_starter')->default(false); $t->unsignedBigInteger('created_by')->nullable(); $t->timestamp('deleted_at')->nullable(); $t->unsignedBigInteger('deleted_by')->nullable(); $t->timestamps();
         });
         Schema::create('voucher_template_drafts', function ($t) {
             $t->id(); $t->unsignedBigInteger('template_id'); $t->date('due_on'); $t->json('form_state')->nullable(); $t->string('status')->default('pending'); $t->unsignedBigInteger('handled_by')->nullable(); $t->timestamp('handled_at')->nullable(); $t->timestamps();
@@ -121,8 +121,17 @@ class VoucherTemplatesTest extends TestCase
         $draft = (int) DB::table('voucher_template_drafts')->value('id');
         $this->postJson("/api/admin/books/voucher-drafts/{$draft}", ['status' => 'skipped'])->assertOk()->assertJsonCount(0, 'drafts');
         $this->getJson('/api/admin/books/voucher-templates')->assertOk()->assertJsonPath('ready', true)->assertJsonCount(1, 'templates');
+        $this->postJson("/api/admin/books/voucher-templates/{$id}/draft-now")->assertCreated();
         $this->deleteJson("/api/admin/books/voucher-templates/{$id}")->assertOk();
-        $this->assertSame(0, DB::table('voucher_template_drafts')->count());
+        $this->getJson('/api/admin/books/voucher-templates')->assertOk()->assertJsonCount(0, 'templates')->assertJsonCount(1, 'trash')->assertJsonCount(0, 'drafts');   // its drafts are hidden with it
+        $this->postJson("/api/admin/books/voucher-templates/{$id}/restore")->assertOk();
+        $this->getJson('/api/admin/books/voucher-templates')->assertJsonCount(1, 'templates')->assertJsonPath('templates.0.is_active', false)->assertJsonCount(1, 'drafts');
+        $this->postJson("/api/admin/books/voucher-templates/{$id}/active", ['active' => true])->assertOk();
+        $this->assertTrue((bool) DB::table('voucher_templates')->where('id', $id)->value('is_active'));
+        $this->deleteJson("/api/admin/books/voucher-templates/{$id}")->assertOk();
+        $this->deleteJson("/api/admin/books/voucher-templates/{$id}/purge")->assertOk();
+        $this->assertSame(0, DB::table('voucher_templates')->count());
+        $this->assertSame(0, DB::table('voucher_template_drafts')->count(), 'deleted for good takes its drafts');
 
         $v = new User();
         $v->id = 42;
@@ -130,5 +139,29 @@ class VoucherTemplatesTest extends TestCase
         Sanctum::actingAs($v, ['*']);
         $this->getJson('/api/admin/books/voucher-templates')->assertOk();
         $this->postJson('/api/admin/books/voucher-templates', ['name' => 'X'])->assertForbidden();
+    }
+
+    public function test_a_deleted_template_is_in_the_trash_not_run_and_a_deleted_starter_comes_back_with_its_ledgers(): void
+    {
+        $svc = app(VoucherTemplateService::class);
+        $svc->addStarters(null);
+        $this->assertSame([], $svc->startersMissing());
+        $rent = collect($svc->all())->firstWhere('name', 'Pay rent');
+        $saved = $rent['form_state'];
+        $saved['entries'][0]['ledger_id'] = 12;   // the person set the ledger
+        $svc->save(['name' => 'Pay rent', 'form_state' => $saved, 'repeat_every' => 'monthly', 'repeat_day' => 1], null, $rent['id']);
+        $svc->delete($rent['id']);
+        $this->assertSame(['Pay rent'], $svc->startersMissing());
+        $this->assertNull(collect($svc->all())->firstWhere('name', 'Pay rent'));
+        Carbon::setTestNow('2099-01-02 06:00:00');
+        $this->assertSame(0, $svc->makeDue(), 'a deleted template never leaves drafts');
+        $this->assertSame(['Pay rent'], $svc->addStarters(null, ['Pay rent']), 'the same one is restored');
+        $back = collect($svc->all())->firstWhere('name', 'Pay rent');
+        $this->assertSame($rent['id'], $back['id']);
+        $this->assertSame(12, (int) $back['form_state']['entries'][0]['ledger_id'], 'its ledgers are kept');
+        $this->assertFalse($back['is_active'], 'it comes back paused');
+        $this->expectException(\Illuminate\Validation\ValidationException::class);
+        $svc->delete($back['id']);
+        $svc->save(['name' => 'Pay rent'], null);   // a deleted template has the name
     }
 }
