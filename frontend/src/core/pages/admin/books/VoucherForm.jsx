@@ -192,6 +192,7 @@ export default function VoucherForm({ api = booksAPI, mode = 'books' }) {
   const [draftLoaded, setDraftLoaded] = useState('');   // the voucher type whose saved draft has been put back (nothing is saved before then)
   const [restored, setRestored] = useState(false);
   const draftFirst = useRef(true);
+  const [acct, setAcct] = useState(false);   // an accounting invoice: ledger lines only (rent, fees, utilities), no products or stock
   const [methods, setMethods] = useState([]);
   const [ledgers, setLedgers] = useState([]);
   const [branches, setBranches] = useState([]);
@@ -462,7 +463,6 @@ export default function VoucherForm({ api = booksAPI, mode = 'books' }) {
   const contraBankOut = base === 'contra' && contraDr && contraCr && !isBankLedger(ledgers.find((l) => String(l.id) === String(contraDr.ledger_id))) && isBankLedger(ledgers.find((l) => String(l.id) === String(contraCr.ledger_id)));
   const insMissing = (moneyBank && (!ins.type || (ins.type === 'cheque' && !ins.number.trim()))) || (contraBankIn && !slip.number.trim());
 
-  const [acct, setAcct] = useState(false);   // an accounting invoice: ledger lines only (rent, fees, utilities), no products or stock
   const canAcct = ['sales', 'purchase', 'credit_note', 'debit_note'].includes(base) && hasItems;
   const payload = useMemo(() => {
     const p = {
