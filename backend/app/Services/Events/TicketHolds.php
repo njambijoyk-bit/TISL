@@ -205,6 +205,9 @@ final class TicketHolds
         if ($made->isNotEmpty() && EventPayables::ready()) {
             app(EventPayables::class)->accrue($made);   // an outside organiser is owed their share
         }
+        if ($made->isNotEmpty() && EventAdvertising::ready()) {
+            app(EventAdvertising::class)->registered((int) $made->first()->event_id, $made->count());   // a running promotion is credited
+        }
 
         return $made;
     }

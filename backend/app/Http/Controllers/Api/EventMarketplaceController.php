@@ -59,7 +59,8 @@ class EventMarketplaceController extends Controller
         $model = $type === 'vendor' ? \App\Models\Events\EventVendor::class : \App\Models\Events\EventVenue::class;
         $p = $model::where('slug', $slug)->where('status', 'verified')->where('is_listed', true)->firstOrFail();
 
-        return response()->json(['data' => $this->market->shape($type, $p) + ['offers' => $this->market->offers($type, $p->id, true), 'media' => $this->media->list($type, $p->id, false)]]);
+        return response()->json(['data' => $this->market->shape($type, $p) + ['offers' => $this->market->offers($type, $p->id, true), 'media' => $this->media->list($type, $p->id, false),
+            'reviews' => \App\Services\Events\EventBookings::ready() ? app(\App\Services\Events\EventBookings::class)->reviews($type, $p->id) : ['average' => null, 'count' => 0, 'items' => []]]]);
     }
 
     // ── signed in: my own ────────────────────────────────────────────────

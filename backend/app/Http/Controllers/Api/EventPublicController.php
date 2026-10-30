@@ -31,20 +31,33 @@ class EventPublicController extends Controller
     /** GET /events?q=&when=week|month&free=1&online=1 */
     public function index(Request $request): JsonResponse
     {
-        $d = $request->validate(['q' => 'nullable|string|max:100', 'when' => 'nullable|in:week,month', 'free' => 'nullable|boolean', 'online' => 'nullable|boolean']);
+        $d = $request->validate(['q' => 'nullable|string|max:100', 'when' => 'nullable|in:week,month', 'free' => 'nullable|boolean', 'online' => 'nullable|boolean',
+            'category' => 'nullable|integer', 'location' => 'nullable|string|max:100', 'max_price' => 'nullable|numeric|min:0', 'paid' => 'nullable|boolean']);
+        $cats = ! empty($d['category']) && \Illuminate\Support\Facades\Schema::hasTable('event_categories') ? \Illuminate\Support\Facades\DB::table('event_categories')->where('id', $d['category'])->orWhere('parent_id', $d['category'])->pluck('id')->all() : null;
         $rows = Event::public()->with(['sessions', 'ticketTypes'])
+            ->when($cats !== null, fn ($w) => $w->whereIn('category_id', $cats ?: [0]))
+            ->when($d['location'] ?? null, fn ($w, $l) => $w->where(fn ($x) => $x->where('venue_name', 'like', "%{$l}%")->orWhere('venue_address', 'like', "%{$l}%")))
             ->when($d['q'] ?? null, fn ($w, $s) => $w->where(fn ($x) => $x->where('title', 'like', "%{$s}%")->orWhere('venue_name', 'like', "%{$s}%")->orWhere('summary', 'like', "%{$s}%")))
             ->when($request->boolean('online'), fn ($w) => $w->whereIn('kind', ['online', 'hybrid']))->get()
             ->reject(fn ($e) => $e->isOver())->map(fn ($e) => $this->present->publicRow($e));
         if ($request->boolean('free')) {
             $rows = $rows->filter(fn ($r) => $r['is_free']);
         }
+        if (isset($d['max_price'])) {
+            $rows = $rows->filter(fn ($r) => $r['price_from'] === null || $r['price_from'] <= (float) $d['max_price']);
+        }
+        if ($request->boolean('paid')) {
+            $rows = $rows->reject(fn ($r) => $r['is_free']);
+        }
         if (($d['when'] ?? null) !== null) {
             $limit = now()->add($d['when'] === 'week' ? '7 days' : '1 month')->format('Y-m-d\TH:i');
             $rows = $rows->filter(fn ($r) => $r['next_at'] !== null && $r['next_at'] <= $limit);
         }
 
-        return response()->json(['data' => $rows->sortBy('next_at')->values()]);
+        $featured = \App\Services\Events\EventAdvertising::ready() ? app(\App\Services\Events\EventAdvertising::class)->live('featured') : [];
+        $rows = $rows->map(fn ($r) => $r + ['promoted' => isset($featured[$r['id']]), 'campaign_id' => $featured[$r['id']] ?? null]);
+
+        return response()->json(['data' => $rows->sortBy([['promoted', 'desc'], ['next_at', 'asc']])->values()]);
     }
 
     /** Draft events are not found; cancelled and postponed ones are shown (with the notice) so people who hold tickets can read it. */

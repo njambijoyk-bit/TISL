@@ -15,6 +15,10 @@ final class EventSettings
         'reminder_hours' => 24,            // the reminder goes this long before the date starts
         'ticket_note' => '',               // a line printed on every ticket and in the ticket email
         'organiser_payable_ledger_id' => null, // the liability account for ticket money owed to outside organisers
+        'planning_ledger_id' => null,        // the income account event planning fees are quoted and invoiced to
+        'ads_ledger_id' => null,             // the income account advertising is invoiced to
+        'provider_payable_ledger_id' => null, // the liability account for vendor / venue booking money held for them
+        'commission_income_ledger_id' => null, // where TISL's commission on vendor / venue bookings is recognised
         'commission_percent' => 10,        // what TISL keeps of ticket sales for an outside organiser, unless the organiser has its own rate
         'require_approval' => true,        // an outside organiser's event is checked by TISL before it can be published
     ];
@@ -72,6 +76,11 @@ final class EventSettings
         }
         if (array_key_exists('sales_ledger_id', $in)) {
             $cur['sales_ledger_id'] = $in['sales_ledger_id'] ? (int) $in['sales_ledger_id'] : null;
+        }
+        foreach (['planning_ledger_id', 'ads_ledger_id', 'provider_payable_ledger_id', 'commission_income_ledger_id'] as $k) {
+            if (array_key_exists($k, $in)) {
+                $cur[$k] = $in[$k] ? (int) $in[$k] : null;
+            }
         }
         if (array_key_exists('organiser_payable_ledger_id', $in)) {
             $cur['organiser_payable_ledger_id'] = $in['organiser_payable_ledger_id'] ? (int) $in['organiser_payable_ledger_id'] : null;

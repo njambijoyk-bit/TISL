@@ -24,7 +24,7 @@ class Event extends Model
     protected $fillable = [
         'title', 'slug', 'summary', 'description', 'kind', 'venue_name', 'venue_address', 'map_url', 'online_url', 'organiser', 'main_image', 'video_url', 'status', 'is_listed', 'currency_id',
         'sales_ledger_id', 'tax_rate_id', 'location_id', 'max_per_order', 'refund_until', 'refund_policy', 'allow_name_change', 'published_at', 'created_by', 'updated_by',
-        'category_id', 'organiser_id', 'client_customer_id', 'manager_user_id', 'participation', 'approval_status', 'approval_note', 'registration_status', 'age_min', 'languages', 'accessibility', 'venue_id', 'venue_space_id',
+        'enquiry_id', 'initiative_id', 'is_project', 'category_id', 'organiser_id', 'client_customer_id', 'manager_user_id', 'participation', 'approval_status', 'approval_note', 'registration_status', 'age_min', 'languages', 'accessibility', 'venue_id', 'venue_space_id',
     ];
 
     public const PARTICIPATION = ['free' => 'Free registration', 'paid' => 'Paid tickets', 'invitation' => 'Invitation only', 'rsvp' => 'RSVP', 'approval' => 'Approval required', 'donation' => 'Donation based', 'members' => 'Members only'];

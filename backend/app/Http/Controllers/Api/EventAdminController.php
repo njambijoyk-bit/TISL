@@ -241,7 +241,7 @@ class EventAdminController extends Controller
     public function saveSettings(Request $request): JsonResponse
     {
         $this->staffOnly('The events settings');
-        $d = $request->validate(['commission_percent' => 'nullable|numeric|min:0|max:100', 'require_approval' => 'nullable|boolean', 'hold_minutes' => 'nullable|integer', 'reminders_on' => 'nullable|boolean', 'reminder_hours' => 'nullable|integer', 'sales_ledger_id' => 'nullable|integer', 'organiser_payable_ledger_id' => 'nullable|integer|exists:ledgers,id', 'ticket_note' => 'nullable|string|max:300']);
+        $d = $request->validate(['commission_percent' => 'nullable|numeric|min:0|max:100', 'require_approval' => 'nullable|boolean', 'hold_minutes' => 'nullable|integer', 'reminders_on' => 'nullable|boolean', 'reminder_hours' => 'nullable|integer', 'sales_ledger_id' => 'nullable|integer', 'organiser_payable_ledger_id' => 'nullable|integer|exists:ledgers,id', 'planning_ledger_id' => 'nullable|integer|exists:ledgers,id', 'ads_ledger_id' => 'nullable|integer|exists:ledgers,id', 'provider_payable_ledger_id' => 'nullable|integer|exists:ledgers,id', 'commission_income_ledger_id' => 'nullable|integer|exists:ledgers,id', 'ticket_note' => 'nullable|string|max:300']);
 
         return $this->guard(function () use ($d, $request) {
             if (! empty($d['sales_ledger_id'])) {
