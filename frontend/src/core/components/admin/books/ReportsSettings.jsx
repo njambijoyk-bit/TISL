@@ -257,7 +257,7 @@ export function ChangeLog({ fetchLog = booksAPI.reportSettingsLog, title = 'Chan
   );
 }
 
-export default function ReportsSettings({ canEditStatements }) {
+export default function ReportsSettings({ canEditStatements, only = null }) {
   const [data, setData] = useState(null);
   const load = useCallback(() => booksAPI.reportSettings().then(setData).catch((e) => { toast.error(errMsg(e, 'Could not load the Reports settings')); setData({ ready: false, message: errMsg(e, 'Could not load the Reports settings.'), sections: [] }); }), []);
   useEffect(() => { load(); }, [load]);
@@ -267,6 +267,10 @@ export default function ReportsSettings({ canEditStatements }) {
 
   // only the section that was saved is replaced, so what has been typed in the other sections is not thrown away
   const onSaved = (r, sectionId) => setData((d) => ({ ...d, sections: d.sections.map((x) => (x.id === sectionId ? r.sections.find((y) => y.id === sectionId) ?? x : x)), reconcilable_ledgers: r.reconcilable_ledgers }));
+
+  if (only) {   // one section on its own, for a screen that wants just that (Planning shows the forecast assumptions this way)
+    return <>{data.sections.filter((x) => x.id === only).map((section) => <SettingsSection key={section.id} section={section} lookups={data.lookups} ledgers={data.reconcilable_ledgers} onSaved={onSaved} />)}</>;
+  }
 
   return (
     <>

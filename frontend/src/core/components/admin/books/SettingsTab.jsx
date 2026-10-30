@@ -24,7 +24,7 @@ const SUBS = [
   { id: 'tax', label: 'Tax control', permission: 'books.tax.view' },   // shown to people who may open Tax control
   { id: 'period', label: 'Period control' },
   { id: 'defaults', label: 'Default ledgers' },
-  { id: 'planning', label: 'Planning' },
+  { id: 'planning', label: 'Budgeting' },
   { id: 'reports', label: 'Reports', permission: 'books.reports.settings' },   // shown to people who may open the Reports settings
   { id: 'company', label: 'Company' },
 ];

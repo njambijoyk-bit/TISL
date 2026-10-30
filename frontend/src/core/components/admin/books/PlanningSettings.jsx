@@ -1,11 +1,11 @@
 import { useCallback, useEffect, useMemo, useState } from 'react';
-import { useNavigate } from 'react-router-dom';
 import { Plus, Trash2, Pencil } from 'lucide-react';
 import toast from 'react-hot-toast';
 import booksAPI from '../../../../_shared/api/books';
 import { errMsg } from '../../../../_shared/store/helpers/apiState';
 import { hasPermission } from '../../../../_shared/lib/roles';
 import { btnGhost, btnPrimary, card, colors } from '../../../../_shared/theme/tokens';
+import ReportsSettings from './ReportsSettings';
 import { CheckboxRow, Field, FormGrid, NumberInput, SelectInput, TextInput } from '../ui/Form';
 
 const th = { padding: '6px 6px', fontSize: '0.64rem', fontWeight: 700, color: colors.textFaint, textAlign: 'left', whiteSpace: 'nowrap' };
@@ -114,7 +114,6 @@ function Budgets({ data, year, setYear, reload, canEdit }) {
 
 /** The recurring and one-off money in and out the books cannot know yet, each marked confirmed or estimate. */
 function Items({ data, reload, canEdit }) {
-  const nav = useNavigate();
   const [form, setForm] = useState(null);
   const [errs, setErrs] = useState({});
   const [busy, setBusy] = useState(false);
@@ -132,7 +131,6 @@ function Items({ data, reload, canEdit }) {
       {!data.forecast_ready && <p style={{ color: colors.warningText, fontSize: '0.8rem' }}>Run database script 237_planning.sql to turn the forecast items on.</p>}
       <div style={{ display: 'flex', gap: 8, marginBottom: 10, flexWrap: 'wrap' }}>
         {canEdit && data.forecast_ready && <button type="button" style={btnGhost} onClick={() => setForm({ ...BLANK, start_date: new Date().toLocaleDateString('en-CA') })}><Plus size={13} /> Add an item</button>}
-        <button type="button" style={btnGhost} onClick={() => nav('/admin/books?tab=settings&sub=reports')}>Forecast assumptions (collection delay, supplier terms, tax) →</button>
       </div>
       {form && (
         <div style={{ border: `1px solid ${colors.tint(0.15)}`, borderRadius: 10, padding: 14, marginBottom: 12 }}>
@@ -178,7 +176,7 @@ function Items({ data, reload, canEdit }) {
   );
 }
 
-/** Books -> Configuration -> Planning: the budgets and the cash forecast's regular items. */
+/** Books -> Configuration -> Budgeting: the budgets and the cash forecast's regular items. */
 export default function PlanningSettings() {
   const [year, setYear] = useState(new Date().getFullYear());
   const [data, setData] = useState(null);
@@ -188,9 +186,10 @@ export default function PlanningSettings() {
   if (!data) return <p style={{ fontSize: '0.85rem', color: colors.textFaint }}>Loading…</p>;
   return (
     <div>
-      {!canEdit && <p style={{ fontSize: '0.78rem', color: colors.textFaint }}>You can look at these; changing them needs the Planning permission.</p>}
+      {!canEdit && <p style={{ fontSize: '0.78rem', color: colors.textFaint }}>You can look at these; changing them needs the Planning permission (budgets and forecast).</p>}
       <Budgets data={data} year={year} setYear={setYear} reload={load} canEdit={canEdit} />
       <Items data={data} reload={load} canEdit={canEdit} />
+      <ReportsSettings only="forecast" />
     </div>
   );
 }
