@@ -92,7 +92,8 @@ function LedgerForm({ ledger, groups, defaultGroupId, onClose, onSaved }) {
   const trading = behaviour === 'sales' || behaviour === 'purchase';
   const charging = behaviour === 'charge';
   const inGroup = (name) => { const all = flat(groups); let g = all.find((x) => String(x.id) === String(f.group_id)); while (g) { if (g.name === name) return true; g = all.find((x) => x.id === g.parent_id); } return false; };
-  const optionalTax = !trading && !charging && !rated && inGroup('Indirect Expenses');   // an expense account may carry a tax (VAT on rent, say) but need not
+  const optionalTax = !trading && !charging && !rated && ['Indirect Expenses', 'Direct Expenses', 'Fixed Assets', 'Indirect Incomes'].some(inGroup)
+    && !['Depreciation', 'Accumulated Depreciation', 'Capital Work in Progress'].some(inGroup);   // an expense, asset or income account may carry a tax (VAT on rent, say) but need not
   const taxed = trading || charging || optionalTax;
   const bankGroup = inGroup('Bank Accounts');
   const cashGroup = inGroup('Cash-in-hand');

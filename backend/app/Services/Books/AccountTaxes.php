@@ -19,19 +19,25 @@ use Illuminate\Validation\ValidationException;
 class AccountTaxes
 {
     public const TREATMENTS = ['applies' => 'taxable', 'zero_rated' => 'zero_rated', 'exempt' => 'exempt', 'out_of_scope' => 'out_of_scope'];
-    /** Groups whose accounts carry a tax. An expense account (anything under Indirect Expenses) may carry one too, but need not: 'expense' is the behaviour it takes for this. */
-    private const BEHAVIOURS = ['sales', 'purchase', 'charge', 'expense'];
+    /** Groups whose accounts carry a tax. Accounts under the groups in OPTIONAL_UNDER may carry one too, but need not: 'optional' is the behaviour they take for this. */
+    private const BEHAVIOURS = ['sales', 'purchase', 'charge', 'optional'];
 
-    /** The group's behaviour as far as tax goes: its own, or 'expense' for a group under Indirect Expenses. */
+    /** Where a tax is optional: costs and assets bought with VAT, and income earned with it. */
+    private const OPTIONAL_UNDER = ['Indirect Expenses', 'Direct Expenses', 'Fixed Assets', 'Indirect Incomes'];
+
+    /** …except under these: depreciation is not bought, and an accumulated depreciation or work in progress account is not taxed when posted. */
+    private const NOT_TAXED = ['Depreciation', 'Accumulated Depreciation', 'Capital Work in Progress'];
+
+    /** The group's behaviour as far as tax goes: its own, or 'optional' for a group under one of OPTIONAL_UNDER. */
     public static function effectiveBehaviour(int $groupId): string
     {
         $own = LedgerGroup::whereKey($groupId)->value('behaviour') ?? 'standard';
         if (in_array($own, ['sales', 'purchase', 'charge'], true)) {
             return $own;
         }
-        $root = LedgerGroup::where('name', 'Indirect Expenses')->first();
+        $under = fn (array $names) => LedgerGroup::whereIn('name', $names)->get()->contains(fn ($g) => in_array($groupId, array_map('intval', $g->selfAndDescendantIds()), true));
 
-        return $root && in_array($groupId, array_map('intval', $root->selfAndDescendantIds()), true) ? 'expense' : $own;
+        return $under(self::OPTIONAL_UNDER) && ! $under(self::NOT_TAXED) ? 'optional' : $own;
     }
 
     public static function available(): bool
@@ -80,7 +86,7 @@ class AccountTaxes
     {
         $fail = fn (string $m) => throw ValidationException::withMessages(['taxes' => $m]);
         if (! in_array($behaviour, self::BEHAVIOURS, true)) {
-            $fail('Taxes belong on a sales, purchase, charge or expense account.');
+            $fail('Taxes belong on a sales, purchase, charge, expense, asset or income account.');
         }
         if (count($taxes) > 8) {
             $fail('An account carries at most 8 taxes.');

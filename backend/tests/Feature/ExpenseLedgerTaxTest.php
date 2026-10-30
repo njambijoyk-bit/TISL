@@ -10,7 +10,7 @@ use Illuminate\Support\Facades\Schema;
 use Laravel\Sanctum\Sanctum;
 use Tests\TestCase;
 
-/** An account under Indirect Expenses may carry a tax (as Buyer premium carries VAT) but does not have to; other plain groups still cannot. */
+/** An account under Indirect or Direct Expenses, Fixed Assets or Indirect Incomes may carry a tax (as Buyer premium carries VAT) but does not have to; other plain groups still cannot. */
 class ExpenseLedgerTaxTest extends TestCase
 {
     use Concerns\CreatesBooksLedgerWorld;
@@ -38,7 +38,14 @@ class ExpenseLedgerTaxTest extends TestCase
 
     public function test_the_behaviour_for_tax_comes_from_where_the_group_sits(): void
     {
-        $this->assertSame('expense', AccountTaxes::effectiveBehaviour(8), 'Indirect Expenses');
+        $this->assertSame('optional', AccountTaxes::effectiveBehaviour(8), 'Indirect Expenses');
+        foreach (['Direct Expenses' => 'expense', 'Fixed Assets' => 'asset', 'Indirect Incomes' => 'income'] as $name => $nature) {
+            $g = $name === 'Indirect Incomes' ? \App\Models\Books\LedgerGroup::where('name', $name)->first() : \App\Models\Books\LedgerGroup::create(['name' => $name, 'nature' => $nature, 'is_primary' => true, 'sort_order' => 70, 'behaviour' => 'standard']);
+            $this->assertSame('optional', AccountTaxes::effectiveBehaviour((int) $g->id), $name);
+        }
+        $fixed = \App\Models\Books\LedgerGroup::where('name', 'Fixed Assets')->first();
+        $acc = \App\Models\Books\LedgerGroup::create(['name' => 'Accumulated Depreciation', 'parent_id' => $fixed->id, 'nature' => 'asset', 'sort_order' => 71, 'behaviour' => 'standard']);
+        $this->assertSame('standard', AccountTaxes::effectiveBehaviour((int) $acc->id), 'accumulated depreciation is not taxed when posted');
         $this->assertSame('sales', AccountTaxes::effectiveBehaviour(6));
         $this->assertSame('standard', AccountTaxes::effectiveBehaviour(1), 'Capital Account');
     }
