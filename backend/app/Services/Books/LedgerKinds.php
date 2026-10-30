@@ -17,8 +17,8 @@ class LedgerKinds
     private const KINDS = [
         'customer'     => ['Customer', ['Sundry Debtors'], null, 'customer_id'],
         'supplier'     => ['Supplier', ['Sundry Creditors'], null, 'supplier_id'],
-        'bank'         => ['Bank', ['Bank Accounts'], 'bank', null],
         'cash'         => ['Cash', ['Cash-in-hand', 'Cash-in-Hand'], null, null],
+        'bank'         => ['Bank', ['Bank Accounts'], 'bank', null],
         'tax'          => ['Tax', [], 'tax', null],
         'delivery'     => ['Delivery', [], 'delivery', null],
         'charge'       => ['Charge or fee', [], 'charge', null],

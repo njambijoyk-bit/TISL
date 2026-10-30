@@ -34,8 +34,9 @@ function flat(groups, depth = 0, out = []) {
   return out;
 }
 
-function GroupNode({ g, depth, selected, onSelect, open, toggle }) {
-  const isOpen = open[g.id] ?? depth < 1;
+function GroupNode({ g, depth, selected, onSelect, open, toggle, leaves, onLedger }) {
+  const own = leaves?.[g.id] ?? [];   // while filtering by kind: the matching ledgers sit under their group
+  const isOpen = leaves ? true : (open[g.id] ?? depth < 1);
   const has = (g.children ?? []).length > 0;
   return (
     <div>
@@ -47,9 +48,13 @@ function GroupNode({ g, depth, selected, onSelect, open, toggle }) {
         </span>
         <span style={{ flex: 1 }}>{g.name}</span>
         {g.is_system && <Lock size={11} color={colors.textGhost} aria-label="System group" />}
-        <span style={{ fontSize: '0.68rem', color: colors.textFaint }}>{g.ledger_count || ''}</span>
+        <span style={{ fontSize: '0.68rem', color: colors.textFaint }}>{leaves ? own.length || '' : g.ledger_count || ''}</span>
       </div>
-      {has && isOpen && g.children.map((c) => <GroupNode key={c.id} g={c} depth={depth + 1} selected={selected} onSelect={onSelect} open={open} toggle={toggle} />)}
+      {own.map((l) => (
+        <div key={`l${l.id}`} onClick={() => onLedger?.(l)} role="button" tabIndex={0} onKeyDown={(e) => e.key === 'Enter' && onLedger?.(l)}
+          style={{ padding: '4px 8px', paddingLeft: 8 + (depth + 1) * 14 + 16, fontSize: '0.78rem', cursor: 'pointer', color: colors.text, fontStyle: 'italic' }}>{l.name}</div>
+      ))}
+      {has && isOpen && g.children.map((c) => <GroupNode key={c.id} g={c} depth={depth + 1} selected={selected} onSelect={onSelect} open={open} toggle={toggle} leaves={leaves} onLedger={onLedger} />)}
     </div>
   );
 }
@@ -480,6 +485,13 @@ export default function AccountsTab({ canWrite }) {
   const [kind, setKind] = useState('');   // only ledgers of this kind (bank, customer, tax, fixed asset...)
   const [kinds, setKinds] = useState([]);
   useEffect(() => { booksAPI.ledgerKinds().then((r) => setKinds(r.kinds ?? [])).catch(() => setKinds([])); }, []);
+  const [kindLedgers, setKindLedgers] = useState([]);   // every ledger of the chosen kind, for the group tree
+  useEffect(() => {
+    if (!kind) { setKindLedgers([]); return undefined; }
+    let live = true;
+    booksAPI.ledgers({ all: 1, kind }).then((r) => { if (live) setKindLedgers(Array.isArray(r) ? r : r.data ?? []); }).catch(() => { if (live) setKindLedgers([]); });
+    return () => { live = false; };
+  }, [kind]);
   const narrow = useNarrow(900);
   const [showGroups, setShowGroups] = useState(false);   // on a small screen the group picker stays out of the way until asked for
   const [exportOpen, setExportOpen] = useState(false);
@@ -559,15 +571,21 @@ export default function AccountsTab({ canWrite }) {
     ) },
   ];
 
+    // with a kind chosen the tree keeps only the groups that hold ledgers of it, with those ledgers listed under them
+    const leaves = kind ? kindLedgers.reduce((m, l) => { (m[l.group_id] = m[l.group_id] || []).push(l); return m; }, {}) : null;
+    const prune = (g) => { const children = (g.children ?? []).map(prune).filter(Boolean); return (leaves[g.id]?.length || children.length) ? { ...g, children } : null; };
+    const treeGroups = leaves ? groups.map(prune).filter(Boolean) : groups;
+    const openLedger = (l) => (canWrite ? setLedgerForm(l) : nav(`/admin/books?tab=reports&report=ledger&ledger=${l.id}`));
     const tree = (
       <div style={{ ...card, padding: 10, marginBottom: narrow ? 12 : 0 }}>
         <div style={{ display: 'flex', gap: 6, justifyContent: 'space-between', alignItems: 'center', padding: '4px 8px 8px' }}>
           <span style={{ fontSize: '0.7rem', fontWeight: 700, color: colors.textFaint }}>GROUPS</span>
           <button type="button" onClick={() => pickGroup(null)} style={{ background: 'none', border: 'none', fontSize: '0.72rem', color: colors.primary, cursor: 'pointer' }}>Show all</button>
         </div>
-        {groups.map((g) => (
-          <GroupNode key={g.id} g={g} depth={0} selected={sel?.id} onSelect={pickGroup} open={open} toggle={(id, cur) => setOpen((o) => ({ ...o, [id]: !cur }))} />
+        {treeGroups.map((g) => (
+          <GroupNode key={g.id} g={g} depth={0} selected={sel?.id} onSelect={pickGroup} open={open} toggle={(id, cur) => setOpen((o) => ({ ...o, [id]: !cur }))} leaves={leaves} onLedger={openLedger} />
         ))}
+        {leaves && !treeGroups.length && <p style={{ color: colors.textFaint, fontSize: '0.78rem', padding: '4px 8px' }}>No ledgers of this kind.</p>}
         {canWrite && (
           <div style={{ display: 'flex', gap: 6, padding: '10px 6px 2px', flexWrap: 'wrap' }}>
             <button type="button" style={{ ...btnGhost, padding: '5px 10px', fontSize: '0.75rem' }} onClick={() => setGroupForm(true)}><Plus size={12} /> Group</button>
@@ -629,7 +647,7 @@ export default function AccountsTab({ canWrite }) {
           : (() => {
               const open = (l) => (canWrite ? setLedgerForm(l) : nav(`/admin/books?tab=reports&report=ledger&ledger=${l.id}`));
               const View = { sheet: SheetView, blocks: BlocksView, map: MapView }[layout];
-              return <View groups={chartGroups} ledgers={ledgers} searching={Boolean(search)} onOpen={open} />;
+              return <View groups={chartGroups} ledgers={ledgers} searching={Boolean(search) || Boolean(kind)} onOpen={open} />;
             })()}
         </div>
       </div>

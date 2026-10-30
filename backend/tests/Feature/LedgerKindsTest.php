@@ -55,6 +55,15 @@ class LedgerKindsTest extends TestCase
         $this->assertSame('capital', $k['Capital']);
     }
 
+    public function test_cash_in_hand_is_cash_even_when_its_group_behaves_like_a_bank(): void
+    {
+        $g = LedgerGroup::create(['name' => 'Cash-in-Hand', 'parent_id' => 3, 'nature' => 'asset', 'sort_order' => 50, 'behaviour' => 'bank']);
+        Ledger::create(['group_id' => $g->id, 'name' => 'Petty Cash', 'opening_balance' => 0, 'opening_side' => 'D', 'is_active' => true]);
+        $k = $this->kinds();
+        $this->assertSame('cash', $k['Petty Cash']);
+        $this->assertSame('bank', $k['Cash'], 'a ledger in Bank Accounts stays a bank');
+    }
+
     public function test_a_moved_ledger_changes_kind_and_the_list_can_be_filtered(): void
     {
         $this->assertSame('other_expense', $this->kinds()['Rent']);
