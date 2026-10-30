@@ -42,13 +42,13 @@ export default function LedgerPicker({ ledgers, value, onPick, placeholder = 'Ty
         onFocus={() => { setQ(''); setOpen(true); }} onChange={(e) => { setQ(e.target.value); setOpen(true); }} onKeyDown={keys} style={style} />
       {open && (
         <ul ref={listRef} role="listbox" style={{ position: 'absolute', zIndex: 30, left: 0, right: 0, top: '100%', margin: '2px 0 0', padding: 0, listStyle: 'none', maxHeight: 300, overflowY: 'auto', minWidth: 260,
-          background: '#eef5fc', border: `1px solid ${colors.tint(0.25)}`, borderRadius: 6, boxShadow: '0 6px 20px rgba(0,0,0,0.12)' }}>
+          background: colors.surface, color: colors.text, border: `1px solid ${colors.tint(0.25)}`, borderRadius: 6, boxShadow: '0 6px 20px rgba(0,0,0,0.12)' }}>
           {shown.length === 0 && <li style={{ padding: '8px 10px', fontSize: '0.78rem', color: colors.textFaint }}>No ledger matches “{q}”.</li>}
           {shown.map((l, i) => (
             <li key={l.id} role="option" aria-selected={i === hi} onMouseDown={(e) => { e.preventDefault(); pick(l); }} onMouseEnter={() => setHi(i)}
-              style={{ display: 'flex', justifyContent: 'space-between', gap: 10, padding: '7px 10px', cursor: 'pointer', fontSize: '0.82rem', background: i === hi ? '#ffc72c' : 'transparent', color: '#111' }}>
+              style={{ display: 'flex', justifyContent: 'space-between', gap: 10, padding: '7px 10px', cursor: 'pointer', fontSize: '0.82rem', background: i === hi ? colors.tint(0.16) : 'transparent', color: colors.text }}>
               <span>{l.name}</span>
-              <span style={{ fontSize: '0.68rem', color: i === hi ? '#444' : colors.textFaint, whiteSpace: 'nowrap' }}>{l.group?.name}</span>
+              <span style={{ fontSize: '0.68rem', color: colors.textFaint, whiteSpace: 'nowrap' }}>{l.group?.name}</span>
             </li>
           ))}
         </ul>

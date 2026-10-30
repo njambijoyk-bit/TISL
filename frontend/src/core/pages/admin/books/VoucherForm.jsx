@@ -25,6 +25,7 @@ import { money, today } from '../../../components/admin/books/booksFmt';
 import noSlash from '../../../../_shared/lib/noSlash';
 import LedgerPicker from '../../../components/admin/books/LedgerPicker';
 import WithSidePanel from '../../../components/admin/books/VoucherSidePanel';
+import useNarrow from '../../../components/admin/books/useNarrow';
 import { useCtrlKeys, useFKeys, voucherJumps } from '../../../components/admin/books/voucherKeys';
 
 // Sales-side voucher bases sell to customers; the rest buy or adjust, so they may pick "not for sale" materials.
@@ -192,6 +193,7 @@ export default function VoucherForm({ api = booksAPI, mode = 'books' }) {
   const [draftLoaded, setDraftLoaded] = useState('');   // the voucher type whose saved draft has been put back (nothing is saved before then)
   const [restored, setRestored] = useState(false);
   const draftFirst = useRef(true);
+  const narrowLines = useNarrow(760);   // on a phone the line's cells wrap into rows instead of running off the edge
   const [acct, setAcct] = useState(false);   // an accounting invoice: ledger lines only (rent, fees, utilities), no products or stock
   const [methods, setMethods] = useState([]);
   const [ledgers, setLedgers] = useState([]);
@@ -801,17 +803,17 @@ export default function VoucherForm({ api = booksAPI, mode = 'books' }) {
                 <p style={{ margin: '0 0 10px', fontWeight: 700, color: colors.text }}>Items</p>
                 {lines.length === 0 && <p style={{ color: colors.textMuted, fontSize: '0.8rem' }}>Nothing added yet.</p>}
                 {offTypes.length > 0 && <p style={{ color: colors.danger, fontSize: '0.8rem', fontWeight: 600 }}>The E-commerce module is currently switched off — remove the product, service or hamper lines below, or switch the module on, before saving.</p>}
-                <div style={{ display: 'grid', gridTemplateColumns: LINE_COLS, gap: 8, padding: '6px 0', borderBottom: `2px solid ${colors.tint(0.14)}`, ...colHead }}>
+                {!narrowLines && <div style={{ display: 'grid', gridTemplateColumns: LINE_COLS, gap: 8, padding: '6px 0', borderBottom: `2px solid ${colors.tint(0.14)}`, ...colHead }}>
                   <span>Name of item</span><span style={{ textAlign: 'right' }}>Quantity</span><span>per</span><span style={{ textAlign: 'right' }}>Rate</span><span style={{ textAlign: 'right' }}>Disc</span><span style={{ textAlign: 'right' }}>Amount</span><span />
-                </div>
+                </div>}
                 {lines.map((l, idx) => {
                   const pv = preview?.lines?.[idx];
                   const money0 = l.type === 'charge';
                   const cellNum = { ...small, textAlign: 'right' };
                   return (
                   <div key={l.key} style={{ padding: '8px 0', borderTop: `1px solid ${colors.tint(0.06)}` }}>
-                  <div style={{ display: 'grid', gridTemplateColumns: LINE_COLS, gap: 8, alignItems: 'start' }}>
-                    <div>
+                  <div style={{ display: 'grid', gridTemplateColumns: narrowLines ? 'repeat(3, minmax(0, 1fr))' : LINE_COLS, gap: 8, alignItems: 'start' }}>
+                    <div style={narrowLines ? { gridColumn: '1 / -1' } : undefined}>
                       {l.type === 'product' && (l.variant_id
                         ? <div>
                           <div style={{ fontSize: '0.82rem', fontWeight: 600 }}>{l.label}</div>
@@ -852,9 +854,9 @@ export default function VoucherForm({ api = booksAPI, mode = 'books' }) {
                         <select value={l.ledger_id} onChange={(e) => setLine(l.key, { ledger_id: e.target.value })} style={{ ...small, marginTop: 4 }} aria-label="Ledger"><option value="">Ledger…</option>{lineLedgers.map((x) => <option key={x.id} value={x.id}>{x.name}</option>)}</select>
                       )}
                     </div>
-                    {money0 ? <><span /><span /><span /><span /></> : (
+                    {money0 ? (narrowLines ? null : <><span /><span /><span /><span /></>) : (
                       <>
-                        <input type="number" step="any" min="0" value={l.quantity} aria-label="Quantity" onChange={(e) => setLine(l.key, { quantity: e.target.value })} style={cellNum} />
+                        <input type="number" step="any" min="0" value={l.quantity} aria-label="Quantity" placeholder={narrowLines ? 'Qty' : undefined} onChange={(e) => setLine(l.key, { quantity: e.target.value })} style={cellNum} />
                         {l.type === 'ingredient' && l.units?.length > 0 ? (
                           <select value={l.unit} aria-label="Unit" onChange={(e) => { const u = l.units.find((x) => x.unit === e.target.value); setLine(l.key, { unit: e.target.value, ...(l.last_cost > 0 && u ? { rate: Math.round(l.last_cost * u.per * 10000) / 10000 } : {}) }); }} style={small}>
                             {l.units.map((u) => <option key={u.unit} value={u.unit}>{u.label}</option>)}
@@ -866,9 +868,9 @@ export default function VoucherForm({ api = booksAPI, mode = 'books' }) {
                         ) : <span style={{ fontSize: '0.78rem', color: colors.textMuted, paddingTop: 8 }}>{pv?.unit_code ?? ''}</span>}
                         {l.type !== 'hamper' ? (
                           <input type="number" step="0.01" min="0" value={l.rate} aria-label="Rate" onChange={(e) => setLine(l.key, { rate: e.target.value })} style={cellNum}
-                            placeholder={l.rate === '' && pv?.rate != null && l.type !== 'custom' ? money(pv.rate) : '0.00'} />
+                            placeholder={l.rate === '' && pv?.rate != null && l.type !== 'custom' ? money(pv.rate) : narrowLines ? 'Rate' : '0.00'} />
                         ) : <span />}
-                        <input type="number" step="0.01" min="0" value={l.discount} aria-label="Discount" onChange={(e) => setLine(l.key, { discount: e.target.value })} style={cellNum} />
+                        <input type="number" step="0.01" min="0" value={l.discount} aria-label="Discount" placeholder={narrowLines ? 'Disc' : undefined} onChange={(e) => setLine(l.key, { discount: e.target.value })} style={cellNum} />
                       </>
                     )}
                     {money0 && !(l.kind === 'shipping') ? (

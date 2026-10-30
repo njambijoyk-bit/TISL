@@ -17,6 +17,7 @@ import { canWriteFinance, hasPermission } from '../../../../_shared/lib/roles';
 import { errMsg } from '../../../../_shared/store/helpers/apiState';
 import { defaultUnit, lookupStock, searchPlaceholder, stockKinds } from '../../../lib/stockKinds';
 import { btnPrimary, btnGhost, card, colors, input } from '../../../../_shared/theme/tokens';
+import useNarrow from '../../../components/admin/books/useNarrow';
 import LedgerPicker from '../../../components/admin/books/LedgerPicker';
 import WithSidePanel from '../../../components/admin/books/VoucherSidePanel';
 import { useCtrlKeys, useFKeys, voucherJumps } from '../../../components/admin/books/voucherKeys';
@@ -165,6 +166,7 @@ export default function PurchaseForm({ kind = 'purchase' }) {
   const [branches, setBranches] = useState([]);
   const [h, setH] = useState(() => ({ ...blankHeader(), ...(draft0?.h ?? {}) }));
   const [lines, setLines] = useState(() => draft0?.lines ?? []);
+  const narrowLines = useNarrow(760);   // on a phone the line's fields wrap into rows
   const [acct, setAcct] = useState(Boolean(draft0?.acct));   // an accounting invoice: ledger lines only (rent, fees, utilities), no items or stock
   const [loading, setLoading] = useState(editing);
   const [choose, setChoose] = useState(null);           // variants of a product just created / changed, to pick from
@@ -527,7 +529,7 @@ export default function PurchaseForm({ kind = 'purchase' }) {
                   {lines.map((l) => (
                     <div key={l.key} style={{ border: `1px solid ${colors.tint(0.12)}`, borderRadius: 10, padding: 10 }}>
                       {l.other ? (
-                        <div style={{ display: 'grid', gridTemplateColumns: 'minmax(160px,2fr) 70px 100px minmax(120px,1fr) 100px 30px', gap: 8, alignItems: 'end' }}>
+                        <div style={{ display: 'grid', gridTemplateColumns: narrowLines ? 'repeat(2, minmax(0, 1fr))' : 'minmax(160px,2fr) 70px 100px minmax(120px,1fr) 100px 30px', gap: 8, alignItems: 'end' }}>
                           {acct
                             ? <div><label style={label}>Particulars (ledger) *</label>
                               <LedgerPicker ledgers={[...chargeLedgers, ...ledgers.filter((x) => String(x.id) === String(l.ledger_id) && !chargeLedgers.some((c) => c.id === x.id))]} value={l.ledger_id} style={small}
