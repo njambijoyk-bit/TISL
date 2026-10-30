@@ -592,7 +592,7 @@ export default function VoucherForm({ api = booksAPI, mode = 'books' }) {
   // lines post to income/expense accounts — customers', suppliers', cash and bank accounts are moved with receipts, payments, journals and notes
   const salesSide = ['sales', 'credit_note'].includes(base);
   const lineLedgers = ledgers.filter((l) => !['customer', 'supplier', 'cash', 'bank'].includes(l.kind) && !(['purchase', 'debit_note'].includes(base) && notForPurchaseLines(l))
-    && !(acct && canAcct && (['tax', 'stock', 'accumulated_depreciation', 'capital'].includes(l.kind) || (salesSide ? l.group?.nature !== 'income' : !['expense', 'asset'].includes(l.group?.nature)))));   // an accounting invoice sells to income and buys expenses or assets
+    && !(acct && canAcct && (['tax', 'stock', 'accumulated_depreciation', 'capital'].includes(l.kind) || (salesSide ? !['income', 'expense'].includes(l.group?.nature) : !['expense', 'asset'].includes(l.group?.nature)))));   // an accounting invoice sells to income and buys expenses or assets
   const partyLedgers = ledgers.filter((l) => ['Sundry Debtors', 'Sundry Creditors'].includes(l.group?.name));
   const moneyLedgers = ledgers.filter((l) => ['cash', 'bank'].includes(l.kind));
 
@@ -638,7 +638,7 @@ export default function VoucherForm({ api = booksAPI, mode = 'books' }) {
                       <input type="radio" name="invoice-mode" checked={acct === on} onChange={() => chooseAcct(on)} /> {text}
                     </label>
                   ))}
-                {acct && <span style={{ fontSize: '0.74rem', color: colors.textFaint }}>{salesSide ? 'Bill service income that is not an item: choose the income ledger, a description and the amount.' : 'Record a bill with no stock: rent, electricity, professional fees. Choose the expense (or asset) ledger, a description and the amount.'}</span>}
+                {acct && <span style={{ fontSize: '0.74rem', color: colors.textFaint }}>{salesSide ? 'Bill service income that is not an item, or an expense you are billing back: choose the ledger, a description and the amount.' : 'Record a bill with no stock: rent, electricity, professional fees. Choose the expense (or asset) ledger, a description and the amount.'}</span>}
               </div>
             )}
             <div style={{ ...card, padding: 18, display: 'grid', gridTemplateColumns: 'repeat(auto-fit,minmax(200px,1fr))', gap: 14 }}>

@@ -57,7 +57,8 @@ class AccountingInvoiceGuardTest extends TestCase
     {
         $this->assertNull($this->refused('sales', [$this->line(11)]), 'Misc income is an income ledger');
         $this->assertNull($this->refused('purchase', [$this->line(6)]), 'Rent is an expense');
-        $this->assertStringContainsString('not an income ledger', $this->refused('sales', [$this->line(6)]));
+        $this->assertNull($this->refused('sales', [$this->line(6)]), 'an expense billed back to the customer is allowed on a sale');
+        $this->assertStringContainsString('not an income or expense', $this->refused('sales', [$this->line(8)]));   // a liability
         $this->assertStringContainsString('not an expense or asset', $this->refused('purchase', [$this->line(11)]));
     }
 

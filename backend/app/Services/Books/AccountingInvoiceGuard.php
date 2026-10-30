@@ -8,7 +8,7 @@ use App\Models\Books\VoucherType;
 
 /**
  * An accounting invoice is a sales or purchase invoice made of ledger lines only: no products, services or stock. It still posts like any invoice (party, due date, tax from the ledger,
- * paid later), and says so in its meta ("invoice_mode": "accounting"). This checks that what it posts to makes sense: income ledgers on a sale, expense or asset ledgers on a purchase.
+ * paid later), and says so in its meta ("invoice_mode": "accounting"). This checks that what it posts to makes sense: income (or expense recovered from the customer) ledgers on a sale, expense or asset ledgers on a purchase.
  */
 class AccountingInvoiceGuard
 {
@@ -51,8 +51,8 @@ class AccountingInvoiceGuard
                 if (in_array($kind, self::NEVER, true)) {
                     throw new BooksException("\"{$ledger->name}\" is a " . mb_strtolower($kinds->label($kind)) . " ledger: an invoice line cannot post to it.");
                 }
-                if ($income && $nature !== 'income') {
-                    throw new BooksException("\"{$ledger->name}\" is not an income ledger. A sales invoice line posts to income.");
+                if ($income && ! in_array($nature, ['income', 'expense'], true)) {   // income, or an expense being billed back to the customer (a recovery)
+                    throw new BooksException("\"{$ledger->name}\" is not an income or expense ledger. A sales invoice line posts to income, or to an expense that is billed back to the customer.");
                 }
                 if (! $income && ! in_array($nature, ['expense', 'asset'], true)) {
                     throw new BooksException("\"{$ledger->name}\" is not an expense or asset ledger. A purchase invoice line posts to what was bought: an expense, or an asset.");
