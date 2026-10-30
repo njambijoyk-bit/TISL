@@ -477,6 +477,9 @@ export default function AccountsTab({ canWrite }) {
   const loadStarterPending = useCallback(() => { booksAPI.chartStarters().then((r) => setStarterPending(r.pending ?? 1)).catch(() => setStarterPending(1)); }, []);
   useEffect(() => { loadStarterPending(); }, [loadStarterPending]);
   const [search, setSearch] = useState('');
+  const [kind, setKind] = useState('');   // only ledgers of this kind (bank, customer, tax, fixed asset...)
+  const [kinds, setKinds] = useState([]);
+  useEffect(() => { booksAPI.ledgerKinds().then((r) => setKinds(r.kinds ?? [])).catch(() => setKinds([])); }, []);
   const narrow = useNarrow(900);
   const [showGroups, setShowGroups] = useState(false);   // on a small screen the group picker stays out of the way until asked for
   const [exportOpen, setExportOpen] = useState(false);
@@ -490,11 +493,11 @@ export default function AccountsTab({ canWrite }) {
   const loadLedgers = useCallback(async () => {
     setLoading(true);
     try {
-      const res = await booksAPI.ledgers({ all: 1, group_id: sel?.id || undefined, search: search || undefined });
+      const res = await booksAPI.ledgers({ all: 1, group_id: sel?.id || undefined, search: search || undefined, kind: kind || undefined });
       setLedgers(Array.isArray(res) ? res : res.data ?? []);
     } catch (e) { toast.error(errMsg(e, 'Could not load ledgers')); }
     finally { setLoading(false); }
-  }, [sel, search]);
+  }, [sel, search, kind]);
 
   useEffect(() => { loadGroups(); }, [loadGroups]);
   useEffect(() => { const t = setTimeout(loadLedgers, search ? 250 : 0); return () => clearTimeout(t); }, [loadLedgers]); // eslint-disable-line react-hooks/exhaustive-deps
@@ -542,6 +545,7 @@ export default function AccountsTab({ canWrite }) {
   const columns = [
     { key: 'name', label: 'Ledger', render: (l) => <strong style={{ color: colors.primary, fontWeight: 600 }}>{l.name}{!l.is_active && <span style={{ color: colors.textFaint, fontWeight: 400 }}> · off</span>}</strong> },
     { key: 'group', label: 'Group', render: (l) => l.group?.name },
+    { key: 'kind', label: 'Kind', render: (l) => l.kind_label ?? '' },
     { key: 'nature', label: 'Nature', render: (l) => NATURE[l.group?.nature] },
     ...(stmt.ready ? [{ key: 'line', label: 'Statement line', render: (l) => stmt.byId[l.statement_id]?.name ?? <span style={{ color: colors.textFaint }}>—</span> }] : []),
     { key: 'tax', label: 'Tax', render: (l) => `${{ taxable: 'VAT-able', zero_rated: 'Zero-rated', exempt: 'Exempt', out_of_scope: 'Out of scope' }[l.tax_nature] ?? (['sales', 'purchase', 'charge'].includes(l.group?.behaviour) ? 'Not set' : '')}${(l.taxes?.length ?? 0) > 1 ? ` +${l.taxes.length - 1} more` : ''}` },
@@ -612,6 +616,7 @@ export default function AccountsTab({ canWrite }) {
               )}
             </span>
             <input value={search} onChange={(e) => setSearch(e.target.value)} placeholder="Search ledgers…" aria-label="Search ledgers" style={{ flex: '1 1 150px', minWidth: 0, padding: '7px 10px', borderRadius: 8, border: `1.5px solid ${colors.tint(0.18)}`, fontSize: '0.8rem' }} />
+            {kinds.length > 0 && <select value={kind} onChange={(e) => setKind(e.target.value)} aria-label="Show ledgers of kind" style={{ padding: '7px 8px', borderRadius: 8, border: `1.5px solid ${colors.tint(0.18)}`, fontSize: '0.8rem' }}><option value="">All kinds</option>{kinds.map((k) => <option key={k.key} value={k.key}>{k.label}</option>)}</select>}
             {canWrite && starterPending > 0 && <button type="button" style={btnGhost} onClick={() => setStarters(true)}>Add starter accounts</button>}
             {canWrite && <button type="button" style={btnPrimary} onClick={() => setLedgerForm('new')}><Plus size={14} /> New ledger</button>}
           </div>

@@ -112,6 +112,7 @@ const booksAPI = {
   updateGroup: (id, d) => send('put', `/admin/books/groups/${id}`, d),
   deleteGroup: (id) => send('delete', `/admin/books/groups/${id}`),
   ledgers: (params) => get('/admin/books/ledgers', params),
+  ledgerKinds: () => get('/admin/books/ledger-kinds'),
   createLedger: (d) => send('post', '/admin/books/ledgers', d),
   updateLedger: (id, d) => send('put', `/admin/books/ledgers/${id}`, d),
   deleteLedger: (id) => send('delete', `/admin/books/ledgers/${id}`),

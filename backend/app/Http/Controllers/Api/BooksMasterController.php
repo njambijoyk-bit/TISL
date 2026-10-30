@@ -117,6 +117,7 @@ class BooksMasterController extends Controller
             ->when($request->filled('group'), fn ($q) => $q->whereHas('group', fn ($g) => $g->where('name', $request->group)))
             ->when($request->filled('search'), fn ($q) => $q->where('name', 'like', '%' . $request->search . '%'))
             ->when($request->boolean('active_only'), fn ($q) => $q->where('is_active', true))
+            ->when($request->filled('kind'), fn ($q) => $q->whereIn('id', app(\App\Services\Books\LedgerKinds::class)->idsOf((string) $request->kind) ?: [0]))
             ->orderBy('name');
 
         $out = $request->boolean('all') ? $q->get() : $q->paginate(min((int) $request->get('per_page', 50), 500));
@@ -124,6 +125,7 @@ class BooksMasterController extends Controller
         $rows = $out instanceof \Illuminate\Pagination\AbstractPaginator ? $out->getCollection() : $out;
         $modes = app(\App\Services\Books\PaymentModeService::class)->modesFor($rows->pluck('id')->all());
         $rows->each(fn ($l) => $l->setAttribute('checkout_mode', $modes[$l->id] ?? 'details'));
+        app(\App\Services\Books\LedgerKinds::class)->mark($rows);   // what each ledger is: bank, customer, tax, fixed asset...
         // a bank ledger is one under the Bank Accounts group (any depth) — the same test the server uses when it records a cheque or transfer
         // a vendor's ledger says whether the vendor is suspended, so the Purchase form can flag it (the ledger stays usable)
         $supplierIds = $rows->pluck('supplier_id')->filter()->unique()->values()->all();
@@ -135,6 +137,12 @@ class BooksMasterController extends Controller
         $rows->each(fn ($l) => $l->setAttribute('taxes', $taxes[$l->id] ?? []));
 
         return response()->json($out);
+    }
+
+    /** The kinds a ledger can be (bank, cash, customer, tax, fixed asset...), for pickers and filters. */
+    public function ledgerKinds(): JsonResponse
+    {
+        return response()->json(['kinds' => \App\Services\Books\LedgerKinds::all()]);
     }
 
     /** The fields that say where money is to be paid: changing one is a "change bank or payee details". */
