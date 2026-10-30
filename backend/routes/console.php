@@ -11,6 +11,7 @@ Artisan::command('inspire', function () {
 
 // ── Promo code automation ─────────────────────────────────────────────────────
 Schedule::command('promo:birthday')->dailyAt('08:00');
+Schedule::command('books:template-drafts')->dailyAt('06:00')->withoutOverlapping();   // repeating voucher templates that are due leave a draft in the inbox (nothing is posted)
 Schedule::command('tenders:pq-reminders')->dailyAt('07:30')->withoutOverlapping();   // 30 days before a pre-qualification runs out
 Schedule::command('promo:winback')->dailyAt('09:00');
 Schedule::command('promo:expire')->dailyAt('23:00');

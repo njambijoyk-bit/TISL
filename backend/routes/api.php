@@ -1242,6 +1242,7 @@ Route::middleware('auth:sanctum')->group(function () {
         Route::post('/chart-starters/preview',  [\App\Http\Controllers\Api\ChartStarterController::class, 'preview']);
         Route::get('/ledgers',                  [BooksMasterController::class, 'ledgers']);
         Route::get('/ledger-kinds',             [BooksMasterController::class, 'ledgerKinds']);
+        Route::get('/voucher-templates',        [\App\Http\Controllers\Api\VoucherTemplateController::class, 'index']);
         Route::get('/ledgers/{id}/suggested-amount', [BooksMasterController::class, 'suggestedAmount'])->whereNumber('id');
         Route::get('/ledgers/{id}/tax-preview', [BooksMasterController::class, 'taxPreview'])->whereNumber('id');
         Route::get('/voucher-types',            [BooksMasterController::class, 'types']);
@@ -1279,6 +1280,12 @@ Route::middleware('auth:sanctum')->group(function () {
             Route::post('/vouchers/{id}/request-payment', [BooksVoucherController::class, 'requestPayment']);
             Route::put('/item-accounts',            [BooksMasterController::class, 'updateItemAccounts']);
             Route::post('/chart-starters/apply',    [\App\Http\Controllers\Api\ChartStarterController::class, 'apply']);
+            Route::post('/voucher-templates',                 [\App\Http\Controllers\Api\VoucherTemplateController::class, 'store']);
+            Route::post('/voucher-templates/starters',        [\App\Http\Controllers\Api\VoucherTemplateController::class, 'starters']);
+            Route::put('/voucher-templates/{id}',             [\App\Http\Controllers\Api\VoucherTemplateController::class, 'update'])->whereNumber('id');
+            Route::delete('/voucher-templates/{id}',          [\App\Http\Controllers\Api\VoucherTemplateController::class, 'destroy'])->whereNumber('id');
+            Route::post('/voucher-templates/{id}/draft-now',  [\App\Http\Controllers\Api\VoucherTemplateController::class, 'draftNow'])->whereNumber('id');
+            Route::post('/voucher-drafts/{id}',               [\App\Http\Controllers\Api\VoucherTemplateController::class, 'handleDraft'])->whereNumber('id');
             Route::post('/groups',                  [BooksMasterController::class, 'storeGroup']);
             Route::put('/groups/{id}',              [BooksMasterController::class, 'updateGroup']);
             Route::delete('/groups/{id}',           [BooksMasterController::class, 'destroyGroup']);

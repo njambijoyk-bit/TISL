@@ -23,6 +23,8 @@ import taxAPI from '../../../../_shared/api/tax';
 import currencyAPI from '../../../../_shared/api/currency';
 import { money, today } from '../../../components/admin/books/booksFmt';
 import noSlash from '../../../../_shared/lib/noSlash';
+import VoucherTemplates from '../../../components/admin/books/VoucherTemplates';
+import { templateStateOf } from '../../../components/admin/books/voucherDrafts';
 import TaxLineRow from '../../../components/admin/books/TaxLineRow';
 import LineTax from '../../../components/admin/books/LineTax';
 import SystemMetadata from '../../../components/admin/books/SystemMetadata';
@@ -616,8 +618,10 @@ export default function VoucherForm({ api = booksAPI, mode = 'books' }) {
   const goTo = (t) => { if (t.base_type === 'purchase') nav('/admin/purchases/new'); else if (String(t.id) !== String(typeId)) switchType(t.id); };
   const jumps = voucherJumps(types, base, goTo);
   const dateRef = useRef(null);
+  const [templatesOpen, setTemplatesOpen] = useState(false);
+  const applyTemplate = (st) => { setH((x) => ({ ...x, ...(st.h ?? {}) })); setLines(st.lines ?? []); setEntries(st.entries?.length ? st.entries : blankEntries()); setTenders(st.tenders ?? []); setAcct(Boolean(st.acct)); setPreview(null); };
   const focusDate = () => { const el = dateRef.current; if (el) { el.focus(); try { el.showPicker?.(); } catch { /* not allowed here: focus is enough */ } } };
-  useFKeys(editing || mode !== 'books' ? {} : { f2: focusDate, ...jumps.keyMap });
+  useFKeys(editing || mode !== 'books' ? {} : { f2: focusDate, f3: () => type && setTemplatesOpen(true), ...jumps.keyMap });
   useCtrlKeys({ h: () => { if (canAcct && !editing) chooseAcct(!acct); }, s: () => { if (!saving && type && !insMissing) save(); } });
 
   if (!canWrite) return <AdminLayout><div style={{ padding: 32 }}><NoAccess what="the voucher form" /></div></AdminLayout>;
@@ -626,7 +630,7 @@ export default function VoucherForm({ api = booksAPI, mode = 'books' }) {
     <AdminLayout>
       <div style={{ padding: '28px 24px', maxWidth: 1360, margin: '0 auto' }}>
       <WithSidePanel actions={[
-        ...(mode === 'books' && !editing ? [{ keys: 'F2', label: 'Date', note: 'Change the date', onClick: focusDate }, { gap: true }, ...jumps.actions, { gap: true }] : []),
+        ...(mode === 'books' && !editing ? [{ keys: 'F2', label: 'Date', note: 'Change the date', onClick: focusDate }, { keys: 'F3', label: 'Templates', note: 'Use or save a template', onClick: () => type && setTemplatesOpen(true), disabled: !type }, { gap: true }, ...jumps.actions, { gap: true }] : []),
         ...(canAcct && !editing ? [{ keys: 'Ctrl+H', label: 'Change mode', note: acct ? 'Now: Accounting invoice' : 'Now: Item invoice', onClick: () => chooseAcct(!acct), active: acct }] : []),
         { keys: 'Ctrl+S', label: editing ? 'Save changes' : mode === 'quotation' ? 'Save prices' : 'Post voucher', onClick: () => { if (!saving && type && !insMissing) save(); }, disabled: saving || !type || insMissing },
         { gap: true },
@@ -1171,6 +1175,7 @@ export default function VoucherForm({ api = booksAPI, mode = 'books' }) {
       </div>
       </WithSidePanel>
       </div>
+      {templatesOpen && <VoucherTemplates form="voucher" typeId={typeId} canWrite getState={() => templateStateOf({ h, lines, entries, tenders, acct })} onUse={applyTemplate} onClose={() => setTemplatesOpen(false)} />}
     </AdminLayout>
   );
 }

@@ -18,6 +18,8 @@ import { errMsg } from '../../../../_shared/store/helpers/apiState';
 import { defaultUnit, lookupStock, searchPlaceholder, stockKinds } from '../../../lib/stockKinds';
 import { btnPrimary, btnGhost, card, colors, input } from '../../../../_shared/theme/tokens';
 import useNarrow from '../../../components/admin/books/useNarrow';
+import VoucherTemplates from '../../../components/admin/books/VoucherTemplates';
+import { templateStateOf } from '../../../components/admin/books/voucherDrafts';
 import TaxLineRow from '../../../components/admin/books/TaxLineRow';
 import LineTax from '../../../components/admin/books/LineTax';
 import SystemMetadata from '../../../components/admin/books/SystemMetadata';
@@ -408,8 +410,10 @@ export default function PurchaseForm({ kind = 'purchase' }) {
   const goTo = (t) => { if (t.base_type !== 'purchase') nav(`/admin/books/vouchers/new?type=${t.id}`); };   // what is typed here stays saved as a draft
   const jumps = voucherJumps(types, mode === 'purchase' ? 'purchase' : '', goTo);
   const dateRef = useRef(null);
+  const [templatesOpen, setTemplatesOpen] = useState(false);
+  const applyTemplate = (st) => { setH((x) => ({ ...x, ...(st.h ?? {}) })); setLines(st.lines ?? []); setAcct(Boolean(st.acct)); setPreview(null); };
   const focusDate = () => { const el = dateRef.current; if (el) { el.focus(); try { el.showPicker?.(); } catch { /* not allowed here: focus is enough */ } } };
-  useFKeys(editing ? {} : { f2: focusDate, ...jumps.keyMap });
+  useFKeys(editing ? {} : { f2: focusDate, f3: () => setTemplatesOpen(true), ...jumps.keyMap });
   useCtrlKeys({ h: changeMode, s: () => { if (ready && !saving) save(); } });
   const lineAmount = (l) => Math.max(0, (Number(l.quantity) || 0) * (Number(l.rate) || 0) - (Number(l.discount) || 0));
   const subtotal = lines.reduce((s, l) => s + lineAmount(l), 0);
@@ -420,7 +424,7 @@ export default function PurchaseForm({ kind = 'purchase' }) {
     <AdminLayout>
       <div style={{ padding: '28px 24px', maxWidth: 1360, margin: '0 auto' }}>
       <WithSidePanel actions={[
-        ...(!editing ? [{ keys: 'F2', label: 'Date', note: 'Change the date', onClick: focusDate }, { gap: true }, ...jumps.actions, { gap: true }] : []),
+        ...(!editing ? [{ keys: 'F2', label: 'Date', note: 'Change the date', onClick: focusDate }, { keys: 'F3', label: 'Templates', note: 'Use or save a template', onClick: () => setTemplatesOpen(true) }, { gap: true }, ...jumps.actions, { gap: true }] : []),
         ...(canAcct ? [{ keys: 'Ctrl+H', label: 'Change mode', note: acct ? 'Now: Accounting invoice' : 'Now: Item invoice', onClick: changeMode, active: acct }] : []),
         { keys: 'Ctrl+S', label: editing ? 'Save changes' : 'Accept', onClick: () => { if (ready && !saving) save(); }, disabled: !ready || saving },
         { gap: true },
@@ -742,6 +746,7 @@ export default function PurchaseForm({ kind = 'purchase' }) {
       </div>
       </WithSidePanel>
       </div>
+      {templatesOpen && mode === 'purchase' && <VoucherTemplates form="purchase" canWrite getState={() => templateStateOf({ h, lines, acct })} onUse={applyTemplate} onClose={() => setTemplatesOpen(false)} />}
     </AdminLayout>
   );
 }

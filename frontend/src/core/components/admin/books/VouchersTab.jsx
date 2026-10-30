@@ -10,6 +10,8 @@ import { btnPrimary, colors } from '../../../../_shared/theme/tokens';
 import { Chip, DeliveryChip, ExportMenu } from './booksUi';
 import { money, filterStyle, newVoucherPath } from './booksFmt';
 import AddToManifest from './AddToManifest';
+import VoucherInbox from './VoucherInbox';
+import VoucherTemplates from './VoucherTemplates';
 
 /** `newPath` swaps the "choose a type" button for a plain button to a dedicated screen (e.g. the Purchases page). */
 export default function VouchersTab({ canWrite, baseType = '', newPath = null, newLabel = 'New voucher', viewPath = null }) {
@@ -21,6 +23,7 @@ export default function VouchersTab({ canWrite, baseType = '', newPath = null, n
   const [loading, setLoading] = useState(true);
   const [f, setF] = useState({ voucher_type_id: params.get('voucher_type_id') || '', status: '', search: '', from: '', to: '' });
   const [page, setPage] = useState(1);
+  const [templatesOpen, setTemplatesOpen] = useState(false);
 
   useEffect(() => { booksAPI.types().then(setTypes).catch((e) => toast.error(errMsg(e, 'Could not load voucher types'))); }, []);
 
@@ -50,7 +53,10 @@ export default function VouchersTab({ canWrite, baseType = '', newPath = null, n
 
   return (
     <div>
+      <VoucherInbox canWrite={canWrite} />
+      {templatesOpen && <VoucherTemplates canWrite={canWrite} onClose={() => setTemplatesOpen(false)} />}
       <Toolbar right={<>
+        <button type="button" style={{ ...btnPrimary, background: 'transparent', color: colors.primary, border: `1px solid ${colors.tint(0.4)}` }} onClick={() => setTemplatesOpen(true)}>Templates</button>
         <ExportMenu label="Export list" onExport={(format) => booksAPI.exportVouchers({ ...Object.fromEntries(Object.entries(f).filter(([, v]) => v)), format })} />
         {canWrite && newPath && (
           <button type="button" style={btnPrimary} onClick={() => nav(newPath)}><Plus size={14} /> {newLabel}</button>
