@@ -134,10 +134,33 @@ class BooksMasterController extends Controller
         $rows->each(fn ($l) => $l->setAttribute('supplier_status', $l->supplier_id ? ($supplierStatus[$l->supplier_id] ?? null) : null));
         $bankGroupIds = LedgerGroup::where('name', 'Bank Accounts')->first()?->selfAndDescendantIds() ?? [];
         $rows->each(fn ($l) => $l->setAttribute('is_bank', in_array($l->group_id, $bankGroupIds, true)));
+        $behaviours = [];   // what each ledger's group lets it do about tax: sales / purchase / charge (required), optional (expense, asset, income), party, or nothing
+        $rows->each(function ($l) use (&$behaviours) {
+            $l->setAttribute('tax_behaviour', $behaviours[$l->group_id] ??= \App\Services\Books\AccountTaxes::effectiveBehaviour((int) $l->group_id));
+        });
         $taxes = app(\App\Services\Books\AccountTaxes::class)->forLedgers($rows->pluck('id')->all());   // the taxes each account carries (script 229)
         $rows->each(fn ($l) => $l->setAttribute('taxes', $taxes[$l->id] ?? []));
 
         return response()->json($out);
+    }
+
+    /**
+     * What a delivery or shipping ledger charges, in the currency of the invoice being made: its fixed amount (or its tiered cost for the subtotal), converted at today's rate. The form
+     * fills it in as the line's amount, which can still be changed. Null for any other ledger, and for one that charges a percentage.
+     */
+    public function suggestedAmount(Request $request, $id): JsonResponse
+    {
+        $opt = \App\Models\ShippingOption::find($id);
+        if (! $opt || empty($opt->rate_type) || $opt->rate_type === 'percent') {
+            return response()->json(['amount' => null]);
+        }
+        $money = app(\App\Services\CurrencyConversionService::class);
+        $to = $request->filled('currency_id') ? $money->currencyFrom((int) $request->query('currency_id')) : $money->getBaseCurrency();
+        $from = $money->currencyFrom($opt->currency_id);
+        $cost = (float) $opt->costForSubtotal((float) $request->query('subtotal', 0));
+        $amount = $from->id === $to->id ? round($cost, 2) : round($cost * $money->rateOn($from, today()) / max($money->rateOn($to, today()), 0.00000001), 2);
+
+        return response()->json(['amount' => $amount, 'currency' => $to->code, 'from' => ['amount' => round($cost, 2), 'currency' => $from->code]]);
     }
 
     /** The kinds a ledger can be (bank, cash, customer, tax, fixed asset...), for pickers and filters. */

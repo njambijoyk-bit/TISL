@@ -87,4 +87,14 @@ class ExpenseLedgerTaxTest extends TestCase
         $this->assertSame(0.0, $zero[0]['tax_amount']);
         $this->assertSame(1000.0, $zero[0]['base_amount']);
     }
+
+    public function test_the_ledger_list_says_what_each_ledger_may_do_about_tax_and_a_plain_ledger_has_no_suggested_amount(): void
+    {
+        $rows = collect($this->getJson('/api/admin/books/ledgers?all=1')->assertOk()->json())->pluck('tax_behaviour', 'name');
+        $this->assertSame('sales', $rows['Sales']);
+        $this->assertSame('optional', $rows['Bank charges'], 'under Indirect Expenses');
+        $this->assertSame('party', $rows['Customer A']);
+        $this->assertSame('standard', $rows['Capital']);
+        $this->getJson('/api/admin/books/ledgers/' . Ledger::where('name', 'Rent')->value('id') . '/suggested-amount')->assertOk()->assertJsonPath('amount', null);
+    }
 }

@@ -23,6 +23,7 @@ import taxAPI from '../../../../_shared/api/tax';
 import currencyAPI from '../../../../_shared/api/currency';
 import { money, today } from '../../../components/admin/books/booksFmt';
 import noSlash from '../../../../_shared/lib/noSlash';
+import LineTax from '../../../components/admin/books/LineTax';
 import SystemMetadata from '../../../components/admin/books/SystemMetadata';
 import LedgerPicker from '../../../components/admin/books/LedgerPicker';
 import WithSidePanel from '../../../components/admin/books/VoucherSidePanel';
@@ -540,6 +541,15 @@ export default function VoucherForm({ api = booksAPI, mode = 'books' }) {
 
   const clearCustomer = () => setH((x) => ({ ...x, customer: null, party_ledger_id: '' }));
   const clearParty = () => setH((x) => ({ ...x, party_ledger_id: '', customer: null }));
+  // a delivery or shipping ledger that holds a fixed amount: the line starts at it, in this invoice's currency (still editable)
+  const suggestAmount = (key, ledgerId) => {
+    if (!ledgerId || !api.suggestedAmount) return;
+    api.suggestedAmount(ledgerId, h.currency_id ? { currency_id: h.currency_id } : {}).then((r) => {
+      if (r?.amount != null && r.amount > 0) setLines((ls) => ls.map((l) => (l.key === key && (l.rate === '' || l.rate == null || Number(l.rate) === 0) ? { ...l, rate: r.amount } : l)));
+    }).catch(() => {});
+  };
+  // the ledger's tax was changed from a line: take the new ledgers and work the voucher out again
+  const reloadLedgers = () => api.ledgers({ all: 1, active_only: 1 }).then((r) => { setLedgers(Array.isArray(r) ? r : r.data ?? []); setLines((ls) => [...ls]); }).catch(() => {});
   const setLine = (key, patch) => setLines((ls) => ls.map((l) => (l.key === key ? { ...l, ...patch } : l)));
   // Products, services and hampers belong to the E-commerce module: with it off they cannot go on a voucher
   useModuleStore((st) => st.active);   // re-render when the switch changes
@@ -841,7 +851,7 @@ export default function VoucherForm({ api = booksAPI, mode = 'books' }) {
                       )}
                       {l.type === 'custom' && acct && (
                         <LedgerPicker ledgers={lineLedgers} value={l.ledger_id} style={{ ...small, marginBottom: 4 }} placeholder="Particulars: type to find the ledger…" autoFocus={!l.ledger_id && !l.description}
-                          onPick={(x) => setLine(l.key, { ledger_id: x.id, description: l.description || x.name })} />
+                          onPick={(x) => { setLine(l.key, { ledger_id: x.id, description: l.description || x.name }); suggestAmount(l.key, x.id); }} />
                       )}
                       {l.type === 'custom' && <input value={l.description} onChange={(e) => setLine(l.key, { description: e.target.value })} placeholder="Description" style={small} />}
                       {l.type === 'charge' && l.kind === 'shipping' && (
@@ -854,8 +864,9 @@ export default function VoucherForm({ api = booksAPI, mode = 'books' }) {
                         <select value={l.ledger_id} onChange={(e) => setLine(l.key, { ledger_id: e.target.value })} style={{ ...small, marginTop: 4 }} aria-label="Ledger"><option value="">{l.kind === 'other' ? 'Ledger…' : 'Ledger (auto)'}</option>{lineLedgers.map((x) => <option key={x.id} value={x.id}>{x.name}</option>)}</select>
                       )}
                       {l.type === 'custom' && !acct && (
-                        <select value={l.ledger_id} onChange={(e) => setLine(l.key, { ledger_id: e.target.value })} style={{ ...small, marginTop: 4 }} aria-label="Ledger"><option value="">Ledger…</option>{lineLedgers.map((x) => <option key={x.id} value={x.id}>{x.name}</option>)}</select>
+                        <select value={l.ledger_id} onChange={(e) => { setLine(l.key, { ledger_id: e.target.value }); suggestAmount(l.key, e.target.value); }} style={{ ...small, marginTop: 4 }} aria-label="Ledger"><option value="">Ledger…</option>{lineLedgers.map((x) => <option key={x.id} value={x.id}>{x.name}</option>)}</select>
                       )}
+                      {l.type === 'custom' && l.ledger_id && <LineTax ledger={ledgers.find((x) => String(x.id) === String(l.ledger_id))} line={preview?.lines?.[idx]} onSaved={reloadLedgers} />}
                     </div>
                     {money0 ? (narrowLines ? null : <><span /><span /><span /><span /></>) : (
                       <>

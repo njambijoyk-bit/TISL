@@ -1242,6 +1242,7 @@ Route::middleware('auth:sanctum')->group(function () {
         Route::post('/chart-starters/preview',  [\App\Http\Controllers\Api\ChartStarterController::class, 'preview']);
         Route::get('/ledgers',                  [BooksMasterController::class, 'ledgers']);
         Route::get('/ledger-kinds',             [BooksMasterController::class, 'ledgerKinds']);
+        Route::get('/ledgers/{id}/suggested-amount', [BooksMasterController::class, 'suggestedAmount'])->whereNumber('id');
         Route::get('/ledgers/{id}/tax-preview', [BooksMasterController::class, 'taxPreview'])->whereNumber('id');
         Route::get('/voucher-types',            [BooksMasterController::class, 'types']);
         Route::get('/payment-methods',          [BooksMasterController::class, 'paymentMethods']);

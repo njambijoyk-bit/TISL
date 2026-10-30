@@ -18,6 +18,7 @@ import { errMsg } from '../../../../_shared/store/helpers/apiState';
 import { defaultUnit, lookupStock, searchPlaceholder, stockKinds } from '../../../lib/stockKinds';
 import { btnPrimary, btnGhost, card, colors, input } from '../../../../_shared/theme/tokens';
 import useNarrow from '../../../components/admin/books/useNarrow';
+import LineTax from '../../../components/admin/books/LineTax';
 import SystemMetadata from '../../../components/admin/books/SystemMetadata';
 import LedgerPicker from '../../../components/admin/books/LedgerPicker';
 import WithSidePanel from '../../../components/admin/books/VoucherSidePanel';
@@ -257,6 +258,15 @@ export default function PurchaseForm({ kind = 'purchase' }) {
       toast.success(`${m.label} added`, { duration: 1500 });
     } catch (e) { toast.error(errMsg(e, 'Could not add that item')); }
   };
+  // a delivery or shipping ledger that holds a fixed amount: the line starts at it, in this invoice's currency (still editable)
+  const suggestAmount = (key, ledgerId) => {
+    if (!ledgerId) return;
+    booksAPI.suggestedAmount(ledgerId, h.currency_id ? { currency_id: h.currency_id } : {}).then((r) => {
+      if (r?.amount != null && r.amount > 0) setLines((ls) => ls.map((l) => (l.key === key && (l.rate === '' || l.rate == null || Number(l.rate) === 0) ? { ...l, rate: r.amount } : l)));
+    }).catch(() => {});
+  };
+  // the ledger's tax was changed from a line: take the new ledgers and work the purchase out again
+  const reloadLedgers = () => booksAPI.ledgers({ all: 1, active_only: 1 }).then((r) => { setLedgers(Array.isArray(r) ? r : r.data ?? []); setLines((ls) => [...ls]); }).catch(() => {});
   const setLine = (k, patch) => setLines((ls) => ls.map((l) => (l.key === k ? { ...l, ...patch } : l)));
   const removeLine = (k) => setLines((ls) => ls.filter((l) => l.key !== k));
 
@@ -531,18 +541,18 @@ export default function PurchaseForm({ kind = 'purchase' }) {
                 <div style={{ display: 'grid', gap: 10 }}>
                   {lines.map((l) => (
                     <div key={l.key} style={{ border: `1px solid ${colors.tint(0.12)}`, borderRadius: 10, padding: 10 }}>
-                      {l.other ? (
+                      {l.other ? (<>
                         <div style={{ display: 'grid', gridTemplateColumns: narrowLines ? 'repeat(2, minmax(0, 1fr))' : 'minmax(160px,2fr) 70px 100px minmax(120px,1fr) 100px 30px', gap: 8, alignItems: 'end' }}>
                           {acct
                             ? <div><label style={label}>Particulars (ledger) *</label>
                               <LedgerPicker ledgers={[...chargeLedgers, ...ledgers.filter((x) => String(x.id) === String(l.ledger_id) && !chargeLedgers.some((c) => c.id === x.id))]} value={l.ledger_id} style={small}
-                                autoFocus={!l.ledger_id && !l.description} onPick={(x) => setLine(l.key, { ledger_id: x.id, description: l.description || x.name })} /></div>
+                                autoFocus={!l.ledger_id && !l.description} onPick={(x) => { setLine(l.key, { ledger_id: x.id, description: l.description || x.name }); suggestAmount(l.key, x.id); }} /></div>
                             : <div><label style={label}>Other charge (freight, duty…)</label><input value={l.description} onChange={(e) => setLine(l.key, { description: e.target.value })} style={small} /></div>}
                           <div><label style={label}>Qty</label><input type="number" min="0" step="any" value={l.quantity} onChange={(e) => setLine(l.key, { quantity: e.target.value })} style={small} /></div>
                           <div><label style={label}>Amount each</label><input type="number" min="0" step="any" value={l.rate} onChange={(e) => setLine(l.key, { rate: e.target.value })} style={small} /></div>
                           {acct ? <div><label style={label}>Description</label><input value={l.description} onChange={(e) => setLine(l.key, { description: e.target.value })} style={small} /></div> : <div>
                             <label style={label}>Ledger *</label>
-                            <select value={l.ledger_id} onChange={(e) => setLine(l.key, { ledger_id: e.target.value })} style={small}>
+                            <select value={l.ledger_id} onChange={(e) => { setLine(l.key, { ledger_id: e.target.value }); suggestAmount(l.key, e.target.value); }} style={small}>
                               <option value="">Choose…</option>
                               {[...chargeLedgers, ...ledgers.filter((x) => String(x.id) === String(l.ledger_id) && !chargeLedgers.some((c) => c.id === x.id))].map((x) => <option key={x.id} value={x.id}>{x.name}</option>)}
                             </select>
@@ -550,6 +560,8 @@ export default function PurchaseForm({ kind = 'purchase' }) {
                           <div style={{ textAlign: 'right', fontWeight: 700, fontSize: '0.85rem' }}>{money(lineAmount(l))}</div>
                           <button type="button" aria-label="Remove line" onClick={() => removeLine(l.key)} style={{ background: 'none', border: 'none', cursor: 'pointer', color: colors.textFaint }}><Trash2 size={15} /></button>
                         </div>
+                        {l.ledger_id && <LineTax ledger={ledgers.find((x) => String(x.id) === String(l.ledger_id))} line={preview?.lines?.[lines.indexOf(l)]} onSaved={reloadLedgers} />}
+                      </>
                       ) : l.ingredient ? (
                         <>
                           <div style={{ display: 'grid', gridTemplateColumns: 'minmax(160px,2fr) 100px 70px 100px 90px 100px 30px', gap: 8, alignItems: 'end' }}>
@@ -668,6 +680,20 @@ export default function PurchaseForm({ kind = 'purchase' }) {
             {preview?.entries?.length > 0 && (
               <div style={{ ...card, padding: 18 }}>
                 <p style={{ margin: '0 0 10px', fontWeight: 700, color: colors.text }}>What this will post</p>
+                {preview.lines?.length > 0 && (
+                  <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '0.78rem', marginBottom: 12 }}>
+                    <tbody>
+                      {preview.lines.flatMap((l) => [l, ...(l.children ?? []).map((c) => ({ ...c, is_child: true }))]).map((l, i) => (
+                        <tr key={i} style={{ borderTop: `1px solid ${colors.tint(0.05)}`, color: l.is_child ? colors.textMuted : colors.text }}>
+                          <td style={{ padding: '5px 4px', paddingLeft: l.is_child ? 22 : 4 }}>{l.description}{l.variant_label && l.variant_label !== 'Standard' ? ` — ${l.variant_label}` : ''}</td>
+                          <td style={{ textAlign: 'right' }}>{l.quantity} {l.unit_code}</td>
+                          <td style={{ textAlign: 'right' }}>{money(l.amount)}</td>
+                          <td style={{ textAlign: 'right', color: colors.textFaint }}>{l.tax_amount ? `tax ${money(l.tax_amount)}${l.tax_rate_percent ? ` (${Number(l.tax_rate_percent)}%)` : ''}` : ''}</td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                )}
                 <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '0.78rem' }}>
                   <thead><tr><th style={{ textAlign: 'left', padding: '4px', fontSize: '0.65rem', color: colors.textFaint }}> </th><th style={{ textAlign: 'left', fontSize: '0.65rem', color: colors.textFaint }}>Ledger</th><th style={{ textAlign: 'right', fontSize: '0.65rem', color: colors.textFaint }}>Debit</th><th style={{ textAlign: 'right', fontSize: '0.65rem', color: colors.textFaint }}>Credit</th></tr></thead>
                   <tbody>
@@ -681,9 +707,10 @@ export default function PurchaseForm({ kind = 'purchase' }) {
                     ))}
                   </tbody>
                 </table>
-                {(preview.tax_breakdown ?? []).length > 0 && (
-                  <p style={{ margin: '8px 0 0', fontSize: '0.74rem', color: colors.textMuted }}>Input tax claimed: {preview.tax_breakdown.map((t) => `${t.label} ${money(t.amount)}`).join(' · ')}</p>
-                )}
+                <p style={{ textAlign: 'right', margin: '10px 0 0', fontSize: '0.85rem' }}>
+                  Subtotal {money(preview.subtotal)}{(preview.tax_breakdown ?? []).length > 0 ? preview.tax_breakdown.map((t) => ` · ${t.label} ${money(t.amount)}`).join('') : (Number(preview.tax_total) ? ` · Tax ${money(preview.tax_total)}` : '')} · <strong>Total {preview.currency} {money(preview.total)}</strong>
+                </p>
+                {(preview.tax_breakdown ?? []).length > 0 && <p style={{ margin: '4px 0 0', textAlign: 'right', fontSize: '0.72rem', color: colors.textMuted }}>Input tax, claimable where the tax rules allow.</p>}
                 {preview.stock?.length > 0 && <p style={{ margin: '4px 0 0', fontSize: '0.72rem', color: colors.textMuted }}>Brings stock in on {preview.stock.length} line(s).</p>}
               </div>
             )}

@@ -1405,9 +1405,13 @@ class VoucherService
             $account = Ledger::find(! empty($l['tax_account_id']) ? (int) $l['tax_account_id'] : $line['ledger_id']);
             $line['tax_base_request'] = $this->baseRequest($l);
             $override = $this->baseOverride($line, $ctx);   // as on a product line: the base the tax is worked out on may be changed by someone allowed to
-            $line['taxes'] = $account?->tax_nature
+            // a delivery or shipping ledger keeps its tax with its settings (the "Tax on delivery" choice), not in the tax columns
+            $shipRate = $account && $line['amount'] != 0.0 ? ShippingOption::find($account->id)?->tax_rate_id : null;
+            $line['taxes'] = $shipRate
+                ? $this->taxes->manual((int) $shipRate, $line['amount'], $this->side($ctx))
+                : ($account?->tax_nature
                 ? $this->taxes->fromAccount($account, $override['to'] ?? $line['amount'] + $line['discount_amount'], $override['to'] ?? $line['amount'], $line['quantity'], $this->side($ctx), $ctx['customer'], $ctx['currency'])
-                : [];
+                : []);
             $line['taxes'] = $this->taxes->forParty($line['taxes'], $ctx['party'] ?? null);
             if ($override) {
                 foreach ($line['taxes'] as &$t) {
