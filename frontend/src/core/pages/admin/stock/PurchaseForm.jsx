@@ -17,6 +17,7 @@ import { canWriteFinance, hasPermission } from '../../../../_shared/lib/roles';
 import { errMsg } from '../../../../_shared/store/helpers/apiState';
 import { defaultUnit, lookupStock, searchPlaceholder, stockKinds } from '../../../lib/stockKinds';
 import { btnPrimary, btnGhost, card, colors, input } from '../../../../_shared/theme/tokens';
+import LedgerPicker from '../../../components/admin/books/LedgerPicker';
 import WithSidePanel from '../../../components/admin/books/VoucherSidePanel';
 import { useCtrlKeys } from '../../../components/admin/books/voucherKeys';
 
@@ -522,16 +523,20 @@ export default function PurchaseForm({ kind = 'purchase' }) {
                     <div key={l.key} style={{ border: `1px solid ${colors.tint(0.12)}`, borderRadius: 10, padding: 10 }}>
                       {l.other ? (
                         <div style={{ display: 'grid', gridTemplateColumns: 'minmax(160px,2fr) 70px 100px minmax(120px,1fr) 100px 30px', gap: 8, alignItems: 'end' }}>
-                          <div><label style={label}>{acct ? 'Description' : 'Other charge (freight, duty…)'}</label><input value={l.description} onChange={(e) => setLine(l.key, { description: e.target.value })} style={small} /></div>
+                          {acct
+                            ? <div><label style={label}>Particulars (ledger) *</label>
+                              <LedgerPicker ledgers={[...chargeLedgers, ...ledgers.filter((x) => String(x.id) === String(l.ledger_id) && !chargeLedgers.some((c) => c.id === x.id))]} value={l.ledger_id} style={small}
+                                autoFocus={!l.ledger_id && !l.description} onPick={(x) => setLine(l.key, { ledger_id: x.id, description: l.description || x.name })} /></div>
+                            : <div><label style={label}>Other charge (freight, duty…)</label><input value={l.description} onChange={(e) => setLine(l.key, { description: e.target.value })} style={small} /></div>}
                           <div><label style={label}>Qty</label><input type="number" min="0" step="any" value={l.quantity} onChange={(e) => setLine(l.key, { quantity: e.target.value })} style={small} /></div>
                           <div><label style={label}>Amount each</label><input type="number" min="0" step="any" value={l.rate} onChange={(e) => setLine(l.key, { rate: e.target.value })} style={small} /></div>
-                          <div>
+                          {acct ? <div><label style={label}>Description</label><input value={l.description} onChange={(e) => setLine(l.key, { description: e.target.value })} style={small} /></div> : <div>
                             <label style={label}>Ledger *</label>
                             <select value={l.ledger_id} onChange={(e) => setLine(l.key, { ledger_id: e.target.value })} style={small}>
                               <option value="">Choose…</option>
                               {[...chargeLedgers, ...ledgers.filter((x) => String(x.id) === String(l.ledger_id) && !chargeLedgers.some((c) => c.id === x.id))].map((x) => <option key={x.id} value={x.id}>{x.name}</option>)}
                             </select>
-                          </div>
+                          </div>}
                           <div style={{ textAlign: 'right', fontWeight: 700, fontSize: '0.85rem' }}>{money(lineAmount(l))}</div>
                           <button type="button" aria-label="Remove line" onClick={() => removeLine(l.key)} style={{ background: 'none', border: 'none', cursor: 'pointer', color: colors.textFaint }}><Trash2 size={15} /></button>
                         </div>

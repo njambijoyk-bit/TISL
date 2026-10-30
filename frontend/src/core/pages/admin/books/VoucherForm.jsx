@@ -23,6 +23,7 @@ import taxAPI from '../../../../_shared/api/tax';
 import currencyAPI from '../../../../_shared/api/currency';
 import { money, today } from '../../../components/admin/books/booksFmt';
 import noSlash from '../../../../_shared/lib/noSlash';
+import LedgerPicker from '../../../components/admin/books/LedgerPicker';
 import WithSidePanel from '../../../components/admin/books/VoucherSidePanel';
 import { useCtrlKeys } from '../../../components/admin/books/voucherKeys';
 
@@ -787,6 +788,10 @@ export default function VoucherForm({ api = booksAPI, mode = 'books' }) {
                           <option value="shipping">Shipping / delivery</option><option value="discount">Discount</option><option value="rounding">Rounding</option><option value="other">Other charge</option>
                         </select>
                       )}
+                      {l.type === 'custom' && acct && (
+                        <LedgerPicker ledgers={lineLedgers} value={l.ledger_id} style={{ ...small, marginBottom: 4 }} placeholder="Particulars: type to find the ledger…" autoFocus={!l.ledger_id && !l.description}
+                          onPick={(x) => setLine(l.key, { ledger_id: x.id, description: l.description || x.name })} />
+                      )}
                       {l.type === 'custom' && <input value={l.description} onChange={(e) => setLine(l.key, { description: e.target.value })} placeholder="Description" style={small} />}
                       {l.type === 'charge' && l.kind === 'shipping' && (
                         <select value={l.shipping_option_id} onChange={(e) => setLine(l.key, { shipping_option_id: e.target.value ? Number(e.target.value) : '' })} style={{ ...small, marginTop: 4 }} aria-label="Delivery method">
@@ -797,7 +802,7 @@ export default function VoucherForm({ api = booksAPI, mode = 'books' }) {
                       {l.type === 'charge' && l.kind !== 'shipping' && (
                         <select value={l.ledger_id} onChange={(e) => setLine(l.key, { ledger_id: e.target.value })} style={{ ...small, marginTop: 4 }} aria-label="Ledger"><option value="">{l.kind === 'other' ? 'Ledger…' : 'Ledger (auto)'}</option>{lineLedgers.map((x) => <option key={x.id} value={x.id}>{x.name}</option>)}</select>
                       )}
-                      {l.type === 'custom' && (
+                      {l.type === 'custom' && !acct && (
                         <select value={l.ledger_id} onChange={(e) => setLine(l.key, { ledger_id: e.target.value })} style={{ ...small, marginTop: 4 }} aria-label="Ledger"><option value="">Ledger…</option>{lineLedgers.map((x) => <option key={x.id} value={x.id}>{x.name}</option>)}</select>
                       )}
                     </div>
