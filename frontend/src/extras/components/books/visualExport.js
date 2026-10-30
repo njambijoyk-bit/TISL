@@ -16,8 +16,19 @@ function rgbOf(ctx, value) {
 }
 
 /** Save a chart card as a PNG: whatever is on the card, legend and title included, without its own buttons (they carry data-html2canvas-ignore). */
-export async function saveCardImage(el, name) {
-  const job = startJob(name);
+let tail = Promise.resolve();
+let waiting = 0;
+
+/** Pictures are made one at a time (drawing two at once makes each fail or stall), so one asked for while another is being made waits its turn and shows as waiting. */
+export function saveCardImage(el, name) {
+  const job = startJob(name, waiting > 0);
+  waiting += 1;
+  const run = tail.catch(() => {}).then(() => makeImage(el, name, job)).finally(() => { waiting -= 1; });
+  tail = run;
+  return run;
+}
+
+async function makeImage(el, name, job) {
   try {
     job.step(8, 'Getting ready');
     const { default: html2canvas } = await import('html2canvas');
