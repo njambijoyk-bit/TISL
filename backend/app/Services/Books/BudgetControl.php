@@ -42,7 +42,7 @@ class BudgetControl
         $mode = (string) ($v['budget_control_mode'] ?? 'off');
         $basis = (string) ($v['budget_control_basis'] ?? 'ytd');
 
-        return ['mode' => in_array($mode, self::MODES, true) ? $mode : 'off', 'basis' => in_array($basis, ['ytd', 'month', 'year'], true) ? $basis : 'ytd', 'alert' => max(0, min(100, (int) ($v['budget_alert_percent'] ?? 80)))];
+        return ['commitments' => (bool) ($v['budget_count_commitments'] ?? false), 'mode' => in_array($mode, self::MODES, true) ? $mode : 'off', 'basis' => in_array($basis, ['ytd', 'month', 'year'], true) ? $basis : 'ytd', 'alert' => max(0, min(100, (int) ($v['budget_alert_percent'] ?? 80)))];
     }
 
     // ------------------------------------------------------------ the check
@@ -99,6 +99,8 @@ class BudgetControl
                 }
             }
         }
+        // what open purchase orders still have to arrive, when the company counts it (Budget controls): the order a purchase is being made from is left out, its lines are in this voucher
+        $committedLines = $s['commitments'] ? app(BudgetCommitments::class)->open($carry ? $seriesFrom : $from, $to, $plan['source_id'] ?? null) : [];
         $breaches = [];
         $worst = 'none';
         foreach ($net as $row) {
@@ -110,8 +112,9 @@ class BudgetControl
                 $ccs = $cc->withDescendants((int) $ccRoot);
             }
             $inis = $row['initiative_id'] !== null ? $this->budgets->initiativeWithDescendants((int) $row['initiative_id']) : null;
-            $mine = array_filter($lines, fn ($l) => in_array($l['ledger_id'], $ids, true) && ($ccs === null || in_array($l['cost_centre_id'], $ccs, true)) && ($row['location_id'] === null || $l['location_id'] === $row['location_id'])
-                && ($inis === null || in_array($l['initiative_id'], $inis, true)));
+            $fits = fn ($l) => in_array($l['ledger_id'], $ids, true) && ($ccs === null || in_array($l['cost_centre_id'], $ccs, true)) && ($row['location_id'] === null || $l['location_id'] === $row['location_id'])
+                && ($inis === null || in_array($l['initiative_id'], $inis, true));
+            $mine = array_filter($lines, $fits);
             if (! $mine) {
                 continue;
             }
@@ -125,7 +128,9 @@ class BudgetControl
                 $actualMonths = [$thisMonth => $actualMonths[$thisMonth] ?? 0.0];
             }
             $actual = round(array_sum($actualMonths), 2);
-            $after = round($actual + $amount, 2);
+            $thisMonthStart = substr($date, 0, 7);
+            $committed = round(array_sum(array_column(array_filter($committedLines, fn ($l) => $fits($l) && (! $carry || substr($l['date'], 0, 7) === $thisMonthStart)), 'amount')), 2);   // with carry-forward only this month's orders belong to the month
+            $after = round($actual + $committed + $amount, 2);
             $budget = round($row['budget'], 2);
             $over = $after > $budget + 0.005;
             $used = $budget > 0.005 ? round($after / $budget * 100, 1) : null;
@@ -136,7 +141,7 @@ class BudgetControl
             $action = $near ? 'warn' : ($can ? 'allowed' : $mode);
             $worst = self::ORDER[$action] > self::ORDER[$worst] ? $action : $worst;
             $breaches[] = ['line' => $row['name'] . ($row['dimensions'] ? ', ' . implode(' › ', $row['dimensions']) : ''), 'budget_row_id' => $row['id'], 'level' => $near ? 'near' : 'over', 'budget' => $budget, 'spent_before' => $actual, 'amount' => $amount,
-                'after' => $after, 'over_by' => $over ? round($after - $budget, 2) : 0.0, 'used_pct' => $used, 'mode' => $mode, 'action' => $action, 'period' => "{$from} to {$date}"];
+                'committed' => $committed, 'after' => $after, 'over_by' => $over ? round($after - $budget, 2) : 0.0, 'used_pct' => $used, 'mode' => $mode, 'action' => $action, 'period' => "{$from} to {$date}"];
         }
 
         return ['action' => $worst, 'mode' => $s['mode'], 'can_exceed' => (bool) $can, 'breaches' => $breaches];
@@ -202,7 +207,7 @@ class BudgetControl
         $b = collect($check['breaches'])->firstWhere('action', 'block') ?? $check['breaches'][0];
 
         return sprintf('This would take %s over its budget: %s budgeted for %s, %s already spent and %s on this voucher (over by %s). It is blocked; ask someone who may exceed budgets, or have the budget raised.',
-            $b['line'], number_format($b['budget'], 2), $b['period'], number_format($b['spent_before'], 2), number_format($b['amount'], 2), number_format($b['over_by'], 2));
+            $b['line'], number_format($b['budget'], 2), $b['period'], number_format($b['spent_before'], 2), number_format($b['amount'], 2), number_format($b['over_by'], 2)) . (! empty($b['committed']) ? sprintf(' %s of it is already committed on open purchase orders.', number_format($b['committed'], 2)) : '');
     }
 
     // ------------------------------------------------------------ what was done about it

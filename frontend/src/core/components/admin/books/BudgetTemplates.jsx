@@ -65,10 +65,12 @@ export default function BudgetTemplates({ data, versionId, canEdit, reload, onMa
                 <div style={{ flex: 1, minWidth: 180 }}>
                   <b style={{ fontSize: '0.84rem' }}>{t.name}</b><span style={{ marginLeft: 8, fontSize: '0.68rem', color: colors.textFaint }}>{t.lines} line{t.lines === 1 ? '' : 's'}</span>
                   {t.description && <div style={{ fontSize: '0.72rem', color: colors.textMuted }}>{t.description}</div>}
+                  {(t.assumptions ?? []).length > 0 && <div style={{ fontSize: '0.72rem', color: colors.textMuted }}>Assumptions: {t.assumptions.map((a) => `${a.label} ${a.value}%`).join(' · ')}</div>}
                 </div>
                 <button type="button" style={btnGhost} onClick={() => toggle(t)}>{lines[t.id] ? 'Hide lines' : 'Lines'}</button>
                 {canEdit && <>
                   <button type="button" style={btnPrimary} onClick={() => open({ kind: 'use', id: t.id }, { name: '', from: `${year}-01`, to: `${year}-12` })}>Make a budget</button>
+                  {data.assumptions_ready && <button type="button" style={btnGhost} onClick={() => open({ kind: 'assume', id: t.id }, { list: (t.assumptions ?? []).map((a) => ({ label: a.label, value: a.value })) })}>Assumptions</button>}
                   <button type="button" style={btnGhost} onClick={() => open({ kind: 'rename', id: t.id }, { name: t.name, description: t.description ?? '' })}>Rename</button>
                   <button type="button" aria-label={`Delete ${t.name}`} onClick={() => del(t)} style={{ background: 'none', border: 'none', cursor: 'pointer', color: colors.textMuted }}><Trash2 size={14} /></button>
                 </>}
@@ -80,8 +82,36 @@ export default function BudgetTemplates({ data, versionId, canEdit, reload, onMa
                     <Field label="From month" htmlFor="tu-from" error={errs.from_month}><TextInput id="tu-from" type="month" value={vals.from} onChange={set('from')} /></Field>
                     <Field label="To month" htmlFor="tu-to" error={errs.to_month}><TextInput id="tu-to" type="month" value={vals.to} onChange={set('to')} /></Field>
                   </FormGrid>
+                  {(t.assumptions ?? []).length > 0 && (
+                    <div style={{ marginTop: 10 }}>
+                      <div style={{ fontSize: '0.72rem', fontWeight: 700, color: colors.textFaint, marginBottom: 4 }}>ASSUMPTIONS FOR THIS BUDGET (change them to see a what-if)</div>
+                      <FormGrid min={170}>
+                        {t.assumptions.map((a) => (
+                          <Field key={a.key} label={`${a.label} (%)`} htmlFor={`tu-a-${a.key}`}><TextInput id={`tu-a-${a.key}`} type="number" step="0.01" value={vals.assume?.[a.key] ?? a.value} onChange={(e) => setVals((v) => ({ ...v, assume: { ...(v.assume ?? {}), [a.key]: e.target.value } }))} /></Field>
+                        ))}
+                      </FormGrid>
+                    </div>
+                  )}
                   <div style={{ display: 'flex', gap: 8, marginTop: 10 }}>
-                    <button type="button" style={btnPrimary} disabled={busy} onClick={async () => { const r = await run(() => booksAPI.budgetFromTemplate(t.id, { name: vals.name, from_month: vals.from, to_month: vals.to }), 'Budget made from the template'); if (r && r !== true) { setForm(null); onMade(r.version_id, Number(String(vals.from).slice(0, 4))); } }}>{busy ? 'Making…' : 'Make the budget'}</button>
+                    <button type="button" style={btnPrimary} disabled={busy} onClick={async () => { const r = await run(() => booksAPI.budgetFromTemplate(t.id, { name: vals.name, from_month: vals.from, to_month: vals.to, ...(vals.assume ? { assumptions: vals.assume } : {}) }), 'Budget made from the template'); if (r && r !== true) { setForm(null); onMade(r.version_id, Number(String(vals.from).slice(0, 4))); } }}>{busy ? 'Making…' : 'Make the budget'}</button>
+                    <button type="button" style={btnGhost} onClick={() => setForm(null)}>Cancel</button>
+                  </div>
+                </div>
+              )}
+              {form?.id === t.id && form.kind === 'assume' && (
+                <div style={{ border: `1px solid ${colors.tint(0.15)}`, borderRadius: 10, padding: 14, display: 'grid', gap: 8 }}>
+                  <p style={{ margin: 0, fontSize: '0.78rem', color: colors.textMuted }}>Named numbers (growth, inflation, a pay rise…) that lines can point at, so one change updates every line that uses it. Point a last-year line’s growth, or a percent line’s percent, at one in the lines list.</p>
+                  {(vals.list ?? []).map((a, i) => (
+                    <div key={i} style={{ display: 'grid', gridTemplateColumns: 'minmax(0,1fr) 110px 34px', gap: 8, alignItems: 'center' }}>
+                      <TextInput value={a.label} placeholder="Name, e.g. Inflation" maxLength={60} onChange={(e) => setVals((v) => ({ ...v, list: v.list.map((x, j) => (j === i ? { ...x, label: e.target.value } : x)) }))} />
+                      <TextInput type="number" step="0.01" value={a.value} placeholder="%" onChange={(e) => setVals((v) => ({ ...v, list: v.list.map((x, j) => (j === i ? { ...x, value: e.target.value } : x)) }))} />
+                      <button type="button" aria-label="Remove assumption" onClick={() => setVals((v) => ({ ...v, list: v.list.filter((_, j) => j !== i) }))} style={{ background: 'none', border: 'none', cursor: 'pointer', color: colors.textMuted }}><Trash2 size={14} /></button>
+                    </div>
+                  ))}
+                  {errs.assumptions && <span style={{ color: colors.dangerText, fontSize: '0.76rem' }}>{errs.assumptions}</span>}
+                  <div style={{ display: 'flex', gap: 8 }}>
+                    <button type="button" style={btnGhost} onClick={() => setVals((v) => ({ ...v, list: [...(v.list ?? []), { label: '', value: '' }] }))}>+ Assumption</button>
+                    <button type="button" style={btnPrimary} disabled={busy} onClick={async () => { if (await run(() => booksAPI.saveTemplateAssumptions(t.id, vals.list), 'Assumptions saved')) { setForm(null); setLines((l) => Object.fromEntries(Object.entries(l).filter(([k]) => Number(k) !== t.id))); reload(); } }}>Save</button>
                     <button type="button" style={btnGhost} onClick={() => setForm(null)}>Cancel</button>
                   </div>
                 </div>
@@ -106,7 +136,16 @@ export default function BudgetTemplates({ data, versionId, canEdit, reload, onMa
                       <tr key={l.id} style={{ borderTop: `1px solid ${colors.tint(0.06)}` }}>
                         <td style={{ padding: '4px 6px' }}>{l.name}{l.is_recovery && <span style={{ marginLeft: 6, fontSize: '0.64rem', fontWeight: 700, color: colors.successText }}>recovery</span>}</td>
                         <td style={{ padding: '4px 6px', color: colors.textMuted }}>{l.dimensions.join(' › ') || 'Everything'}</td>
-                        <td style={{ padding: '4px 6px', color: colors.textMuted }}>{methodName[l.method] ?? l.method}</td>
+                        <td style={{ padding: '4px 6px', color: colors.textMuted }}>
+                          {methodName[l.method] ?? l.method}
+                          {canEdit && (t.assumptions ?? []).length > 0 && ['history', 'percent'].includes(l.method) && (
+                            <select aria-label={`${l.method === 'history' ? 'Growth' : 'Percent'} of ${l.name} comes from`} value={l.method_params?.[`${l.method === 'history' ? 'growth' : 'percent'}_ref`] ?? ''} style={{ marginLeft: 6, fontSize: '0.72rem' }}
+                              onChange={async (e) => { if (await run(() => booksAPI.setTemplateLineAssumption(t.id, l.id, e.target.value || null), 'Saved')) { const r = await booksAPI.budgetTemplate(t.id); setLines((x) => ({ ...x, [t.id]: r.lines })); } }}>
+                              <option value="">{l.method === 'history' ? `Growth ${l.method_params?.growth ?? 0}% (its own)` : `${l.method_params?.percent ?? 0}% (its own)`}</option>
+                              {t.assumptions.map((a) => <option key={a.key} value={a.key}>{a.label} {a.value}%</option>)}
+                            </select>
+                          )}
+                        </td>
                         <td style={{ padding: '4px 6px', color: colors.textMuted }}>{l.note}</td>
                         <td>{canEdit && <button type="button" aria-label={`Remove ${l.name} from the template`} onClick={() => removeLine(t, l)} style={{ background: 'none', border: 'none', cursor: 'pointer', color: colors.textMuted }}><Trash2 size={13} /></button>}</td>
                       </tr>

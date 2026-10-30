@@ -28,7 +28,99 @@ class BudgetTemplateService
         }
         $counts = DB::table('budget_template_lines')->selectRaw('template_id, COUNT(*) AS n')->groupBy('template_id')->pluck('n', 'template_id');
 
-        return DB::table('budget_templates')->where('is_active', 1)->orderBy('name')->get()->map(fn ($t) => ['id' => (int) $t->id, 'name' => $t->name, 'description' => $t->description, 'type' => $t->budget_type, 'lines' => (int) ($counts[$t->id] ?? 0)])->all();
+        return DB::table('budget_templates')->where('is_active', 1)->orderBy('name')->get()->map(fn ($t) => ['assumptions' => self::assumptionsOf($t), 'id' => (int) $t->id, 'name' => $t->name, 'description' => $t->description, 'type' => $t->budget_type, 'lines' => (int) ($counts[$t->id] ?? 0)])->all();
+    }
+
+    // ── assumptions ──────────────────────────────────────────────────────
+
+    public static function hasAssumptions(): bool
+    {
+        return Schema::hasColumn('budget_templates', 'assumptions');
+    }
+
+    /** The named assumptions a template carries: [{key, label, value}]. */
+    public static function assumptionsOf(object $t): array
+    {
+        $raw = $t->assumptions ?? null;
+        $list = is_string($raw) ? json_decode($raw, true) : $raw;
+
+        return is_array($list) ? array_values($list) : [];
+    }
+
+    /** A line's own numbers with any assumption it points at put in: `growth_ref` sets growth, `percent_ref` sets the percent. $values: key => percent. */
+    public static function resolveParams(array $p, array $values): array
+    {
+        foreach (['growth', 'percent'] as $field) {
+            $ref = $p[$field . '_ref'] ?? null;
+            if ($ref !== null && array_key_exists($ref, $values)) {
+                $p[$field] = $values[$ref];
+            }
+        }
+
+        return $p;
+    }
+
+    /** Replace a template's assumptions. A line that pointed at one that is gone keeps the number it had and stops pointing. */
+    public function saveAssumptions(int $id, array $list): array
+    {
+        abort_unless(self::hasAssumptions(), 409, 'Run database script 252_budget_template_assumptions.sql first.');
+        abort_unless(DB::table('budget_templates')->where('id', $id)->exists(), 404, 'That template does not exist.');
+        $out = [];
+        foreach ($list as $a) {
+            $label = trim((string) ($a['label'] ?? ''));
+            if ($label === '') {
+                continue;
+            }
+            if (mb_strlen($label) > 60 || ! is_numeric($a['value'] ?? null) || (float) $a['value'] < -100 || (float) $a['value'] > 1000) {
+                throw ValidationException::withMessages(['assumptions' => "\"{$label}\": a name up to 60 characters and a percent between -100 and 1000."]);
+            }
+            $key = \Illuminate\Support\Str::slug($label, '_') ?: 'assumption';
+            while (collect($out)->contains('key', $key)) {
+                $key .= '_2';
+            }
+            $out[] = ['key' => $key, 'label' => $label, 'value' => round((float) $a['value'], 4)];
+        }
+        DB::transaction(function () use ($id, $out) {
+            DB::table('budget_templates')->where('id', $id)->update(['assumptions' => $out ? json_encode($out) : null, 'updated_at' => now()]);
+            $keys = array_column($out, 'key');
+            foreach (DB::table('budget_template_lines')->where('template_id', $id)->get() as $l) {
+                $p = $l->method_params ? json_decode($l->method_params, true) : [];
+                $changed = false;
+                foreach (['growth_ref', 'percent_ref'] as $f) {
+                    if (isset($p[$f]) && ! in_array($p[$f], $keys, true)) {
+                        unset($p[$f]);
+                        $changed = true;
+                    }
+                }
+                if ($changed) {
+                    DB::table('budget_template_lines')->where('id', $l->id)->update(['method_params' => $p ? json_encode($p) : null]);
+                }
+            }
+        });
+
+        return $out;
+    }
+
+    /** Point a line's growth (a last-year line) or percent (a percent line) at one of the template's assumptions, or back at its own number (key null). */
+    public function setLineAssumption(int $templateId, int $lineId, ?string $key): void
+    {
+        $l = DB::table('budget_template_lines')->where('id', $lineId)->where('template_id', $templateId)->first();
+        abort_unless($l, 404, 'That line is not in this template.');
+        $field = $l->method === 'history' ? 'growth' : ($l->method === 'percent' ? 'percent' : null);
+        if (! $field) {
+            throw ValidationException::withMessages(['assumption' => 'Only a last-year line (growth) or a percent line can use an assumption.']);
+        }
+        $t = DB::table('budget_templates')->where('id', $templateId)->first();
+        if ($key !== null && ! collect(self::assumptionsOf($t))->contains('key', $key)) {
+            throw ValidationException::withMessages(['assumption' => 'That assumption is not in this template.']);
+        }
+        $p = $l->method_params ? json_decode($l->method_params, true) : [];
+        if ($key === null) {
+            unset($p[$field . '_ref']);
+        } else {
+            $p[$field . '_ref'] = $key;
+        }
+        DB::table('budget_template_lines')->where('id', $lineId)->update(['method_params' => $p ? json_encode($p) : null]);
     }
 
     /** The lines of a template, named. @return array<int, array<string, mixed>> */
@@ -126,7 +218,14 @@ class BudgetTemplateService
         abort_unless($t, 404, 'That template does not exist.');
         $lines = DB::table('budget_template_lines')->where('template_id', $templateId)->orderBy('sort_order')->orderBy('id')->get();
 
-        return DB::transaction(function () use ($t, $lines, $in, $by) {
+        // the template's assumptions, with the values chosen for this budget over them (what-if)
+        $assume = [];
+        foreach (self::assumptionsOf($t) as $a) {
+            $assume[$a['key']] = (float) (isset($in['assumptions'][$a['key']]) && is_numeric($in['assumptions'][$a['key']]) ? $in['assumptions'][$a['key']] : $a['value']);
+        }
+        $resolved = [];   // template line id -> its numbers with the assumptions put in
+
+        return DB::transaction(function () use ($t, $lines, $in, $by, $assume, &$resolved) {
             $b = $this->budgets->createBudget(['budget_type' => $t->budget_type, 'note' => 'From the template ' . $t->name] + $in, $by);
             $version = (int) $this->budgets->currentVersion($b);
             $months = BudgetService::months($in['from_month'] . '-01', $in['to_month'] . '-01');
@@ -134,7 +233,8 @@ class BudgetTemplateService
             $done = [];   // template line id -> months
             $order = $lines->sortBy(fn ($l) => $l->method === 'percent' ? 1 : 0)->values();   // percents last, so what they are a percent of exists
             foreach ($order as $l) {
-                $p = $l->method_params ? json_decode($l->method_params, true) : [];
+                $p = self::resolveParams($l->method_params ? json_decode($l->method_params, true) : [], $assume);
+                $resolved[(int) $l->id] = $p;
                 $history = null;
                 if ($l->method === 'history') {
                     $history = [];
@@ -146,7 +246,7 @@ class BudgetTemplateService
                 $done[(int) $l->id] = BudgetMethods::fill($l->method, $p, $months, $other, $history) ?? [];
             }
             $ids = $this->budgets->save($lines->map(fn ($l) => ['type' => $l->target_type, 'target_id' => $l->target_id, 'cost_centre_id' => $l->cost_centre_id, 'department_id' => $l->department_id, 'location_id' => $l->location_id,
-                'initiative_id' => $l->initiative_id, 'is_recovery' => (bool) $l->is_recovery, 'method' => $l->method, 'method_params' => $l->method_params ? json_decode($l->method_params, true) : null, 'note' => $l->note,
+                'initiative_id' => $l->initiative_id, 'is_recovery' => (bool) $l->is_recovery, 'method' => $l->method, 'method_params' => ($rp = array_diff_key($resolved[(int) $l->id] ?? [], ['growth_ref' => 1, 'percent_ref' => 1])) ? $rp : null, 'note' => $l->note,
                 'months' => $done[(int) $l->id] ?? []])->all(), $by, $version);
             $rowOf = [];   // template line id -> the new row's id, so a percent can point at its row on the screen
             foreach ($lines->values() as $i => $l) {
@@ -156,7 +256,7 @@ class BudgetTemplateService
                 if ($l->method !== 'percent' || ! isset($ids[$i])) {
                     continue;
                 }
-                $p = json_decode((string) $l->method_params, true) ?: [];
+                $p = array_diff_key($resolved[(int) $l->id] ?? (json_decode((string) $l->method_params, true) ?: []), ['growth_ref' => 1, 'percent_ref' => 1]);   // with the assumption's number put in
                 $target = $rowOf[(int) ($p['of_line'] ?? 0)] ?? null;
                 unset($p['of_line']);
                 DB::table('budget_rows')->where('id', $ids[$i])->update(['method_params' => json_encode($target ? $p + ['of' => 'r' . $target] : $p)]);

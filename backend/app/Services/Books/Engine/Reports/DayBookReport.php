@@ -73,6 +73,9 @@ final class DayBookReport extends ReportDefinition
             if ($scope->costCentreIds !== null) {
                 $e->whereIn('e.cost_centre_id', $scope->costCentreIds);
             }
+            if ($scope->initiativeIds !== null) {
+                $e->whereIn('e.initiative_id', $scope->initiativeIds);
+            }
             if ($scope->locationId !== null) {
                 $e->where('e.location_id', $scope->locationId);
             }
@@ -126,6 +129,9 @@ final class DayBookReport extends ReportDefinition
             $q = $this->vouchers($scope, $typeId, true)->join('voucher_entries as e', 'e.voucher_id', '=', 'v.id')->where('e.side', 'D');
             if ($scope->costCentreIds !== null) {
                 $q->whereIn('e.cost_centre_id', $scope->costCentreIds);
+            }
+            if ($scope->initiativeIds !== null) {
+                $q->whereIn('e.initiative_id', $scope->initiativeIds);
             }
             if ($scope->locationId !== null) {
                 $q->where('e.location_id', $scope->locationId);

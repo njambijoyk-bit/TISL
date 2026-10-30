@@ -36,7 +36,7 @@ trait VisualsMoreCharts
     /** The profit and loss for a period, run once: its totals and the ledgers behind each section. */
     private function pl(Scope $scope, string $from, string $to): array
     {
-        return $this->plCache["{$from}|{$to}|" . json_encode([$scope->costCentreIds, $scope->locationId])] ??= app(ProfitLossReport::class)->run($scope->between($from, $to), []);
+        return $this->plCache["{$from}|{$to}|" . json_encode([$scope->costCentreIds, $scope->locationId, $scope->initiativeIds])] ??= app(ProfitLossReport::class)->run($scope->between($from, $to), []);
     }
 
     /** @return int[] the ledgers of one P&L section (income_direct, expense_direct, income_indirect, expense_indirect) */

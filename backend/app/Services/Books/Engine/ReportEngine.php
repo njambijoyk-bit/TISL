@@ -151,6 +151,7 @@ final class ReportEngine
             'report' => ['key' => $def->key(), 'title' => $def->title(), 'kind' => $def->kind(), 'filters' => $def->filters(), 'supports_comparison' => $def->supportsComparison(), 'options' => $def->options()],
             'scope' => [
                 'from' => $scope->from, 'to' => $scope->to, 'location_id' => $scope->locationId, 'cost_centre_id' => ! empty($input['cost_centre_id']) && in_array('cost_centre', $def->filters(), true) ? (int) $input['cost_centre_id'] : null,
+                'initiative_id' => ! empty($input['initiative_id']) && in_array('initiative', $def->filters(), true) ? (int) $input['initiative_id'] : null,
                 'default_period' => ReportPeriod::current(),
             ],
             'format' => $this->format(),
@@ -197,6 +198,7 @@ final class ReportEngine
             'from' => $from, 'to' => $to,
             'cost_centre_id' => in_array('cost_centre', $offered, true) ? ($input['cost_centre_id'] ?? null) : null,
             'location_id' => in_array('branch', $offered, true) ? ($input['location_id'] ?? null) : null,
+            'initiative_id' => in_array('initiative', $offered, true) ? ($input['initiative_id'] ?? null) : null,
         ], $def->area());
     }
 

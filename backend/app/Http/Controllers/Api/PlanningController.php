@@ -29,7 +29,7 @@ class PlanningController extends Controller
 
         return response()->json([
             'version_id' => $version, 'budgets' => $this->budgets->budgets(), 'approvals' => $version ? $this->budgets->approvalLog($version) : [], 'budget_types' => BudgetService::TYPES, 'transfers' => $version ? $this->transfers->forVersion($version) : [], 'transfers_ready' => BudgetTransferService::ready(), 'controls' => ['ready' => BudgetControl::ready(), 'rules' => $this->control->rules(), 'overrides' => $this->control->overrides(), 'settings' => $this->control->settings(), 'modes' => BudgetControl::MODES],
-            'templates' => $this->templates->templates(), 'templates_ready' => BudgetTemplateService::ready(),
+            'templates' => $this->templates->templates(), 'templates_ready' => BudgetTemplateService::ready(), 'assumptions_ready' => BudgetTemplateService::hasAssumptions(),
             'budgets_ready' => BudgetService::ready(), 'forecast_ready' => ForecastService::ready(), 'from' => $from, 'to' => $to, 'months' => BudgetService::months($from, $to),
             'choices' => $this->budgets->choices(), 'lines' => $this->budgets->lines($from, $to, $version), 'items' => $this->forecast->items(),
             'kinds' => ForecastService::KINDS, 'frequencies' => ForecastService::FREQUENCIES, 'certainty' => ForecastService::CERTAINTY,
@@ -137,6 +137,20 @@ class PlanningController extends Controller
         return response()->json(['ok' => true]);
     }
 
+    public function saveTemplateAssumptions(Request $request, int $id): JsonResponse
+    {
+        $in = $request->validate(['assumptions' => 'nullable|array', 'assumptions.*.label' => 'required|string|max:60', 'assumptions.*.value' => 'required|numeric']);
+
+        return response()->json(['assumptions' => $this->templates->saveAssumptions($id, $in['assumptions'] ?? [])]);
+    }
+
+    public function setTemplateLineAssumption(Request $request, int $id, int $line): JsonResponse
+    {
+        $this->templates->setLineAssumption($id, $line, $request->validate(['key' => 'nullable|string|max:80'])['key'] ?? null);
+
+        return response()->json(['ok' => true]);
+    }
+
     public function deleteTemplate(int $id): JsonResponse
     {
         $this->templates->delete($id);
@@ -153,7 +167,7 @@ class PlanningController extends Controller
 
     public function budgetFromTemplate(Request $request, int $id): JsonResponse
     {
-        $in = $request->validate(['name' => 'required|string|max:120', 'from_month' => 'required|string', 'to_month' => 'required|string']);
+        $in = $request->validate(['name' => 'required|string|max:120', 'from_month' => 'required|string', 'to_month' => 'required|string', 'assumptions' => 'nullable|array', 'assumptions.*' => 'numeric']);
         $b = $this->templates->createBudget($id, $in, $request->user());
 
         return response()->json(['id' => $b, 'version_id' => $this->budgets->currentVersion($b)]);

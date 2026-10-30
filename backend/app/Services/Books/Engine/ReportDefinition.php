@@ -37,10 +37,10 @@ abstract class ReportDefinition
         return false;
     }
 
-    /** Which dimension filters the screen offers for it: any of 'branch', 'cost_centre'. */
+    /** Which dimension filters the screen offers for it: any of 'branch', 'cost_centre', 'initiative'. */
     public function filters(): array
     {
-        return ['branch', 'cost_centre'];
+        return ['branch', 'cost_centre', 'initiative'];
     }
 
     /**

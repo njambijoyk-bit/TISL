@@ -1340,6 +1340,8 @@ Route::middleware('auth:sanctum')->group(function () {
             Route::post('/planning/templates',          [\App\Http\Controllers\Api\PlanningController::class, 'saveTemplate']);
             Route::put('/planning/templates/{id}',      [\App\Http\Controllers\Api\PlanningController::class, 'updateTemplate'])->whereNumber('id');
             Route::delete('/planning/templates/{id}',   [\App\Http\Controllers\Api\PlanningController::class, 'deleteTemplate'])->whereNumber('id');
+            Route::put('/planning/templates/{id}/assumptions', [\App\Http\Controllers\Api\PlanningController::class, 'saveTemplateAssumptions'])->whereNumber('id');
+            Route::put('/planning/templates/{id}/lines/{line}/assumption', [\App\Http\Controllers\Api\PlanningController::class, 'setTemplateLineAssumption'])->whereNumber('id')->whereNumber('line');
             Route::delete('/planning/templates/{id}/lines/{line}', [\App\Http\Controllers\Api\PlanningController::class, 'deleteTemplateLine'])->whereNumber('id')->whereNumber('line');
             Route::post('/planning/templates/{id}/budget', [\App\Http\Controllers\Api\PlanningController::class, 'budgetFromTemplate'])->whereNumber('id');
             Route::post('/planning/transfers',          [\App\Http\Controllers\Api\PlanningController::class, 'requestTransfer']);

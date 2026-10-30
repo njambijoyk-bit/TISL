@@ -56,6 +56,9 @@ final class LedgerStatementReport extends ReportDefinition
         if ($scope->costCentreIds !== null) {
             $q->whereIn('e.cost_centre_id', $scope->costCentreIds);
         }
+        if ($scope->initiativeIds !== null) {
+            $q->whereIn('e.initiative_id', $scope->initiativeIds);
+        }
         if ($scope->locationId !== null) {
             $q->where('e.location_id', $scope->locationId);
         }

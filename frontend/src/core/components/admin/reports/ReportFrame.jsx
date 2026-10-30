@@ -30,16 +30,17 @@ export default function ReportFrame({ reportKey, initialOpts = {}, children }) {
   const [result, setResult] = useState(null);
   const [error, setError] = useState(null);
   const [loading, setLoading] = useState(false);
-  const [f, setF] = useState({ from: '', to: '', compare: 'none', locId: '', ccId: '', opts: initialOpts, page: 1 });
+  const [f, setF] = useState({ from: '', to: '', compare: 'none', locId: '', ccId: '', iniId: '', opts: initialOpts, page: 1 });
   const ran = useRef(null);   // the filters the figures on screen were run for
   const seq = useRef(0);
   const ranState = useRef(null);   // the filter values the figures on screen were run with
   const [branches, setBranches] = useState([]);
   const [ccOpts, setCcOpts] = useState({ ready: false, data: [] });
+  const [iniOpts, setIniOpts] = useState({ ready: false, data: [] });   // the initiatives a report can narrow to
 
   const params = useCallback((x) => ({
     ...(x.from ? { from: x.from } : {}), ...(x.to ? { to: x.to } : {}), ...(x.compare && x.compare !== 'none' ? { compare: x.compare } : {}),
-    ...(x.locId ? { location_id: x.locId } : {}), ...(x.ccId ? { cost_centre_id: x.ccId } : {}), ...(x.opts ?? {}), ...(x.page > 1 ? { page: x.page } : {}),
+    ...(x.locId ? { location_id: x.locId } : {}), ...(x.ccId ? { cost_centre_id: x.ccId } : {}), ...(x.iniId ? { initiative_id: x.iniId } : {}), ...(x.opts ?? {}), ...(x.page > 1 ? { page: x.page } : {}),
   }), []);
 
   const run = useCallback(async (x) => {
@@ -60,9 +61,10 @@ export default function ReportFrame({ reportKey, initialOpts = {}, children }) {
     } finally { if (mine === seq.current) setLoading(false); }
   }, [reportKey, params]);
 
-  useEffect(() => { setResult(null); run({ from: '', to: '', compare: 'none', locId: '', ccId: '', opts: initialOpts, page: 1 }); setF((x) => ({ ...x, opts: initialOpts, compare: 'none', page: 1 })); }, [reportKey]);   // eslint-disable-line react-hooks/exhaustive-deps
+  useEffect(() => { setResult(null); run({ from: '', to: '', compare: 'none', locId: '', ccId: '', iniId: '', opts: initialOpts, page: 1 }); setF((x) => ({ ...x, opts: initialOpts, compare: 'none', page: 1 })); }, [reportKey]);   // eslint-disable-line react-hooks/exhaustive-deps
   useEffect(() => {
     costCentresAPI.options().then(setCcOpts).catch(() => {});
+    booksAPI.budgetInitiatives().then(setIniOpts).catch(() => {});
     locationsAPI.getAdmin().then((l) => setBranches((l.locations ?? []).filter((x) => x.is_active !== false))).catch(() => {});
   }, []);
 
@@ -86,6 +88,9 @@ export default function ReportFrame({ reportKey, initialOpts = {}, children }) {
         )}
         {rep?.filters?.includes('cost_centre') && ccOpts.ready && (
           <select value={f.ccId} onChange={set('ccId')} style={{ ...filterStyle, minWidth: 180 }} aria-label="Cost centre"><option value="">All cost centres</option>{ccOpts.data.map((c) => <option key={c.id} value={c.id}>{'— '.repeat(c.depth)}{c.name}</option>)}</select>
+        )}
+        {rep?.filters?.includes('initiative') && iniOpts.ready && iniOpts.data.length > 0 && (
+          <select value={f.iniId} onChange={set('iniId')} style={{ ...filterStyle, minWidth: 160 }} aria-label="Initiative"><option value="">All initiatives</option>{iniOpts.data.map((i) => <option key={i.id} value={i.id}>{'— '.repeat(i.depth)}{i.name}</option>)}</select>
         )}
         {rep && !asOf && <label style={{ fontSize: '0.75rem', color: colors.textMuted }}>From <input type="date" value={f.from} onChange={set('from')} style={filterStyle} /></label>}
         {rep && <label style={{ fontSize: '0.75rem', color: colors.textMuted }}>{asOf ? 'As of' : 'To'} <input type="date" value={f.to} onChange={set('to')} style={filterStyle} /></label>}
@@ -116,7 +121,7 @@ export default function ReportFrame({ reportKey, initialOpts = {}, children }) {
       {error && <p role="alert" style={{ color: colors.dangerText, fontSize: '0.8rem' }}>{error}</p>}
       {stale && !loading && <Note tone="muted">The dates or filters have changed. Press Run to update the figures below.</Note>}
       {b.restated_vouchers > 0 && <Note>{b.restated_vouchers} voucher{b.restated_vouchers === 1 ? ' was' : 's were'} made when the base currency was different and {b.restated_vouchers === 1 ? 'is' : 'are'} shown at today's rate, so every figure here is in the current base currency.</Note>}
-      {b.filtered && <Note>Only entries of the chosen cost centre or branch are counted, so these figures will not balance on their own. Opening balances belong to the whole business and are left out.</Note>}
+      {b.filtered && <Note>Only entries of the chosen cost centre, branch or initiative are counted, so these figures will not balance on their own. Opening balances belong to the whole business and are left out.</Note>}
       {b.branch_limited && <Note>These figures cover only the branches you have access to. Opening balances belong to the whole business, so ask someone with access to every branch for company-wide totals.</Note>}
 
       {fmt.report_header && <p style={{ margin: '0 0 10px', fontSize: '0.8rem', color: colors.textMuted }}>{fmt.report_header}</p>}
