@@ -9,6 +9,7 @@ import useAuthStore from '../../../_shared/store/authStore';
 import { hasPermission } from '../../../_shared/lib/roles';
 import { btnPrimary, card, colors } from '../../../_shared/theme/tokens';
 import { Field, NumberInput, SelectInput, TextInput } from '../../../core/components/admin/ui/Form';
+import ExportProgress from './ExportProgress';
 import VisualCard from './VisualCard';
 import { DEFS, SOURCE } from './visualDefs';
 import VisualNav from './VisualNav';
@@ -107,6 +108,7 @@ export default function VisualReports() {
 
   return (
     <div style={{ display: 'grid', gap: 16 }}>
+      <ExportProgress />
       <div style={{ ...card, padding: 14, display: 'flex', gap: 12, alignItems: 'flex-end', flexWrap: 'wrap' }}>
         <BarChart3 size={18} style={{ color: colors.primary, marginBottom: 8 }} aria-hidden />
         <Field label="Period" htmlFor="vis-preset"><SelectInput id="vis-preset" value={preset} onChange={(e) => setPreset(e.target.value)}>{PRESETS.map(([k, l]) => <option key={k} value={k}>{l}</option>)}</SelectInput></Field>
