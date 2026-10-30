@@ -418,7 +418,7 @@ trait VisualsMoreCharts
     {
         $r = app(BudgetService::class)->against($scope, $from, $to);
         if (! $r['rows']) {
-            throw new \RuntimeException('No budget is set for this period yet. Set one under Books → Configuration → Planning.');
+            throw new \RuntimeException('No budget is set for this period yet. Set one under Books → Configuration → Budgeting.');
         }
 
         return $r;

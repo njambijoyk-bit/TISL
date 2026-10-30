@@ -12,7 +12,7 @@ use Illuminate\Validation\ValidationException;
 
 /**
  * Budgets (database script 237): what a person plans to spend on an expense ledger group (and every group under it) or on one ledger, month by month, set against what
- * the books actually show. Read by the Visual reports "Budget against actual" chart; edited under Books -> Configuration -> Planning (books.planning).
+ * the books actually show. Read by the Visual reports "Budget against actual" chart; edited under Books -> Configuration -> Budgeting (books.planning).
  */
 class BudgetService
 {
@@ -147,7 +147,7 @@ class BudgetService
     public function against(Scope $scope, string $from, string $to): array
     {
         if (! self::ready()) {
-            throw new \RuntimeException('Run database script 237_planning.sql, then set a budget under Books → Configuration → Planning.');
+            throw new \RuntimeException('Run database script 237_planning.sql, then set a budget under Books → Configuration → Budgeting.');
         }
         $lines = $this->lines($from, $to);
         $months = self::months($from, $to);
