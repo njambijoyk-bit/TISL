@@ -4,6 +4,7 @@ namespace App\Http\Controllers\Api;
 
 use App\Http\Controllers\Controller;
 use App\Services\Books\BudgetService;
+use App\Services\Books\BudgetTemplateService;
 use App\Services\Books\ForecastService;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
@@ -14,7 +15,7 @@ use Illuminate\Http\Request;
  */
 class PlanningController extends Controller
 {
-    public function __construct(private BudgetService $budgets, private ForecastService $forecast) {}
+    public function __construct(private BudgetService $budgets, private ForecastService $forecast, private BudgetTemplateService $templates) {}
 
     public function show(Request $request): JsonResponse
     {
@@ -25,7 +26,7 @@ class PlanningController extends Controller
         $version = BudgetService::ready() ? $this->budgets->resolveVersion($in['version_id'] ?? null) : null;
 
         return response()->json([
-            'version_id' => $version, 'budgets' => $this->budgets->budgets(), 'approvals' => $version ? $this->budgets->approvalLog($version) : [], 'budget_types' => BudgetService::TYPES,
+            'version_id' => $version, 'budgets' => $this->budgets->budgets(), 'approvals' => $version ? $this->budgets->approvalLog($version) : [], 'budget_types' => BudgetService::TYPES, 'templates' => $this->templates->templates(), 'templates_ready' => BudgetTemplateService::ready(),
             'budgets_ready' => BudgetService::ready(), 'forecast_ready' => ForecastService::ready(), 'from' => $from, 'to' => $to, 'months' => BudgetService::months($from, $to),
             'choices' => $this->budgets->choices(), 'lines' => $this->budgets->lines($from, $to, $version), 'items' => $this->forecast->items(),
             'kinds' => ForecastService::KINDS, 'frequencies' => ForecastService::FREQUENCIES, 'certainty' => ForecastService::CERTAINTY,
@@ -59,6 +60,47 @@ class PlanningController extends Controller
     public function createBudget(Request $request): JsonResponse
     {
         $b = $this->budgets->createBudget($request->all(), $request->user());
+
+        return response()->json(['id' => $b, 'version_id' => $this->budgets->currentVersion($b)]);
+    }
+
+    public function template(int $id): JsonResponse
+    {
+        return response()->json(['lines' => $this->templates->lines($id)]);
+    }
+
+    public function saveTemplate(Request $request): JsonResponse
+    {
+        $in = $request->validate(['version_id' => 'required|integer', 'name' => 'required|string|max:120', 'description' => 'nullable|string|max:255']);
+
+        return response()->json(['id' => $this->templates->saveFromVersion((int) $in['version_id'], $in, $request->user())]);
+    }
+
+    public function updateTemplate(Request $request, int $id): JsonResponse
+    {
+        $this->templates->update($id, $request->validate(['name' => 'required|string|max:120', 'description' => 'nullable|string|max:255']));
+
+        return response()->json(['ok' => true]);
+    }
+
+    public function deleteTemplate(int $id): JsonResponse
+    {
+        $this->templates->delete($id);
+
+        return response()->json(['ok' => true]);
+    }
+
+    public function deleteTemplateLine(int $id, int $line): JsonResponse
+    {
+        $this->templates->removeLine($id, $line);
+
+        return response()->json(['ok' => true]);
+    }
+
+    public function budgetFromTemplate(Request $request, int $id): JsonResponse
+    {
+        $in = $request->validate(['name' => 'required|string|max:120', 'from_month' => 'required|string', 'to_month' => 'required|string']);
+        $b = $this->templates->createBudget($id, $in, $request->user());
 
         return response()->json(['id' => $b, 'version_id' => $this->budgets->currentVersion($b)]);
     }

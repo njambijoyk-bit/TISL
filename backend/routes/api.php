@@ -1319,6 +1319,12 @@ Route::middleware('auth:sanctum')->group(function () {
             Route::post('/planning/budget-sets',        [\App\Http\Controllers\Api\PlanningController::class, 'createBudget']);
             Route::post('/planning/budget-sets/{id}/versions', [\App\Http\Controllers\Api\PlanningController::class, 'createVersion'])->whereNumber('id');
             Route::post('/planning/versions/{id}/submit', [\App\Http\Controllers\Api\PlanningController::class, 'transition'])->whereNumber('id')->defaults('action', 'submit');
+            Route::get('/planning/templates/{id}',      [\App\Http\Controllers\Api\PlanningController::class, 'template'])->whereNumber('id');
+            Route::post('/planning/templates',          [\App\Http\Controllers\Api\PlanningController::class, 'saveTemplate']);
+            Route::put('/planning/templates/{id}',      [\App\Http\Controllers\Api\PlanningController::class, 'updateTemplate'])->whereNumber('id');
+            Route::delete('/planning/templates/{id}',   [\App\Http\Controllers\Api\PlanningController::class, 'deleteTemplate'])->whereNumber('id');
+            Route::delete('/planning/templates/{id}/lines/{line}', [\App\Http\Controllers\Api\PlanningController::class, 'deleteTemplateLine'])->whereNumber('id')->whereNumber('line');
+            Route::post('/planning/templates/{id}/budget', [\App\Http\Controllers\Api\PlanningController::class, 'budgetFromTemplate'])->whereNumber('id');
             Route::post('/planning/initiatives',        [\App\Http\Controllers\Api\PlanningController::class, 'saveInitiative']);
             Route::put('/planning/initiatives/{id}',    [\App\Http\Controllers\Api\PlanningController::class, 'saveInitiative'])->whereNumber('id');
             Route::delete('/planning/initiatives/{id}', [\App\Http\Controllers\Api\PlanningController::class, 'removeInitiative'])->whereNumber('id');

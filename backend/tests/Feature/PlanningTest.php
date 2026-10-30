@@ -3,7 +3,9 @@
 namespace Tests\Feature;
 
 use App\Models\User;
+use App\Services\Books\BudgetMethods;
 use App\Services\Books\BudgetService;
+use App\Services\Books\BudgetTemplateService;
 use App\Services\Books\Engine\LedgerBalances;
 use App\Services\Books\Engine\Reports\MoneyFlowReport;
 use App\Services\Books\Engine\Scope;
@@ -22,7 +24,7 @@ class PlanningTest extends TestCase
     use Concerns\RunsSqlScripts;
     use Concerns\StandsInForAccess;
 
-    private const TABLES = ['locations', 'budget_lines', 'budget_rows', 'budget_initiatives', 'budgets', 'budget_versions', 'budget_approvals', 'users', 'forecast_items', 'voucher_bill_refs', 'report_settings', 'report_settings_log'];
+    private const TABLES = ['locations', 'budget_lines', 'budget_rows', 'budget_initiatives', 'budgets', 'budget_versions', 'budget_approvals', 'budget_templates', 'budget_template_lines', 'users', 'forecast_items', 'voucher_bill_refs', 'report_settings', 'report_settings_log'];
 
     protected function setUp(): void
     {
@@ -31,7 +33,7 @@ class PlanningTest extends TestCase
         foreach (self::TABLES as $t) {
             Schema::dropIfExists($t);
         }
-        $this->runSqlScripts('237_planning.sql', '239_budgeting.sql', '240_budget_versions.sql');
+        $this->runSqlScripts('237_planning.sql', '239_budgeting.sql', '240_budget_versions.sql', '241_budget_templates.sql');
         // script 239 replaces budget_lines' old (period, target) key with (row_id, period); SQLite here cannot drop an inline key, so the table is rebuilt as the script leaves it
         Schema::dropIfExists('budget_lines');
         Schema::create('budget_lines', function ($t) {
@@ -390,6 +392,115 @@ class PlanningTest extends TestCase
         $this->postJson("/api/admin/books/planning/budget-sets/{$b['id']}/versions", ['kind' => 'scenario', 'name' => 'Worst case'])->assertOk();
         $show = $this->getJson("/api/admin/books/planning?from=2027-01-01&to=2027-12-31&version_id={$v}")->assertOk();
         $show->assertJsonPath('budgets.0.versions.1.name', 'Worst case')->assertJsonPath('version_id', $v)->assertJsonCount(5, 'approvals')->assertJsonPath('lines.0.months.2027-01', 10);
+    }
+
+    // ── templates ──────────────────────────────────────────────────────
+
+    public function test_the_ways_of_filling_months_add_up_and_wait_for_what_they_need(): void
+    {
+        $months = ['2027-01', '2027-02', '2027-03'];
+        $this->assertSame(['2027-01' => 333.33, '2027-02' => 333.33, '2027-03' => 333.34], BudgetMethods::fill('annual', ['total' => 1000], $months), 'the odd cent goes on the last month');
+        $this->assertSame(['2027-01' => 50.0, '2027-02' => 50.0, '2027-03' => 50.0], BudgetMethods::fill('fixed', ['amount' => 50], $months));
+        $this->assertSame(['2027-01' => 200000.0, '2027-02' => 200000.0, '2027-03' => 200000.0], BudgetMethods::fill('quantity', ['quantity' => 5, 'rate' => 40000], $months));
+        $this->assertEquals([100, 300, 600], array_values(BudgetMethods::fill('seasonal', ['total' => 1000, 'shares' => ['01' => 10, '02' => 30, '03' => 60]], $months)));
+        $this->assertEquals([5, 10, 0], array_values(BudgetMethods::fill('percent', ['percent' => 5], $months, ['2027-01' => 100, '2027-02' => 200])));
+        $this->assertEquals([110, 0, 0], array_values(BudgetMethods::fill('history', ['growth' => 10], $months, null, ['2027-01' => 100])));
+        $this->assertNull(BudgetMethods::fill('percent', ['percent' => 5], $months), 'a percent of a row that is not there');
+        $this->assertNull(BudgetMethods::fill('history', [], $months));
+        $this->assertNull(BudgetMethods::fill('manual', null, $months));
+    }
+
+    private function sourceVersion(): int
+    {
+        $svc = app(BudgetService::class);
+        $this->setting('second_approver_budget', false);
+        $b = $svc->createBudget(['name' => '2026', 'from_month' => '2026-01', 'to_month' => '2026-12'], $this->user(1));
+        $v = $svc->currentVersion($b);
+        $ids = $svc->save([
+            ['type' => 'group', 'target_id' => 6, 'months' => ['2026-01' => 100000], 'method' => 'fixed', 'method_params' => ['amount' => 100000]],
+            ['type' => 'ledger', 'target_id' => 6, 'cost_centre_id' => 11, 'months' => ['2026-01' => 1], 'method' => 'history', 'method_params' => ['growth' => 10], 'note' => 'Office rent'],
+            ['type' => 'ledger', 'target_id' => 9, 'months' => ['2026-01' => 1], 'method' => 'manual'],
+        ], $this->user(1), $v);
+        $svc->save([['type' => 'ledger', 'target_id' => 20, 'months' => ['2026-01' => 1], 'method' => 'percent', 'method_params' => ['percent' => 5, 'of' => "r{$ids[0]}"]]], $this->user(1), $v);
+
+        return $v;
+    }
+
+    public function test_a_version_is_saved_as_a_template_that_keeps_how_the_months_were_filled_but_not_the_amounts(): void
+    {
+        $this->setting('second_approver_budget', false);
+        DB::table('ledgers')->insert(['id' => 20, 'group_id' => 8, 'name' => 'Travel', 'opening_balance' => 0, 'opening_side' => 'D']);
+        $t = app(BudgetTemplateService::class);
+        $tid = $t->saveFromVersion($this->sourceVersion(), ['name' => 'Retail operating', 'description' => 'Every year'], $this->user(1));
+        $lines = $t->lines($tid);
+        $this->assertSame(['fixed', 'history', 'manual', 'percent'], array_column($lines, 'method'));
+        $this->assertSame(['Office rent'], array_values(array_filter(array_column($lines, 'note'))));
+        $this->assertSame(['Admin'], $lines[1]['dimensions']);
+        $this->assertNull($lines[2]['method_params'], 'a hand-typed row keeps no amounts');
+        $this->assertSame($lines[0]['id'], $lines[3]['method_params']['of_line'], 'the row a percent is of became the template line');
+        $this->assertSame([['id' => $tid, 'name' => 'Retail operating', 'description' => 'Every year', 'type' => 'operating', 'lines' => 4]], $t->templates());
+        $t->removeLine($tid, $lines[2]['id']);
+        $this->assertCount(3, $t->lines($tid));
+        $t->update($tid, ['name' => 'Retail 2', 'description' => '']);
+        $this->assertSame('Retail 2', $t->templates()[0]['name']);
+        $t->delete($tid);
+        $this->assertSame([], $t->templates());
+        $this->assertSame(0, DB::table('budget_template_lines')->count());
+        $this->expectException(ValidationException::class);
+        $t->saveFromVersion($this->sourceVersion(), ['name' => ''], null);
+    }
+
+    public function test_a_budget_made_from_a_template_works_out_its_own_months(): void
+    {
+        DB::table('ledgers')->insert(['id' => 20, 'group_id' => 8, 'name' => 'Travel', 'opening_balance' => 0, 'opening_side' => 'D']);
+        $t = app(BudgetTemplateService::class);
+        $svc = app(BudgetService::class);
+        $tid = $t->saveFromVersion($this->sourceVersion(), ['name' => 'Retail'], $this->user(1));
+        $b = $t->createBudget($tid, ['name' => '2027 operating', 'from_month' => '2027-01', 'to_month' => '2027-12'], $this->user(1));
+        $v = $svc->currentVersion($b);
+        $this->assertSame('draft', DB::table('budget_versions')->where('id', $v)->value('status'));
+        $this->assertSame('From the template Retail', DB::table('budgets')->where('id', $b)->value('note'));
+        $rows = collect($svc->lines('2027-01-01', '2027-12-31', $v))->keyBy(fn ($r) => $r['name'] . ($r['cost_centre_id'] ? '@' . $r['cost_centre_id'] : ''));
+        $this->assertCount(4, $rows);
+        $sales = $rows['Sales Accounts'];
+        $this->assertCount(12, $sales['months'], 'a fixed amount in every month of the new budget');
+        $this->assertEquals(100000, $sales['months']['2027-05']);
+        $rent = $rows['Rent@11'];
+        $this->assertEquals(4000 * 1.1, $rent['months']['2027-07'], "last year's July rent on Admin plus 10%, read for the new year");
+        $this->assertArrayNotHasKey('2027-06', $rent['months'], "June's rent was not booked to Admin, and a month of nothing is no budget");
+        $this->assertSame('Office rent', $rent['note']);
+        $this->assertEquals(5000, $rows['Travel']['months']['2027-03'], '5% of the 100,000 sales');
+        $this->assertSame("r{$sales['id']}", $rows['Travel']['method_params']['of'], 'a percent points at its row in the new budget');
+        $this->assertSame([], $rows[array_keys($rows->all())[2]]['months'], 'a hand-typed line starts empty');
+        $this->assertSame(['created'], array_column($svc->approvalLog($v), 'action'));
+    }
+
+    public function test_the_template_routes_need_the_planning_permission(): void
+    {
+        $this->setting('second_approver_budget', false);
+        $v = $this->sourceVersionAs();
+        $this->as(['books.view']);
+        $this->postJson('/api/admin/books/planning/templates', ['version_id' => $v, 'name' => 'T'])->assertForbidden();
+        $this->as(['books.view', 'books.planning']);
+        $id = $this->postJson('/api/admin/books/planning/templates', ['version_id' => $v, 'name' => 'T'])->assertOk()->json('id');
+        $this->postJson('/api/admin/books/planning/templates', ['version_id' => $v, 'name' => ''])->assertStatus(422);
+        $this->getJson("/api/admin/books/planning/templates/{$id}")->assertOk()->assertJsonCount(1, 'lines');
+        $this->getJson('/api/admin/books/planning?from=2026-01-01&to=2026-12-31')->assertJsonPath('templates.0.name', 'T')->assertJsonPath('templates_ready', true);
+        $b = $this->postJson("/api/admin/books/planning/templates/{$id}/budget", ['name' => 'N', 'from_month' => '2027-01', 'to_month' => '2027-06'])->assertOk()->json();
+        $this->assertNotNull($b['version_id']);
+        $this->putJson("/api/admin/books/planning/templates/{$id}", ['name' => 'T2'])->assertOk();
+        $this->deleteJson("/api/admin/books/planning/templates/{$id}/lines/" . DB::table('budget_template_lines')->value('id'))->assertOk();
+        $this->deleteJson("/api/admin/books/planning/templates/{$id}")->assertOk();
+    }
+
+    private function sourceVersionAs(): int
+    {
+        $svc = app(BudgetService::class);
+        $b = $svc->createBudget(['name' => 'Src', 'from_month' => '2026-01', 'to_month' => '2026-12'], null);
+        $v = $svc->currentVersion($b);
+        $svc->save([['type' => 'ledger', 'target_id' => 6, 'months' => ['2026-01' => 5], 'method' => 'fixed', 'method_params' => ['amount' => 5]]], null, $v);
+
+        return $v;
     }
 
     // ── the forecast ───────────────────────────────────────────────────
