@@ -300,4 +300,74 @@ class EventPlatformTest extends TestCase
         $this->assertSame(1, DB::table('user_roles')->where('user_id', $this->ben->id)->count(), 'Ben still belongs to his own verified organiser');
         \App\Services\Access\Authorizer::reset();
     }
+
+    private function ledgerTables(): void
+    {
+        Schema::create('event_organiser_ledger', function ($t) {
+            $t->id(); $t->unsignedBigInteger('organiser_id'); $t->unsignedBigInteger('event_id')->nullable(); $t->unsignedBigInteger('ticket_id')->nullable(); $t->string('kind'); $t->decimal('gross', 14, 2)->default(0);
+            $t->decimal('commission_percent', 5, 2)->nullable(); $t->decimal('commission', 14, 2)->default(0); $t->decimal('amount', 14, 2); $t->unsignedBigInteger('voucher_id')->nullable(); $t->string('reference')->nullable();
+            $t->string('note')->nullable(); $t->unsignedBigInteger('created_by')->nullable(); $t->timestamps(); $t->unique(['ticket_id', 'kind']);
+        });
+    }
+
+    private function ticket(int $eventId, string $ref, float $price): \App\Models\Events\EventTicket
+    {
+        return \App\Models\Events\EventTicket::create(['event_id' => $eventId, 'ticket_type_id' => 1, 'reference' => $ref, 'state' => 'valid', 'price' => $price]);
+    }
+
+    public function test_an_outside_organiser_is_owed_the_price_less_commission_and_a_refund_takes_it_back(): void
+    {
+        $this->ledgerTables();
+        $o = app(EventOrganiserService::class);
+        $anna = EventOrganiser::where('name', 'Anna Weddings')->first();
+        $o->setCommission($anna, 12.5);
+        $mine = DB::table('events')->insertGetId(['title' => 'Gala', 'slug' => 'gala', 'organiser_id' => $anna->id, 'sales_ledger_id' => 40]);
+        $own = DB::table('events')->insertGetId(['title' => 'TISL day', 'slug' => 'tisl-day', 'organiser_id' => 1, 'sales_ledger_id' => 40]);
+        $pay = app(\App\Services\Events\EventPayables::class);
+
+        $t1 = $this->ticket($mine, 'AAA111', 1000);
+        $t2 = $this->ticket($mine, 'AAA112', 1000);
+        $free = $this->ticket($mine, 'AAA113', 0);
+        $tisl = $this->ticket($own, 'BBB111', 500);
+        $pay->accrue([$t1, $t2, $free, $tisl]);
+        $pay->accrue([$t1]);   // twice changes nothing
+        $this->assertSame(1750.0, $pay->balanceOf($anna->id), '2 x 1000 less 12.5%');
+        $this->assertSame(0, DB::table('event_organiser_ledger')->where('organiser_id', 1)->count(), 'TISL owes itself nothing');
+
+        $pay->reverse($t1);
+        $pay->reverse($t1);
+        $this->assertSame(875.0, $pay->balanceOf($anna->id), 'a refund takes back that ticket\'s share, once');
+        $b = collect($pay->balances())->firstWhere('organiser_id', $anna->id);
+        $this->assertSame([1000.0, 125.0, 0.0, 875.0, 3], [$b['gross'], $b['commission'], $b['paid'], $b['balance'], $b['unposted']], 'nothing could be posted yet: no liability account chosen');
+        $this->assertCount(3, $pay->statement($anna->id));
+
+        $this->expectException(\App\Services\Events\EventException::class);
+        $pay->payout($anna, 5000, 41, null, null, $this->staff);   // more than is owed
+    }
+
+    public function test_what_is_owed_is_booked_as_a_journal_and_a_payout_pays_it_down(): void
+    {
+        $this->ledgerTables();
+        Schema::create('voucher_types', function ($t) { $t->id(); $t->string('base_type'); $t->boolean('is_active')->default(true); $t->timestamps(); });
+        DB::table('voucher_types')->insert(['id' => 3, 'base_type' => 'journal']);
+        Schema::create('currencies', function ($t) { $t->id(); $t->string('code', 8); $t->boolean('is_base')->default(false); $t->timestamps(); });
+        $posted = [];
+        $this->mock(\App\Services\Books\VoucherService::class, function ($m) use (&$posted) {
+            $m->shouldReceive('create')->andReturnUsing(function ($d) use (&$posted) { $posted[] = $d; $v = new \App\Models\Books\Voucher(); $v->id = 100 + count($posted); $v->voucher_number = 'J-' . count($posted); return $v; });
+        });
+        $anna = EventOrganiser::where('name', 'Anna Weddings')->first();
+        $mine = DB::table('events')->insertGetId(['title' => 'Gala', 'slug' => 'gala', 'organiser_id' => $anna->id, 'sales_ledger_id' => 40]);
+        $pay = app(\App\Services\Events\EventPayables::class);
+        $pay->accrue([$this->ticket($mine, 'CCC111', 1000)]);
+        $this->assertSame([], $posted, 'no liability account chosen yet: kept, not posted');
+
+        \App\Services\Events\EventSettings::save(['organiser_payable_ledger_id' => 41], 5);   // any ledger id stands in for the liability
+        $this->assertSame(1, $pay->postWaiting());
+        $this->assertSame([40, 'D', 41, 'C', 900.0], [$posted[0]['entries'][0]['ledger_id'], $posted[0]['entries'][0]['side'], $posted[0]['entries'][1]['ledger_id'], $posted[0]['entries'][1]['side'], (float) $posted[0]['entries'][0]['amount']], 'Dr income, Cr owed to organisers, 900 after the 10% default');
+
+        $r = $pay->payout($anna, 400, 41, 'MPESA123', 'first half', $this->staff);
+        $this->assertSame(500.0, $r['balance']);
+        $this->assertSame('D', $posted[1]['entries'][0]['side']);
+        $this->assertSame(0, DB::table('event_organiser_ledger')->whereNull('voucher_id')->count());
+    }
 }

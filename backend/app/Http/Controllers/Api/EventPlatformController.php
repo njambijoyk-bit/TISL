@@ -8,7 +8,10 @@ use App\Models\Events\EventOrganiser;
 use App\Models\User;
 use App\Services\Events\EventAccess;
 use App\Services\Events\EventCategoryService;
+use App\Services\Events\EventException;
 use App\Services\Events\EventOrganiserService;
+use App\Services\Events\EventPayables;
+use App\Services\Events\EventSettings;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 
@@ -199,5 +202,49 @@ class EventPlatformController extends Controller
         $this->organisers->reviewDocument($id, $d['status'], $d['note'] ?? null, $request->user());
 
         return response()->json(['message' => 'Saved.']);
+    }
+
+    // ── what is owed to organisers, and paying it out ────────────────────
+
+    private function payables(): EventPayables|JsonResponse
+    {
+        return EventPayables::ready() ? app(EventPayables::class) : response()->json(['ready' => false, 'message' => 'Run script 254 to keep what is owed to organisers.'], 409);
+    }
+
+    /** GET /admin/events/platform/payouts: who is owed what. */
+    public function payouts(): JsonResponse
+    {
+        $p = $this->payables();
+
+        return $p instanceof JsonResponse ? $p : response()->json(['ready' => true, 'data' => $p->balances(), 'liability_ledger_id' => EventSettings::all()['organiser_payable_ledger_id'] ?? null]);
+    }
+
+    public function statement(int $id): JsonResponse
+    {
+        $p = $this->payables();
+
+        return $p instanceof JsonResponse ? $p : response()->json(['organiser' => $this->organisers->shape(EventOrganiser::findOrFail($id)), 'balance' => $p->balanceOf($id), 'data' => $p->statement($id)]);
+    }
+
+    public function payOut(Request $request, int $id): JsonResponse
+    {
+        $p = $this->payables();
+        if ($p instanceof JsonResponse) {
+            return $p;
+        }
+        $d = $request->validate(['amount' => 'required|numeric|min:0.01', 'from_ledger_id' => 'required|integer|exists:ledgers,id', 'reference' => 'nullable|string|max:120', 'note' => 'nullable|string|max:200']);
+        try {
+            return response()->json($p->payout(EventOrganiser::findOrFail($id), (float) $d['amount'], (int) $d['from_ledger_id'], $d['reference'] ?? null, $d['note'] ?? null, $request->user()) + ['message' => 'Paid out.'], 201);
+        } catch (EventException $e) {
+            return response()->json(['message' => $e->getMessage()], 422);
+        }
+    }
+
+    /** POST /admin/events/platform/payouts/post-waiting: book the movements that could not be posted when they happened. */
+    public function postWaiting(): JsonResponse
+    {
+        $p = $this->payables();
+
+        return $p instanceof JsonResponse ? $p : response()->json(['posted' => $p->postWaiting(), 'data' => $p->balances()]);
     }
 }

@@ -107,6 +107,9 @@ final class EventRefunds
                 }
                 $credit = (float) $t->price > 0 ? $this->creditNote($t, $refundLedgerId, $by) : null;
                 $this->holds->cancel($t, 'Refunded');
+                if ($credit && EventPayables::ready()) {
+                    app(EventPayables::class)->reverse($t);
+                }
                 $r->update(['status' => EventRefundRequest::APPROVED, 'decided_by' => $by?->id, 'decided_at' => now(), 'decision_note' => $note ? mb_substr($note, 0, 300) : null, 'amount' => $credit ? (float) $credit->total_amount : 0]);
                 $fresh = $r->fresh();
                 DB::afterCommit(fn () => $this->notices->refundDecided($fresh, true, $credit?->meta['refunded_to'] ?? null));

@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useState } from 'react';
 import toast from 'react-hot-toast';
 import { Check, ChevronRight, Pencil, Plus, Sparkles, Trash2, X } from 'lucide-react';
+import booksAPI from '../../../_shared/api/books';
 import eventsAPI from '../../../_shared/api/events';
 import { errMsg } from '../../../_shared/store/helpers/apiState';
 import Modal from '../../../core/components/admin/ui/Modal';
@@ -9,7 +10,7 @@ import { CheckboxRow, Field, FormGrid, FormStack, ModalActions, NumberInput, Sel
 import { btnGhost, btnPrimary, card, colors } from '../../../_shared/theme/tokens';
 
 const small = { ...btnGhost, padding: '4px 10px', fontSize: '0.74rem' };
-const SECTIONS = [{ id: 'categories', label: 'Categories' }, { id: 'organisers', label: 'Organisers' }, { id: 'vendors', label: 'Vendors' }, { id: 'venues', label: 'Venues' }];
+const SECTIONS = [{ id: 'categories', label: 'Categories' }, { id: 'organisers', label: 'Organisers' }, { id: 'vendors', label: 'Vendors' }, { id: 'venues', label: 'Venues' }, { id: 'payouts', label: 'Payouts' }];
 const TONE = { verified: [colors.successBg, colors.successText], pending: [colors.warningBg, colors.warningText], suspended: [colors.dangerBg, colors.dangerText], rejected: [colors.dangerBg, colors.dangerText] };
 
 function Pill({ status }) {
@@ -28,7 +29,7 @@ export default function PlatformTab() {
             style={{ ...btnGhost, padding: '6px 14px', fontSize: '0.8rem', ...(section === s.id ? { background: colors.primary, color: '#fff', borderColor: colors.primary } : {}) }}>{s.label}</button>
         ))}
       </div>
-      {section === 'categories' ? <Categories /> : <Providers key={section} kind={section} />}
+      {section === 'categories' ? <Categories /> : section === 'payouts' ? <Payouts /> : <Providers key={section} kind={section} />}
     </div>
   );
 }
@@ -199,6 +200,92 @@ function ProviderModal({ kind, id, onClose, onChanged }) {
           {p.status !== 'pending' && !p.is_internal && <button type="button" style={btnGhost} disabled={busy} onClick={() => act(() => eventsAPI.setProviderStatus(kind, id, 'pending', note), 'Sent back to pending')}>Back to pending</button>}
         </div>
       </FormStack>
+    </Modal>
+  );
+}
+
+// ── ticket money owed to organisers ──────────────────────────────────────
+
+function Payouts() {
+  const [rows, setRows] = useState([]);
+  const [ready, setReady] = useState(true);
+  const [owedSet, setOwedSet] = useState(true);
+  const [loading, setLoading] = useState(true);
+  const [pay, setPay] = useState(null);       // the organiser being paid
+  const [view, setView] = useState(null);     // the organiser whose statement is open
+
+  const load = useCallback(() => {
+    setLoading(true);
+    return eventsAPI.payouts().then((r) => { setRows(r.data); setOwedSet(Boolean(r.liability_ledger_id)); setReady(true); })
+      .catch((e) => { if (e?.response?.status === 409) setReady(false); else toast.error(errMsg(e, 'Could not load what is owed')); }).finally(() => setLoading(false));
+  }, []);
+  useEffect(() => { load(); }, [load]);
+
+  const post = async () => { try { const r = await eventsAPI.postWaitingPayables(); toast.success(`${r.posted} posted to the books`); setRows(r.data); } catch (e) { toast.error(errMsg(e, 'Could not post them'), { duration: 8000 }); } };
+  const waiting = rows.reduce((n, r) => n + r.unposted, 0);
+  const num = (v) => Number(v).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+
+  if (!ready) return <p role="status" style={{ fontSize: '0.82rem', color: colors.textMuted }}>Run database script 254_event_organiser_ledger.sql, then reload.</p>;
+  const columns = [
+    { key: 'organiser', label: 'Organiser', render: (r) => <button type="button" onClick={() => setView(r.organiser_id)} style={{ background: 'none', border: 0, padding: 0, font: 'inherit', fontWeight: 700, color: colors.primary, cursor: 'pointer' }}>{r.organiser}</button> },
+    { key: 'gross', label: 'Tickets sold', align: 'right', render: (r) => num(r.gross) },
+    { key: 'commission', label: 'TISL kept', align: 'right', render: (r) => num(r.commission) },
+    { key: 'paid', label: 'Paid out', align: 'right', render: (r) => num(r.paid) },
+    { key: 'balance', label: 'Owed now', align: 'right', render: (r) => <strong>{num(r.balance)}</strong> },
+    { key: 'act', label: '', align: 'right', render: (r) => <button type="button" style={small} disabled={r.balance <= 0} onClick={() => setPay(r)}>Pay out</button> },
+  ];
+
+  return (
+    <div>
+      {!owedSet && <p role="status" style={{ margin: '0 0 12px', fontSize: '0.82rem', color: colors.warningText }}>Choose the "owed to organisers" account in Configuration: until then what is owed is kept here but not booked.</p>}
+      {waiting > 0 && owedSet && <p role="status" style={{ margin: '0 0 12px', fontSize: '0.82rem' }}>{waiting} movement{waiting === 1 ? '' : 's'} not yet booked. <button type="button" style={small} onClick={post}>Post them now</button></p>}
+      <SimpleTable columns={columns} rows={rows} loading={loading} empty="Nothing is owed yet. It starts when an outside organiser sells a ticket." />
+      {pay && <PayModal org={pay} onClose={() => setPay(null)} onDone={() => { setPay(null); load(); }} />}
+      {view && <StatementModal id={view} onClose={() => setView(null)} />}
+    </div>
+  );
+}
+
+function PayModal({ org, onClose, onDone }) {
+  const [amount, setAmount] = useState(String(org.balance));
+  const [from, setFrom] = useState('');
+  const [ref, setRef] = useState('');
+  const [banks, setBanks] = useState([]);
+  const [busy, setBusy] = useState(false);
+  useEffect(() => {
+    booksAPI.ledgers({ all: 1 }).then((r) => setBanks((Array.isArray(r) ? r : r.data ?? []).filter((l) => l.is_active && /cash|bank/i.test(l.group?.name ?? '')))).catch(() => {});
+  }, []);
+  const go = async () => {
+    setBusy(true);
+    try { const r = await eventsAPI.payOut(org.organiser_id, { amount: Number(amount), from_ledger_id: Number(from), reference: ref || undefined }); toast.success(`Paid out (${r.voucher})`); onDone(); }
+    catch (e) { toast.error(errMsg(e, 'Could not pay out'), { duration: 8000 }); } finally { setBusy(false); }
+  };
+  return (
+    <Modal title={`Pay out to ${org.organiser}`} subtitle={`Owed now: ${Number(org.balance).toLocaleString()}`} width={440} onClose={onClose}
+      footer={<ModalActions onCancel={onClose} onSubmit={go} busy={busy} disabled={!from || !(Number(amount) > 0)} submitLabel="Pay out" busyLabel="Paying…" />}>
+      <FormStack>
+        <Field label="Amount" htmlFor="po-amt"><NumberInput id="po-amt" min={0} step="0.01" max={org.balance} value={amount} onChange={(e) => setAmount(e.target.value)} /></Field>
+        <Field label="Paid from" htmlFor="po-from" hint="The bank or till the money leaves."><SelectInput id="po-from" value={from} onChange={(e) => setFrom(e.target.value)}>
+          <option value="">Choose…</option>{banks.map((b) => <option key={b.id} value={b.id}>{b.name}</option>)}</SelectInput></Field>
+        <Field label="Reference" htmlFor="po-ref" hint="The bank transfer or M-Pesa code."><TextInput id="po-ref" maxLength={120} value={ref} onChange={(e) => setRef(e.target.value)} /></Field>
+      </FormStack>
+    </Modal>
+  );
+}
+
+function StatementModal({ id, onClose }) {
+  const [d, setD] = useState(null);
+  useEffect(() => { eventsAPI.payoutStatement(id).then(setD).catch((e) => { toast.error(errMsg(e, 'Could not open it')); onClose(); }); }, [id, onClose]);
+  if (!d) return null;
+  const columns = [
+    { key: 'date', label: 'Date', render: (r) => String(r.date).slice(0, 10) },
+    { key: 'kind', label: 'What', render: (r) => <span style={{ textTransform: 'capitalize' }}>{r.kind}{r.event ? ` · ${r.event}` : ''}{r.voucher_id ? '' : ' · not booked'}</span> },
+    { key: 'amount', label: 'Change', align: 'right', render: (r) => Number(r.amount).toLocaleString() },
+    { key: 'balance', label: 'Owed', align: 'right', render: (r) => Number(r.balance).toLocaleString() },
+  ];
+  return (
+    <Modal title={`${d.organiser.name}: statement`} subtitle={`Owed now: ${Number(d.balance).toLocaleString()}`} width={680} onClose={onClose}>
+      <SimpleTable columns={columns} rows={d.data} empty="No movements yet." />
     </Modal>
   );
 }

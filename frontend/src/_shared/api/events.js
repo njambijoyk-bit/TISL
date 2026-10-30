@@ -56,6 +56,10 @@ const eventsAPI = {
   provider: (kind, id) => api.get(`/admin/events/platform/${kind}/${id}`).then((r) => r.data.data),
   setProviderStatus: (kind, id, status, note) => api.post(`/admin/events/platform/${kind}/${id}/status`, { status, note: note || undefined }).then((r) => r.data.data),
   setProviderCommission: (kind, id, commission_percent) => api.post(`/admin/events/platform/${kind}/${id}/commission`, { commission_percent }).then((r) => r.data.data),
+  payouts: () => api.get('/admin/events/platform/payouts').then((r) => r.data),
+  payoutStatement: (organiserId) => api.get(`/admin/events/platform/payouts/${organiserId}`).then((r) => r.data),
+  payOut: (organiserId, body) => api.post(`/admin/events/platform/payouts/${organiserId}`, body).then((r) => r.data),
+  postWaitingPayables: () => api.post('/admin/events/platform/payouts/post-waiting').then((r) => r.data),
   reviewDocument: (id, status, note) => api.post(`/admin/events/platform/documents/${id}/review`, { status, note: note || undefined }).then((r) => r.data),
 };
 

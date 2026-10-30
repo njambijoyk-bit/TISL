@@ -202,6 +202,9 @@ final class TicketHolds
             $fresh->update(['state' => EventTicket::VALID, 'held_until' => null, 'issued_at' => now(), 'order_id' => $orderId ?? $fresh->order_id, 'sale_id' => $saleId ?? $fresh->sale_id]);
             $made->push($fresh);
         }
+        if ($made->isNotEmpty() && EventPayables::ready()) {
+            app(EventPayables::class)->accrue($made);   // an outside organiser is owed their share
+        }
 
         return $made;
     }

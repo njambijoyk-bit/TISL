@@ -3,6 +3,7 @@ import toast from 'react-hot-toast';
 import eventsAPI from '../../../_shared/api/events';
 import { errMsg } from '../../../_shared/store/helpers/apiState';
 import { CheckboxRow, Field, NumberInput, TextInput, FormGrid, FormStack } from '../../../core/components/admin/ui/Form';
+import LedgerSelect from '../../../menus/components/LedgerSelect';
 import SalesAccountSelect from '../../../core/components/admin/tax/SalesAccountSelect';
 import { btnPrimary, card, colors } from '../../../_shared/theme/tokens';
 
@@ -18,7 +19,7 @@ export default function EventSettingsTab({ canEdit }) {
   const set = (k) => (e) => setS((x) => ({ ...x, [k]: e.target.value }));
   const save = async () => {
     setBusy(true);
-    try { const r = await eventsAPI.saveSettings({ hold_minutes: Number(s.hold_minutes), reminder_hours: Number(s.reminder_hours), sales_ledger_id: s.sales_ledger_id || null, ticket_note: s.ticket_note ?? '', reminders_on: Boolean(s.reminders_on) }); setS(r.settings); toast.success('Saved'); }
+    try { const r = await eventsAPI.saveSettings({ hold_minutes: Number(s.hold_minutes), reminder_hours: Number(s.reminder_hours), sales_ledger_id: s.sales_ledger_id || null, ticket_note: s.ticket_note ?? '', reminders_on: Boolean(s.reminders_on), commission_percent: Number(s.commission_percent), require_approval: Boolean(s.require_approval), organiser_payable_ledger_id: s.organiser_payable_ledger_id || null }); setS(r.settings); toast.success('Saved'); }
     catch (e) { toast.error(errMsg(e, 'Could not save'), { duration: 8000 }); } finally { setBusy(false); }
   };
 
@@ -38,6 +39,19 @@ export default function EventSettingsTab({ canEdit }) {
         <SalesAccountSelect kind="sales" scope="service" label="Income account for ticket sales" value={s.sales_ledger_id} disabled={!canEdit}
           onChange={(v) => setS((x) => ({ ...x, sales_ledger_id: v }))}
           hint="Used for every event that does not name its own. The account decides the tax on tickets." />
+        <div style={{ borderTop: `1px solid ${colors.tint(0.1)}`, paddingTop: 16 }}>
+          <p style={{ margin: '0 0 10px', fontSize: '0.8rem', fontWeight: 700 }}>Outside organisers</p>
+          <FormStack gap={14}>
+            <FormGrid min={220}>
+              <Field label="TISL keeps this share of each ticket (%)" htmlFor="ev-comm" hint="The default. Each organiser, vendor or venue can have its own rate. TISL's own events pay nothing.">
+                <NumberInput id="ev-comm" min={0} max={100} step="0.1" value={s.commission_percent} onChange={set('commission_percent')} disabled={!canEdit} />
+              </Field>
+              <LedgerSelect id="ev-owed" label="Money owed to organisers is held in" value={s.organiser_payable_ledger_id} disabled={!canEdit} onChange={(v) => setS((x) => ({ ...x, organiser_payable_ledger_id: v }))}
+                hint="A liability account, for example 'Event organiser payables'. Their share of every ticket moves here from ticket income until you pay them out. Needs database script 254." />
+            </FormGrid>
+            <CheckboxRow checked={s.require_approval} disabled={!canEdit} onChange={(v) => setS((x) => ({ ...x, require_approval: v }))} label="Check an outside organiser's event before it can be published" description="Recommended. TISL approves each event first." />
+          </FormStack>
+        </div>
         <Field label="A line printed on every ticket" htmlFor="ev-note" hint="For example: Doors open one hour before. Bring a photo ID.">
           <TextInput id="ev-note" maxLength={300} value={s.ticket_note ?? ''} onChange={set('ticket_note')} disabled={!canEdit} />
         </Field>

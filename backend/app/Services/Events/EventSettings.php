@@ -14,6 +14,7 @@ final class EventSettings
         'reminders_on' => false,           // send ticket holders a reminder before each date (off until the company switches it on)
         'reminder_hours' => 24,            // the reminder goes this long before the date starts
         'ticket_note' => '',               // a line printed on every ticket and in the ticket email
+        'organiser_payable_ledger_id' => null, // the liability account for ticket money owed to outside organisers
         'commission_percent' => 10,        // what TISL keeps of ticket sales for an outside organiser, unless the organiser has its own rate
         'require_approval' => true,        // an outside organiser's event is checked by TISL before it can be published
     ];
@@ -71,6 +72,9 @@ final class EventSettings
         }
         if (array_key_exists('sales_ledger_id', $in)) {
             $cur['sales_ledger_id'] = $in['sales_ledger_id'] ? (int) $in['sales_ledger_id'] : null;
+        }
+        if (array_key_exists('organiser_payable_ledger_id', $in)) {
+            $cur['organiser_payable_ledger_id'] = $in['organiser_payable_ledger_id'] ? (int) $in['organiser_payable_ledger_id'] : null;
         }
         if (array_key_exists('ticket_note', $in)) {
             $cur['ticket_note'] = mb_substr(trim((string) $in['ticket_note']), 0, 300);

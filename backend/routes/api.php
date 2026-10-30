@@ -1924,6 +1924,10 @@ Route::middleware('auth:sanctum')->group(function () {
             Route::post('/platform/organisers/{id}/status',      [\App\Http\Controllers\Api\EventPlatformController::class, 'setOrganiserStatus'])->whereNumber('id')->middleware('permission:events.admin');
             Route::post('/platform/organisers/{id}/commission',  [\App\Http\Controllers\Api\EventPlatformController::class, 'setOrganiserCommission'])->whereNumber('id')->middleware('permission:events.admin');
             Route::post('/platform/documents/{id}/review',       [\App\Http\Controllers\Api\EventPlatformController::class, 'reviewDocument'])->whereNumber('id')->middleware('permission:events.admin');
+            Route::get('/platform/payouts',                      [\App\Http\Controllers\Api\EventPlatformController::class, 'payouts'])->middleware('permission:events.admin');
+            Route::post('/platform/payouts/post-waiting',        [\App\Http\Controllers\Api\EventPlatformController::class, 'postWaiting'])->middleware('permission:events.admin');
+            Route::get('/platform/payouts/{id}',                 [\App\Http\Controllers\Api\EventPlatformController::class, 'statement'])->whereNumber('id')->middleware('permission:events.admin');
+            Route::post('/platform/payouts/{id}',                [\App\Http\Controllers\Api\EventPlatformController::class, 'payOut'])->whereNumber('id')->middleware('permission:events.admin');
             Route::get('/platform/{plural}',                     [\App\Http\Controllers\Api\EventMarketplaceController::class, 'adminList'])->where('plural', 'vendors|venues')->middleware('permission:events.admin');
             Route::get('/platform/{plural}/{id}',                [\App\Http\Controllers\Api\EventMarketplaceController::class, 'adminShow'])->where('plural', 'vendors|venues')->whereNumber('id')->middleware('permission:events.admin');
             Route::post('/platform/{plural}/{id}/status',        [\App\Http\Controllers\Api\EventMarketplaceController::class, 'setStatus'])->where('plural', 'vendors|venues')->whereNumber('id')->middleware('permission:events.admin');
