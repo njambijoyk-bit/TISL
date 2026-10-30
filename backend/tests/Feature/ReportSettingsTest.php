@@ -143,7 +143,7 @@ class ReportSettingsTest extends TestCase
     public function test_the_screen_gets_each_section_with_whether_the_person_may_change_it(): void
     {
         $sections = collect($this->svc()->sectionsFor($this->person(['books.reports.settings', 'books.reports.format'])))->keyBy('id');
-        $this->assertSame(['display', 'ageing', 'ratios', 'money', 'reconciliation', 'health', 'forecast', 'approvals'], $sections->keys()->all());
+        $this->assertSame(['display', 'ageing', 'ratios', 'money', 'reconciliation', 'health', 'forecast', 'budget_control', 'approvals'], $sections->keys()->all());
         $this->assertTrue($sections['display']['can_edit']);
         $this->assertTrue($sections['ratios']['can_edit']);
         $this->assertFalse($sections['approvals']['can_edit']);
@@ -185,7 +185,7 @@ class ReportSettingsTest extends TestCase
         Sanctum::actingAs($viewer, ['*']);
         $r = $this->getJson('/api/admin/books/report-settings')->assertOk();
         $this->assertTrue($r->json('ready'));
-        $this->assertCount(8, $r->json('sections'));
+        $this->assertCount(9, $r->json('sections'));
         $this->assertFalse(collect($r->json('sections'))->firstWhere('id', 'display')['can_edit']);
         $this->assertNotEmpty($r->json('lookups.groups'));
         $this->assertSame(array_keys(\App\Services\Books\ReportSettingDefinitions::RATIO_INPUTS), array_keys($r->json('lookups.ratio_inputs')));
