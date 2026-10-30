@@ -27,6 +27,12 @@ Operating, sales, purchases, payroll, capex, cash, project, departmental; **mast
 ## Dimensions
 All optional, any combination. One account across many cost centres; a project budget is project + account + period. Cost centres stay independent entities (optionally linked to a department/branch). Shared cost (rent split 50/30/20) is an allocation of ACTUALS via a distribution rule on the voucher, never a duplicate of the invoice.
 
+## Initiatives (the budget dimension that is NOT the Projects module)
+- Nested to any depth, like cost centres: Cash sales > Travel, Cost of goods, Stock. Optional link to a Projects-module project (not required).
+- A line carries any mix of cost centre + department + branch + initiative (e.g. Cost centre B, Sales, Cash sales). Every dimension rolls up and drills down: initiative total -> child initiative -> account lines -> posted vouchers.
+- An initiative may hold income, expense AND balance-sheet lines. The initiative view shows income - expense = margin; balance-sheet lines (stock, receivables) sit in their own block and are not added into profit.
+- Same account can be income in one place and expense in another: the line's side comes from the account, with one override, **Recovery**: a line on an expense account that is expected to be credited (travel recharged to a customer). Net spend = expense budget - recovery; actual = debits - credits on that account, so a recovery posted as a credit to Travel reduces it. If the business books the recharge to an income account instead, it is simply two lines (Travel expense, Travel recharge income) in the same initiative, and the margin shows both.
+
 ## Control after approval
 - Budget vs actual: variance amount and %, utilisation, remaining, drill-down to vouchers, by account / cost centre / department / branch / project.
 - Thresholds (e.g. alert at 80%/100%).
