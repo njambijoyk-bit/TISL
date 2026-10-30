@@ -66,6 +66,7 @@ class BooksMasterController extends Controller
                 return response()->json(['message' => 'A group cannot sit inside itself.'], 422);
             }
             $p = LedgerGroup::findOrFail($d['parent_id']);
+            app(\App\Services\Books\LedgerKinds::class)->assertGroupMove($g, (int) $p->id);
             $d['nature'] = $p->nature;
             $d['behaviour'] = $d['behaviour'] ?? $p->behaviour ?? 'standard';
         }
@@ -230,6 +231,7 @@ class BooksMasterController extends Controller
         $guard = app(\App\Services\Books\TaxAccountGuard::class);
         if (isset($d['group_id']) && (int) $d['group_id'] !== (int) $l->group_id) {
             $guard->assertLedgerGoesInto((int) $d['group_id']);
+            app(\App\Services\Books\LedgerKinds::class)->assertMove($l, (int) $d['group_id']);   // a bank does not become an expense
         }
         $guard->assertRateIsNotRewritten($l, $d);   // an existing tax rate's amounts are changed on Tax and compliance
         $taxes = $this->takeTaxes($d, (int) ($d['group_id'] ?? $l->group_id));

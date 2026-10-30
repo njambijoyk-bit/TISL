@@ -5,6 +5,7 @@ namespace App\Services\Books;
 use App\Models\Books\Ledger;
 use App\Models\Books\LedgerGroup;
 use Illuminate\Support\Collection;
+use Illuminate\Validation\ValidationException;
 
 /**
  * What a ledger IS, in plain words: bank, cash, customer, supplier, tax, stock, fixed asset, rent, and so on. It is worked out from where the ledger sits in the chart (its group and the groups
@@ -38,6 +39,9 @@ class LedgerKinds
 
     /** After these, whatever is left is named by its nature. */
     private const NATURES = ['asset' => 'Other asset', 'liability' => 'Other liability', 'income' => 'Other income', 'expense' => 'Expense'];
+
+    /** Kinds that mean something by themselves: they are never moved to a group of another nature (a bank is not an expense). */
+    private const FIXED_NATURE = ['customer', 'supplier', 'bank', 'cash', 'tax', 'delivery', 'charge', 'stock', 'fixed_asset', 'accumulated_depreciation', 'work_in_progress', 'sales', 'purchase'];
 
     private array $ids = [];     // kind => group ids it covers
     private array $groups = [];  // group id => ['nature', 'behaviour']
@@ -110,5 +114,43 @@ class LedgerKinds
         }
 
         return $q->get()->filter(fn ($l) => $this->kindOf($l) === $kind)->pluck('id')->map(fn ($i) => (int) $i)->all();
+    }
+
+    /**
+     * A ledger may move to a group of the same nature freely. To a group of another nature (an asset becoming an expense) it may not when it is a kind that means something by itself, or when it
+     * already has postings: its past would be reported as another thing.
+     *
+     * @throws ValidationException
+     */
+    public function assertMove(Ledger $l, int $toGroupId): void
+    {
+        $from = $this->groups[(int) $l->group_id]['nature'] ?? null;
+        $to = $this->groups[$toGroupId]['nature'] ?? null;
+        if ($from === null || $to === null || $from === $to) {
+            return;
+        }
+        $kind = $this->kindOf($l);
+        if (in_array($kind, self::FIXED_NATURE, true)) {
+            throw ValidationException::withMessages(['group_id' => "\"{$l->name}\" is a " . mb_strtolower($this->label($kind)) . " ledger, so it cannot go into a group of {$to}s. Choose a group of the same kind."]);
+        }
+        if ($l->entries()->exists()) {
+            throw ValidationException::withMessages(['group_id' => "\"{$l->name}\" already has postings, so it cannot move from {$from} to {$to}: past reports would show it as something else."]);
+        }
+    }
+
+    /** Moving a group under another nature moves every ledger in it across: the same rules, for each. */
+    public function assertGroupMove(LedgerGroup $g, int $newParentId): void
+    {
+        $to = $this->groups[$newParentId]['nature'] ?? null;
+        if ($to === null || $to === ($this->groups[(int) $g->id]['nature'] ?? null)) {
+            return;
+        }
+        $ids = array_map('intval', $g->selfAndDescendantIds());
+        foreach (Ledger::whereIn('group_id', $ids)->get() as $l) {
+            $kind = $this->kindOf($l);
+            if (in_array($kind, self::FIXED_NATURE, true) || $l->entries()->exists()) {
+                throw ValidationException::withMessages(['parent_id' => "\"{$g->name}\" holds \"{$l->name}\", which cannot change from {$this->groups[(int) $g->id]['nature']} to {$to}. Move that ledger out first, or choose a group of the same kind."]);
+            }
+        }
     }
 }

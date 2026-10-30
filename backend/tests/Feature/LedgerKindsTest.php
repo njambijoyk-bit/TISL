@@ -74,4 +74,17 @@ class LedgerKindsTest extends TestCase
         $this->assertSame([], $this->getJson('/api/admin/books/ledgers?all=1&kind=nonsense')->json());
         $this->getJson('/api/admin/books/ledger-kinds')->assertOk()->assertJsonFragment(['key' => 'bank', 'label' => 'Bank'])->assertJsonFragment(['key' => 'other_expense']);
     }
+
+    public function test_a_bank_cannot_become_an_expense_and_a_posted_ledger_cannot_change_nature(): void
+    {
+        $this->grant(tap(new User(), fn ($u) => $u->id = 9), ['books.view', 'books.post']);
+        $this->putJson('/api/admin/books/ledgers/1', ['group_id' => 8])->assertStatus(422)->assertJsonValidationErrors('group_id');
+        $this->assertSame(4, (int) Ledger::find(1)->group_id);
+        $this->putJson('/api/admin/books/ledgers/3', ['group_id' => 8])->assertStatus(422);   // a customer
+        $free = Ledger::create(['group_id' => 8, 'name' => 'Unused', 'opening_balance' => 0, 'opening_side' => 'D', 'is_active' => true]);
+        $this->putJson("/api/admin/books/ledgers/{$free->id}", ['group_id' => 9])->assertOk();   // no postings: free to become income
+        $this->assertSame(9, (int) $free->fresh()->group_id);
+        $this->putJson('/api/admin/books/ledgers/6', ['group_id' => 9])->assertStatus(422);       // Rent has postings
+        $this->putJson('/api/admin/books/ledgers/12', ['group_id' => 8])->assertOk();          // same nature: always fine
+    }
 }
