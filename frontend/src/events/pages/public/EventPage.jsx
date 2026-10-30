@@ -50,6 +50,15 @@ export default function EventPage() {
               <DetailVideo video={e.video} active poster={e.image_url ?? undefined} />
             </div>
           ) : e.image_url && <img src={e.image_url} alt="" style={{ width: '100%', aspectRatio: '16 / 9', objectFit: 'cover', borderRadius: 14, display: 'block' }} />}
+          {e.gallery?.length > 0 && (
+            <div aria-label="Pictures and videos" style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(min(100%, 200px), 1fr))', gap: 10 }}>
+              {e.gallery.map((m) => (
+                m.kind === 'embed' ? <iframe key={m.id} src={m.url} title={m.title || 'Video'} loading="lazy" allowFullScreen style={{ width: '100%', aspectRatio: '16 / 9', border: 0, borderRadius: 10 }} />
+                  : m.kind === 'video' ? <video key={m.id} src={m.url} controls preload="metadata" style={{ width: '100%', aspectRatio: '16 / 9', borderRadius: 10, background: '#000' }} />
+                    : <img key={m.id} src={m.url} alt={m.caption || m.title || ''} loading="lazy" style={{ width: '100%', aspectRatio: '4 / 3', objectFit: 'cover', borderRadius: 10 }} />
+              ))}
+            </div>
+          )}
           <div>
             <h1 style={{ margin: '0 0 6px', fontSize: 'clamp(1.6rem, 4vw, 2.3rem)', fontWeight: 900, letterSpacing: '-0.02em', lineHeight: 1.15 }}>{e.title}</h1>
             {e.summary && <p style={{ margin: 0, color: 'var(--text-secondary)', fontSize: '1rem' }}>{e.summary}</p>}

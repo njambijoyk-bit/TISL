@@ -26,6 +26,7 @@ final class EventPresenter
             'description' => $e->description, 'venue_address' => $e->venue_address, 'map_url' => $e->map_url, 'online_url' => $e->online_url, 'organiser' => $e->organiser, 'refund_policy' => $e->refund_policy,
             'sales_ledger_id' => $e->sales_ledger_id, 'tax_rate_id' => $e->tax_rate_id, 'location_id' => $e->location_id, 'max_per_order' => (int) $e->max_per_order,
             'allow_name_change' => (bool) $e->allow_name_change, 'refund_until' => $e->refund_until?->format('Y-m-d\TH:i'), 'video' => ServiceVideo::describe($e->video_url),
+            'gallery' => EventMedia::ready() ? array_values(array_filter(app(EventMedia::class)->list('event', $e->id, false), fn ($m) => $m['kind'] !== 'document' && $m['role'] !== 'cover' && $m['url'])) : [],
             'sessions' => $e->sessions->map(fn ($s) => ['id' => $s->id, 'label' => $s->label, 'starts_at' => $s->starts_at->format('Y-m-d\TH:i'), 'ends_at' => $s->ends_at?->format('Y-m-d\TH:i'), 'capacity' => $s->capacity, 'is_cancelled' => (bool) $s->is_cancelled])->values()->all(),
             'ticket_types' => $e->ticketTypes->map(fn ($t) => [
                 'id' => $t->id, 'name' => $t->name, 'description' => $t->description, 'price' => (float) $t->price, 'capacity' => $t->capacity, 'min_per_order' => $t->min_per_order, 'max_per_order' => $t->max_per_order,

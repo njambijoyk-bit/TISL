@@ -59,6 +59,25 @@ const eventsAPI = {
   reviewDocument: (id, status, note) => api.post(`/admin/events/platform/documents/${id}/review`, { status, note: note || undefined }).then((r) => r.data),
 };
 
+/** The media gallery of an event, organiser, vendor, venue, package or space. type: event | organiser | vendor | venue | package | space */
+export const eventsMediaAPI = {
+  list: (type, id) => api.get(`/events/media/${type}/${id}`).then((r) => r.data.data),
+  upload: (type, id, file, body = {}) => { const f = new FormData(); f.append('file', file); Object.entries(body).forEach(([k, v]) => v != null && f.append(k, v)); return api.post(`/events/media/${type}/${id}/upload`, f, { headers: { 'Content-Type': 'multipart/form-data' } }).then((r) => r.data.data); },
+  embed: (type, id, url, body = {}) => api.post(`/events/media/${type}/${id}/embed`, { url, ...body }).then((r) => r.data.data),
+  update: (mediaId, body) => api.put(`/events/media/item/${mediaId}`, body).then((r) => r.data.data),
+  remove: (mediaId) => api.delete(`/events/media/item/${mediaId}`).then((r) => r.data),
+  reorder: (type, id, ids) => api.post(`/events/media/${type}/${id}/reorder`, { ids }).then((r) => r.data.data),
+  /** a private file, handed to the browser as a download */
+  download: async (mediaId, name = 'file') => {
+    const res = await api.get(`/events/media/item/${mediaId}/download`, { responseType: 'blob' });
+    const href = URL.createObjectURL(res.data);
+    const a = document.createElement('a');
+    a.href = href; a.download = name;
+    document.body.appendChild(a); a.click(); a.remove();
+    setTimeout(() => URL.revokeObjectURL(href), 1000);
+  },
+};
+
 /** Signed-in people who organise events, or offer their service or place (no staff permission needed). */
 export const eventsPlatformAPI = {
   categories: () => api.get('/events/categories').then((r) => r.data.data),
