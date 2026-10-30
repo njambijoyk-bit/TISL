@@ -69,7 +69,7 @@ BEGIN
         INSERT IGNORE INTO budget_rows (target_type, target_id, dim_key, created_at, updated_at)
             SELECT DISTINCT target_type, target_id, '0-0-0-0-0', NOW(), NOW() FROM budget_lines WHERE row_id IS NULL;
         UPDATE budget_lines bl JOIN budget_rows r ON r.target_type = bl.target_type AND r.target_id = bl.target_id AND r.dim_key = '0-0-0-0-0'
-            SET bl.row_id = r.id WHERE bl.row_id IS NULL;
+            SET bl.row_id = r.id WHERE bl.id > 0 AND bl.row_id IS NULL;   -- id > 0 so Workbench's safe-update mode allows it
         ALTER TABLE budget_lines ADD UNIQUE KEY uq_budget_row_period (row_id, period);
     END IF;
 END$$
