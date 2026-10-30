@@ -11,13 +11,14 @@ namespace App\Services\Access;
  */
 class Catalog
 {
-    public const VERSION = 22;
+    public const VERSION = 23;
 
     /** The key of the owner role: the one role that holds every permission, including ones added later. It cannot be changed or deleted. */
     public const OWNER = 'super_admin';
 
     /** Permissions added after version 1, by the version that added them. The seeder gives a new permission to the built-in roles that hold it by default once, and never again (an admin may take it back). */
     public const ADDED = [
+        23 => ['books.budget.approve'],
         22 => ['books.planning'],
         21 => ['books.tax.view', 'books.tax.control', 'books.tax.admin', 'books.tax.override'],
         20 => ['books.statements', 'books.reports.settings', 'books.reports.format', 'books.reports.reconcile_setup', 'books.reports.approval', 'books.reconcile', 'books.reconcile.approve', 'books.close.prepare'],
@@ -111,6 +112,7 @@ class Catalog
         'books.reconcile'   => [null, 'Books', 'Prepare a reconciliation of a bank, mobile-money, cash or other account', true],
         'books.reconcile.approve' => [null, 'Books', 'Approve a reconciliation that someone else prepared', true],
         'books.close.prepare' => [null, 'Books', 'Prepare the year-end close for approval', true],
+        'books.budget.approve' => [null, 'Books', 'Approve, send back, lock or reopen a budget version that someone else prepared', true],
         'books.planning'    => [null, 'Books', 'Set budgets and the cash forecast assumptions (recurring payments and receipts, collection and payment timing)', true],
         'stock.view'        => [null, 'Stock', 'See stock, batches, transfers and counts', false],
         'stock.manage'      => [null, 'Stock', 'Receive, adjust, transfer, count and write off stock', true],
@@ -352,7 +354,7 @@ class Catalog
                 'approvals' => ['journal.approve' => null, 'purchase.approve' => null, 'refund.approve' => null, 'campaign.publish' => null], 'sort' => 20],
             'senior_accountant' => ['name' => 'Senior accountant', 'kind' => 'staff', 'min_clearance' => 4, 'scope_type' => 'global', 'data_scope' => 'all', 'module' => null, 'acts_as' => [],
                 'description' => 'Sees every branch for the books. Posts and reviews. Cannot change security, roles or the modules.', 'modules' => ['*'],
-                'permissions' => array_merge(self::STAFF, ['books.view', 'books.post', 'books.review', 'books.statements', 'books.reports.settings', 'books.reports.format', 'books.reconcile', 'books.reconcile.approve', 'books.close.prepare', 'books.planning', 'books.tax.view', 'books.tax.override', 'payroll.run', 'stock.view', 'stock.manage', 'inventory.view', 'vendors.view', 'vendors.manage', 'tenders.view', 'tenders.manage', 'prequalification.view', 'credit.act',
+                'permissions' => array_merge(self::STAFF, ['books.view', 'books.post', 'books.review', 'books.statements', 'books.reports.settings', 'books.reports.format', 'books.reconcile', 'books.reconcile.approve', 'books.close.prepare', 'books.planning', 'books.budget.approve', 'books.tax.view', 'books.tax.override', 'payroll.run', 'stock.view', 'stock.manage', 'inventory.view', 'vendors.view', 'vendors.manage', 'tenders.view', 'tenders.manage', 'prequalification.view', 'credit.act',
                     'campaigns.build', 'catalogue.pricelists', 'menus.view', 'menus.manage', 'menus.configure', 'menus.tips.view', 'menus.tips.reverse', 'tax.view', 'tax.manage', 'currency.manage', 'currency.base', 'inventory.accounting',
                     'promos.manage', 'projects.use', 'analytics.view', 'books.writeoff', 'books.bounce', 'books.pettycash', 'quotes.write', 'verification.manage', 'hr.view', 'loyalty.grant',
                     'loyalty.deduct', 'loyalty.export', 'catalogue.publish', 'engagement.view', 'customers.view', 'customers.manage', 'credit.view', 'quotes.view', 'catalogue.view', 'catalogue.edit', 'tickets.manage', 'costcentres.view', 'costcentres.manage', 'imports.view']),

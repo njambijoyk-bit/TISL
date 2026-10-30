@@ -29,7 +29,233 @@ class BudgetService
 
     public static function ready(): bool
     {
-        return Schema::hasTable('budget_lines') && Schema::hasTable('budget_rows') && Schema::hasColumn('budget_lines', 'row_id');
+        return Schema::hasTable('budget_lines') && Schema::hasTable('budget_rows') && Schema::hasColumn('budget_lines', 'row_id') && Schema::hasTable('budget_versions') && Schema::hasColumn('budget_rows', 'version_id');
+    }
+
+    public const STATUSES = ['draft', 'submitted', 'approved', 'locked'];
+
+    public const KINDS = ['original', 'revision', 'forecast', 'scenario'];
+
+    public const TYPES = ['operating', 'sales', 'purchases', 'payroll', 'capex', 'cash', 'project', 'departmental', 'master'];
+
+    // ------------------------------------------------------------ budgets and versions
+
+    /** Every budget with its versions (newest last), each with who did what and when. @return array<int, array<string, mixed>> */
+    public function budgets(): array
+    {
+        if (! self::ready()) {
+            return [];
+        }
+        $users = [];
+        $name = function ($id) use (&$users) {
+            return $id ? ($users[$id] ??= DB::table('users')->where('id', $id)->value('name')) : null;
+        };
+        $versions = DB::table('budget_versions')->orderBy('id')->get()->groupBy('budget_id');
+        $out = [];
+        foreach (DB::table('budgets')->where('is_active', 1)->orderBy('from_month', 'desc')->orderBy('id')->get() as $b) {
+            $out[] = ['id' => (int) $b->id, 'name' => $b->name, 'type' => $b->budget_type, 'from_month' => $b->from_month, 'to_month' => $b->to_month, 'note' => $b->note,
+                'versions' => ($versions[$b->id] ?? collect())->map(fn ($v) => ['id' => (int) $v->id, 'name' => $v->name, 'kind' => $v->kind, 'status' => $v->status, 'copied_from_id' => $v->copied_from_id ? (int) $v->copied_from_id : null, 'note' => $v->note,
+                    'prepared_by' => $name($v->prepared_by), 'submitted_by' => $name($v->submitted_by), 'submitted_at' => $v->submitted_at, 'approved_by' => $name($v->approved_by), 'approved_at' => $v->approved_at, 'locked_by' => $name($v->locked_by), 'locked_at' => $v->locked_at])->values()->all()];
+        }
+
+        return $out;
+    }
+
+    /** The version a screen or chart should use: the one asked for, else the budget's newest approved or locked version, else its newest. */
+    public function currentVersion(?int $budgetId = null): ?int
+    {
+        $q = DB::table('budget_versions as v')->join('budgets as b', 'b.id', '=', 'v.budget_id')->where('b.is_active', 1);
+        if ($budgetId) {
+            $q->where('b.id', $budgetId);
+        } else {
+            $q->orderBy('b.from_month', 'desc');
+        }
+        $all = $q->orderBy('v.id', 'desc')->get(['v.id', 'v.status', 'v.budget_id']);
+        $first = $all->first();
+        if (! $first) {
+            return null;
+        }
+        $mine = $all->where('budget_id', $first->budget_id);
+
+        return (int) ($mine->first(fn ($v) => in_array($v->status, ['approved', 'locked'], true))->id ?? $first->id);
+    }
+
+    /** The version for a period: the current version of the budget that covers it. */
+    public function currentVersionFor(string $from, string $to): ?int
+    {
+        $b = DB::table('budgets')->where('is_active', 1)->where('from_month', '<=', substr($to, 0, 7))->where('to_month', '>=', substr($from, 0, 7))->orderBy('id', 'desc')->value('id');
+
+        return $b ? $this->currentVersion((int) $b) : null;
+    }
+
+    /** The version rows are saved to: the one named, else the newest draft; with `$create`, a first budget and draft version are made when there are none. */
+    public function resolveVersion(?int $id, bool $create = false): ?int
+    {
+        if ($id) {
+            abort_unless(DB::table('budget_versions')->where('id', $id)->exists(), 404, 'That budget version does not exist.');
+
+            return $id;
+        }
+        $v = DB::table('budget_versions')->where('status', 'draft')->orderBy('id', 'desc')->value('id') ?? $this->currentVersion();
+        if (! $v && $create) {
+            $b = $this->createBudget(['name' => 'Budget', 'from_month' => now()->format('Y') . '-01', 'to_month' => now()->format('Y') . '-12'], null);
+            $v = (int) DB::table('budget_versions')->where('budget_id', $b)->value('id');
+        }
+
+        return $v ? (int) $v : null;
+    }
+
+    private function log(int $versionId, string $action, ?User $by, ?string $note = null): void
+    {
+        DB::table('budget_approvals')->insert(['version_id' => $versionId, 'action' => $action, 'by_user' => $by?->id, 'note' => $note !== null && $note !== '' ? mb_substr($note, 0, 255) : null, 'created_at' => now()]);
+    }
+
+    /** @return array<int, array<string, mixed>> what was done to a version, oldest first */
+    public function approvalLog(int $versionId): array
+    {
+        return DB::table('budget_approvals as a')->leftJoin('users as u', 'u.id', '=', 'a.by_user')->where('a.version_id', $versionId)->orderBy('a.id')->get(['a.action', 'a.note', 'a.created_at', 'u.name as by'])->map(fn ($r) => (array) $r)->all();
+    }
+
+    public function createBudget(array $in, ?User $by): int
+    {
+        abort_unless(self::ready(), 409, 'Run database scripts 239_budgeting.sql and 240_budget_versions.sql first.');
+        $name = trim((string) ($in['name'] ?? ''));
+        $from = (string) ($in['from_month'] ?? '');
+        $to = (string) ($in['to_month'] ?? '');
+        $type = (string) ($in['budget_type'] ?? 'operating');
+        $errors = [];
+        if ($name === '' || mb_strlen($name) > 120) {
+            $errors['name'] = 'Give the budget a name (up to 120 characters).';
+        }
+        foreach (['from_month' => $from, 'to_month' => $to] as $k => $v) {
+            if (! preg_match('/^\d{4}-(0[1-9]|1[0-2])$/', $v)) {
+                $errors[$k] = 'Use a month as YYYY-MM.';
+            }
+        }
+        if (! $errors && $to < $from) {
+            $errors['to_month'] = 'The budget cannot end before it starts.';
+        }
+        if (! in_array($type, self::TYPES, true)) {
+            $errors['budget_type'] = 'Choose one of the budget types.';
+        }
+        if ($errors) {
+            throw ValidationException::withMessages($errors);
+        }
+
+        return DB::transaction(function () use ($name, $from, $to, $type, $in, $by) {
+            $b = (int) DB::table('budgets')->insertGetId(['name' => $name, 'budget_type' => $type, 'from_month' => $from, 'to_month' => $to, 'note' => ($in['note'] ?? '') !== '' ? mb_substr((string) $in['note'], 0, 255) : null, 'created_by' => $by?->id, 'created_at' => now(), 'updated_at' => now()]);
+            $v = (int) DB::table('budget_versions')->insertGetId(['budget_id' => $b, 'name' => 'Original', 'kind' => 'original', 'status' => 'draft', 'prepared_by' => $by?->id, 'created_at' => now(), 'updated_at' => now()]);
+            $this->log($v, 'created', $by);
+            if (! empty($in['copy_from_version_id'])) {
+                $this->copyRows((int) $in['copy_from_version_id'], $v, $by);
+            }
+
+            return $b;
+        });
+    }
+
+    /** A new version of a budget: a copy of another version's rows and months, a draft of its own, so what was approved stays as it was. */
+    public function createVersion(int $budgetId, array $in, ?User $by): int
+    {
+        abort_unless(DB::table('budgets')->where('id', $budgetId)->exists(), 404, 'That budget does not exist.');
+        $kind = (string) ($in['kind'] ?? 'revision');
+        $errors = [];
+        if (! in_array($kind, ['revision', 'forecast', 'scenario'], true)) {
+            $errors['kind'] = 'A new version is a revision, a forecast or a scenario.';
+        }
+        $count = DB::table('budget_versions')->where('budget_id', $budgetId)->where('kind', $kind)->count();
+        $name = trim((string) ($in['name'] ?? '')) ?: ucfirst($kind) . ' ' . ($count + 1);
+        if (mb_strlen($name) > 60) {
+            $errors['name'] = 'Keep the name to 60 characters.';
+        }
+        $from = ! empty($in['from_version_id']) ? (int) $in['from_version_id'] : $this->currentVersion($budgetId);
+        if (! $from || DB::table('budget_versions')->where('id', $from)->value('budget_id') != $budgetId) {
+            $errors['from_version_id'] = 'Copy from a version of this budget.';
+        }
+        if ($errors) {
+            throw ValidationException::withMessages($errors);
+        }
+
+        return DB::transaction(function () use ($budgetId, $kind, $name, $from, $in, $by) {
+            $v = (int) DB::table('budget_versions')->insertGetId(['budget_id' => $budgetId, 'name' => $name, 'kind' => $kind, 'status' => 'draft', 'copied_from_id' => $from, 'note' => ($in['note'] ?? '') !== '' ? mb_substr((string) $in['note'], 0, 255) : null,
+                'prepared_by' => $by?->id, 'created_at' => now(), 'updated_at' => now()]);
+            $this->copyRows($from, $v, $by);
+            $this->log($v, 'created', $by, 'Copied from ' . DB::table('budget_versions')->where('id', $from)->value('name'));
+
+            return $v;
+        });
+    }
+
+    private function copyRows(int $from, int $to, ?User $by): void
+    {
+        foreach (DB::table('budget_rows')->where('version_id', $from)->get() as $r) {
+            $new = (array) $r;
+            unset($new['id']);
+            $id = (int) DB::table('budget_rows')->insertGetId(['version_id' => $to, 'created_by' => $by?->id, 'created_at' => now(), 'updated_at' => now()] + array_diff_key($new, array_flip(['version_id', 'created_by', 'created_at', 'updated_at'])));
+            foreach (DB::table('budget_lines')->where('row_id', $r->id)->get() as $l) {
+                DB::table('budget_lines')->insert(['row_id' => $id, 'period' => $l->period, 'target_type' => $l->target_type, 'target_id' => $l->target_id, 'amount' => $l->amount, 'created_by' => $by?->id, 'created_at' => now(), 'updated_at' => now()]);
+            }
+        }
+    }
+
+    /**
+     * Move a version along: submit (draft to submitted), approve or reject (submitted to approved, or back to draft), lock (approved to locked), reopen (locked back to approved).
+     * Who may approve, reject, lock or reopen is the route's permission; here, when the second-approver setting is on, the person who submitted cannot approve.
+     */
+    public function transition(int $versionId, string $action, ?User $by, ?string $note = null): string
+    {
+        $v = DB::table('budget_versions')->where('id', $versionId)->first();
+        abort_unless($v, 404, 'That budget version does not exist.');
+        $rules = ['submit' => ['draft', 'submitted', 'submitted'], 'approve' => ['submitted', 'approved', 'approved'], 'reject' => ['submitted', 'draft', 'rejected'], 'lock' => ['approved', 'locked', 'locked'], 'reopen' => ['locked', 'approved', 'reopened']];
+        abort_unless(isset($rules[$action]), 422, 'Unknown action.');
+        [$needs, $becomes, $logged] = $rules[$action];
+        if ($v->status !== $needs) {
+            throw ValidationException::withMessages(['status' => "A {$v->status} version cannot be " . ($action === 'submit' ? 'submitted' : $logged) . ".{$this->hint($v->status)}"]);
+        }
+        if ($action === 'submit' && ! DB::table('budget_rows')->where('version_id', $versionId)->exists()) {
+            throw ValidationException::withMessages(['status' => 'There is nothing in this version to submit yet.']);
+        }
+        if (in_array($action, ['reject', 'approve'], true) && ($note === null || $note === '') && $action === 'reject') {
+            throw ValidationException::withMessages(['note' => 'Say why it is sent back.']);
+        }
+        if ($action === 'approve' && $by && (int) $v->submitted_by === (int) $by->id && $this->secondApprover()) {
+            throw ValidationException::withMessages(['status' => 'A second person must approve a budget: the one who submitted it cannot. (This rule is in Reports settings, Approvals.)']);
+        }
+        $set = ['status' => $becomes, 'updated_at' => now()];
+        if ($action === 'submit') {
+            $set += ['submitted_by' => $by?->id, 'submitted_at' => now()];
+        } elseif ($action === 'approve') {
+            $set += ['approved_by' => $by?->id, 'approved_at' => now()];
+        } elseif ($action === 'lock') {
+            $set += ['locked_by' => $by?->id, 'locked_at' => now()];
+        } elseif ($action === 'reject') {
+            $set += ['submitted_by' => null, 'submitted_at' => null];
+        }
+        DB::transaction(function () use ($versionId, $set, $logged, $by, $note) {
+            DB::table('budget_versions')->where('id', $versionId)->update($set);
+            $this->log($versionId, $logged, $by, $note);
+        });
+
+        return $becomes;
+    }
+
+    private function hint(string $status): string
+    {
+        return in_array($status, ['approved', 'locked'], true) ? ' Make a revision to change it.' : '';
+    }
+
+    private function secondApprover(): bool
+    {
+        return ReportSettings::ready() ? (bool) (app(ReportSettings::class)->values()['second_approver_budget'] ?? true) : true;
+    }
+
+    /** A version can only be changed while it is a draft: an approved one is the plan that was agreed. */
+    private function assertEditable(int $versionId): void
+    {
+        $status = DB::table('budget_versions')->where('id', $versionId)->value('status');
+        if ($status !== 'draft') {
+            throw ValidationException::withMessages(['version' => "This version is {$status} and cannot be changed." . $this->hint((string) $status) . ($status === 'submitted' ? ' It can be sent back to draft by an approver.' : '')]);
+        }
     }
 
     /** Months of a period as 'YYYY-MM'. @return string[] */
@@ -181,14 +407,18 @@ class BudgetService
      *
      * @return array<int, array<string, mixed>>
      */
-    public function lines(string $from, string $to): array
+    public function lines(string $from, string $to, ?int $versionId = null): array
     {
         if (! self::ready()) {
             return [];
         }
-        $rows = DB::table('budget_rows')->orderBy('target_type')->orderBy('target_id')->orderBy('id')->get();
-        $withMonths = DB::table('budget_lines')->distinct()->pluck('row_id')->flip();   // rows that have amounts in some period
-        $months = DB::table('budget_lines')->whereBetween('period', [substr($from, 0, 7), substr($to, 0, 7)])->orderBy('period')->get()->groupBy('row_id');
+        $version = $this->resolveVersion($versionId);
+        if (! $version) {
+            return [];
+        }
+        $rows = DB::table('budget_rows')->where('version_id', $version)->orderBy('target_type')->orderBy('target_id')->orderBy('id')->get();
+        $withMonths = DB::table('budget_lines')->whereIn('row_id', $rows->pluck('id'))->distinct()->pluck('row_id')->flip();   // rows that have amounts in some period
+        $months = DB::table('budget_lines')->whereIn('row_id', $rows->pluck('id'))->whereBetween('period', [substr($from, 0, 7), substr($to, 0, 7)])->orderBy('period')->get()->groupBy('row_id');
         $names = [];
         foreach (['cost_centres' => 'cost_centre_id', 'departments' => 'department_id', 'locations' => 'location_id', 'budget_initiatives' => 'initiative_id'] as $table => $col) {
             $ids = $rows->pluck($col)->filter()->unique()->all();
@@ -221,9 +451,11 @@ class BudgetService
      * @param  array<int, array<string, mixed>>  $rows
      * @return int[] the ids of the rows saved, in order
      */
-    public function save(array $rows, ?User $by): array
+    public function save(array $rows, ?User $by, ?int $versionId = null): array
     {
-        abort_unless(self::ready(), 409, 'Run database script 239_budgeting.sql first.');
+        abort_unless(self::ready(), 409, 'Run database scripts 239_budgeting.sql and 240_budget_versions.sql first.');
+        $version = $this->resolveVersion($versionId, true);
+        $this->assertEditable($version);
         $errors = [];
         $clean = [];
         foreach ($rows as $i => $r) {
@@ -273,14 +505,14 @@ class BudgetService
             throw ValidationException::withMessages($errors);
         }
         $ids = [];
-        DB::transaction(function () use ($clean, $by, &$ids) {
+        DB::transaction(function () use ($clean, $by, &$ids, $version) {
             $now = now();
             foreach ($clean as $c) {
                 $key = self::dimKey($c['dim']['cost_centre_id'], $c['dim']['department_id'], $c['dim']['location_id'], $c['dim']['initiative_id'], $c['recovery']);
-                $fields = ['target_type' => $c['type'], 'target_id' => $c['target']] + $c['dim'] + ['is_recovery' => (int) $c['recovery'], 'method' => $c['method'], 'method_params' => $c['params'], 'dim_key' => $key, 'note' => $c['note'], 'updated_at' => $now];
-                $existing = $c['row_id'] ?? DB::table('budget_rows')->where(['target_type' => $c['type'], 'target_id' => $c['target'], 'dim_key' => $key])->value('id');
+                $fields = ['version_id' => $version, 'target_type' => $c['type'], 'target_id' => $c['target']] + $c['dim'] + ['is_recovery' => (int) $c['recovery'], 'method' => $c['method'], 'method_params' => $c['params'], 'dim_key' => $key, 'note' => $c['note'], 'updated_at' => $now];
+                $existing = $c['row_id'] ?? DB::table('budget_rows')->where(['version_id' => $version, 'target_type' => $c['type'], 'target_id' => $c['target'], 'dim_key' => $key])->value('id');
                 if ($existing) {
-                    $clash = DB::table('budget_rows')->where(['target_type' => $c['type'], 'target_id' => $c['target'], 'dim_key' => $key])->where('id', '!=', $existing)->exists();
+                    $clash = DB::table('budget_rows')->where(['version_id' => $version, 'target_type' => $c['type'], 'target_id' => $c['target'], 'dim_key' => $key])->where('id', '!=', $existing)->exists();
                     if ($clash) {
                         throw ValidationException::withMessages(['rows' => 'There is already a row for that account with the same cost centre, department, branch, initiative and recovery setting.']);
                     }
@@ -309,7 +541,10 @@ class BudgetService
     /** Remove a row and all its months. */
     public function remove(int $rowId): int
     {
-        abort_unless(self::ready(), 409, 'Run database script 239_budgeting.sql first.');
+        abort_unless(self::ready(), 409, 'Run database scripts 239_budgeting.sql and 240_budget_versions.sql first.');
+        $version = DB::table('budget_rows')->where('id', $rowId)->value('version_id');
+        abort_unless($version, 404, 'That budget row does not exist.');
+        $this->assertEditable((int) $version);
         $n = DB::table('budget_lines')->where('row_id', $rowId)->delete();
         DB::table('budget_rows')->where('id', $rowId)->delete();
 
@@ -386,12 +621,12 @@ class BudgetService
      * @param  string[]|null  $sections
      * @return array{rows: array, months: array, totals: array}
      */
-    public function against(Scope $scope, string $from, string $to, ?array $sections = null): array
+    public function against(Scope $scope, string $from, string $to, ?array $sections = null, ?int $versionId = null): array
     {
         if (! self::ready()) {
-            throw new \RuntimeException('Run database script 239_budgeting.sql, then set a budget under Books → Configuration → Budgeting.');
+            throw new \RuntimeException('Run database scripts 239_budgeting.sql and 240_budget_versions.sql, then set a budget under Books → Configuration → Budgeting.');
         }
-        $lines = collect($this->lines($from, $to))->when($sections, fn ($c) => $c->whereIn('section', $sections));
+        $lines = collect($this->lines($from, $to, $versionId ?? $this->currentVersionFor($from, $to)))->when($sections, fn ($c) => $c->whereIn('section', $sections));
         $months = self::months($from, $to);
         $rows = [];
         $monthTotals = array_fill_keys($months, ['budget' => 0.0, 'actual' => 0.0]);

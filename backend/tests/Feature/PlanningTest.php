@@ -22,7 +22,7 @@ class PlanningTest extends TestCase
     use Concerns\RunsSqlScripts;
     use Concerns\StandsInForAccess;
 
-    private const TABLES = ['locations', 'budget_lines', 'budget_rows', 'budget_initiatives', 'forecast_items', 'voucher_bill_refs', 'report_settings', 'report_settings_log'];
+    private const TABLES = ['locations', 'budget_lines', 'budget_rows', 'budget_initiatives', 'budgets', 'budget_versions', 'budget_approvals', 'users', 'forecast_items', 'voucher_bill_refs', 'report_settings', 'report_settings_log'];
 
     protected function setUp(): void
     {
@@ -31,13 +31,21 @@ class PlanningTest extends TestCase
         foreach (self::TABLES as $t) {
             Schema::dropIfExists($t);
         }
-        $this->runSqlScripts('237_planning.sql', '239_budgeting.sql');
+        $this->runSqlScripts('237_planning.sql', '239_budgeting.sql', '240_budget_versions.sql');
         // script 239 replaces budget_lines' old (period, target) key with (row_id, period); SQLite here cannot drop an inline key, so the table is rebuilt as the script leaves it
         Schema::dropIfExists('budget_lines');
         Schema::create('budget_lines', function ($t) {
             $t->id(); $t->unsignedBigInteger('row_id')->nullable(); $t->string('period', 7); $t->string('target_type', 10); $t->unsignedBigInteger('target_id'); $t->decimal('amount', 18, 2)->default(0); $t->string('note', 160)->nullable();
             $t->unsignedBigInteger('created_by')->nullable(); $t->timestamps(); $t->unique(['row_id', 'period']);
         });
+        Schema::dropIfExists('budget_rows');
+        Schema::create('budget_rows', function ($t) {
+            $t->id(); $t->unsignedBigInteger('version_id')->nullable(); $t->string('target_type', 10); $t->unsignedBigInteger('target_id'); $t->unsignedBigInteger('cost_centre_id')->nullable(); $t->unsignedBigInteger('department_id')->nullable();
+            $t->unsignedBigInteger('location_id')->nullable(); $t->unsignedBigInteger('initiative_id')->nullable(); $t->boolean('is_recovery')->default(false); $t->string('method', 20)->default('manual'); $t->text('method_params')->nullable();
+            $t->string('dim_key', 60)->default('0-0-0-0-0'); $t->string('note', 160)->nullable(); $t->unsignedBigInteger('created_by')->nullable(); $t->timestamps(); $t->unique(['version_id', 'target_type', 'target_id', 'dim_key']);
+        });
+        Schema::dropIfExists('users');
+        Schema::create('users', function ($t) { $t->id(); $t->string('name')->nullable(); });
         Schema::dropIfExists('locations');
         Schema::create('locations', function ($t) { $t->id(); $t->string('name'); $t->unsignedBigInteger('cost_centre_id')->nullable(); $t->timestamps(); });
         DB::table('locations')->insert([['id' => 1, 'name' => 'Nairobi'], ['id' => 2, 'name' => 'Mombasa']]);
@@ -230,6 +238,158 @@ class PlanningTest extends TestCase
         $this->deleteJson("/api/admin/books/planning/initiatives/{$id}")->assertOk()->assertJsonPath('result', 'removed');
         $rowId = DB::table('budget_rows')->value('id');
         $this->deleteJson("/api/admin/books/planning/budgets/{$rowId}")->assertOk()->assertJsonPath('removed', 1);
+    }
+
+    // ── versions and approval ──────────────────────────────────────────
+
+    private function user(int $id): User
+    {
+        $u = new User();
+        $u->id = $id;
+
+        return $u;
+    }
+
+    public function test_a_first_budget_and_version_are_made_when_rows_are_saved_with_none(): void
+    {
+        $svc = app(BudgetService::class);
+        $this->assertSame([], $svc->budgets());
+        $svc->save([['type' => 'ledger', 'target_id' => 6, 'months' => ['2026-06' => 1]]], null);
+        $b = $svc->budgets();
+        $this->assertCount(1, $b);
+        $this->assertSame(['Original'], array_column($b[0]['versions'], 'name'));
+        $this->assertSame('draft', $b[0]['versions'][0]['status']);
+    }
+
+    public function test_a_version_goes_draft_submitted_approved_locked_and_is_only_editable_as_a_draft(): void
+    {
+        $svc = app(BudgetService::class);
+        $this->setting('second_approver_budget', true);
+        $b = $svc->createBudget(['name' => '2026 operating', 'from_month' => '2026-01', 'to_month' => '2026-12'], $this->user(1));
+        $v = $svc->currentVersion($b);
+        try {
+            $svc->transition($v, 'submit', $this->user(1));
+            $this->fail('an empty version was submitted');
+        } catch (ValidationException $e) {
+            $this->assertStringContainsString('nothing in this version', $e->errors()['status'][0]);
+        }
+        $svc->save([['type' => 'ledger', 'target_id' => 6, 'months' => ['2026-06' => 500]]], $this->user(1), $v);
+        $this->assertSame('submitted', $svc->transition($v, 'submit', $this->user(1)));
+        try {
+            $svc->save([['type' => 'ledger', 'target_id' => 6, 'months' => ['2026-06' => 999]]], $this->user(1), $v);
+            $this->fail('a submitted version was edited');
+        } catch (ValidationException $e) {
+            $this->assertStringContainsString('submitted and cannot be changed', $e->errors()['version'][0]);
+        }
+        try {
+            $svc->transition($v, 'approve', $this->user(1));
+            $this->fail('the person who submitted approved it');
+        } catch (ValidationException $e) {
+            $this->assertStringContainsString('second person', $e->errors()['status'][0]);
+        }
+        try {
+            $svc->transition($v, 'reject', $this->user(2));
+            $this->fail('rejected without a reason');
+        } catch (ValidationException $e) {
+            $this->assertArrayHasKey('note', $e->errors());
+        }
+        $this->assertSame('draft', $svc->transition($v, 'reject', $this->user(2), 'Rent is too low'));
+        $svc->save([['type' => 'ledger', 'target_id' => 6, 'months' => ['2026-06' => 800]]], $this->user(1), $v);
+        $svc->transition($v, 'submit', $this->user(1));
+        $this->assertSame('approved', $svc->transition($v, 'approve', $this->user(2), 'Fine'));
+        $this->assertSame(2, (int) DB::table('budget_versions')->where('id', $v)->value('approved_by'));
+        try {
+            $svc->remove((int) DB::table('budget_rows')->where('version_id', $v)->value('id'));
+            $this->fail('an approved row was removed');
+        } catch (ValidationException $e) {
+            $this->assertStringContainsString('Make a revision', $e->errors()['version'][0]);
+        }
+        $this->assertSame('locked', $svc->transition($v, 'lock', $this->user(2)));
+        $this->assertSame('approved', $svc->transition($v, 'reopen', $this->user(2)));
+        $this->assertSame(['created', 'submitted', 'rejected', 'submitted', 'approved', 'locked', 'reopened'], array_column($svc->approvalLog($v), 'action'));
+        $this->assertSame('Rent is too low', $svc->approvalLog($v)[2]['note']);
+        try {
+            $svc->transition($v, 'submit', $this->user(1));
+            $this->fail('an approved version was submitted');
+        } catch (ValidationException $e) {
+            $this->assertArrayHasKey('status', $e->errors());
+        }
+    }
+
+    public function test_the_second_approver_rule_can_be_switched_off(): void
+    {
+        $svc = app(BudgetService::class);
+        $this->setting('second_approver_budget', false);
+        $b = $svc->createBudget(['name' => 'Solo', 'from_month' => '2026-01', 'to_month' => '2026-12'], $this->user(1));
+        $v = $svc->currentVersion($b);
+        $svc->save([['type' => 'ledger', 'target_id' => 6, 'months' => ['2026-06' => 1]]], $this->user(1), $v);
+        $svc->transition($v, 'submit', $this->user(1));
+        $this->assertSame('approved', $svc->transition($v, 'approve', $this->user(1)));
+    }
+
+    public function test_a_revision_is_a_copy_so_the_approved_original_stays_as_it_was(): void
+    {
+        $svc = app(BudgetService::class);
+        $this->setting('second_approver_budget', false);
+        $b = $svc->createBudget(['name' => '2026', 'from_month' => '2026-01', 'to_month' => '2026-12'], $this->user(1));
+        $orig = $svc->currentVersion($b);
+        $svc->save([['type' => 'ledger', 'target_id' => 6, 'cost_centre_id' => 11, 'months' => ['2026-06' => 1000, '2026-07' => 2000], 'method' => 'fixed', 'method_params' => ['amount' => 1000]]], $this->user(1), $orig);
+        $svc->transition($orig, 'submit', $this->user(1));
+        $svc->transition($orig, 'approve', $this->user(1));
+        $rev = $svc->createVersion($b, ['kind' => 'revision'], $this->user(1));
+        $this->assertSame('Revision 1', DB::table('budget_versions')->where('id', $rev)->value('name'));
+        $this->assertSame($orig, (int) DB::table('budget_versions')->where('id', $rev)->value('copied_from_id'));
+        $this->assertSame('draft', DB::table('budget_versions')->where('id', $rev)->value('status'));
+        $copy = $svc->lines('2026-01-01', '2026-12-31', $rev);
+        $this->assertCount(1, $copy);
+        $this->assertSame([1000.0, 2000.0], array_values($copy[0]['months']));
+        $this->assertSame(11, $copy[0]['cost_centre_id']);
+        $this->assertSame('fixed', $copy[0]['method']);
+        $svc->save([['type' => 'ledger', 'target_id' => 6, 'cost_centre_id' => 11, 'months' => ['2026-06' => 5000]]], $this->user(1), $rev);
+        $this->assertEquals(1000, $svc->lines('2026-01-01', '2026-12-31', $orig)[0]['months']['2026-06'], 'the approved original did not change');
+        $this->assertEquals(5000, $svc->lines('2026-01-01', '2026-12-31', $rev)[0]['months']['2026-06']);
+        $this->assertSame($orig, $svc->currentVersion($b), 'the approved version stays the current one until the revision is approved');
+        $svc->transition($rev, 'submit', $this->user(1));
+        $svc->transition($rev, 'approve', $this->user(1));
+        $this->assertSame($rev, $svc->currentVersion($b), 'once approved, the newest approved version is the current one');
+        $r = $svc->against(Scope::dates('2026-06-01', '2026-06-30'), '2026-06-01', '2026-06-30');
+        $this->assertEquals(5000, $r['rows'][0]['budget'], 'the chart reads the current version');
+        $this->assertCount(1, DB::table('budget_rows')->where('version_id', $orig)->get());
+        $this->assertCount(2, $svc->budgets()[0]['versions']);
+    }
+
+    public function test_a_budget_is_checked_and_a_new_version_must_copy_a_version_of_its_own_budget(): void
+    {
+        $svc = app(BudgetService::class);
+        try {
+            $svc->createBudget(['name' => '', 'from_month' => '2026-13', 'to_month' => '2025-01', 'budget_type' => 'nope'], null);
+            $this->fail('a bad budget was made');
+        } catch (ValidationException $e) {
+            $this->assertEqualsCanonicalizing(['name', 'from_month', 'budget_type'], array_keys($e->errors()));
+        }
+        $a = $svc->createBudget(['name' => 'A', 'from_month' => '2026-01', 'to_month' => '2026-12'], null);
+        $b = $svc->createBudget(['name' => 'B', 'from_month' => '2026-01', 'to_month' => '2026-12', 'budget_type' => 'capex'], null);
+        $this->expectException(ValidationException::class);
+        $svc->createVersion($a, ['kind' => 'revision', 'from_version_id' => $svc->currentVersion($b)], null);
+    }
+
+    public function test_the_versions_routes_need_the_right_permission(): void
+    {
+        $this->as(['books.view', 'books.planning']);
+        $b = $this->postJson('/api/admin/books/planning/budget-sets', ['name' => '2027', 'from_month' => '2027-01', 'to_month' => '2027-12'])->assertOk()->json();
+        $v = $b['version_id'];
+        $this->putJson('/api/admin/books/planning/budgets', ['version_id' => $v, 'rows' => [['type' => 'ledger', 'target_id' => 6, 'months' => ['2027-01' => 10]]]])->assertOk();
+        $this->postJson("/api/admin/books/planning/versions/{$v}/submit")->assertOk()->assertJsonPath('status', 'submitted');
+        $this->postJson("/api/admin/books/planning/versions/{$v}/approve")->assertForbidden();
+        $this->putJson('/api/admin/books/planning/budgets', ['version_id' => $v, 'rows' => [['type' => 'ledger', 'target_id' => 6, 'months' => ['2027-01' => 99]]]])->assertStatus(422);
+        $this->as(['books.view', 'books.planning', 'books.budget.approve']);
+        $this->postJson("/api/admin/books/planning/versions/{$v}/reject", ['note' => 'again'])->assertOk()->assertJsonPath('status', 'draft');
+        $this->postJson("/api/admin/books/planning/versions/{$v}/submit")->assertOk();
+        $this->setting('second_approver_budget', false);
+        $this->postJson("/api/admin/books/planning/versions/{$v}/approve")->assertOk()->assertJsonPath('status', 'approved');
+        $this->postJson("/api/admin/books/planning/budget-sets/{$b['id']}/versions", ['kind' => 'scenario', 'name' => 'Worst case'])->assertOk();
+        $show = $this->getJson("/api/admin/books/planning?from=2027-01-01&to=2027-12-31&version_id={$v}")->assertOk();
+        $show->assertJsonPath('budgets.0.versions.1.name', 'Worst case')->assertJsonPath('version_id', $v)->assertJsonCount(5, 'approvals')->assertJsonPath('lines.0.months.2027-01', 10);
     }
 
     // ── the forecast ───────────────────────────────────────────────────

@@ -18,13 +18,16 @@ class PlanningController extends Controller
 
     public function show(Request $request): JsonResponse
     {
-        $in = $request->validate(['from' => 'nullable|date_format:Y-m-d', 'to' => 'nullable|date_format:Y-m-d|after_or_equal:from']);
+        $in = $request->validate(['from' => 'nullable|date_format:Y-m-d', 'to' => 'nullable|date_format:Y-m-d|after_or_equal:from', 'version_id' => 'nullable|integer']);
         $from = $in['from'] ?? now()->startOfYear()->toDateString();
         $to = $in['to'] ?? now()->endOfYear()->toDateString();
 
+        $version = BudgetService::ready() ? $this->budgets->resolveVersion($in['version_id'] ?? null) : null;
+
         return response()->json([
+            'version_id' => $version, 'budgets' => $this->budgets->budgets(), 'approvals' => $version ? $this->budgets->approvalLog($version) : [], 'budget_types' => BudgetService::TYPES,
             'budgets_ready' => BudgetService::ready(), 'forecast_ready' => ForecastService::ready(), 'from' => $from, 'to' => $to, 'months' => BudgetService::months($from, $to),
-            'choices' => $this->budgets->choices(), 'lines' => $this->budgets->lines($from, $to), 'items' => $this->forecast->items(),
+            'choices' => $this->budgets->choices(), 'lines' => $this->budgets->lines($from, $to, $version), 'items' => $this->forecast->items(),
             'kinds' => ForecastService::KINDS, 'frequencies' => ForecastService::FREQUENCIES, 'certainty' => ForecastService::CERTAINTY,
         ]);
     }
@@ -34,10 +37,10 @@ class PlanningController extends Controller
         $rows = $request->validate([
             'rows' => 'required|array|max:300', 'rows.*.type' => 'required|string', 'rows.*.target_id' => 'required|integer', 'rows.*.row_id' => 'nullable|integer', 'rows.*.months' => 'nullable|array',
             'rows.*.cost_centre_id' => 'nullable|integer', 'rows.*.department_id' => 'nullable|integer', 'rows.*.location_id' => 'nullable|integer', 'rows.*.initiative_id' => 'nullable|integer',
-            'rows.*.is_recovery' => 'nullable|boolean', 'rows.*.method' => 'nullable|string|max:20', 'rows.*.method_params' => 'nullable|array', 'rows.*.note' => 'nullable|string|max:160',
-        ])['rows'];
+            'version_id' => 'nullable|integer', 'rows.*.is_recovery' => 'nullable|boolean', 'rows.*.method' => 'nullable|string|max:20', 'rows.*.method_params' => 'nullable|array', 'rows.*.note' => 'nullable|string|max:160',
+        ]);
 
-        return response()->json(['ok' => true, 'ids' => $this->budgets->save($rows, $request->user())]);
+        return response()->json(['ok' => true, 'ids' => $this->budgets->save($rows['rows'], $request->user(), $rows['version_id'] ?? null)]);
     }
 
     public function removeBudget(int $id): JsonResponse
@@ -51,6 +54,26 @@ class PlanningController extends Controller
         $in = $request->validate(['type' => 'required|in:group,ledger', 'target_id' => 'required|integer', 'year' => 'required|integer|min:2000|max:2100', 'cost_centre_id' => 'nullable|integer', 'department_id' => 'nullable|integer', 'location_id' => 'nullable|integer']);
 
         return response()->json(['months' => $this->budgets->history($in, (int) $in['year'])]);
+    }
+
+    public function createBudget(Request $request): JsonResponse
+    {
+        $b = $this->budgets->createBudget($request->all(), $request->user());
+
+        return response()->json(['id' => $b, 'version_id' => $this->budgets->currentVersion($b)]);
+    }
+
+    public function createVersion(Request $request, int $id): JsonResponse
+    {
+        return response()->json(['version_id' => $this->budgets->createVersion($id, $request->all(), $request->user())]);
+    }
+
+    /** Submit a version (needs books.planning) or approve, send back, lock or reopen it (needs books.budget.approve): the route decides which. */
+    public function transition(Request $request, int $id, string $action): JsonResponse
+    {
+        $in = $request->validate(['note' => 'nullable|string|max:255']);
+
+        return response()->json(['status' => $this->budgets->transition($id, $action, $request->user(), $in['note'] ?? null)]);
     }
 
     public function saveInitiative(Request $request, ?int $id = null): JsonResponse

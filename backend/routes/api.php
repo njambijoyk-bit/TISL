@@ -1316,6 +1316,9 @@ Route::middleware('auth:sanctum')->group(function () {
             Route::put('/planning/budgets',             [\App\Http\Controllers\Api\PlanningController::class, 'saveBudgets']);
             Route::delete('/planning/budgets/{id}',     [\App\Http\Controllers\Api\PlanningController::class, 'removeBudget'])->whereNumber('id');
             Route::get('/planning/budgets/history',     [\App\Http\Controllers\Api\PlanningController::class, 'history']);
+            Route::post('/planning/budget-sets',        [\App\Http\Controllers\Api\PlanningController::class, 'createBudget']);
+            Route::post('/planning/budget-sets/{id}/versions', [\App\Http\Controllers\Api\PlanningController::class, 'createVersion'])->whereNumber('id');
+            Route::post('/planning/versions/{id}/submit', [\App\Http\Controllers\Api\PlanningController::class, 'transition'])->whereNumber('id')->defaults('action', 'submit');
             Route::post('/planning/initiatives',        [\App\Http\Controllers\Api\PlanningController::class, 'saveInitiative']);
             Route::put('/planning/initiatives/{id}',    [\App\Http\Controllers\Api\PlanningController::class, 'saveInitiative'])->whereNumber('id');
             Route::delete('/planning/initiatives/{id}', [\App\Http\Controllers\Api\PlanningController::class, 'removeInitiative'])->whereNumber('id');
@@ -1323,6 +1326,7 @@ Route::middleware('auth:sanctum')->group(function () {
             Route::put('/planning/items/{id}',          [\App\Http\Controllers\Api\PlanningController::class, 'saveItem'])->whereNumber('id');
             Route::delete('/planning/items/{id}',       [\App\Http\Controllers\Api\PlanningController::class, 'deleteItem'])->whereNumber('id');
         });
+        Route::middleware('permission:books.budget.approve')->post('/planning/versions/{id}/{action}', [\App\Http\Controllers\Api\PlanningController::class, 'transition'])->whereNumber('id')->where('action', 'approve|reject|lock|reopen');
         // Visual reports (the Extras module): the state of the page is open to the books; the figures are refused unless Extras is licensed and on
         Route::get('/visuals/status',                   [\App\Http\Controllers\Api\VisualsController::class, 'status']);
         Route::get('/visuals/favourites',               [\App\Http\Controllers\Api\VisualsController::class, 'favourites']);

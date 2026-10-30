@@ -42,7 +42,7 @@ All optional, any combination. One account across many cost centres; a project b
 
 ## Build order (each step shippable, tests alongside)
 1. **DONE** (script 239, `BudgetGrid`, `BudgetRowDetails`, `BudgetInitiatives`, `budgetMethods.js`): initiatives; cost centre / department / branch / initiative on rows; income, expense and balance-sheet rows; recovery rows; allocation methods (fixed, annual split, seasonal, % of another row, quantity x rate, last year plus growth, copy); 237 data carried over. Actuals by cost centre, department and branch are read from the books; an initiative has no actual until the posted entries carry it (step 8).  
-2. Versions + approval states (Draft → Submitted → Approved → Locked), revisions as copies.  
+2. **DONE** (script 240, permission `books.budget.approve`, setting `second_approver_budget`, `BudgetBar`): budgets with versions (Original, Revision n, Forecast, Scenario); Draft → Submitted → Approved → Locked (reopen from Locked, send back from Submitted with a reason); only a draft can be edited; a revision is a copy; approval history; the charts read the budget's newest approved version. Submitting needs `books.planning`, approving/sending back/locking/reopening needs `books.budget.approve`; the submitter cannot approve unless the Reports setting is switched off.  
 3. Templates and "create from template / copy".  
 4. Budget-vs-actual report in Reports + Visual chart reads the new tables; drill-down.  
 5. Controls on posting (warn / approval / block) + alerts.  

@@ -71,8 +71,9 @@ class ReportSettingDefinitions
                 'forecast_supplier_terms_days' => ['type' => 'int', 'label' => 'Supplier bills with no due date are paid this many days after the bill date', 'hint' => 'A bill that has a due date is paid on it. 0 means on the bill date.', 'default' => 0, 'min' => 0, 'max' => 180],
                 'forecast_include_tax' => ['type' => 'bool', 'label' => 'Include the tax now owed, paid on the filing day', 'hint' => 'Counts what the tax return shows as owed, on the next filing due day set in Tax control. It is an estimate.', 'default' => true],
             ]],
-            'approvals' => ['title' => 'Approvals', 'hint' => 'Whether a second person must approve before a reconciliation or the year-end close is final. Every change here is logged.', 'permission' => 'books.reports.approval', 'settings' => [
+            'approvals' => ['title' => 'Approvals', 'hint' => 'Whether a second person must approve before a reconciliation, a budget or the year-end close is final. Every change here is logged.', 'permission' => 'books.reports.approval', 'settings' => [
                 'second_approver_reconcile' => ['type' => 'bool', 'label' => 'A reconciliation needs a second approver', 'hint' => 'On: the person who prepared it cannot approve it.', 'default' => true],
+                'second_approver_budget' => ['type' => 'bool', 'label' => 'A budget needs a second approver', 'hint' => 'On: the person who submitted a budget version cannot approve it.', 'default' => true],
                 'second_approver_close' => ['type' => 'bool', 'label' => 'The year-end close needs a second approver', 'hint' => 'On: the person who prepared the close cannot approve it.', 'default' => true],
             ]],
         ];

@@ -19,7 +19,7 @@ const fromLine = (l) => ({ ...l, key: `r${l.id}`, row_id: l.id, months: Object.f
  * Budgets: a row per income, expense or balance-sheet account (a group or one ledger), optionally for one cost centre, department, branch and initiative, with a box per month.
  * A row opens to its details and to the ways of filling its months. Income less expenses (a recovery lowers its expense) is shown as the planned result.
  */
-export default function BudgetGrid({ data, year, setYear, reload, canEdit }) {
+export default function BudgetGrid({ data, year, setYear, reload, canEdit, versionId }) {
   const [rows, setRows] = useState([]);
   const [open, setOpen] = useState(null);
   const [pick, setPick] = useState('');
@@ -59,7 +59,7 @@ export default function BudgetGrid({ data, year, setYear, reload, canEdit }) {
   const save = async () => {
     setBusy(true);
     try {
-      await booksAPI.saveBudgets(rows.filter((r) => r.dirty).map((r) => ({
+      await booksAPI.saveBudgets(versionId, rows.filter((r) => r.dirty).map((r) => ({
         row_id: r.id, type: r.type, target_id: r.target_id, cost_centre_id: r.cost_centre_id, department_id: r.department_id, location_id: r.location_id, initiative_id: r.initiative_id,
         is_recovery: r.is_recovery, method: r.method, method_params: r.method_params, note: r.note || null,
         months: Object.fromEntries(data.months.map((ym) => [ym, r.months[ym] === '' || r.months[ym] == null ? 0 : Number(r.months[ym])])),
@@ -116,7 +116,7 @@ export default function BudgetGrid({ data, year, setYear, reload, canEdit }) {
         What you plan to earn, spend and hold, month by month, for an account (a group counts everything under it) and, if you wish, for one cost centre, department, branch or initiative.
         Open a row to set those and to fill its months a faster way. The Visual reports chart 'Budget against actual' sets the expenses against what the books show. Leave a month empty for no budget.
       </p>
-      {!data.budgets_ready && <p style={{ color: colors.warningText, fontSize: '0.8rem' }}>Run database scripts 237_planning.sql and 239_budgeting.sql to turn budgets on.</p>}
+      {!data.budgets_ready && <p style={{ color: colors.warningText, fontSize: '0.8rem' }}>Run database scripts 237_planning.sql, 239_budgeting.sql and 240_budget_versions.sql to turn budgets on.</p>}
       <div style={{ display: 'flex', gap: 8, alignItems: 'center', marginBottom: 10, flexWrap: 'wrap' }}>
         <button type="button" style={btnGhost} onClick={() => setYear((y) => y - 1)} aria-label="Previous year">‹</button><b>{year}</b><button type="button" style={btnGhost} onClick={() => setYear((y) => y + 1)} aria-label="Next year">›</button>
         {canEdit && data.budgets_ready && (
