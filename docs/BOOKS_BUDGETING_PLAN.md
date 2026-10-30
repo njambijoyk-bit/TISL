@@ -47,9 +47,9 @@ All optional, any combination. One account across many cost centres; a project b
 ## Forecast assumptions (the button)
 The button went to Reports settings, far down a long page, so it looked like nothing happened. Fixed: the four assumptions (collection delay, collection %, supplier terms, tax) now sit on the Budgeting tab under the regular payments. Later: per-customer/per-supplier delay from payment history, payroll pulled from the payroll module, what-if switches.
 
-## Decisions needed
-1. Periods: monthly with quarter/annual roll-ups (recommended) or flexible?
-2. Budget lines: ledger/group only (recommended first), or separate budget categories mapped to ledgers?
-3. Scope of what can be budgeted: income + expenses first, then cash + capex, balance-sheet later?
-4. Controls: warn-only first (recommended), approval/block in step 5?
-5. Commitments (approved purchase orders) count against budget: yes/no?
+## Decisions (owner)
+1. Periods: monthly, quarterly and flexible periods all supported (months are stored; quarter/annual are sums; a flexible period is a named date range over months).
+2. Lines: both ledger/group lines AND separate budget categories, with a mapping from category to ledgers (so a plan can exist before the chart of accounts is final, and actuals still compare).
+3. Budgetable: everything – income, expenses, cash, capex, and later balance-sheet accounts and quantities.
+4. Controls live in Budgeting settings. A permission decides who may exceed a budget: a person holding it posts and is approved; others get a warning. Per setting (company / department / account): **warn**, **post but await approval**, or **hard block**.
+5. Commitments (approved purchase orders counting against budget): to be decided – explained to the owner.
