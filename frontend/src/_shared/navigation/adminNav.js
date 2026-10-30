@@ -172,9 +172,10 @@ export const ADMIN_NAV = [
         tabs: [
           { title: 'Overview', path: '/admin/books', exact: true },
           { title: 'Vouchers', path: '/admin/books?tab=vouchers', also: ['/admin/books/vouchers'] },
+          { title: 'Gift vouchers', path: '/admin/books?tab=gifts' },
+          { title: 'Budgets', path: '/admin/books?tab=budgets' },
           { title: 'Reconciliation', path: '/admin/books?tab=recon' },
           { title: 'Visual reports', path: '/admin/books?tab=visuals' },
-          { title: 'Gift vouchers', path: '/admin/books?tab=gifts' },
           { title: 'Mail', path: '/admin/books?tab=mail' },
           { title: 'Edit log', path: '/admin/books/edit-log' },
           { title: 'Configuration', path: '/admin/books?tab=settings' },

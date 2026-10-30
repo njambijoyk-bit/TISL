@@ -10,6 +10,7 @@ import MailTab from '../../../components/admin/books/MailTab';
 import GiftVouchersTab from '../../../components/admin/books/GiftVouchersTab';
 import VisualReports from '../../../../extras/components/books/VisualReports';
 import ReconTab from '../../../components/admin/books/ReconTab';
+import BudgetsTab from '../../../components/admin/books/BudgetsTab';
 import useAuthStore from '../../../../_shared/store/authStore';
 import { canReadFinance, canWriteFinance, hasPermission } from '../../../../_shared/lib/roles';
 
@@ -18,6 +19,7 @@ const TABS = [
   { id: 'vouchers', label: 'Vouchers' },
   { id: 'accounts', label: 'Chart of accounts' },
   { id: 'gifts', label: 'Gift vouchers' },
+  { id: 'budgets', label: 'Budgets' },
   { id: 'mail', label: 'Mail' },
   { id: 'recon', label: 'Reconciliation' },
   { id: 'reports', label: 'Reports' },
@@ -44,6 +46,7 @@ export default function BooksHub() {
             {tab === 'accounts' && <AccountsTab canWrite={canWrite} />}
             {tab === 'gifts' && <GiftVouchersTab canWrite={canWrite} />}
             {tab === 'mail' && <MailTab canWrite={canWrite} />}
+            {tab === 'budgets' && <BudgetsTab />}
             {tab === 'recon' && <ReconTab />}
             {tab === 'reports' && <ReportsTab />}
             {tab === 'visuals' && <VisualReports />}

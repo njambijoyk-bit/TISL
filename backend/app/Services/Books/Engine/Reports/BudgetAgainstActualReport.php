@@ -57,7 +57,7 @@ final class BudgetAgainstActualReport extends ReportDefinition
         $to = $scope->to ?? now()->endOfYear()->toDateString();
         $version = ! empty($options['version']) && $options['version'] !== '0' ? (int) $options['version'] : $svc->currentVersionFor($from, $to);
         if (! $version) {
-            return ['ready' => false, 'message' => 'There is no budget for these dates yet. Make one under Configuration → Budgeting.', 'groups' => []];
+            return ['ready' => false, 'message' => 'There is no budget for these dates yet. Make one under Books → Budgets.', 'groups' => []];
         }
         $by = isset(self::BY[$options['by'] ?? '']) ? $options['by'] : 'account';
         $info = DB::table('budget_versions as v')->join('budgets as b', 'b.id', '=', 'v.budget_id')->where('v.id', $version)->first(['b.name as budget', 'v.name as version', 'v.status']);

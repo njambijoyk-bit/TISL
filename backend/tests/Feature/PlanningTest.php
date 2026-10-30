@@ -985,7 +985,7 @@ class PlanningTest extends TestCase
         $rep = new MasterBudgetReport();
         $r = $rep->run(Scope::dates('2027-01-01', '2027-03-31'), []);
         $this->assertFalse($r['ready']);
-        $this->assertStringContainsString('Budgeting', $r['message']);
+        $this->assertStringContainsString('Budgets', $r['message']);
         $this->cashWorld();
         $r = $rep->run(Scope::dates('2027-01-01', '2027-03-31'), ['budget' => '0']);
         $this->assertTrue($r['ready']);
@@ -1153,7 +1153,7 @@ class PlanningTest extends TestCase
         $rep = new BudgetAgainstActualReport();
         $r = $rep->run(Scope::dates('2026-01-01', '2026-12-31'), []);
         $this->assertFalse($r['ready']);
-        $this->assertStringContainsString('Budgeting', $r['message']);
+        $this->assertStringContainsString('Budgets', $r['message']);
         $svc = app(BudgetService::class);
         $ini = $svc->saveInitiative(['name' => 'Cash sales'], null);
         $svc->save([['type' => 'ledger', 'target_id' => 6, 'initiative_id' => $ini, 'months' => ['2026-07' => 1000]]], null);
@@ -1251,7 +1251,7 @@ class PlanningTest extends TestCase
         $svc = app(\App\Services\Books\VisualsService::class);
         $b = $svc->chart('budget', Scope::dates('2026-01-01', '2026-10-28'))['data'];
         $this->assertFalse($b['ready'], 'no budget yet says so');
-        $this->assertStringContainsString('Budgeting', $b['message']);
+        $this->assertStringContainsString('Budgets', $b['message']);
         app(BudgetService::class)->save([['type' => 'group', 'id' => 8, 'months' => ['2026-06' => 20000]]], null);
         $this->assertTrue($svc->chart('budget', Scope::dates('2026-01-01', '2026-10-28'))['data']['ready']);
         $f = $svc->chart('cash-forecast', Scope::dates('2026-01-01', '2026-10-28'))['data'];

@@ -16,7 +16,7 @@ use Illuminate\Validation\ValidationException;
  * Budgets (database scripts 237 and 239): what a person plans for an income, expense or balance-sheet ledger group (and every group under it) or one ledger, month by
  * month, optionally for one cost centre, department, branch and initiative, set against what the books show. A budget ROW is the target and its dimensions; its months are
  * budget_lines. A row marked Recovery is an expense expected to be credited back (travel recharged to a customer): it lowers the net spend on that account.
- * Read by the Visual reports "Budget against actual" chart; edited under Books -> Configuration -> Budgeting (books.planning).
+ * Read by the Visual reports "Budget against actual" chart; edited under Books -> Budgets (books.planning).
  *
  * Actuals: a row's figure is read through LedgerBalances with the row's cost centre (a department's own cost centre when one is chosen, and everything under it) and branch.
  * An initiative is not on the posted entries yet, so a row with an initiative has no actual (`actual_pending`) until the books carry it.
@@ -746,7 +746,7 @@ class BudgetService
         return $out;
     }
 
-    /** Does unused expense budget roll into the next month? Off by default: a month's budget expires with it (Budgeting -> Budget controls). */
+    /** Does unused expense budget roll into the next month? Off by default: a month's budget expires with it (Configuration -> Budget settings -> Budget controls). */
     public function carriesForward(): bool
     {
         return ReportSettings::ready() && (string) (app(ReportSettings::class)->values()['budget_carry_forward'] ?? 'expire') === 'carry';
@@ -786,7 +786,7 @@ class BudgetService
     public function against(Scope $scope, string $from, string $to, ?array $sections = null, ?int $versionId = null): array
     {
         if (! self::ready()) {
-            throw new \RuntimeException('Run database scripts 239_budgeting.sql and 240_budget_versions.sql, then set a budget under Books → Configuration → Budgeting.');
+            throw new \RuntimeException('Run database scripts 239_budgeting.sql and 240_budget_versions.sql, then set a budget under Books → Budgets.');
         }
         $lines = collect($this->lines($from, $to, $versionId ?? $this->currentVersionFor($from, $to), true))->when($sections, fn ($c) => $c->whereIn('section', $sections));
         $months = self::months($from, $to);

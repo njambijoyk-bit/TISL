@@ -59,7 +59,7 @@ export default function VisualReports() {
   const warning = useMemo(() => compareWarning(period, other), [period, other]);
   const params = useMemo(() => ({ from: period.from, to: period.to, ...(other ? { compare_from: other.from, compare_to: other.to } : {}) }), [period, other]);
   const openLedger = (id) => nav(`/admin/books?tab=reports&report=ledger&ledger=${id}`);
-  const openPlanning = () => nav('/admin/books?tab=settings&sub=planning');
+  const openPlanning = () => nav('/admin/books?tab=budgets');
 
   const available = useMemo(() => { const have = new Set((catalog?.charts ?? []).map((c) => c.key)); return CHARTS.filter((c) => DEFS[c.key] && (!catalog || have.has(c.key))); }, [catalog]);
   const chartKey = query.get('chart');

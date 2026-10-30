@@ -5,12 +5,7 @@ import booksAPI from '../../../../_shared/api/books';
 import { errMsg } from '../../../../_shared/store/helpers/apiState';
 import { hasPermission } from '../../../../_shared/lib/roles';
 import { btnGhost, btnPrimary, card, colors } from '../../../../_shared/theme/tokens';
-import BudgetBar from './BudgetBar';
 import BudgetControls from './BudgetControls';
-import BudgetGrid from './BudgetGrid';
-import BudgetInitiatives from './BudgetInitiatives';
-import BudgetTemplates from './BudgetTemplates';
-import BudgetTransfers from './BudgetTransfers';
 import ReportsSettings from './ReportsSettings';
 import { CheckboxRow, Field, FormGrid, NumberInput, SelectInput, TextInput } from '../ui/Form';
 
@@ -90,27 +85,17 @@ function Items({ data, reload, canEdit }) {
   );
 }
 
-/** Books -> Configuration -> Budgeting: the budgets and the cash forecast's regular items. */
-export default function PlanningSettings() {
-  const [year, setYear] = useState(new Date().getFullYear());
-  const [versionId, setVersionId] = useState(null);
+/** Books -> Configuration -> Budget settings: the budgets and the cash forecast's regular items. */
+export default function BudgetSettings() {
   const [data, setData] = useState(null);
   const canPlan = hasPermission(null, 'books.planning');
-  const load = useCallback((forVersion) => booksAPI.planning({ from: `${year}-01-01`, to: `${year}-12-31`, version_id: (typeof forVersion === 'number' ? forVersion : versionId) || undefined })
-    .then((r) => { setData(r); if (!versionId && r.version_id) setVersionId(r.version_id); }).catch((e) => toast.error(errMsg(e, 'Could not load Budgeting'))), [year, versionId]);
+  const load = useCallback(() => booksAPI.planning({}).then(setData).catch((e) => toast.error(errMsg(e, 'Could not load the budget settings'))), []);
   useEffect(() => { load(); }, [load]);
   if (!data) return <p style={{ fontSize: '0.85rem', color: colors.textFaint }}>Loading…</p>;
-  const version = data.budgets.flatMap((b) => b.versions).find((v) => v.id === versionId);
-  const canEdit = canPlan && (!version || version.status === 'draft');   // an approved or locked version is the plan as agreed: it is changed by making a revision
   return (
     <div>
-      {!canPlan && <p style={{ fontSize: '0.78rem', color: colors.textFaint }}>You can look at these; changing them needs the Planning permission (budgets and forecast).</p>}
-      <BudgetBar data={data} versionId={versionId} setVersionId={setVersionId} setYear={setYear} reload={load} />
-      <BudgetGrid data={data} year={year} setYear={setYear} reload={load} canEdit={canEdit} versionId={versionId} />
-      <BudgetTransfers data={data} version={version} reload={load} />
-      <BudgetTemplates data={data} versionId={versionId} canEdit={canPlan} reload={load} onMade={(v, y) => { setVersionId(v); setYear(y); }} />
+      {!canPlan && <p style={{ fontSize: '0.78rem', color: colors.textFaint }}>You can look at these; changing them needs the Planning permission. The budgets themselves are on the Budgets tab at the top of Books.</p>}
       <BudgetControls data={data} canEdit={canPlan} reload={load} />
-      <BudgetInitiatives initiatives={data.choices.initiatives} canEdit={canPlan} reload={load} />
       <Items data={data} reload={load} canEdit={canPlan} />
       <ReportsSettings only="forecast" />
     </div>

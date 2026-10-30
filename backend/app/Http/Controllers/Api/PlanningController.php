@@ -12,7 +12,7 @@ use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 
 /**
- * Books -> Configuration -> Budgeting: budgets and the cash forecast's recurring items. Seeing them needs books.view; changing them needs books.planning (routes).
+ * Books -> Budgets and Configuration -> Budget settings: budgets, and the cash forecast's recurring items. Seeing them needs books.view; changing them needs books.planning (routes).
  * The forecast's assumptions (collection delay, supplier terms ...) are Reports settings, section "Cash forecast assumptions".
  */
 class PlanningController extends Controller

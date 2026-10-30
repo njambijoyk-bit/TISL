@@ -55,7 +55,7 @@ final class MasterBudgetReport extends ReportDefinition
         $only = ! empty($options['budget']) && $options['budget'] !== '0' ? (int) $options['budget'] : null;
         $r = app(MasterBudgetService::class)->build($from, $to, $only);
         if (! $r['budgets']) {
-            return ['ready' => false, 'message' => 'There is no budget for these dates yet. Make one under Configuration → Budgeting.'];
+            return ['ready' => false, 'message' => 'There is no budget for these dates yet. Make one under Books → Budgets.'];
         }
 
         return ['ready' => true] + $r;

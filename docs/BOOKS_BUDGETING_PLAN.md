@@ -1,4 +1,6 @@
-# Books – Budgeting (plan, nothing built yet)
+# Books – Budgeting
+
+> Where it lives now: **Books → Budgets** (a tab between Gift vouchers and Reconciliation) holds making and working on budgets: the list of current and past budgets, the version bar, the rows by month, transfers, overspends waiting for approval, templates and initiatives. **Configuration → Budget settings** holds how vouchers over budget are treated (the company-wide choice, the check basis, carry-forward, non-cash groups, exceptions) and the cash forecast (regular payments and receipts, assumptions). Older text below says "Configuration → Budgeting" for both.
 
 Today: `budget_lines` holds one amount per month for an expense/income **group or ledger** (script 237). No templates, versions, approvals, dimensions or controls.
 Goal: a planning and control system – plan income, spend, cash and investment, then compare with what the ledgers actually posted.

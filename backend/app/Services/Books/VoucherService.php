@@ -2589,7 +2589,7 @@ class VoucherService
             throw new BooksException('That initiative does not exist.');
         }
         if (! $row->is_active) {
-            throw new BooksException('That initiative is switched off. Choose another, or switch it back on under Budgeting.');
+            throw new BooksException('That initiative is switched off. Choose another, or switch it back on under Books → Budgets.');
         }
 
         return (int) $id;
