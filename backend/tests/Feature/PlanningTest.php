@@ -4,6 +4,7 @@ namespace Tests\Feature;
 
 use App\Models\User;
 use App\Services\Books\BudgetMethods;
+use App\Services\Books\Engine\Reports\BudgetAgainstActualReport;
 use App\Services\Books\BudgetService;
 use App\Services\Books\BudgetTemplateService;
 use App\Services\Books\Engine\LedgerBalances;
@@ -501,6 +502,86 @@ class PlanningTest extends TestCase
         $svc->save([['type' => 'ledger', 'target_id' => 6, 'months' => ['2026-01' => 5], 'method' => 'fixed', 'method_params' => ['amount' => 5]]], null, $v);
 
         return $v;
+    }
+
+    // ── the report ─────────────────────────────────────────────────────
+
+    private function reportWorld(): int
+    {
+        $svc = app(BudgetService::class);
+        $b = $svc->createBudget(['name' => '2026', 'from_month' => '2026-01', 'to_month' => '2026-12'], null);
+        $v = $svc->currentVersion($b);
+        $svc->save([
+            ['type' => 'group', 'target_id' => 6, 'months' => ['2026-01' => 80000]],                                     // Sales: 100,000 came in
+            ['type' => 'ledger', 'target_id' => 6, 'cost_centre_id' => 11, 'months' => ['2026-07' => 5000]],           // Rent on Admin: 4,000 spent
+            ['type' => 'ledger', 'target_id' => 6, 'cost_centre_id' => 10, 'months' => ['2026-07' => 6000]],           // Rent on Head office and under it: 7,000 spent
+            ['type' => 'group', 'target_id' => 8, 'months' => ['2026-06' => 20000]],                                    // every indirect expense: rent 12,000
+        ], null, $v);
+
+        return $v;
+    }
+
+    public function test_the_report_sets_each_line_against_the_books_with_the_gap_read_as_good_or_bad_news(): void
+    {
+        $v = $this->reportWorld();
+        $r = (new BudgetAgainstActualReport())->run(Scope::dates('2026-01-01', '2026-12-31'), ['version' => (string) $v, 'by' => 'account']);
+        $this->assertTrue($r['ready']);
+        $by = collect($r['groups'])->keyBy(fn ($g) => $g['section'] . ':' . $g['name']);
+        $sales = $by['income:Sales Accounts'];
+        $this->assertEquals([80000, 295000], [$sales['budget'], $sales['actual']], 'a full year of sales: January 100,000, March 130,000 and April 65,000 restated');
+        $this->assertEquals(215000, $sales['variance'], 'earning more than planned is good news');
+        $this->assertEquals(268.8, $sales['variance_pct']);
+        $this->assertEquals(368.8, $sales['used_pct']);
+        $rent = $by['expense:Rent'];
+        $this->assertEquals([11000, 11000], [$rent['budget'], $rent['actual']], 'two cost centres, one account');
+        $this->assertCount(2, $rent['children']);
+        $this->assertEqualsCanonicalizing(['Admin', 'Head office'], array_column($rent['children'], 'name'));
+        $group = $by['expense:Indirect Expenses'];
+        $this->assertEquals(700, $group['variance'], 'spending 19,300 against 20,000 is good news');
+        $this->assertSame('Rent', $group['children'][0]['ledgers'][0]['name'], 'a group is followed down to its ledgers, the biggest first');
+        $this->assertEquals(19000, $group['children'][0]['ledgers'][0]['actual'], 'rent 12,000 and 7,000');
+        $this->assertSame(['income', 'expense'], array_values(array_unique(array_column($r['groups'], 'section'))), 'income before expenses');
+        $this->assertEquals(295000 - 30300, $r['totals']['result']['actual']);
+        $this->assertEquals(80000 - 31000, $r['totals']['result']['budget']);
+        $this->assertFalse($r['pending']);
+    }
+
+    public function test_the_report_can_be_grouped_by_a_dimension_and_says_not_set_for_rows_without_one(): void
+    {
+        $v = $this->reportWorld();
+        $r = (new BudgetAgainstActualReport())->run(Scope::dates('2026-01-01', '2026-12-31'), ['version' => (string) $v, 'by' => 'cost_centre']);
+        $by = collect($r['groups'])->keyBy(fn ($g) => $g['section'] . ':' . $g['name']);
+        $this->assertEquals([5000, 4000], [$by['expense:Admin']['budget'], $by['expense:Admin']['actual']]);
+        $this->assertEquals([6000, 7000], [$by['expense:Head office']['budget'], $by['expense:Head office']['actual']]);
+        $this->assertEquals(20000, $by['expense:Not set']['budget'], 'the indirect-expenses row has no cost centre');
+        $this->assertSame('Cost centre', $r['by_label']);
+        $table = (new BudgetAgainstActualReport())->table($r, Scope::dates('2026-01-01', '2026-12-31'));
+        $this->assertSame(['name', 'budget', 'actual', 'variance', 'variance_pct', 'used_pct', 'remaining'], array_keys($table['columns']));
+        $this->assertSame('Planned result (income less expenses)', $table['totals']['name']);
+    }
+
+    public function test_the_report_asks_for_a_budget_when_there_is_none_and_marks_initiatives_as_waiting_for_actuals(): void
+    {
+        $rep = new BudgetAgainstActualReport();
+        $r = $rep->run(Scope::dates('2026-01-01', '2026-12-31'), []);
+        $this->assertFalse($r['ready']);
+        $this->assertStringContainsString('Budgeting', $r['message']);
+        $svc = app(BudgetService::class);
+        $ini = $svc->saveInitiative(['name' => 'Cash sales'], null);
+        $svc->save([['type' => 'ledger', 'target_id' => 6, 'initiative_id' => $ini, 'months' => ['2026-07' => 1000]]], null);
+        $r = $rep->run(Scope::dates('2026-01-01', '2026-12-31'), ['by' => 'initiative']);
+        $this->assertTrue($r['pending']);
+        $this->assertSame('Cash sales', $r['groups'][0]['name']);
+        $this->assertEquals(0, $r['groups'][0]['actual']);
+        $choices = array_column($rep->options(), 'choices', 'key');
+        $this->assertArrayHasKey('0', $choices['version']);
+        $this->assertCount(2, $choices['version']);
+    }
+
+    public function test_the_report_is_in_the_catalogue_for_anyone_who_can_see_the_books(): void
+    {
+        $this->as(['books.view']);
+        $this->getJson('/api/admin/reports')->assertOk()->assertJsonFragment(['key' => 'budget-against-actual']);
     }
 
     // ── the forecast ───────────────────────────────────────────────────

@@ -31,6 +31,14 @@ export const GUIDE = {
     ],
     tips: ['Compare with the previous period or the same period last year, or show it month by month, from the report\'s options.', 'Direct and indirect is decided by the statement line a ledger is on: Revenue and Cost of sales are the trading section.', 'Ledgers that are on no statement line are shown apart and still counted, so no amount is lost.', 'Drafts are never counted; foreign-currency vouchers are shown in today\'s base currency.'],
   },
+  'budget-against-actual': {
+    purpose: 'Every budgeted line set against what the books actually show in the same dates: the budget, the actual, the gap, how much of the budget is used and what remains. Group it by account, cost centre, department, branch or initiative, and open any line to see what it is made of, down to the ledgers and their statements.',
+    differs: [
+      { key: 'profit-loss', text: 'Profit & loss shows what happened. This report shows what happened against what you planned, only for the lines that have a budget.' },
+      { key: 'profit-loss-by-cost-centre', text: 'That report shows each cost centre\'s actual income and expense. This one sets them against the budget for the same cost centres.' },
+    ],
+    tips: ['A green ▲ is good news: spending under budget or earnings above it. A red ▼ is not.', 'It uses the newest approved version of the budget for the dates, unless you pick another version.', 'An expense and its recovery are one line: the budget is the expense less the recovery.', 'A line for an initiative shows no actual yet: the posted entries do not carry an initiative.', 'The "Not set" group is budget lines that have no cost centre, department, branch or initiative to group by.'],
+  },
   'profit-loss-by-cost-centre': {
     purpose: 'What each cost centre (a branch, department, utilities, payroll and so on) earned and spent on its own, and in total with everything beneath it. It shows where profit is made inside the business.',
     differs: [

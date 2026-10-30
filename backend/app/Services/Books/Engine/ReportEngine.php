@@ -7,6 +7,7 @@ use App\Services\Access\Authorizer;
 use App\Services\Access\BranchFilter;
 use App\Services\Books\Engine\Reports\AdjustedTrialBalanceReport;
 use App\Services\Books\Engine\Reports\BalanceSheetReport;
+use App\Services\Books\Engine\Reports\BudgetAgainstActualReport;
 use App\Services\Books\Engine\Reports\CashFlowReport;
 use App\Services\Books\Engine\Reports\ChangesInEquityReport;
 use App\Services\Books\Engine\Reports\PayablesAgeingReport;
@@ -60,6 +61,7 @@ final class ReportEngine
         ControlAccountsReport::class,
         BooksHealthReport::class,
         ProfitLossByCostCentreReport::class,
+        BudgetAgainstActualReport::class,
         StockJournalReport::class,
         StockSummaryReport::class,
         StockLocationSummaryReport::class,

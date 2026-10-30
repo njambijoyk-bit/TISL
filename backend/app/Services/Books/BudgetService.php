@@ -579,23 +579,41 @@ class BudgetService
         return Scope::fromInput(['from' => $from, 'to' => $to, 'cost_centre_id' => $cc, 'location_id' => $row['location_id'] ?? null]);
     }
 
+    /**
+     * What a row's account actually did, as the figure a person budgets: by month and by ledger (a group row covers every ledger under it).
+     *
+     * @return array{months: array<string, float>, ledgers: array<int, array{id: int, name: string, actual: float}>}
+     */
+    public function actuals(array $row, string $from, string $to): array
+    {
+        $b = app(LedgerBalances::class);
+        $all = collect($b->ledgers());
+        $ids = $this->ledgerIds($row['type'], (int) $row['target_id'], $all->pluck('group_id', 'id'));
+        $mv = $ids ? $b->movementByMonth($this->scopeFor($row, $from, $to), $from, $to, $ids) : [];
+        $sign = self::sign($row['nature'] ?? null);
+        $names = $all->pluck('name', 'id');
+        $months = array_fill_keys(self::months($from, $to), 0.0);
+        $ledgers = [];
+        foreach ($ids as $id) {
+            $sum = 0.0;
+            foreach ($months as $ym => $_) {
+                $v = $sign * (($mv[$id][$ym]['dr'] ?? 0) - ($mv[$id][$ym]['cr'] ?? 0));
+                $months[$ym] += $v;
+                $sum += $v;
+            }
+            if (abs($sum) > 0.004) {
+                $ledgers[] = ['id' => (int) $id, 'name' => (string) ($names[$id] ?? "#{$id}"), 'actual' => round($sum, 2)];
+            }
+        }
+        usort($ledgers, fn ($x, $y) => abs($y['actual']) <=> abs($x['actual']));
+
+        return ['months' => array_map(fn ($v) => round($v, 2), $months), 'ledgers' => $ledgers];
+    }
+
     /** What a row's account actually did in each month, as the figure a person budgets. @return array<string, float> */
     public function actualMonths(array $row, string $from, string $to): array
     {
-        $b = app(LedgerBalances::class);
-        $ids = $this->ledgerIds($row['type'], (int) $row['target_id'], collect($b->ledgers())->pluck('group_id', 'id'));
-        $mv = $ids ? $b->movementByMonth($this->scopeFor($row, $from, $to), $from, $to, $ids) : [];
-        $sign = self::sign($row['nature'] ?? null);
-        $out = [];
-        foreach (self::months($from, $to) as $ym) {
-            $v = 0.0;
-            foreach ($ids as $id) {
-                $v += $sign * (($mv[$id][$ym]['dr'] ?? 0) - ($mv[$id][$ym]['cr'] ?? 0));
-            }
-            $out[$ym] = round($v, 2);
-        }
-
-        return $out;
+        return $this->actuals($row, $from, $to)['months'];
     }
 
     /** Last year's actuals by month for a row, to start "last year plus growth" from. @return array<string, float> keyed by the month of the year asked for */
@@ -611,6 +629,12 @@ class BudgetService
         }
 
         return $out;
+    }
+
+    /** The gap as a person reads it: positive is good news. Spending under budget is favourable; earnings above it are; a balance above its plan is shown the same way. */
+    public static function variance(string $section, float $budget, float $actual): float
+    {
+        return round($section === 'expense' ? $budget - $actual : $actual - $budget, 2);
     }
 
     /**
@@ -634,7 +658,8 @@ class BudgetService
         foreach ($groups as $set) {
             $ln = $set->first();
             $pending = $ln['initiative_id'] !== null;
-            $actualByMonth = $pending ? array_fill_keys($months, 0.0) : $this->actualMonths($ln, $from, $to);
+            $act = $pending ? ['months' => array_fill_keys($months, 0.0), 'ledgers' => []] : $this->actuals($ln, $from, $to);
+            $actualByMonth = $act['months'];
             $per = [];
             foreach ($months as $ym) {
                 $budget = 0.0;
@@ -649,8 +674,11 @@ class BudgetService
             $budget = array_sum(array_column($per, 'budget'));
             $actual = array_sum(array_column($per, 'actual'));
             $expense = $ln['section'] === 'expense';
+            $variance = self::variance($ln['section'], $budget, $actual);
             $rows[] = ['type' => $ln['type'], 'id' => $ln['target_id'], 'name' => $ln['name'], 'section' => $ln['section'], 'dimensions' => $ln['dimensions'], 'has_recovery' => $set->contains('is_recovery', true),
-                'budget' => round($budget, 2), 'actual' => round($actual, 2), 'variance' => round($budget - $actual, 2), 'used_pct' => abs($budget) > 0.005 ? round($actual / $budget * 100, 1) : null,
+                'cost_centre_id' => $ln['cost_centre_id'], 'department_id' => $ln['department_id'], 'location_id' => $ln['location_id'], 'initiative_id' => $ln['initiative_id'], 'ledgers' => $act['ledgers'],
+                'budget' => round($budget, 2), 'actual' => round($actual, 2), 'variance' => $variance, 'variance_pct' => abs($budget) > 0.005 ? round($variance / abs($budget) * 100, 1) : null,
+                'remaining' => round($budget - $actual, 2), 'used_pct' => abs($budget) > 0.005 ? round($actual / $budget * 100, 1) : null,
                 'over' => $expense && $actual > $budget + 0.005, 'actual_pending' => $pending, 'months' => $per];
         }
         usort($rows, fn ($x, $y) => $y['actual'] - $y['budget'] <=> $x['actual'] - $x['budget']);   // the biggest overspend first

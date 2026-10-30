@@ -23,6 +23,7 @@ export const REPORTS = [
   { id: 'engine-stock-summary', engine: 'stock-summary', label: 'Stock summary', group: 'Stock', letter: 'S', permission: 'stock.view' },
   { id: 'engine-stock-location', engine: 'stock-location-summary', label: 'Location summary', group: 'Stock', letter: 'N', permission: 'stock.view' },
   { id: 'engine-stock-query', engine: 'stock-query', label: 'Stock query', group: 'Stock', letter: 'K', permission: 'stock.view' },
+  { id: 'engine-budget-actual', engine: 'budget-against-actual', label: 'Budget against actual', group: 'Analysis', letter: 'Z' },
   { id: 'engine-ratio-analysis', engine: 'ratio-analysis', label: 'Ratio analysis', group: 'Analysis', letter: 'I' },
   { id: 'engine-trade', engine: 'trade', label: 'Trade by party and item', group: 'Analysis', letter: 'V' },
   { id: 'engine-books-health', engine: 'books-health', label: 'Books health', group: 'Checks', letter: 'H' },
@@ -33,7 +34,7 @@ export const REPORTS = [
 export const ALIASES = {
   'day-book': 'engine-day-book', ledger: 'engine-ledger', receivables: 'engine-receivables', payables: 'engine-payables', 'tax-return': 'engine-tax-return', withholding: 'engine-withholding',
   'ratio-analysis': 'engine-ratio-analysis', 'trial-balance': 'engine-trial-balance', 'profit-loss': 'engine-profit-loss', 'balance-sheet': 'engine-balance-sheet', trade: 'engine-trade',
-  'money-flow': 'engine-money-flow', 'cash-flow': 'engine-cash-flow', 'control-accounts': 'engine-control-accounts', 'books-health': 'engine-books-health', 'profit-loss-by-cost-centre': 'engine-pl-cost-centre',
+  'money-flow': 'engine-money-flow', 'cash-flow': 'engine-cash-flow', 'control-accounts': 'engine-control-accounts', 'books-health': 'engine-books-health', 'profit-loss-by-cost-centre': 'engine-pl-cost-centre', 'budget-against-actual': 'engine-budget-actual',
   'stock-journal': 'engine-stock-journal', 'changes-in-equity': 'engine-changes-in-equity', 'adjusted-trial-balance': 'engine-adjusted-tb', 'stock-summary': 'engine-stock-summary',
   'stock-location-summary': 'engine-stock-location', 'stock-query': 'engine-stock-query',
 };

@@ -30,6 +30,7 @@ import { StockSummaryView, StockQueryView } from '../reports/StockReportViews';
 import { MoneyFlowBody } from './MoneyFlow';
 import { hasPermission } from '../../../../_shared/lib/roles';
 import ProfitLossByCostCentreView from '../reports/ProfitLossByCostCentreView';
+import BudgetAgainstActualView from '../reports/BudgetAgainstActualView';
 
 /** Alt+C: what the profit and loss, balance sheet or trial balance says, on the dates shown. */
 function CalcContext({ report, from, to }) {
@@ -39,6 +40,7 @@ function CalcContext({ report, from, to }) {
 
 function EngineView({ engine, result, drill, opts }) {
   if (['profit-loss', 'balance-sheet', 'trial-balance'].includes(engine)) return (<><CalcContext report={engine} from={result.from} to={result.to} />{engine === 'trial-balance' ? <TrialBalanceView result={result} /> : <StatementView result={result} />}</>);
+  if (engine === 'budget-against-actual') return <BudgetAgainstActualView result={result} />;
   if (engine === 'profit-loss-by-cost-centre') return <ProfitLossByCostCentreView result={result} />;
   if (engine === 'trial-balance') return <TrialBalanceView result={result} />;
   if (engine === 'day-book') return <DayBookView result={result} />;
