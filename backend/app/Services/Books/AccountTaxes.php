@@ -19,7 +19,20 @@ use Illuminate\Validation\ValidationException;
 class AccountTaxes
 {
     public const TREATMENTS = ['applies' => 'taxable', 'zero_rated' => 'zero_rated', 'exempt' => 'exempt', 'out_of_scope' => 'out_of_scope'];
-    private const BEHAVIOURS = ['sales', 'purchase', 'charge'];
+    /** Groups whose accounts carry a tax. An expense account (anything under Indirect Expenses) may carry one too, but need not: 'expense' is the behaviour it takes for this. */
+    private const BEHAVIOURS = ['sales', 'purchase', 'charge', 'expense'];
+
+    /** The group's behaviour as far as tax goes: its own, or 'expense' for a group under Indirect Expenses. */
+    public static function effectiveBehaviour(int $groupId): string
+    {
+        $own = LedgerGroup::whereKey($groupId)->value('behaviour') ?? 'standard';
+        if (in_array($own, ['sales', 'purchase', 'charge'], true)) {
+            return $own;
+        }
+        $root = LedgerGroup::where('name', 'Indirect Expenses')->first();
+
+        return $root && in_array($groupId, array_map('intval', $root->selfAndDescendantIds()), true) ? 'expense' : $own;
+    }
 
     public static function available(): bool
     {
@@ -67,7 +80,7 @@ class AccountTaxes
     {
         $fail = fn (string $m) => throw ValidationException::withMessages(['taxes' => $m]);
         if (! in_array($behaviour, self::BEHAVIOURS, true)) {
-            $fail('Taxes belong on a sales, purchase or charge account.');
+            $fail('Taxes belong on a sales, purchase, charge or expense account.');
         }
         if (count($taxes) > 8) {
             $fail('An account carries at most 8 taxes.');
@@ -171,6 +184,6 @@ class AccountTaxes
 
     private function isTaxed(Ledger $ledger): bool
     {
-        return in_array(LedgerGroup::whereKey($ledger->group_id)->value('behaviour'), self::BEHAVIOURS, true);
+        return in_array(self::effectiveBehaviour((int) $ledger->group_id), self::BEHAVIOURS, true);
     }
 }

@@ -275,8 +275,8 @@ class BooksMasterController extends Controller
         if ($list === null || ! \App\Services\Books\AccountTaxes::available()) {
             return null;
         }
-        $behaviour = LedgerGroup::whereKey($groupId)->value('behaviour') ?? 'standard';
-        if (! $list && ! in_array($behaviour, ['sales', 'purchase', 'charge'], true)) {
+        $behaviour = \App\Services\Books\AccountTaxes::effectiveBehaviour($groupId);   // an account under Indirect Expenses may carry a tax too
+        if (! $list && ! in_array($behaviour, ['sales', 'purchase', 'charge', 'expense'], true)) {
             return null;
         }
         $rows = app(\App\Services\Books\AccountTaxes::class)->normalise($list, $behaviour);
@@ -331,8 +331,8 @@ class BooksMasterController extends Controller
             throw \Illuminate\Validation\ValidationException::withMessages(['tax_nature' => 'Choose the tax for this account — a tax rate from the system, exempt, or out of scope.']);
         }
         if (! empty($d['tax_nature'])) {
-            if (! in_array($behaviour, ['sales', 'purchase', 'charge'], true)) {
-                throw \Illuminate\Validation\ValidationException::withMessages(['tax_nature' => 'A tax nature belongs on a sales, purchase or charge account.']);
+            if (! in_array(\App\Services\Books\AccountTaxes::effectiveBehaviour($groupId), ['sales', 'purchase', 'charge', 'expense'], true)) {
+                throw \Illuminate\Validation\ValidationException::withMessages(['tax_nature' => 'A tax nature belongs on a sales, purchase, charge or expense account.']);
             }
             if ($d['tax_nature'] === 'taxable' && empty($d['tax_rate_ledger_id'])) {
                 throw \Illuminate\Validation\ValidationException::withMessages(['tax_rate_ledger_id' => 'A taxable account needs its tax rate.']);

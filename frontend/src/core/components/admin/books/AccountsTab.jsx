@@ -91,8 +91,9 @@ function LedgerForm({ ledger, groups, defaultGroupId, onClose, onSaved }) {
   const expense = behaviour === 'delivery' && f.side === 'expense';
   const trading = behaviour === 'sales' || behaviour === 'purchase';
   const charging = behaviour === 'charge';
-  const taxed = trading || charging;
   const inGroup = (name) => { const all = flat(groups); let g = all.find((x) => String(x.id) === String(f.group_id)); while (g) { if (g.name === name) return true; g = all.find((x) => x.id === g.parent_id); } return false; };
+  const optionalTax = !trading && !charging && !rated && inGroup('Indirect Expenses');   // an expense account may carry a tax (VAT on rent, say) but need not
+  const taxed = trading || charging || optionalTax;
   const bankGroup = inGroup('Bank Accounts');
   const cashGroup = inGroup('Cash-in-hand');
   const money = bankGroup || cashGroup;   // a ledger money is paid into: bank, till, mobile money, cash on delivery
@@ -135,6 +136,7 @@ function LedgerForm({ ledger, groups, defaultGroupId, onClose, onSaved }) {
         body.tax_nature = f.tax_nature || null;
         body.tax_rate_ledger_id = (f.tax_nature === 'taxable' || f.tax_nature === 'zero_rated') ? blank(f.tax_rate_ledger_id) : null;
         // the taxes in order: the first is the one chosen above, then the others; the server keeps the old tax fields in step with the first
+        if (!f.tax_nature && optionalTax) body.taxes = [];   // an expense account with no tax: clear any it had
         if (f.tax_nature) {
           const first = rateChoices.find((r) => String(r.id) === String(f.tax_rate_ledger_id));
           const primary = f.tax_rate_ledger_id && (f.tax_nature === 'taxable' || f.tax_nature === 'zero_rated')
@@ -171,11 +173,11 @@ function LedgerForm({ ledger, groups, defaultGroupId, onClose, onSaved }) {
           )}
           {taxed && (
             <>
-              <Field label="Tax on this account *" error={errs.tax_nature || errs.tax_rate_ledger_id} hint={behaviour === 'sales'
+              <Field label={optionalTax ? 'Tax on this account (optional)' : 'Tax on this account *'} error={errs.tax_nature || errs.tax_rate_ledger_id} hint={optionalTax ? 'Leave empty for no tax. Choose a rate and a line posted here is taxed, as Buyer premium holds VAT 16%.' : behaviour === 'sales'
                 ? 'Required. Every sale line posted here is taxed this way — keep VAT-able goods and exempt goods on separate accounts.'
                 : behaviour === 'charge' ? 'Required. Fees are often VAT-able; a refundable deposit is not — it is out of scope.'
                 : 'Required. Every purchase line posted here is treated this way.'}>
-                <SelectInput required value={taxChoice}
+                <SelectInput required={!optionalTax} value={taxChoice}
                   onChange={(e) => {
                     const v = e.target.value;
                     if (v.startsWith('rate:')) {
@@ -183,7 +185,7 @@ function LedgerForm({ ledger, groups, defaultGroupId, onClose, onSaved }) {
                       setF((p) => ({ ...p, tax_rate_ledger_id: Number(v.slice(5)), tax_nature: r && Number(r.rate_value) === 0 ? 'zero_rated' : 'taxable' }));
                     } else setF((p) => ({ ...p, tax_rate_ledger_id: '', tax_nature: v }));
                   }}>
-                  <option value="">Choose the tax…</option>
+                  <option value="">{optionalTax ? 'No tax' : 'Choose the tax…'}</option>
                   {Object.entries(rateGroups).map(([tt, rs]) => (
                     <optgroup key={tt} label={tt}>
                       {rs.map((r) => <option key={r.id} value={`rate:${r.id}`}>{r.name} ({Number(r.rate_value)}%)</option>)}
