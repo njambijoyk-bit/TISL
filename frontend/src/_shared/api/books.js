@@ -166,6 +166,7 @@ const booksAPI = {
   withdrawBudgetTransfer: (id) => send('delete', `/admin/books/planning/transfers/${id}`),
   decideBudgetTransfer: (id, action, body) => send('post', `/admin/books/planning/transfers/${id}/${action}`, body ?? {}),
   budgetCompare: (budgetId) => get(`/admin/books/planning/budget-sets/${budgetId}/compare`),
+  budgetInitiatives: () => get('/admin/books/initiatives'),
   budgetHistory: (params) => get('/admin/books/planning/budgets/history', params),
   saveInitiative: (id, body) => (id ? send('put', `/admin/books/planning/initiatives/${id}`, body) : send('post', '/admin/books/planning/initiatives', body)),
   deleteInitiative: (id) => send('delete', `/admin/books/planning/initiatives/${id}`),

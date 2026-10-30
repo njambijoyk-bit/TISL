@@ -77,6 +77,8 @@ class PlanningTest extends TestCase
 
     protected function tearDown(): void
     {
+        \App\Observers\VoucherDimensionsObserver::forgetInitiativesReady();
+        Schema::dropIfExists('cost_centre_settings');
         foreach (self::TABLES as $t) {
             Schema::dropIfExists($t);
         }
@@ -994,6 +996,100 @@ class PlanningTest extends TestCase
         $this->assertArrayHasKey((string) DB::table('budgets')->value('id'), array_column($rep->options(), 'choices', 'key')['budget']);
         $this->as(['books.view']);
         $this->getJson('/api/admin/reports')->assertOk()->assertJsonFragment(['key' => 'master-budget']);
+    }
+
+    // ── initiatives on the books (script 244) ──────────────────────────
+
+    private function booksCarryInitiatives(): void
+    {
+        foreach (['vouchers', 'voucher_entries'] as $t) {
+            if (! Schema::hasColumn($t, 'initiative_id')) {
+                Schema::table($t, fn ($table) => $table->unsignedBigInteger('initiative_id')->nullable());
+            }
+        }
+        \App\Observers\VoucherDimensionsObserver::forgetInitiativesReady();
+    }
+
+    public function test_an_initiatives_budget_has_real_actuals_once_the_books_carry_it_and_counts_what_is_under_it(): void
+    {
+        $this->booksCarryInitiatives();
+        $svc = app(BudgetService::class);
+        $cash = $svc->saveInitiative(['name' => 'Cash sales'], null);
+        $travel = $svc->saveInitiative(['name' => 'Travel', 'parent_id' => $cash], null);
+        $other = $svc->saveInitiative(['name' => 'Website'], null);
+        $this->assertTrue(\App\Observers\VoucherDimensionsObserver::initiativesReady());
+        // July's rent voucher (V8, ledger 6, 3,000 and 4,000) split between two initiatives, a second one for another
+        $v8 = DB::table('vouchers')->where('voucher_number', 'V8')->value('id');
+        DB::table('voucher_entries')->where('voucher_id', $v8)->where('ledger_id', 6)->where('amount', 3000)->update(['initiative_id' => $cash]);
+        DB::table('voucher_entries')->where('voucher_id', $v8)->where('ledger_id', 6)->where('amount', 4000)->update(['initiative_id' => $travel]);
+        DB::table('voucher_entries')->where('voucher_id', DB::table('vouchers')->where('voucher_number', 'V7')->value('id'))->where('ledger_id', 6)->update(['initiative_id' => $other]);
+        $b = $svc->createBudget(['name' => '2026', 'from_month' => '2026-01', 'to_month' => '2026-12'], null);
+        $svc->save([
+            ['type' => 'ledger', 'target_id' => 6, 'initiative_id' => $cash, 'months' => ['2026-07' => 10000]],
+            ['type' => 'ledger', 'target_id' => 6, 'initiative_id' => $travel, 'months' => ['2026-07' => 5000]],
+            ['type' => 'ledger', 'target_id' => 6, 'initiative_id' => $other, 'months' => ['2026-06' => 20000]],
+        ], null, $svc->currentVersion($b));
+        $r = collect($svc->against(Scope::dates('2026-01-01', '2026-12-31'), '2026-01-01', '2026-12-31')['rows'])->keyBy(fn ($x) => implode(',', $x['dimensions']));
+        $this->assertFalse($r['Cash sales']['actual_pending']);
+        $this->assertEquals(7000, $r['Cash sales']['actual'], 'Cash sales counts its own 3,000 and the 4,000 posted to Travel under it');
+        $this->assertEquals(4000, $r['Travel']['actual']);
+        $this->assertEquals(12000, $r['Website']['actual'], 'June rent was posted to the other initiative');
+        $scope = Scope::fromInput(['from' => '2026-01-01', 'to' => '2026-12-31', 'initiative_id' => $travel]);
+        $this->assertSame([$travel], $scope->initiativeIds);
+        $this->assertTrue($scope->dimensional());
+        $this->assertEquals(4000, app(LedgerBalances::class)->movement($scope, '2026-01-01', '2026-12-31')[6]['dr']);
+        $this->assertSame([$cash, $travel], Scope::fromInput(['initiative_id' => $cash])->initiativeIds);
+        $this->assertNull(Scope::fromInput(['initiative_id' => 0])->initiativeIds);
+    }
+
+    public function test_the_budget_control_counts_a_voucher_against_the_initiative_it_is_posted_to(): void
+    {
+        $this->booksCarryInitiatives();
+        $svc = app(BudgetService::class);
+        $ini = $svc->saveInitiative(['name' => 'Cash sales'], null);
+        $this->setting('budget_control_mode', 'block');
+        $this->setting('second_approver_budget', false);
+        $b = $svc->createBudget(['name' => '2026', 'from_month' => '2026-01', 'to_month' => '2026-12'], null);
+        $v = $svc->currentVersion($b);
+        $svc->save([['type' => 'ledger', 'target_id' => 6, 'initiative_id' => $ini, 'months' => ['2026-08' => 1000]]], null, $v);
+        $svc->transition($v, 'submit', $this->user(1));
+        $svc->transition($v, 'approve', $this->user(2));
+        [$plan, $type] = $this->purchase(5000);
+        $c = app(BudgetControl::class);
+        $this->assertSame('none', $c->assess($plan, $type, [], $this->user(7))['action'], 'a voucher for no initiative is not held to the initiative\'s budget');
+        $this->assertSame('block', $c->assess($plan, $type, ['initiative_id' => $ini], $this->user(7))['action']);
+        $this->assertSame('none', $c->assess($plan, $type, ['initiative_id' => $ini + 1], $this->user(7))['action'], 'another initiative has no budget row here');
+        $this->assertSame('none', $c->assess($this->purchase(500)[0], $type, ['initiative_id' => $ini], $this->user(7))['action'], '500 of 1,000 is inside it');
+    }
+
+    public function test_a_voucher_and_its_lines_carry_the_initiative_it_is_posted_to(): void
+    {
+        $this->booksCarryInitiatives();
+        Schema::dropIfExists('cost_centre_settings');
+        Schema::create('cost_centre_settings', function ($t) { $t->string('key')->primary(); $t->string('value')->nullable(); $t->timestamps(); });
+        $ini = app(BudgetService::class)->saveInitiative(['name' => 'Cash sales'], null);
+        $other = app(BudgetService::class)->saveInitiative(['name' => 'Website'], null);
+        $voucher = Voucher::create(['voucher_type_id' => 1, 'voucher_number' => 'J-INI', 'date' => '2026-10-01', 'status' => 'posted', 'currency_id' => 1, 'total_amount' => 10, 'base_total' => 10, 'initiative_id' => $ini, 'location_id' => 1, 'cost_centre_id' => 11]);
+        $line = \App\Models\Books\VoucherEntry::create(['voucher_id' => $voucher->id, 'ledger_id' => 6, 'side' => 'D', 'amount' => 10, 'base_amount' => 10, 'line_no' => 1, 'initiative_id' => $other]);
+        $this->assertSame($ini, (int) $voucher->fresh()->initiative_id);
+        $this->assertSame($ini, (int) $line->fresh()->initiative_id, 'a line takes its voucher\'s initiative unless lines may differ');
+        $plain = Voucher::create(['voucher_type_id' => 1, 'voucher_number' => 'J-NONE', 'date' => '2026-10-02', 'status' => 'posted', 'currency_id' => 1, 'total_amount' => 10, 'base_total' => 10, 'location_id' => 1, 'cost_centre_id' => 11]);
+        $this->assertNull(\App\Models\Books\VoucherEntry::create(['voucher_id' => $plain->id, 'ledger_id' => 6, 'side' => 'D', 'amount' => 10, 'base_amount' => 10, 'line_no' => 1])->fresh()->initiative_id);
+    }
+
+    public function test_the_voucher_form_gets_the_initiatives_in_use(): void
+    {
+        $svc = app(BudgetService::class);
+        $a = $svc->saveInitiative(['name' => 'Cash sales'], null);
+        $svc->saveInitiative(['name' => 'Travel', 'parent_id' => $a], null);
+        $off = $svc->saveInitiative(['name' => 'Old', 'is_active' => false], null);
+        $this->as(['books.view']);
+        $r = $this->getJson('/api/admin/books/initiatives')->assertOk();
+        $this->assertSame(['Cash sales', 'Travel'], array_column($r->json('data'), 'name'), 'switched-off ones are not offered');
+        $this->assertFalse($r->json('ready'), 'until the books carry initiatives (script 244)');
+        $this->booksCarryInitiatives();
+        $this->getJson('/api/admin/books/initiatives')->assertJsonPath('ready', true);
+        $this->assertNotNull($off);
     }
 
     // ── the report ─────────────────────────────────────────────────────

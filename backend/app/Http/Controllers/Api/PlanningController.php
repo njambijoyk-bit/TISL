@@ -85,6 +85,12 @@ class PlanningController extends Controller
         return response()->json(['versions' => $this->budgets->compareVersions($id)]);
     }
 
+    /** The initiatives a voucher can be posted to (the entry form's list): in use, nested. Seeing them needs books.view. */
+    public function initiativeOptions(): JsonResponse
+    {
+        return response()->json(['ready' => \App\Observers\VoucherDimensionsObserver::initiativesReady(), 'data' => array_values(array_filter($this->budgets->initiatives(), fn ($i) => $i['is_active']))]);
+    }
+
     public function saveRule(Request $request): JsonResponse
     {
         return response()->json(['id' => $this->control->saveRule($request->all(), $request->user())]);

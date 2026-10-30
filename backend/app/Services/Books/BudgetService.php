@@ -691,7 +691,7 @@ class BudgetService
         }
         $cc ??= $row['cost_centre_id'] ?? null;
 
-        return Scope::fromInput(['from' => $from, 'to' => $to, 'cost_centre_id' => $cc, 'location_id' => $row['location_id'] ?? null]);
+        return Scope::fromInput(['from' => $from, 'to' => $to, 'cost_centre_id' => $cc, 'location_id' => $row['location_id'] ?? null, 'initiative_id' => $row['initiative_id'] ?? null]);
     }
 
     /**
@@ -796,7 +796,7 @@ class BudgetService
         $groups = $lines->groupBy(fn ($l) => implode('|', [$l['type'], $l['target_id'], $l['cost_centre_id'], $l['department_id'], $l['location_id'], $l['initiative_id']]));
         foreach ($groups as $set) {
             $ln = $set->first();
-            $pending = $ln['initiative_id'] !== null;
+            $pending = $ln['initiative_id'] !== null && ! \App\Observers\VoucherDimensionsObserver::initiativesReady();   // until script 244 the books do not carry an initiative
             $act = $pending ? ['months' => array_fill_keys($months, 0.0), 'ledgers' => []] : $this->actuals($ln, $from, $to);
             $actualByMonth = $act['months'];
             $per = [];

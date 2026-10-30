@@ -1312,6 +1312,7 @@ Route::middleware('auth:sanctum')->group(function () {
         Route::get('/company',                          [\App\Http\Controllers\Api\CompanyProfileController::class, 'adminShow']);
         // Planning: budgets and the cash forecast's recurring items. Seeing them needs books.view (the group above); changing them books.planning
         Route::get('/planning',                         [\App\Http\Controllers\Api\PlanningController::class, 'show']);
+        Route::get('/initiatives',                      [\App\Http\Controllers\Api\PlanningController::class, 'initiativeOptions']);
         Route::get('/planning/budget-sets/{id}/compare', [\App\Http\Controllers\Api\PlanningController::class, 'compare'])->whereNumber('id');
         Route::middleware('permission:books.planning')->group(function () {
             Route::put('/planning/budgets',             [\App\Http\Controllers\Api\PlanningController::class, 'saveBudgets']);

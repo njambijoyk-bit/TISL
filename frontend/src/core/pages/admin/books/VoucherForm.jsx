@@ -185,11 +185,13 @@ export default function VoucherForm({ api = booksAPI, mode = 'books' }) {
   const [series, setSeries] = useState([]);
   const [loading, setLoading] = useState(editing);
 
-  const [h, setH] = useState({ date: today(), location_id: '', party_ledger_id: '', customer: null, payment_method_id: '', reference_no: '', party_name: '', party_phone: '', party_address: '', party_tax_id: '', narration: '', due_date: '', paid_ledger_id: '', currency_id: '', series_id: '', voucher_number: '', amount: '', ledger_id: '', valid_until: '', cost_centre_id: '' });
+  const [h, setH] = useState({ date: today(), location_id: '', party_ledger_id: '', customer: null, payment_method_id: '', reference_no: '', party_name: '', party_phone: '', party_address: '', party_tax_id: '', narration: '', due_date: '', paid_ledger_id: '', currency_id: '', series_id: '', voucher_number: '', amount: '', ledger_id: '', valid_until: '', cost_centre_id: '', initiative_id: '' });
   const [lines, setLines] = useState([]);
   const [entries, setEntries] = useState([{ ledger_id: '', side: 'D', amount: '' }, { ledger_id: '', side: 'C', amount: '' }]);
   const [cc, setCc] = useState({ ready: false, line_override: false, data: [] });
   useEffect(() => { costCentresAPI.options().then(setCc).catch(() => {}); }, []);
+  const [ini, setIni] = useState({ ready: false, data: [] });   // initiatives a voucher can be posted to (script 244)
+  useEffect(() => { booksAPI.budgetInitiatives().then(setIni).catch(() => {}); }, []);
   const [manual, setManual] = useState(false);
   const [shipOptions, setShipOptions] = useState([]);
   const [tenders, setTenders] = useState([]);
@@ -274,7 +276,7 @@ export default function VoucherForm({ api = booksAPI, mode = 'books' }) {
       const SHARE_SRC = ['tier', 'customer_type', 'promo', 'referral', 'personal'];
       setDiscountPick(Array.isArray(savedChoices) ? savedChoices : []);
       setLegacyDiscounts(legacy);
-      setH((x) => ({ ...x, ledger_id: ['receipt', 'payment'].includes(v.type?.base_type) && (v.tenders ?? []).length <= 1 ? ((v.entries ?? []).find((e) => !e.is_party && !e.is_tax)?.ledger_id ?? x.ledger_id) : x.ledger_id, date: v.date, location_id: v.location_id ?? '', cost_centre_id: v.cost_centre_id ?? '', party_ledger_id: v.party_ledger_id ?? '', customer: v.customer_id ? { customer_id: v.customer_id, name: v.party_ledger?.name } : null,
+      setH((x) => ({ ...x, ledger_id: ['receipt', 'payment'].includes(v.type?.base_type) && (v.tenders ?? []).length <= 1 ? ((v.entries ?? []).find((e) => !e.is_party && !e.is_tax)?.ledger_id ?? x.ledger_id) : x.ledger_id, date: v.date, location_id: v.location_id ?? '', cost_centre_id: v.cost_centre_id ?? '', initiative_id: v.initiative_id ?? '', party_ledger_id: v.party_ledger_id ?? '', customer: v.customer_id ? { customer_id: v.customer_id, name: v.party_ledger?.name } : null,
         payment_method_id: ['receipt', 'payment'].includes(v.type?.base_type) && (v.tenders ?? []).length <= 1 && v.payment_method?.ledger_id ? '' : (v.payment_method_id ?? ''), currency_id: (origCurrency.current = v.currency_id ?? null) ?? '', reference_no: v.reference_no ?? '', party_name: v.party_name ?? '', party_phone: v.party_phone ?? '', party_address: v.party_address ?? '', party_tax_id: v.party_tax_id ?? '', narration: v.narration ?? '', due_date: v.due_date ?? '', valid_until: v.valid_until ?? '', series_id: v.series_id ?? '', voucher_number: v.voucher_number, amount: v.total_amount }));
       if (v.type?.base_type === 'purchase') {
         const paidEntry = (v.entries ?? []).find((e) => e.is_party);
@@ -426,7 +428,7 @@ export default function VoucherForm({ api = booksAPI, mode = 'books' }) {
 
   const payload = useMemo(() => {
     const p = {
-      voucher_type_id: Number(typeId), date: h.date, location_id: h.location_id || null, cost_centre_id: h.cost_centre_id || undefined, reference_no: h.reference_no || null, narration: h.narration || null,
+      voucher_type_id: Number(typeId), date: h.date, location_id: h.location_id || null, cost_centre_id: h.cost_centre_id || undefined, ...(ini.ready ? { initiative_id: h.initiative_id || null } : {}), reference_no: h.reference_no || null, narration: h.narration || null,
       party_name: h.party_name || null, party_phone: h.party_phone || null, party_address: h.party_address || null, party_tax_id: h.party_tax_id || null,
       party_ledger_id: h.party_ledger_id || null, customer_id: h.customer?.customer_id ?? null, payment_method_id: h.payment_method_id || null, due_date: h.due_date || null,
       paid_ledger_id: base === 'purchase' && cashPurchase ? (h.paid_ledger_id || null) : undefined,
@@ -479,7 +481,7 @@ export default function VoucherForm({ api = booksAPI, mode = 'books' }) {
       else if (h.series_id) p.series_id = h.series_id;
     }
     return p;
-  }, [typeId, h, cc.line_override, lines, entries, tenders, wh, alloc, ins, slip, moneyBank, contraBankIn, contraBankOut, refund, isAdvance, advanceFor, custCredits, creditPick, hasItems, isMoney, isEntries, manual, editing, expiredOverride, discountPick, giftPlan, giftPick, base, methods, preview?.total, rounding, cashPurchase]);
+  }, [typeId, h, cc.line_override, ini.ready, lines, entries, tenders, wh, alloc, ins, slip, moneyBank, contraBankIn, contraBankOut, refund, isAdvance, advanceFor, custCredits, creditPick, hasItems, isMoney, isEntries, manual, editing, expiredOverride, discountPick, giftPlan, giftPick, base, methods, preview?.total, rounding, cashPurchase]);
 
   // live preview (business errors show inline, not as toasts)
   useEffect(() => {
@@ -583,6 +585,15 @@ export default function VoucherForm({ api = booksAPI, mode = 'books' }) {
                   {limitBranches(branches, 'books', h.location_id).filter((b) => branchAllowed(base, b) || String(b.id) === String(h.location_id)).map((b) => <option key={b.id} value={b.id}>{b.name}</option>)}
                 </select>
               </div>
+              {ini.ready && ini.data.length > 0 && (
+                <div>
+                  <label style={label}>Initiative</label>
+                  <select value={h.initiative_id} onChange={(e) => setH((x) => ({ ...x, initiative_id: e.target.value }))} style={small} aria-label="Initiative">
+                    <option value="">None</option>
+                    {ini.data.map((i) => <option key={i.id} value={i.id}>{'— '.repeat(i.depth)}{i.name}</option>)}
+                  </select>
+                </div>
+              )}
               {cc.ready && (
                 <div>
                   <label style={label}>Cost centre</label>

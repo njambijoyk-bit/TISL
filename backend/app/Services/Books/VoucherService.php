@@ -170,7 +170,7 @@ class VoucherService
             $voucher->entries()->delete();
             $voucher->billRefs()->delete();
 
-            $budget = $this->budgetCheck = app(BudgetControl::class)->assess($plan, $type, $data, $user);   // after its old entries are gone, so they are not counted twice
+            $budget = $this->budgetCheck = app(BudgetControl::class)->assess($plan, $type, array_key_exists('initiative_id', $data) ? $data : $data + ['initiative_id' => $voucher->initiative_id], $user);   // after its old entries are gone, so they are not counted twice
             if ($budget['action'] === 'block') {
                 throw new BooksException(app(BudgetControl::class)->message($budget));
             }
@@ -2578,6 +2578,23 @@ class VoucherService
     // PERSISTING
     // =====================================================================
 
+    /** An initiative a voucher may be posted to: one that exists and is in use; empty means none. */
+    private function initiative(mixed $id): ?int
+    {
+        if ($id === null || $id === '' || (int) $id === 0) {
+            return null;
+        }
+        $row = DB::table('budget_initiatives')->where('id', (int) $id)->first(['is_active']);
+        if (! $row) {
+            throw new BooksException('That initiative does not exist.');
+        }
+        if (! $row->is_active) {
+            throw new BooksException('That initiative is switched off. Choose another, or switch it back on under Budgeting.');
+        }
+
+        return (int) $id;
+    }
+
     private function persist(array $plan, array $data, ?User $user, ?Voucher $existing): Voucher
     {
         /** @var VoucherType $type */
@@ -2601,6 +2618,9 @@ class VoucherService
             'meta' => ($data['meta'] ?? null) || ! empty($plan['meta_extra']) ? array_merge($data['meta'] ?? [], $plan['meta_extra'] ?? []) : null,
         ];
 
+        if (\App\Observers\VoucherDimensionsObserver::initiativesReady() && array_key_exists('initiative_id', $data)) {
+            $fields['initiative_id'] = $this->initiative($data['initiative_id']);   // empty clears it on an edit
+        }
         if (! empty($data['cost_centre_id']) && app(\App\Services\CostCentres\CostCentreService::class)->booksReady()) {
             $fields['cost_centre_id'] = app(\App\Services\CostCentres\CostCentreService::class)->assertActive($data['cost_centre_id']);   // otherwise the default for its kind is filled in on creation and an edit leaves it as it was
         }

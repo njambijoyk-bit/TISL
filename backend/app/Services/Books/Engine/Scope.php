@@ -22,6 +22,7 @@ final class Scope
         public readonly ?array $costCentreIds,
         public readonly ?int $locationId,
         public readonly string $area,
+        public readonly ?array $initiativeIds = null,
     ) {}
 
     /** A scope with no filters beyond the dates. */
@@ -40,12 +41,15 @@ final class Scope
         $cc = ! empty($in['cost_centre_id']) && $ready() ? app(CostCentreService::class)->withDescendants((int) $in['cost_centre_id']) : null;
         $loc = ! empty($in['location_id']) && $ready() ? (int) $in['location_id'] : null;
 
-        return new self(self::date($in['from'] ?? null), self::date($in['to'] ?? null), $cc, $loc, $area);
+        // an initiative (and everything under it) narrows the lines too, once the books carry it (script 244)
+        $ini = ! empty($in['initiative_id']) && \App\Observers\VoucherDimensionsObserver::initiativesReady() ? app(\App\Services\Books\BudgetService::class)->initiativeWithDescendants((int) $in['initiative_id']) : null;
+
+        return new self(self::date($in['from'] ?? null), self::date($in['to'] ?? null), $cc, $loc, $area, $ini);
     }
 
     public function between(?string $from, ?string $to): self
     {
-        return new self($from, $to, $this->costCentreIds, $this->locationId, $this->area);
+        return new self($from, $to, $this->costCentreIds, $this->locationId, $this->area, $this->initiativeIds);
     }
 
     /** The same filters without any dates. */
@@ -57,7 +61,7 @@ final class Scope
     /** Is a cost centre or branch chosen? Then opening balances are left out and the figures will not balance on their own. */
     public function dimensional(): bool
     {
-        return $this->costCentreIds !== null || $this->locationId !== null;
+        return $this->costCentreIds !== null || $this->locationId !== null || $this->initiativeIds !== null;
     }
 
     private static function date(mixed $v): ?string

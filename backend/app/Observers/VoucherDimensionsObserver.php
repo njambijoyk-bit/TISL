@@ -6,6 +6,7 @@ use App\Models\Books\Voucher;
 use App\Models\Books\VoucherEntry;
 use App\Models\Books\VoucherType;
 use App\Services\CostCentres\CostCentreService;
+use Illuminate\Support\Facades\Schema;
 
 /**
  * Every voucher and every entry leaves posting with a cost centre and a branch, whichever screen or job created it. A voucher without a chosen
@@ -16,8 +17,32 @@ class VoucherDimensionsObserver
 {
     public function __construct(private CostCentreService $cc) {}
 
+    /** Have the books been given the initiative columns (script 244)? Until then nothing is written to them. */
+    public static function initiativesReady(): bool
+    {
+        return self::$initiativesReady ??= Schema::hasColumn('voucher_entries', 'initiative_id') && Schema::hasColumn('vouchers', 'initiative_id');
+    }
+
+    private static ?bool $initiativesReady = null;
+
+    /** Look again at the next call (a test adds the columns). */
+    public static function forgetInitiativesReady(): void
+    {
+        self::$initiativesReady = null;
+    }
+
     public function creating(Voucher|VoucherEntry $model): void
     {
+        if (! self::initiativesReady()) {
+            $model->offsetUnset('initiative_id');
+        } elseif ($model instanceof VoucherEntry) {
+            $voucher = Voucher::query()->select(['id', 'initiative_id', 'meta'])->find($model->voucher_id);
+            // like the cost centre: a line keeps its own initiative only when the settings let a line differ
+            if (! $model->initiative_id || ! (($this->cc->booksReady() && $this->cc->lineOverride()) || ! empty($voucher?->meta['lines_own_cost_centre']))) {
+                $model->initiative_id = $voucher?->initiative_id;
+            }
+        }
+
         if (! $this->cc->booksReady()) {
             foreach (['cost_centre_id', 'location_id'] as $k) {
                 if ($model instanceof VoucherEntry || $k === 'cost_centre_id') {

@@ -81,13 +81,14 @@ class BudgetControl
 
         // the budget lines, an expense and its recovery on the same account and dimensions counting as one
         $net = [];
+        $onBooks = \App\Observers\VoucherDimensionsObserver::initiativesReady();
         $carry = $s['basis'] === 'month' && $this->budgets->carriesForward();
         $seriesFrom = $carry ? $this->range($version, $date, 'ytd')[0] : $from;   // with carry-forward the months before this one matter
         foreach ($this->budgets->lines($seriesFrom, $to, $version, true) as $r) {
-            if ($r['section'] !== 'expense' || $r['initiative_id'] !== null) {
-                continue;
+            if ($r['section'] !== 'expense' || ($r['initiative_id'] !== null && ! $onBooks)) {
+                continue;   // an initiative's budget can only be checked once the books carry the initiative
             }
-            $k = implode('|', [$r['type'], $r['target_id'], $r['cost_centre_id'], $r['department_id'], $r['location_id']]);
+            $k = implode('|', [$r['type'], $r['target_id'], $r['cost_centre_id'], $r['department_id'], $r['location_id'], $r['initiative_id']]);
             $net[$k] ??= $r + ['budget' => 0.0, 'series' => []];
             $sign = $r['is_recovery'] ? -1 : 1;
             $thisMonth = substr($date, 0, 7);
@@ -108,7 +109,9 @@ class BudgetControl
             if ($ccRoot && $cc->booksReady()) {
                 $ccs = $cc->withDescendants((int) $ccRoot);
             }
-            $mine = array_filter($lines, fn ($l) => in_array($l['ledger_id'], $ids, true) && ($ccs === null || in_array($l['cost_centre_id'], $ccs, true)) && ($row['location_id'] === null || $l['location_id'] === $row['location_id']));
+            $inis = $row['initiative_id'] !== null ? $this->budgets->initiativeWithDescendants((int) $row['initiative_id']) : null;
+            $mine = array_filter($lines, fn ($l) => in_array($l['ledger_id'], $ids, true) && ($ccs === null || in_array($l['cost_centre_id'], $ccs, true)) && ($row['location_id'] === null || $l['location_id'] === $row['location_id'])
+                && ($inis === null || in_array($l['initiative_id'], $inis, true)));
             if (! $mine) {
                 continue;
             }
@@ -139,7 +142,7 @@ class BudgetControl
         return ['action' => $worst, 'mode' => $s['mode'], 'can_exceed' => (bool) $can, 'breaches' => $breaches];
     }
 
-    /** Expense debits of a plan, each with the cost centre and branch it will carry. @return array<int, array{ledger_id: int, amount: float, cost_centre_id: ?int, location_id: ?int}> */
+    /** Expense debits of a plan, each with the cost centre and branch it will carry. @return array<int, array{ledger_id: int, amount: float, cost_centre_id: ?int, location_id: ?int, initiative_id: ?int}> */
     private function expenseLines(array $plan, VoucherType $type, array $data): array
     {
         $entries = array_filter($plan['entries'] ?? [], fn ($e) => ($e['side'] ?? '') === 'D' && empty($e['is_tax']) && empty($e['is_party']));
@@ -159,7 +162,8 @@ class BudgetControl
             }
             $lineCc = ! empty($e['cost_centre_id']) ? $e['cost_centre_id'] : ($default ?: null);
             $out[] = ['ledger_id' => (int) $e['ledger_id'], 'amount' => (float) ($e['base_amount'] ?? $e['amount'] ?? 0), 'cost_centre_id' => $lineCc ? (int) $lineCc : null,
-                'location_id' => ($e['location_id'] ?? $plan['location_id'] ?? null) ? (int) ($e['location_id'] ?? $plan['location_id']) : null];
+                'location_id' => ($e['location_id'] ?? $plan['location_id'] ?? null) ? (int) ($e['location_id'] ?? $plan['location_id']) : null,
+                'initiative_id' => ($e['initiative_id'] ?? $data['initiative_id'] ?? null) ? (int) ($e['initiative_id'] ?? $data['initiative_id']) : null];
         }
 
         return $out;
