@@ -348,7 +348,7 @@ class InventoryController extends Controller
         }
         if (! isset($data['depreciation_method']) && ! empty($data['item_id'])) {
             // an asset starts with its category's method, life and rate unless told otherwise
-            $cat = \App\Models\Inventory\InventoryCategory::find(\App\Models\Inventory\InventoryItem::find($data['item_id'])?->category_id);
+            $cat = \App\Models\Inventory\InventoryCategory::find(\App\Services\Inventory\AssetAccountingService::accountsCategoryId(\App\Models\Inventory\InventoryItem::find($data['item_id'])));
             if ($cat && \App\Services\Inventory\AssetAccountingService::ready()) {
                 $data['depreciation_method'] = $cat->default_method ?: 'none';
                 $data['useful_life_years'] ??= $cat->default_life_years;
@@ -357,7 +357,7 @@ class InventoryController extends Controller
         }
         if (! isset($data['floor_value']) && ! empty($data['item_id'])) {
             // and with its type's floor: depreciation stops there
-            $cat ??= \App\Models\Inventory\InventoryCategory::find(\App\Models\Inventory\InventoryItem::find($data['item_id'])?->category_id);
+            $cat ??= \App\Models\Inventory\InventoryCategory::find(\App\Services\Inventory\AssetAccountingService::accountsCategoryId(\App\Models\Inventory\InventoryItem::find($data['item_id'])));
             if (($floor = $cat?->floorFor(isset($data['purchase_cost']) ? (float) $data['purchase_cost'] : null)) !== null) {
                 $data['floor_value'] = $floor;
             }

@@ -48,6 +48,14 @@ class AssetAccountingService
 
     // ── The numbers ──────────────────────────────────────────────────────────
 
+    /** The category whose ledgers an asset posts to: its item's own accounting type (assets made from a Books ledger sit in the category "Fixed Assets" but post to that ledger's type), else its category. */
+    public static function accountsCategoryId(?\App\Models\Inventory\InventoryItem $item): ?int
+    {
+        $id = $item?->accounts_category_id ?: $item?->category_id;
+
+        return $id ? (int) $id : null;
+    }
+
     public function cost(InventoryInstance $a): float
     {
         return round((float) $a->purchase_cost, 2);
@@ -181,9 +189,9 @@ class AssetAccountingService
         $problems = [];
         $groups = [];
 
-        $q = InventoryInstance::with('item:id,name,category_id')->whereNull('disposed_on')->whereNotIn('status', ['retired', 'disposed'])->where('depreciation_method', '!=', 'none');
+        $q = InventoryInstance::with('item')->whereNull('disposed_on')->whereNotIn('status', ['retired', 'disposed'])->where('depreciation_method', '!=', 'none');
         foreach ($q->get() as $a) {
-            $catId = $a->item?->category_id;
+            $catId = self::accountsCategoryId($a->item);
             if ($categoryId && (int) $catId !== $categoryId) {
                 continue;
             }
@@ -305,7 +313,7 @@ class AssetAccountingService
         if ($mode !== 'payment') {
             throw new BooksException('Choose how the purchase is booked.');
         }
-        $cat = $a->item?->category_id ? InventoryCategory::find($a->item->category_id) : null;
+        $cat = ($cid = self::accountsCategoryId($a->item)) ? InventoryCategory::find($cid) : null;
         if (! $cat || ! $cat->asset_ledger_id) {
             throw new BooksException('Give the category an asset account first (Assets → Categories), or choose "Already in the books".');
         }
@@ -360,7 +368,7 @@ class AssetAccountingService
         if ($cost <= 0 || $a->disposed_on) {
             return null;
         }
-        $cat = $a->item?->category_id ? InventoryCategory::find($a->item->category_id) : null;
+        $cat = ($cid = self::accountsCategoryId($a->item)) ? InventoryCategory::find($cid) : null;
         if (! $cat || ! $cat->asset_ledger_id || ! $cat->accumulated_ledger_id) {
             throw new BooksException('The category has no asset / accumulated depreciation accounts, so the books cannot be updated. Set them under Settings → Categories, or untick "Update the books".');
         }
@@ -490,12 +498,12 @@ class AssetAccountingService
         $base = $cur->firstWhere('is_base', true);
         $rows = [];
         $tot = ['cost' => 0.0, 'accumulated' => 0.0, 'book_value' => 0.0];
-        foreach (InventoryInstance::with('item:id,name,category_id')->whereNull('disposed_on')->whereNotIn('status', ['retired', 'disposed'])->orderBy('id')->get() as $a) {
+        foreach (InventoryInstance::with('item')->whereNull('disposed_on')->whereNotIn('status', ['retired', 'disposed'])->orderBy('id')->get() as $a) {
             $c = $a->currency_id ? $cur->get($a->currency_id) : null;
             $rate = $c && ! $c->is_base ? (float) $c->conversion_rate : 1.0;   // today's rate into the base currency
             $cost = $this->cost($a);
             $acc = $this->accumulated($a);
-            $rows[] = ['instance_id' => $a->id, 'asset_tag' => $a->asset_tag, 'asset' => $this->label($a), 'category_id' => $a->item?->category_id,
+            $rows[] = ['instance_id' => $a->id, 'asset_tag' => $a->asset_tag, 'asset' => $this->label($a), 'category_id' => self::accountsCategoryId($a->item),
                 'currency' => $c?->code ?? $base?->code, 'cost' => $cost, 'floor' => round((float) $a->floor_value, 2), 'accumulated' => $acc, 'book_value' => round($cost - $acc, 2),
                 'method' => $a->depreciation_method, 'base_cost' => round($cost * $rate, 2), 'base_accumulated' => round($acc * $rate, 2), 'base_book_value' => round(($cost - $acc) * $rate, 2)];
             $tot['cost'] += $cost * $rate; $tot['accumulated'] += $acc * $rate; $tot['book_value'] += ($cost - $acc) * $rate;

@@ -13,7 +13,7 @@ class InventoryItem extends Model
     protected $table = 'inventory_items';
 
     protected $fillable = [
-        'category_id', 'name', 'description', 'brand', 'model',
+        'category_id', 'accounts_category_id', 'name', 'description', 'brand', 'model',
         'type', 'is_serialized', 'unit_of_measure', 'default_location_id',
         'purchase_cost', 'replacement_cost', 'is_loanable', 'max_loan_days',
         'total_qty', 'available_qty', 'reserved_qty', 'issued_qty',

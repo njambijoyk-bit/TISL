@@ -106,7 +106,7 @@ class AssetAccountingController extends Controller
     /** One asset's book value and the months depreciated so far. */
     public function show(int $instanceId): JsonResponse
     {
-        $a = \App\Models\Inventory\InventoryInstance::with('item:id,name,category_id')->findOrFail($instanceId);
+        $a = \App\Models\Inventory\InventoryInstance::with('item')->findOrFail($instanceId);
         $months = AssetDepreciation::where('instance_id', $a->id)->orderBy('period_end')->get(['period_end', 'amount', 'voucher_id']);
 
         return response()->json(['data' => ['cost' => $this->svc->cost($a), 'floor' => (float) $a->floor_value, 'accumulated' => $this->svc->accumulated($a), 'book_value' => $this->svc->bookValue($a),

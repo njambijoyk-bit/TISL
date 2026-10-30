@@ -130,11 +130,13 @@ class FixedAssetLedgers
         if (! Schema::hasTable('inventory_items') || ! Schema::hasTable('inventory_instances')) {
             return;
         }
-        if (InventoryItem::where('category_id', $cat->id)->where('name', $ledger->name)->exists()) {
+        $own = Schema::hasColumn('inventory_items', 'accounts_category_id');   // script 248: the item sits in "Fixed Assets" and posts to this ledger's type
+        $under = $own && $cat->parent_id ? (int) $cat->parent_id : (int) $cat->id;
+        if (InventoryItem::where($own ? 'accounts_category_id' : 'category_id', $cat->id)->where('name', $ledger->name)->exists()) {
             return;
         }
         $cost = $ledger->opening_side === 'D' ? (float) $ledger->opening_balance : 0.0;
-        $item = InventoryItem::create(['category_id' => $cat->id, 'name' => $ledger->name, 'type' => 'asset', 'is_serialized' => true, 'purchase_cost' => $cost ?: null,
+        $item = InventoryItem::create(['category_id' => $under] + ($own ? ['accounts_category_id' => $cat->id] : []) + ['name' => $ledger->name, 'type' => 'asset', 'is_serialized' => true, 'purchase_cost' => $cost ?: null,
             'notes' => 'Made from the ' . $ledger->name . ' ledger in Books.', 'is_active' => true, 'created_by' => $userId, 'updated_by' => $userId]);
         $fields = ['item_id' => $item->id, 'status' => 'available', 'condition' => 'good', 'purchase_cost' => $cost, 'purchase_date' => today(), 'notes' => 'Made from the ' . $ledger->name . ' ledger in Books.', 'created_by' => $userId, 'updated_by' => $userId];
         if (AssetAccountingService::ready()) {
@@ -162,7 +164,7 @@ class FixedAssetLedgers
                 }
                 $linked->update(['name' => $ledger->name, 'slug' => \Illuminate\Support\Str::slug($ledger->name)]);
                 if (Schema::hasTable('inventory_items')) {   // and the asset made from it
-                    InventoryItem::where('category_id', $linked->id)->where('name', $wasName)->update(['name' => $ledger->name]);
+                    InventoryItem::where(Schema::hasColumn('inventory_items', 'accounts_category_id') ? 'accounts_category_id' : 'category_id', $linked->id)->where('name', $wasName)->update(['name' => $ledger->name]);
                 }
             }
 

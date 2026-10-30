@@ -39,7 +39,7 @@ class FixedAssetLedgersTest extends TestCase
         });
         Schema::dropIfExists('inventory_items');
         Schema::create('inventory_items', function ($t) {
-            $t->id(); $t->unsignedBigInteger('category_id')->nullable(); $t->string('name'); $t->text('description')->nullable(); $t->string('brand')->nullable(); $t->string('model')->nullable();
+            $t->id(); $t->unsignedBigInteger('category_id')->nullable(); $t->unsignedBigInteger('accounts_category_id')->nullable(); $t->string('name'); $t->text('description')->nullable(); $t->string('brand')->nullable(); $t->string('model')->nullable();
             $t->string('type')->default('asset'); $t->boolean('is_serialized')->default(true); $t->string('unit_of_measure')->nullable(); $t->unsignedBigInteger('default_location_id')->nullable();
             $t->decimal('purchase_cost', 18, 2)->nullable(); $t->decimal('replacement_cost', 18, 2)->nullable(); $t->boolean('is_loanable')->default(false); $t->integer('max_loan_days')->nullable();
             foreach (['total_qty', 'available_qty', 'reserved_qty', 'issued_qty', 'loaned_qty', 'in_repair_qty', 'retired_qty'] as $c) { $t->integer($c)->default(0); }
@@ -96,8 +96,9 @@ class FixedAssetLedgersTest extends TestCase
         $this->postJson('/api/admin/books/ledgers', ['name' => 'Test seats', 'group_id' => $this->fixed, 'opening_balance' => 12000, 'opening_side' => 'D'])->assertCreated();
         $cat = InventoryCategory::where('name', 'Test seats')->first();
         $item = \App\Models\Inventory\InventoryItem::where('name', 'Test seats')->first();
-        $this->assertSame((int) $cat->id, (int) $item->category_id);
-        $this->assertSame('Fixed Assets', InventoryCategory::find($cat->parent_id)->name);
+        $this->assertSame('Fixed Assets', InventoryCategory::find($item->category_id)->name, 'the asset is in the category Fixed Assets');
+        $this->assertSame((int) $cat->id, (int) $item->accounts_category_id, 'and posts to its own ledger\'s accounts');
+        $this->assertSame((int) $cat->id, \App\Services\Inventory\AssetAccountingService::accountsCategoryId($item));
         $inst = \App\Models\Inventory\InventoryInstance::where('item_id', $item->id)->first();
         $this->assertNotNull($inst);
         $this->assertSame(12000.0, (float) $inst->purchase_cost, 'the opening balance, already in the books: nothing is posted');
