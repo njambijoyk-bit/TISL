@@ -278,4 +278,26 @@ class EventPlatformTest extends TestCase
         $this->assertSame(200, $this->admin()->settings()->getStatusCode());
         $this->assertSame(10, $this->admin()->settings()->getData(true)['settings']['commission_percent']);
     }
+
+    public function test_verifying_an_organiser_gives_its_people_the_organiser_role_and_suspending_takes_it_back(): void
+    {
+        Schema::create('roles', function ($t) { $t->id(); $t->string('key'); });
+        Schema::create('user_roles', function ($t) { $t->id(); $t->unsignedBigInteger('user_id'); $t->unsignedBigInteger('role_id'); $t->boolean('is_primary')->default(false); $t->dateTime('starts_at')->nullable(); $t->dateTime('expires_at')->nullable(); $t->timestamps(); });
+        DB::table('roles')->insert(['id' => 9, 'key' => 'event_organiser']);
+        \App\Services\Access\Authorizer::reset();
+        $o = app(EventOrganiserService::class);
+        $a = EventOrganiser::where('name', 'Anna Weddings')->first();
+        $o->setStatus($a, 'pending', null, $this->staff);
+        $o->setStatus($a, 'verified', null, $this->staff);
+        $this->assertSame(1, DB::table('user_roles')->where(['user_id' => $this->anna->id, 'role_id' => 9, 'is_primary' => 0])->count(), 'verified: the role is given');
+        $this->assertSame(0, DB::table('user_roles')->where('user_id', $this->ben->id)->count(), 'only that organiser\'s own people');
+        $o->setStatus($a, 'suspended', 'complaints', $this->staff);
+        $this->assertSame(0, DB::table('user_roles')->where('user_id', $this->anna->id)->count(), 'suspended: taken back');
+        $o->setStatus($a, 'verified', null, $this->staff);
+        $o->addMember($a, $this->ben, 'door');
+        $this->assertSame(1, DB::table('user_roles')->where('user_id', $this->ben->id)->count(), 'a person added to a verified organiser gets it too');
+        $o->removeMember($a, $this->ben->id);
+        $this->assertSame(1, DB::table('user_roles')->where('user_id', $this->ben->id)->count(), 'Ben still belongs to his own verified organiser');
+        \App\Services\Access\Authorizer::reset();
+    }
 }

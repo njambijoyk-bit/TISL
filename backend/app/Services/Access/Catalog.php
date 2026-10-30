@@ -392,6 +392,8 @@ class Catalog
                 'description' => 'Shops and sees their own account.', 'modules' => [], 'permissions' => [], 'approvals' => [], 'sort' => 110],
             'vendor' => ['name' => 'Vendor', 'kind' => 'portal', 'min_clearance' => 0, 'scope_type' => 'own', 'data_scope' => 'own', 'module' => null, 'acts_as' => [],
                 'description' => 'A supplier who sees their own orders and statements.', 'modules' => [], 'permissions' => [], 'approvals' => [], 'sort' => 120],
+            'event_organiser' => ['name' => 'Event organiser', 'kind' => 'portal', 'min_clearance' => 0, 'scope_type' => 'own', 'data_scope' => 'own', 'module' => 'events', 'acts_as' => [],
+                'description' => 'An outside organiser, given when TISL verifies them. Runs their own events only (never the cash desk, refunds or company settings).', 'modules' => ['events'], 'permissions' => ['admin.access', 'events.view', 'events.edit', 'events.checkin'], 'approvals' => [], 'sort' => 125],
             'applicant' => ['name' => 'Job applicant', 'kind' => 'portal', 'min_clearance' => 0, 'scope_type' => 'own', 'data_scope' => 'own', 'module' => 'careers', 'acts_as' => [],
                 'description' => 'Sees their own job applications.', 'modules' => [], 'permissions' => [], 'approvals' => [], 'sort' => 130],
         ];

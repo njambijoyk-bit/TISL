@@ -2,6 +2,7 @@
 
 namespace App\Services\Events;
 
+use App\Services\Access\OrganiserRole;
 use App\Models\Events\EventOrganiser;
 use App\Models\Events\EventOrganiserMember;
 use App\Models\User;
@@ -92,6 +93,11 @@ final class EventOrganiserService
         }
         $o->update(['status' => $status, 'status_note' => $note, 'verified_at' => $status === 'verified' ? now() : $o->verified_at, 'verified_by' => $status === 'verified' ? $by?->id : $o->verified_by]);
 
+        $people = EventOrganiserMember::where('organiser_id', $o->id)->pluck('user_id')->all();
+        if (! $o->is_internal) {
+            $status === 'verified' ? OrganiserRole::grant($people) : OrganiserRole::revokeUnlessVerified($people);
+        }
+
         return $o->fresh();
     }
 
@@ -123,7 +129,12 @@ final class EventOrganiserService
             throw ValidationException::withMessages(['role' => 'Choose owner, manager, finance, door or staff.']);
         }
 
-        return EventOrganiserMember::updateOrCreate(['organiser_id' => $o->id, 'user_id' => $user->id], ['role' => $role]);
+        $m = EventOrganiserMember::updateOrCreate(['organiser_id' => $o->id, 'user_id' => $user->id], ['role' => $role]);
+        if ($o->status === 'verified' && ! $o->is_internal) {
+            OrganiserRole::grant([$user->id]);
+        }
+
+        return $m;
     }
 
     public function removeMember(EventOrganiser $o, int $userId): void
@@ -136,6 +147,7 @@ final class EventOrganiserService
             throw ValidationException::withMessages(['user' => 'An organiser needs at least one owner.']);
         }
         $m->delete();
+        OrganiserRole::revokeUnlessVerified([$userId]);
     }
 
     public function members(EventOrganiser $o): array
