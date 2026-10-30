@@ -18,6 +18,7 @@ import { btnPrimary, btnGhost, card, colors } from '../../../../_shared/theme/to
 import WriteOffModal from '../../../components/admin/books/WriteOffModal';
 import AddToManifest from '../../../components/admin/books/AddToManifest';
 import CreditPanel from '../../../components/admin/books/CreditPanel';
+import SystemMetadata from '../../../components/admin/books/SystemMetadata';
 import { Chip, DeliveryChip, ExportMenu } from '../../../components/admin/books/booksUi';
 import { money, today } from '../../../components/admin/books/booksFmt';
 
@@ -398,6 +399,7 @@ export default function VoucherView() {
             {v.audit.map((a) => <p key={a.id} style={{ margin: '3px 0', fontSize: '0.75rem', color: colors.textMuted }}>{new Date(a.created_at).toLocaleString()} · {a.action} · {a.user?.name ?? 'system'}</p>)}
           </div>
         )}
+        <SystemMetadata notes={v.admin_notes} style={{ marginTop: 16 }} />
       </div>
       {modal === 'send' && <SendModal v={v} onClose={() => setModal(null)} />}
       {modal === 'convert' && <ConvertModal v={v} methods={methods} onClose={() => setModal(null)} onDone={(c) => nav(`/admin/books/vouchers/${c.id}`)} />}

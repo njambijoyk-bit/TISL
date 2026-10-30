@@ -500,8 +500,7 @@ export default function PurchaseForm({ kind = 'purchase' }) {
                   {h.currency_id && <div><label style={label}>Exchange rate</label><input type="number" step="any" value={h.exchange_rate} onChange={(e) => setH((x) => ({ ...x, exchange_rate: e.target.value }))} placeholder="Blank = the day's rate" style={small} /></div>}
                 </>
               )}
-              <div style={{ gridColumn: '1 / -1' }}><label style={label}>Narration</label><input value={h.narration} onChange={(e) => setH((x) => ({ ...x, narration: e.target.value }))} style={small} />
-                <SystemMetadata notes={editing ? savedNotes : preview?.admin_notes} pending={!editing} /></div>
+              <div style={{ gridColumn: '1 / -1' }}><label style={label}>Narration</label><input value={h.narration} onChange={(e) => setH((x) => ({ ...x, narration: e.target.value }))} style={small} /></div>
             </div>
 
             <div style={{ ...card, padding: 18 }}>
@@ -702,6 +701,7 @@ export default function PurchaseForm({ kind = 'purchase' }) {
                 <button type="button" style={{ ...btnPrimary, opacity: ready && !saving ? 1 : 0.6 }} disabled={!ready || saving} onClick={save}>{saving ? 'Saving…' : editing ? 'Save changes' : opening ? 'Post opening stock' : receipt ? 'Post goods received' : 'Post purchase'}</button>
               </div>
             </div>
+            <SystemMetadata notes={editing ? savedNotes : preview?.admin_notes} pending={!editing} />
           </div>
         )}
       </div>

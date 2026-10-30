@@ -15,12 +15,12 @@ function metadataLines(n) {
   return out;
 }
 
-/** Read-only, under the narration: nothing here can be typed into. `pending` says it is what the system will record when the voucher is saved. */
-export default function SystemMetadata({ notes, pending = false }) {
+/** Read-only, in its own box at the very bottom of a voucher form or page: nothing here can be typed into. `pending` says it is what the system will record when the voucher is saved. */
+export default function SystemMetadata({ notes, pending = false, style }) {
   const rows = metadataLines(notes);
   if (!rows.length) return null;
   return (
-    <div role="note" aria-label="System metadata" style={{ marginTop: 12, padding: '10px 12px', borderRadius: 8, background: colors.tint(0.05), border: `1px dashed ${colors.tint(0.25)}`, fontSize: '0.74rem', color: colors.textMuted }}>
+    <div role="note" aria-label="System metadata" style={{ padding: '12px 16px', borderRadius: 12, background: colors.tint(0.05), border: `1px dashed ${colors.tint(0.25)}`, fontSize: '0.74rem', color: colors.textMuted, ...style }}>
       <div style={{ fontWeight: 700, color: colors.text, marginBottom: 4 }}>System metadata{pending ? ' · will be recorded on save' : ''}</div>
       {rows.map(([k, v]) => <div key={k}><span style={{ color: colors.textFaint }}>{k}: </span>{v}</div>)}
       <div style={{ marginTop: 6, fontStyle: 'italic', color: colors.textFaint }}>{notes._note ?? NOTE}</div>

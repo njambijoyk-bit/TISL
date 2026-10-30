@@ -1012,7 +1012,6 @@ export default function VoucherForm({ api = booksAPI, mode = 'books' }) {
               <div style={{ ...card, padding: 18 }}>
                 <label style={label}>Narration</label>
                 <textarea value={h.narration} onChange={(e) => setH((x) => ({ ...x, narration: e.target.value }))} rows={2} style={{ ...small, width: '100%' }} />
-                <SystemMetadata notes={editing ? savedNotes : preview?.admin_notes} pending={!editing} />
               </div>
             )}
 
@@ -1145,6 +1144,7 @@ export default function VoucherForm({ api = booksAPI, mode = 'books' }) {
               <button type="button" style={btnGhost} onClick={() => nav(-1)}>Cancel</button>
               <button type="button" style={{ ...btnPrimary, opacity: saving || !type || insMissing ? 0.6 : 1 }} disabled={saving || !type || insMissing} onClick={save}>{saving ? 'Saving…' : mode === 'quotation' ? 'Save prices' : editing ? 'Save changes' : 'Post voucher'}</button>
             </div>
+            {mode === 'books' && <SystemMetadata notes={editing ? savedNotes : preview?.admin_notes} pending={!editing} />}
           </div>
         )}
       </div>

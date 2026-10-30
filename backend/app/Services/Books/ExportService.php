@@ -282,8 +282,8 @@ class ExportService
         if ($d['narration']) {
             $h .= "<p class='meta'>{$e($d['narration'])}</p>";
         }
-        if (! empty($d['admin_notes'])) {   // below the narration, at the foot: the system's own record
-            $h .= "<div class='meta'><b>System metadata</b><br>";
+        if (! empty($d['admin_notes'])) {   // in its own box at the very bottom: the system's own record
+            $h .= "<div class='meta' style='margin-top:18px;padding:8px 12px;border:1px dashed #999;border-radius:6px'><b>System metadata</b><br>";
             foreach ($d['admin_notes'] as [$k, $val]) {
                 $h .= ($k !== '' ? "{$e($k)}: " : '<i>') . $e((string) $val) . ($k !== '' ? '' : '</i>') . '<br>';
             }
