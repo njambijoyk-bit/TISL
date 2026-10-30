@@ -113,6 +113,7 @@ const booksAPI = {
   deleteGroup: (id) => send('delete', `/admin/books/groups/${id}`),
   ledgers: (params) => get('/admin/books/ledgers', params),
   ledgerKinds: () => get('/admin/books/ledger-kinds'),
+  assetsForSale: () => get('/admin/books/assets-for-sale'),
   suggestedAmount: (id, params) => get(`/admin/books/ledgers/${id}/suggested-amount`, params),
   voucherTemplates: () => get('/admin/books/voucher-templates'),
   saveVoucherTemplate: (d, id) => (id ? send('put', `/admin/books/voucher-templates/${id}`, d) : send('post', '/admin/books/voucher-templates', d)),

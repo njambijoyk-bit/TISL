@@ -163,6 +163,17 @@ class BooksMasterController extends Controller
         return response()->json(['amount' => $amount, 'currency' => $to->code, 'from' => ['amount' => round($cost, 2), 'currency' => $from->code]]);
     }
 
+    /** The assets that can still be sold on an invoice: on the register, not sold or written off, with what they cost and are worth. Seeing them needs books.view. */
+    public function assetsForSale(): JsonResponse
+    {
+        if (! \App\Services\Inventory\AssetAccountingService::ready()) {
+            return response()->json(['ready' => false, 'assets' => []]);
+        }
+        $reg = app(\App\Services\Inventory\AssetAccountingService::class)->register();
+
+        return response()->json(['ready' => true, 'currency' => $reg['base_currency'], 'assets' => array_map(fn ($r) => ['id' => $r['instance_id'], 'label' => $r['asset'], 'cost' => $r['cost'], 'book_value' => $r['book_value'], 'currency' => $r['currency']], $reg['rows'])]);
+    }
+
     /** The kinds a ledger can be (bank, cash, customer, tax, fixed asset...), for pickers and filters. */
     public function ledgerKinds(): JsonResponse
     {

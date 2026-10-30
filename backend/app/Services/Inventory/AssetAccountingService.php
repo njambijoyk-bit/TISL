@@ -430,7 +430,7 @@ class AssetAccountingService
             $data = [
                 'voucher_type_id' => $type->id, 'date' => $date->toDateString(), 'currency_id' => $a->currency_id, 'reference_no' => $a->asset_tag,
                 'narration' => ($proceeds > 0 ? 'Asset sold: ' : 'Asset written off: ') . $this->label($a),
-                'entries' => $entries, 'meta' => ['asset' => ['instance_id' => $a->id, 'disposal' => true]],
+                'entries' => $entries, 'meta' => ['asset' => ['instance_id' => $a->id, 'disposal' => true, 'was_depreciated_to' => $a->depreciated_to ? Carbon::parse($a->depreciated_to)->toDateString() : null]],
             ];
             if ($credit > 0) {
                 $data += ['party_ledger_id' => $buyer->id, 'customer_id' => $buyer->customer_id ?? null,
@@ -445,6 +445,88 @@ class AssetAccountingService
 
             return $v;
         });
+    }
+
+    // ── Selling an asset on an invoice ───────────────────────────────────────
+
+    /**
+     * What selling an asset on this date does to the books: the cost leaves the asset account, the depreciation to date leaves the accumulated account (and the part month in use is charged), and
+     * the difference between the price and what is left is the gain or loss. The same rules as retire(): depreciation must be posted up to the month before the sale.
+     *
+     * @return array{instance_id: int, label: string, cost: float, accumulated: float, part: float, nbv: float, asset_ledger_id: int, accumulated_ledger_id: ?int, expense_ledger_id: ?int}
+     */
+    public function saleFigures(InventoryInstance $a, Carbon $date): array
+    {
+        $this->needTables();
+        $a->loadMissing('item');
+        $label = $this->label($a);
+        if ($a->disposed_on || in_array($a->status, ['retired', 'disposed'], true)) {
+            throw new BooksException("{$label} has already been sold or written off.");
+        }
+        $cost = $this->cost($a);
+        if ($cost <= 0) {
+            throw new BooksException("{$label} has no cost on the register, so there is nothing to take off the books.");
+        }
+        $cat = ($cid = self::accountsCategoryId($a->item)) ? InventoryCategory::find($cid) : null;
+        if (! $cat || ! $cat->asset_ledger_id) {
+            throw new BooksException("The asset type of {$label} has no asset account. Set it under Assets, Categories.");
+        }
+        if ($date->gt(today())) {
+            throw new BooksException('An asset cannot be sold on a date in the future.');
+        }
+        $due = $this->charges($a, $date->copy()->startOfMonth()->subDay());
+        if ($due) {
+            throw new BooksException('Post depreciation up to ' . Carbon::parse(end($due)['period_end'])->format('F Y') . " first (Depreciation & register) before selling {$label}.");
+        }
+        $part = $this->partialCharge($a, $date);
+        $acc = min($this->accumulated($a), $cost);
+        if (($acc > 0 || $part > 0) && (! $cat->accumulated_ledger_id || ($part > 0 && ! $cat->expense_ledger_id))) {
+            throw new BooksException("The asset type of {$label} has no accumulated depreciation or depreciation expense account. Set them under Assets, Categories.");
+        }
+
+        return ['instance_id' => (int) $a->id, 'was_depreciated_to' => $a->depreciated_to ? Carbon::parse($a->depreciated_to)->toDateString() : null, 'label' => $label, 'cost' => $cost, 'accumulated' => round($acc, 2), 'part' => round($part, 2), 'nbv' => round($cost - $acc - $part, 2),
+            'asset_ledger_id' => (int) $cat->asset_ledger_id, 'accumulated_ledger_id' => $cat->accumulated_ledger_id ? (int) $cat->accumulated_ledger_id : null, 'expense_ledger_id' => $cat->expense_ledger_id ? (int) $cat->expense_ledger_id : null];
+    }
+
+    /** The ledger a gain (income) or loss (expense) on selling an asset goes to; made on first use if the chart has none. */
+    public function gainLossLedgerFor(string $kind): Ledger
+    {
+        return $this->gainLossLedger($kind, []);
+    }
+
+    /** After the invoice is saved: the assets on it are sold. The part-month depreciation is recorded against the invoice. */
+    public function markSold(Voucher $v, array $sales, ?User $by): void
+    {
+        foreach ($sales as $x) {
+            $a = InventoryInstance::find($x['instance_id']);
+            if (! $a) {
+                continue;
+            }
+            $date = Carbon::parse($v->date)->toDateString();
+            if (($x['part'] ?? 0) > 0) {
+                AssetDepreciation::updateOrCreate(['instance_id' => $a->id, 'period_end' => $date], ['amount' => $x['part'], 'currency_id' => $a->currency_id, 'voucher_id' => $v->id, 'created_by' => $by?->id]);
+            }
+            $a->update(['disposed_on' => $date, 'disposal_voucher_id' => $v->id, 'sale_proceeds' => $x['price'] ?? null, 'depreciated_to' => ($x['part'] ?? 0) > 0 ? $date : $a->depreciated_to]);
+        }
+    }
+
+    /** A sale or disposal voucher was cancelled: the assets it sold are back on the register, as they were, and the part-month depreciation it recorded is taken off. */
+    public function reinstate(Voucher $v): int
+    {
+        if (! self::ready()) {
+            return 0;
+        }
+        $n = 0;
+        foreach (InventoryInstance::where('disposal_voucher_id', $v->id)->get() as $a) {
+            AssetDepreciation::where('instance_id', $a->id)->where('voucher_id', $v->id)->delete();
+            // back to where depreciation had been posted to: what the sale recorded, else the last month on the register
+            $was = collect($v->meta['asset_sales'] ?? [])->firstWhere('instance_id', $a->id)['was_depreciated_to'] ?? ($v->meta['asset']['was_depreciated_to'] ?? null);
+            $last = $was ?? AssetDepreciation::where('instance_id', $a->id)->max('period_end');
+            $a->update(['disposed_on' => null, 'disposal_voucher_id' => null, 'sale_proceeds' => null, 'depreciated_to' => $last]);
+            $n++;
+        }
+
+        return $n;
     }
 
     /** The ledger a gain or a loss on disposal goes to (an expense account chosen in `loss_ledger_id` / income in `gain_ledger_id`, else a default made on first use). */

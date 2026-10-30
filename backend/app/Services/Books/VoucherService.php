@@ -106,6 +106,9 @@ class VoucherService
             }
 
             $voucher = $this->persist($plan, $data, $user, null);
+            if (! empty($plan['meta_extra']['asset_sales'])) {
+                app(\App\Services\Inventory\AssetAccountingService::class)->markSold($voucher, $plan['meta_extra']['asset_sales'], $user);   // the assets are off the register
+            }
             app(BudgetControl::class)->record($voucher, $budget, $user);
             $this->audit($voucher, 'created', $user);
             $this->versionHook($voucher, 'created', $user);
@@ -135,6 +138,9 @@ class VoucherService
             app(InstrumentService::class)->assertEditable($voucher, 'edit');
             if (! empty($voucher->meta['cash_count'])) {
                 throw new BooksException('A cash-count adjustment can not be edited. Cancel it and count again.');
+            }
+            if (! empty($voucher->meta['asset_sales'])) {
+                throw new BooksException('An invoice that sold an asset can not be edited: its cost, depreciation and gain or loss are booked with it. Cancel it and make it again, so the asset register and the books stay in step.');
             }
             if (! empty($voucher->meta['payroll_run_id'])) {
                 throw new BooksException('This voucher was made by a payroll run, so it can not be edited. Cancel the run in Payroll and work it out again.');
@@ -226,6 +232,7 @@ class VoucherService
                 'cancel_reason' => $reason, 'fulfilment_status' => $voucher->fulfilment_status ? 'closed' : null,
             ]);
             app(BudgetControl::class)->withdraw($voucher->id);
+            app(\App\Services\Inventory\AssetAccountingService::class)->reinstate($voucher);   // an asset this voucher sold or disposed of is back on the register
             $this->audit($voucher, 'cancelled', $user, ['reason' => $reason]);
             app(InstrumentService::class)->void($voucher);
             if (! empty($voucher->meta['bounce'])) {
@@ -355,6 +362,9 @@ class VoucherService
     {
         if (! empty($source->meta['menus_receipt_id'])) {
             throw new BooksException('This voucher received ingredients into the kitchen stock before ingredients had lines of their own, so it can not be returned from here. Cancel it in Menus (the stock comes back, if none has been used) and receive only what you kept.');
+        }
+        if (! empty($source->meta['asset_sales'])) {
+            throw new BooksException('This invoice sold an asset. A credit note cannot give it back: cancel the invoice instead, which puts the asset back on the register.');
         }
         $noteBase = $this->returnBase($source);
         $type = VoucherType::byBase($noteBase) ?? throw new BooksException('That voucher type is switched off.');
@@ -907,6 +917,11 @@ class VoucherService
 
             if ($type->posts_accounts) {
                 $plan['entries'] = $this->itemEntries($plan, $type, $method);   // also settles $plan['tenders']
+                [$assetEntries, $assetsSold] = $this->assetSaleEntries($plan);   // an asset sold on the invoice: its cost, depreciation and the gain or loss
+                if ($assetsSold) {
+                    $plan['entries'] = array_merge($plan['entries'], $assetEntries);
+                    $plan['meta_extra']['asset_sales'] = $assetsSold;
+                }
                 $plan['bills'] = array_merge($this->itemBills($plan, $type, $data), $this->outsideBills($plan));
             }
 
@@ -957,6 +972,7 @@ class VoucherService
                 'charge'  => $this->chargeLine($l, $ctx),
                 'custom'  => $this->customLine($l, $ctx),
                 'tax'     => $this->taxLine($l, $ctx),
+                'asset_sale' => $this->assetSaleLine($l, $ctx),
                 'dish'    => $this->dishLine($l, $ctx),
                 'ingredient' => $this->ingredientLine($l, $ctx),
                 default   => throw new BooksException('Unknown line type on line ' . ($i + 1) . '.'),
@@ -1423,6 +1439,81 @@ class VoucherService
         $this->summariseTaxes($line);
 
         return $line;
+    }
+
+    /** The note an asset sale line is kept with, so the accounting-invoice check lets it post to the asset account, and the voucher is known to have sold an asset. */
+    public const ASSET_SALE = '__asset_sale';
+
+    /**
+     * An asset sold on a sales invoice. The line itself is plain: "Sale of <asset>" at the price, credited to the asset's account (and taxed as that account, or at the tax chosen). What really
+     * happened to the asset is added when the entries are made (assetSaleEntries): the cost comes off the asset account, the depreciation to date off the accumulated account, and the gain or
+     * loss on the sale is booked. The customer sees only the sale.
+     * in: instance_id, price, tax_rate_id (optional)
+     */
+    private function assetSaleLine(array $l, array $ctx): array
+    {
+        if (! in_array($ctx['type']->base_type, [VoucherType::SALES, VoucherType::CASH_SALE], true)) {
+            throw new BooksException('An asset is sold on a sales invoice or a cash sale.');
+        }
+        $a = \App\Models\Inventory\InventoryInstance::with('item')->find((int) ($l['instance_id'] ?? 0)) ?? throw new BooksException('Choose the asset that is being sold.');
+        $date = $ctx['date'] instanceof Carbon ? $ctx['date'] : Carbon::parse($ctx['date']);
+        $fig = app(\App\Services\Inventory\AssetAccountingService::class)->saleFigures($a, $date);
+        $assetCurrency = $a->currency_id ?: $ctx['baseCurrency']->id;
+        if ((int) $assetCurrency !== (int) $ctx['currency']->id) {
+            throw new BooksException("{$fig['label']} is kept in another currency than this invoice. Make the invoice in the asset's currency.");
+        }
+        $price = round((float) ($l['price'] ?? 0), 2);
+        if ($price < 0) {
+            throw new BooksException('The selling price cannot be negative.');
+        }
+        $line = $this->customLine(['description' => "Sale of {$fig['label']}", 'ledger_id' => $fig['asset_ledger_id'], 'rate' => $price, 'quantity' => 1, 'tax_rate_id' => $l['tax_rate_id'] ?? null], $ctx);
+        $line['notes'] = self::ASSET_SALE;
+        $line['_asset'] = $fig + ['price' => $price];
+
+        return $line;
+    }
+
+    /**
+     * The entries that go with the asset sale lines of a voucher, beside what the invoice posts (the party owes the price and tax; the asset account is credited the price): the rest of the cost
+     * comes off the asset account, the accumulated depreciation and the part-month charge are debited, and the difference from what the asset was worth is a gain (income) or a loss (expense).
+     * Together they leave the asset account credited with exactly its cost.
+     *
+     * @return array{0: array<int, array>, 1: array<int, array>} the entries, and what was sold (for the register)
+     */
+    private function assetSaleEntries(array $plan): array
+    {
+        $entries = [];
+        $sold = [];
+        $assets = app(\App\Services\Inventory\AssetAccountingService::class);
+        $add = function (int $ledgerId, string $side, float $amount, string $narration) use (&$entries, $plan) {
+            if (round($amount, 2) == 0.0) {
+                return;
+            }
+            $entries[] = ['ledger_id' => $ledgerId, 'side' => $side, 'amount' => round($amount, 2), 'base_amount' => round($amount * $plan['rate'], 2), 'is_party' => false, 'is_tax' => false, 'narration' => $narration];
+        };
+        foreach ($this->postingLines($plan['lines']) as $l) {
+            if (($l['notes'] ?? null) !== self::ASSET_SALE || empty($l['_asset'])) {
+                continue;
+            }
+            $f = $l['_asset'];
+            if (isset($sold[$f['instance_id']])) {
+                throw new BooksException("{$f['label']} is on this invoice twice.");
+            }
+            $price = $f['price'];
+            $diff = round($price - $f['nbv'], 2);   // the line already credits the asset account with the price
+            $why = "Sale of {$f['label']}";
+            $add($f['asset_ledger_id'], $f['cost'] >= $price ? 'C' : 'D', abs($f['cost'] - $price), "{$why}: asset taken off at cost");
+            $add((int) $f['accumulated_ledger_id'], 'D', $f['accumulated'], "{$why}: accumulated depreciation removed");
+            $add((int) $f['expense_ledger_id'], 'D', $f['part'], "{$why}: depreciation to the date of sale");
+            if ($diff > 0.004) {
+                $add($assets->gainLossLedgerFor('gain')->id, 'C', $diff, "{$why}: gain on disposal");
+            } elseif ($diff < -0.004) {
+                $add($assets->gainLossLedgerFor('loss')->id, 'D', -$diff, "{$why}: loss on disposal");
+            }
+            $sold[$f['instance_id']] = ['instance_id' => $f['instance_id'], 'was_depreciated_to' => $f['was_depreciated_to'] ?? null, 'price' => $price, 'part' => $f['part'], 'cost' => $f['cost'], 'accumulated' => $f['accumulated']];
+        }
+
+        return [$entries, array_values($sold)];
     }
 
     private function customLine(array $l, array $ctx): array

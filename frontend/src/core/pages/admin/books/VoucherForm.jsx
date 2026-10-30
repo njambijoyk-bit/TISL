@@ -25,6 +25,7 @@ import { money, today } from '../../../components/admin/books/booksFmt';
 import noSlash from '../../../../_shared/lib/noSlash';
 import VoucherTemplates from '../../../components/admin/books/VoucherTemplates';
 import { templateStateOf } from '../../../components/admin/books/voucherDrafts';
+import AssetSaleRow from '../../../components/admin/books/AssetSaleRow';
 import TaxLineRow from '../../../components/admin/books/TaxLineRow';
 import LineTax from '../../../components/admin/books/LineTax';
 import SystemMetadata from '../../../components/admin/books/SystemMetadata';
@@ -181,7 +182,7 @@ const writeDraft = (tid, d) => { try { window.localStorage.setItem(draftKey(tid)
 const clearDraft = (tid) => { try { window.localStorage.removeItem(draftKey(tid)); } catch { /* nothing to clear */ } };
 const blankEntries = () => [{ ledger_id: '', side: 'D', amount: '' }, { ledger_id: '', side: 'C', amount: '' }];
 
-const emptyLine = (type) => ({ key: Math.random().toString(36).slice(2), type, item_id: '', unit: '', units: [], quantity: 1, rate: '', discount: '', description: '', kind: 'shipping', amount: '', ledger_id: '', shipping_option_id: '', tax_rate_id: '', base: '' });
+const emptyLine = (type) => ({ key: Math.random().toString(36).slice(2), type, item_id: '', unit: '', units: [], quantity: 1, rate: '', discount: '', description: '', kind: 'shipping', amount: '', ledger_id: '', shipping_option_id: '', tax_rate_id: '', base: '', instance_id: '', price: '' });
 
 export default function VoucherForm({ api = booksAPI, mode = 'books' }) {
   const nav = useNavigate();
@@ -328,6 +329,7 @@ export default function VoucherForm({ api = booksAPI, mode = 'books' }) {
       }
       if ((v.tenders ?? []).length > 1) setTenders(v.tenders.map((t) => ({ payment_method_id: t.payment_method_id, amount: t.amount, code: t.code ?? '', reference: t.reference ?? '' })));
       setAcct(v.meta?.invoice_mode === 'accounting');
+      if (v.meta?.asset_sales) toast.error('This invoice sold an asset, so it cannot be edited. Cancel it and make it again.', { duration: 8000 });
       setSavedNotes(v.admin_notes ?? null);
       if (v.type?.has_items) {
         setLines((v.items ?? []).filter((i) => !i.parent_item_id && i.notes !== '__rounding').map((i, idx) => {
@@ -486,6 +488,7 @@ export default function VoucherForm({ api = booksAPI, mode = 'books' }) {
     if (acct && canAcct) p.meta = { invoice_mode: 'accounting' };
     if (hasItems) {
       p.lines = lines.map((l) => {
+        if (l.type === 'asset_sale') return { type: 'asset_sale', instance_id: Number(l.instance_id) || undefined, price: l.price === '' ? undefined : Number(l.price), tax_rate_id: Number(l.tax_rate_id) || undefined };   // an asset sold on the invoice
         if (l.type === 'tax') return { type: 'tax', tax_rate_id: Number(l.tax_rate_id) || undefined, base: l.base === '' ? undefined : Number(l.base), amount: l.amount === '' ? undefined : Number(l.amount) };   // a tax entered as a line
         const b = { type: l.type, quantity: Number(l.quantity) || 0, discount: Number(l.discount) || 0, notes: l.notes || undefined };
         const tb = l.tax_base !== undefined && l.tax_base !== '' ? { tax_base: Number(l.tax_base), tax_base_reason: l.tax_base_reason || undefined } : {};   // the tax is worked out on this amount instead
@@ -558,7 +561,7 @@ export default function VoucherForm({ api = booksAPI, mode = 'books' }) {
   const setLine = (key, patch) => setLines((ls) => ls.map((l) => (l.key === key ? { ...l, ...patch } : l)));
   // Products, services and hampers belong to the E-commerce module: with it off they cannot go on a voucher
   useModuleStore((st) => st.active);   // re-render when the switch changes
-  const chooseAcct = (on) => { setAcct(on); if (on) setLines((ls) => (ls.length && ls.every((l) => ['custom', 'tax'].includes(l.type)) ? ls : [emptyLine('custom')])); };
+  const chooseAcct = (on) => { setAcct(on); if (on) setLines((ls) => (ls.length && ls.every((l) => ['custom', 'tax', 'asset_sale'].includes(l.type)) ? ls : [emptyLine('custom')])); };
   const lineOff = (t) => ({ product: !isModuleActive(MODULES.ECOMMERCE), service: !isModuleActive(MODULES.ECOMMERCE), hamper: !isModuleActive(MODULES.HAMPERS) }[t] ?? false);
   const offTypes = [...new Set(lines.map((l) => l.type).filter(lineOff))];
   const addLine = (t) => {
@@ -828,6 +831,13 @@ export default function VoucherForm({ api = booksAPI, mode = 'books' }) {
                 </div>}
                 {lines.map((l, idx) => {
                   const pv = preview?.lines?.[idx];
+                  if (l.type === 'asset_sale') {
+                    return (
+                      <div key={l.key} style={{ padding: '8px 0', borderTop: `1px solid ${colors.tint(0.06)}` }}>
+                        <AssetSaleRow line={l} computed={pv} chosenElsewhere={lines.filter((x) => x.key !== l.key && x.type === 'asset_sale').map((x) => String(x.instance_id))} onChange={(patch) => setLine(l.key, patch)} onRemove={() => setLines((ls) => ls.filter((x) => x.key !== l.key))} />
+                      </div>
+                    );
+                  }
                   if (l.type === 'tax') {
                     return (
                       <div key={l.key} style={{ padding: '8px 0', borderTop: `1px solid ${colors.tint(0.06)}` }}>
@@ -928,7 +938,7 @@ export default function VoucherForm({ api = booksAPI, mode = 'books' }) {
                   );
                 })}
                 <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap', marginTop: 10 }}>
-                  {[['product', 'Product'], ['ingredient', 'Kitchen stock'], ['service', 'Service'], ['hamper', 'Hamper'], ['charge', 'Charge / discount'], ['custom', acct ? 'Add ledger line' : 'Custom line'], ['tax', 'Add tax line']].filter(([t]) => (acct ? ['custom', 'tax'].includes(t) : t !== 'tax' || ['sales', 'cash_sale', 'purchase', 'credit_note', 'debit_note'].includes(base)) && !lineOff(t) && (t !== 'ingredient' || (base === 'purchase_order' && isModuleActive(MODULES.MENUS)))).map(([t, l]) => (
+                  {[['product', 'Product'], ['ingredient', 'Kitchen stock'], ['service', 'Service'], ['hamper', 'Hamper'], ['charge', 'Charge / discount'], ['custom', acct ? 'Add ledger line' : 'Custom line'], ['tax', 'Add tax line'], ['asset_sale', 'Add asset sale']].filter(([t]) => (t === 'asset_sale' ? ['sales', 'cash_sale'].includes(base) : acct ? ['custom', 'tax'].includes(t) : t !== 'tax' || ['sales', 'cash_sale', 'purchase', 'credit_note', 'debit_note'].includes(base)) && !lineOff(t) && (t !== 'ingredient' || (base === 'purchase_order' && isModuleActive(MODULES.MENUS)))).map(([t, l]) => (
                     <button key={t} type="button" onClick={() => addLine(t)} style={{ ...btnGhost, padding: '5px 12px', fontSize: '0.75rem' }}><Plus size={12} /> {l}</button>
                   ))}
                 </div>

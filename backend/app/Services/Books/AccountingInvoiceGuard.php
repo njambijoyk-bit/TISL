@@ -39,8 +39,8 @@ class AccountingInvoiceGuard
         $income = $type->isSalesSide();
         foreach ($lines as $l) {
             foreach (($l['is_header'] ?? false) ? ($l['children'] ?? []) : [$l] as $x) {
-                if (($x['notes'] ?? null) === \App\Services\Books\VoucherService::TAX_LINE) {
-                    continue;   // a tax entered as a line of its own: it posts to the tax's ledger, which no other line may
+                if (in_array($x['notes'] ?? null, [\App\Services\Books\VoucherService::TAX_LINE, \App\Services\Books\VoucherService::ASSET_SALE], true)) {
+                    continue;   // a tax entered as a line of its own, or an asset sold: they post to the tax's ledger and the asset account, which no other line may
                 }
                 if (($x['item_type'] ?? null) !== 'custom') {
                     throw new BooksException('An accounting invoice has ledger lines only. Remove the product, service or charge lines, or use an item invoice.');
