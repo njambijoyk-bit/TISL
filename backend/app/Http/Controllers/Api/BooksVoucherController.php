@@ -82,6 +82,7 @@ class BooksVoucherController extends Controller
     {
         $v = $this->visible(Voucher::with($this->vouchers->relations())->findOrFail($id));
         $out = $v->toArray();
+        $out['admin_notes'] = $v->admin_notes;   // for staff only (the model hides it from every other serialisation, so a customer response cannot carry it)
         $out['footer'] = $this->export->footer($v);
         $out['period_lock'] = app(\App\Services\Books\PeriodGuard::class)->sealFor($v->date);
         // how it was paid, so editing a split payment shows the split again
@@ -247,7 +248,7 @@ class BooksVoucherController extends Controller
 
     public function export(Request $request, $id)
     {
-        return $this->guard(fn () => $this->export->voucher($this->visible(Voucher::findOrFail($id)), $request->get('format', 'pdf')));
+        return $this->guard(fn () => $this->export->voucher($this->visible(Voucher::findOrFail($id)), $request->get('format', 'pdf'), true));
     }
 
     /** Vouchers register as a file. */

@@ -23,6 +23,7 @@ import taxAPI from '../../../../_shared/api/tax';
 import currencyAPI from '../../../../_shared/api/currency';
 import { money, today } from '../../../components/admin/books/booksFmt';
 import noSlash from '../../../../_shared/lib/noSlash';
+import SystemMetadata from '../../../components/admin/books/SystemMetadata';
 import LedgerPicker from '../../../components/admin/books/LedgerPicker';
 import WithSidePanel from '../../../components/admin/books/VoucherSidePanel';
 import useNarrow from '../../../components/admin/books/useNarrow';
@@ -194,6 +195,7 @@ export default function VoucherForm({ api = booksAPI, mode = 'books' }) {
   const [restored, setRestored] = useState(false);
   const draftFirst = useRef(true);
   const narrowLines = useNarrow(760);   // on a phone the line's cells wrap into rows instead of running off the edge
+  const [savedNotes, setSavedNotes] = useState(null);   // the system metadata the saved voucher already has (read-only)
   const [acct, setAcct] = useState(false);   // an accounting invoice: ledger lines only (rent, fees, utilities), no products or stock
   const [methods, setMethods] = useState([]);
   const [ledgers, setLedgers] = useState([]);
@@ -322,6 +324,7 @@ export default function VoucherForm({ api = booksAPI, mode = 'books' }) {
       }
       if ((v.tenders ?? []).length > 1) setTenders(v.tenders.map((t) => ({ payment_method_id: t.payment_method_id, amount: t.amount, code: t.code ?? '', reference: t.reference ?? '' })));
       setAcct(v.meta?.invoice_mode === 'accounting');
+      setSavedNotes(v.admin_notes ?? null);
       if (v.type?.has_items) {
         setLines((v.items ?? []).filter((i) => !i.parent_item_id && i.notes !== '__rounding').map((i, idx) => {
           const shared = v.meta?.discount_shares ? Number(v.meta.discount_shares[idx] ?? 0) : (legacy && SHARE_SRC.includes(i.discount_source) ? Number(i.discount_amount) : 0);
@@ -1009,6 +1012,7 @@ export default function VoucherForm({ api = booksAPI, mode = 'books' }) {
               <div style={{ ...card, padding: 18 }}>
                 <label style={label}>Narration</label>
                 <textarea value={h.narration} onChange={(e) => setH((x) => ({ ...x, narration: e.target.value }))} rows={2} style={{ ...small, width: '100%' }} />
+                <SystemMetadata notes={editing ? savedNotes : preview?.admin_notes} pending={!editing} />
               </div>
             )}
 

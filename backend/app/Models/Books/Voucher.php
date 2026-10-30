@@ -22,6 +22,9 @@ class Voucher extends Model
         'cancelled_at', 'cancelled_by', 'cancel_reason', 'initiative_id', 'doc_status', 'valid_until', 'sent_at', 'responded_at', 'response_note',
     ];
 
+    /** The admin notes are system-made and for staff: not fillable, and left out of every serialisation (so a customer-facing response cannot carry them). Staff screens add them back on purpose. */
+    protected $hidden = ['admin_notes'];
+
     protected $casts = [
         'date'           => 'date:Y-m-d',
         'effective_date' => 'date:Y-m-d',
@@ -36,6 +39,7 @@ class Voucher extends Model
         'base_total'     => 'decimal:2',
         'moves_stock'    => 'boolean',
         'meta'           => 'array',
+        'admin_notes'    => 'array',
         'posted_at'      => 'datetime',
         'cancelled_at'   => 'datetime',
     ];

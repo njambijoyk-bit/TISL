@@ -80,6 +80,9 @@ class VoucherService
         }
 
         $out = $this->describe($plan);
+        if (VoucherAdminNotes::ready()) {
+            $out['admin_notes'] = $this->adminNotes($plan, $data, $user, null);   // what the system will record about it, for the screen to show
+        }
         $check = app(BudgetControl::class)->assess($plan, $type, $data, $user);
         if ($check['breaches']) {
             $out['budget'] = $check;   // the screen can warn before it is saved
@@ -2645,6 +2648,10 @@ class VoucherService
             ]);
         }
 
+        if (VoucherAdminNotes::ready()) {   // the system's own record of this voucher, rebuilt on every save
+            $voucher->forceFill(['admin_notes' => $this->adminNotes($plan, $data, $user, $existing?->admin_notes)])->save();
+        }
+
         // items (headers first so children can point at them)
         $n = 0;
         $made = [];
@@ -3010,6 +3017,13 @@ class VoucherService
         }
 
         return array_values(array_filter($rows, fn ($r) => abs($r['amount']) >= 0.005));
+    }
+
+    private function adminNotes(array $plan, array $data, ?User $user, ?array $before): array
+    {
+        $taxes = array_map(fn ($t) => ['label' => $t['label'], 'amount' => $t['amount'] ?? $t['tax_amount'] ?? 0], $this->taxBreakdown($plan['lines']));
+
+        return app(VoucherAdminNotes::class)->build($plan, $data, $taxes, $user, $before);
     }
 
     private function describe(array $plan): array

@@ -32,13 +32,14 @@ class ExportService
     }
 
     /** A voucher as a printable document (hamper components indented under their header). */
-    public function voucher(Voucher $v, string $format): Response
+    /** $staff: the staff export, which carries the system metadata below the narration. Anything sent to or fetched by a customer leaves it false. */
+    public function voucher(Voucher $v, string $format, bool $staff = false): Response
     {
         $format = strtolower($format);
         $this->assertFormat($format);
         $v->loadMissing(['type', 'partyLedger', 'location', 'currency', 'paymentMethod', 'items.taxes', 'entries.ledger']);
         $name = preg_replace('/[^A-Za-z0-9_-]+/', '_', $v->voucher_number);
-        $data = $this->voucherArray($v);
+        $data = $this->voucherArray($v, $staff);
 
         return match ($format) {
             'json' => $this->send(json_encode($data, JSON_PRETTY_PRINT | JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES), 'application/json', "$name.json"),
@@ -158,7 +159,7 @@ class ExportService
 
     // ── voucher shape ────────────────────────────────────────────────────
 
-    private function voucherArray(Voucher $v): array
+    private function voucherArray(Voucher $v, bool $staff = false): array
     {
         $cur = $v->currency?->code;
         $lines = [];
@@ -178,6 +179,7 @@ class ExportService
             'party' => $v->partyLedger?->name ?? $v->party_name, 'party_phone' => $v->party_phone, 'party_tax_id' => $v->party_tax_id,
             'party_address' => $v->party_address ?: $v->partyLedger?->address, 'branch' => $v->location?->name, 'currency' => $cur, 'payment_method' => $v->paymentMethod?->name,
             'reference' => $v->reference_no, 'supplier_invoice_no' => $v->supplier_invoice_no, 'narration' => $v->narration,
+            'admin_notes' => $staff ? \App\Services\Books\VoucherAdminNotes::lines($v->admin_notes) : [],   // the staff export only: an e-mailed or customer copy never carries it
             'lines' => $lines,
             'entries' => $v->entries->map(fn ($e) => ['ledger' => $e->ledger?->name, 'debit' => $e->side === 'D' ? (float) $e->amount : 0, 'credit' => $e->side === 'C' ? (float) $e->amount : 0])->values()->all(),
             'subtotal' => (float) $v->subtotal, 'tax_total' => (float) $v->tax_total, 'total' => (float) $v->total_amount,
@@ -279,6 +281,13 @@ class ExportService
         $h .= '</tbody></table>';
         if ($d['narration']) {
             $h .= "<p class='meta'>{$e($d['narration'])}</p>";
+        }
+        if (! empty($d['admin_notes'])) {   // below the narration, at the foot: the system's own record
+            $h .= "<div class='meta'><b>System metadata</b><br>";
+            foreach ($d['admin_notes'] as [$k, $val]) {
+                $h .= ($k !== '' ? "{$e($k)}: " : '<i>') . $e((string) $val) . ($k !== '' ? '' : '</i>') . '<br>';
+            }
+            $h .= '</div>';
         }
 
         return $h;

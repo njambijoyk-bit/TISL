@@ -18,6 +18,7 @@ import { errMsg } from '../../../../_shared/store/helpers/apiState';
 import { defaultUnit, lookupStock, searchPlaceholder, stockKinds } from '../../../lib/stockKinds';
 import { btnPrimary, btnGhost, card, colors, input } from '../../../../_shared/theme/tokens';
 import useNarrow from '../../../components/admin/books/useNarrow';
+import SystemMetadata from '../../../components/admin/books/SystemMetadata';
 import LedgerPicker from '../../../components/admin/books/LedgerPicker';
 import WithSidePanel from '../../../components/admin/books/VoucherSidePanel';
 import { useCtrlKeys, useFKeys, voucherJumps } from '../../../components/admin/books/voucherKeys';
@@ -167,6 +168,7 @@ export default function PurchaseForm({ kind = 'purchase' }) {
   const [h, setH] = useState(() => ({ ...blankHeader(), ...(draft0?.h ?? {}) }));
   const [lines, setLines] = useState(() => draft0?.lines ?? []);
   const narrowLines = useNarrow(760);   // on a phone the line's fields wrap into rows
+  const [savedNotes, setSavedNotes] = useState(null);   // the system metadata the saved voucher already has (read-only)
   const [acct, setAcct] = useState(Boolean(draft0?.acct));   // an accounting invoice: ledger lines only (rent, fees, utilities), no items or stock
   const [loading, setLoading] = useState(editing);
   const [choose, setChoose] = useState(null);           // variants of a product just created / changed, to pick from
@@ -205,6 +207,7 @@ export default function PurchaseForm({ kind = 'purchase' }) {
       const d = readDraft(key);
       if (d) { setH({ ...blankHeader(), ...d.h }); setLines(d.lines ?? []); setAcct(Boolean(d.acct)); setRestored(true); return; }
       setAcct(v.meta?.invoice_mode === 'accounting');
+      setSavedNotes(v.admin_notes ?? null);
       setH({ ...blankHeader(), date: v.date, location_id: v.location_id ?? '', party_ledger_id: v.party_ledger_id ?? '', currency_id: v.currency?.code && v.exchange_rate && Number(v.exchange_rate) !== 1 ? v.currency_id : '', exchange_rate: Number(v.exchange_rate) !== 1 ? v.exchange_rate : '', reference_no: v.reference_no ?? '', supplier_invoice_no: v.supplier_invoice_no ?? '', payment_method_id: v.payment_method_id ?? '', party_name: v.party_name ?? '', party_phone: v.party_phone ?? '', party_address: v.party_address ?? '', party_tax_id: v.party_tax_id ?? '', due_date: v.due_date ?? '', narration: v.narration ?? '' });
       const products = [...new Set((v.items ?? []).filter((i) => i.item_type === 'product').map((i) => i.product_id))];
       const info = {};
@@ -497,7 +500,8 @@ export default function PurchaseForm({ kind = 'purchase' }) {
                   {h.currency_id && <div><label style={label}>Exchange rate</label><input type="number" step="any" value={h.exchange_rate} onChange={(e) => setH((x) => ({ ...x, exchange_rate: e.target.value }))} placeholder="Blank = the day's rate" style={small} /></div>}
                 </>
               )}
-              <div style={{ gridColumn: '1 / -1' }}><label style={label}>Narration</label><input value={h.narration} onChange={(e) => setH((x) => ({ ...x, narration: e.target.value }))} style={small} /></div>
+              <div style={{ gridColumn: '1 / -1' }}><label style={label}>Narration</label><input value={h.narration} onChange={(e) => setH((x) => ({ ...x, narration: e.target.value }))} style={small} />
+                <SystemMetadata notes={editing ? savedNotes : preview?.admin_notes} pending={!editing} /></div>
             </div>
 
             <div style={{ ...card, padding: 18 }}>
