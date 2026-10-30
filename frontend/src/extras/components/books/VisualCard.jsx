@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useRef, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { Copy, Image as ImageIcon, RefreshCw, Table2, BarChart3 } from 'lucide-react';
 import toast from 'react-hot-toast';
 import booksAPI from '../../../_shared/api/books';
@@ -7,6 +7,7 @@ import { btnGhost, card, colors } from '../../../_shared/theme/tokens';
 import { saveCardImage, tableText } from './visualExport';
 import { label } from './visualPeriods';
 import { full } from './visualFmt';
+import { CompareName } from './visualCompare';
 
 const cell = (c, v) => (c.num && v !== '' && v != null && !Number.isNaN(Number(v)) ? full(v) : (v ?? ''));
 const tool = { ...btnGhost, padding: '3px 8px', fontSize: '0.7rem', gap: 4 };
@@ -39,7 +40,9 @@ export default function VisualCard({ def, chartKey, params, sample, openLedger, 
 
   const { data, cmp, loading, error } = state;
   const ok = data && data.ready !== false;
-  const table = ok && view === 'table' ? def.table(data, cmp?.ready === false ? null : cmp) : null;
+  const cmpName = state.cmpRange ? label(state.cmpRange.from, state.cmpRange.to) : 'Compared period';
+  const named = useMemo(() => (ok && view === 'table' ? def.table(data, cmp?.ready === false ? null : cmp) : null), [ok, view, def, data, cmp]);   // the table defs say "earlier"; say which period it is instead
+  const table = useMemo(() => named && { ...named, columns: named.columns.map((c) => ({ ...c, label: String(c.label).replace(/earlier( period| date)?/i, cmpName) })) }, [named, cmpName]);
   const copy = useCallback(async () => {
     try { await navigator.clipboard.writeText(tableText(table.columns, table.rows)); toast.success('Copied: paste it into a spreadsheet'); } catch { toast.error('Could not copy'); }
   }, [table]);
@@ -74,7 +77,7 @@ export default function VisualCard({ def, chartKey, params, sample, openLedger, 
               </table>
               {!table.rows.length && <p style={{ fontSize: '0.8rem', color: colors.textFaint }}>Nothing for this period.</p>}
             </div>
-          ) : <div key={`${state.range?.from}${state.range?.to}${state.cmpRange?.from ?? ''}`}>{def.render(data, cmp?.ready === false ? null : cmp, { openLedger, openPlanning })}</div>}
+          ) : <CompareName.Provider key={`${state.range?.from}${state.range?.to}${state.cmpRange?.from ?? ''}`} value={cmpName}><div>{def.render(data, cmp?.ready === false ? null : cmp, { openLedger, openPlanning })}</div></CompareName.Provider>}
       </div>
       <style>{'@keyframes vis-shimmer { from { background-position: 200% 0; } to { background-position: -200% 0; } }'}</style>
     </section>

@@ -4,6 +4,7 @@ import {
 } from 'recharts';
 import { colors } from '../../../_shared/theme/tokens';
 import { change } from './visualPeriods';
+import { useCmp } from './visualCompare';
 import { SERIES, compact, full } from './visualFmt';
 
 const GOOD = '#0ca30c';
@@ -25,13 +26,17 @@ const Frame = ({ children, h = H }) => <div style={{ width: '100%', height: h }}
 const Empty = ({ text = 'Nothing to show for this period.' }) => <div style={{ padding: '36px 0', textAlign: 'center', fontSize: '0.8rem', color: colors.textFaint }}>{text}</div>;
 const month = (m) => { const [y, mm] = String(m).split('-'); return ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'][Number(mm) - 1] + (mm === '01' ? ` ${y.slice(2)}` : ''); };
 
+const monthTick = (rows) => (m, i) => (rows[i]?.cmpMonth ? `${month(m)} vs ${month(rows[i].cmpMonth)}` : month(m));
+const monthTip = (m, items) => { const o = items?.[0]?.payload?.cmpMonth; return o ? `${month(m)} against ${month(o)}` : month(m); };
+const ghostDot = { r: 4, fill: 'var(--surface-card, #fff)', stroke: GHOST, strokeWidth: 2 };   // a lone month has no line to draw, so its point must show
+
 /** Lay two series side by side by position (first with first), so a period can be set against another of a different length. */
 const zip = (a, b, map) => Array.from({ length: Math.max(a.length, b?.length ?? 0) }, (_, i) => ({ ...(a[i] ?? {}), ...(b?.[i] ? map(b[i]) : {}), _i: i }));
 
 /** How much more or less, as a small coloured chip ("up" is good unless `lowerIsBetter`). */
 export function Delta({ now, before, lowerIsBetter = false }) {
   const c = change(now, before);
-  if (c === null) return <span style={{ color: colors.textFaint, fontSize: '0.72rem' }}>no earlier figure</span>;
+  if (c === null) return <span style={{ color: colors.textFaint, fontSize: '0.72rem' }}>nothing to compare with</span>;
   const up = c >= 0;
   const good = lowerIsBetter ? !up : up;
   return <span style={{ color: good ? colors.successText : colors.dangerText, fontSize: '0.72rem', fontWeight: 700 }}>{up ? '▲' : '▼'} {Math.abs(c).toFixed(1)}%</span>;
@@ -39,6 +44,7 @@ export function Delta({ now, before, lowerIsBetter = false }) {
 
 /** Running cash balance, with the comparison period's balance as a dashed line. */
 export function CashLine({ d, c }) {
+  const L = useCmp();
   if (!d.series.length) return <Empty />;
   const rows = zip(d.series, c?.series, (x) => ({ cmp: x.balance }));
   return (
@@ -46,13 +52,14 @@ export function CashLine({ d, c }) {
       <CartesianGrid stroke={GRID} vertical={false} /><XAxis dataKey="bucket" {...axis} minTickGap={32} /><YAxis {...axis} tickFormatter={compact} width={48} />
       <Tooltip {...tip} />{c && <Legend {...legend} />}
       <Area {...anim} type="monotone" dataKey="balance" name="Cash and bank balance" stroke={SERIES[0]} strokeWidth={2} fill={SERIES[0]} fillOpacity={0.12} dot={false} />
-      {c && <Line {...anim} type="monotone" dataKey="cmp" name="Earlier period" stroke={GHOST} strokeWidth={2} strokeDasharray="5 4" dot={false} />}
+      {c && <Line {...anim} type="monotone" dataKey="cmp" name={L} stroke={GHOST} strokeWidth={2} strokeDasharray="5 4" dot={false} />}
     </ComposedChart></Frame>
   );
 }
 
 /** Money in against money out, with the comparison period's as dashed lines. */
 export function MoneyInOut({ d, c }) {
+  const L = useCmp();
   if (!d.series.length) return <Empty />;
   const rows = zip(d.series, c?.series, (x) => ({ cmpIn: x.in, cmpOut: x.out }));
   return (
@@ -60,8 +67,8 @@ export function MoneyInOut({ d, c }) {
       <CartesianGrid stroke={GRID} vertical={false} /><XAxis dataKey="bucket" {...axis} minTickGap={32} /><YAxis {...axis} tickFormatter={compact} width={48} />
       <Tooltip {...tip} /><Legend {...legend} />
       <Bar {...anim} dataKey="in" name="Money in" fill={SERIES[2]} radius={[4, 4, 0, 0]} /><Bar {...anim} dataKey="out" name="Money out" fill={SERIES[1]} radius={[4, 4, 0, 0]} />
-      {c && <Line {...anim} type="monotone" dataKey="cmpIn" name="Earlier: in" stroke={SERIES[2]} strokeWidth={2} strokeDasharray="5 4" dot={false} />}
-      {c && <Line {...anim} type="monotone" dataKey="cmpOut" name="Earlier: out" stroke={SERIES[1]} strokeWidth={2} strokeDasharray="5 4" dot={false} />}
+      {c && <Line {...anim} type="monotone" dataKey="cmpIn" name={`${L}: in`} stroke={SERIES[2]} strokeWidth={2} strokeDasharray="5 4" dot={false} />}
+      {c && <Line {...anim} type="monotone" dataKey="cmpOut" name={`${L}: out`} stroke={SERIES[1]} strokeWidth={2} strokeDasharray="5 4" dot={false} />}
     </ComposedChart></Frame>
   );
 }
@@ -191,6 +198,7 @@ export function GroupTreemap({ tree, onLedger }) {
 
 /** Top customers by value, with the same customer's figure in the comparison period beside it. */
 export function TopCustomers({ d, c }) {
+  const L = useCmp();
   if (!d.rows.length) return <Empty />;
   const before = new Map((c?.rows ?? []).map((r) => [r.name, r.value]));
   const rows = d.rows.map((r) => ({ ...r, cmp: before.get(r.name) ?? 0 }));
@@ -199,7 +207,7 @@ export function TopCustomers({ d, c }) {
       <CartesianGrid stroke={GRID} horizontal={false} /><XAxis type="number" {...axis} tickFormatter={compact} /><YAxis type="category" dataKey="name" {...axis} width={120} />
       <Tooltip {...tip} />{c && <Legend {...legend} />}
       <Bar {...anim} dataKey="value" name="Sales" fill={SERIES[0]} radius={[0, 4, 4, 0]} />
-      {c && <Bar {...anim} dataKey="cmp" name="Earlier period" fill={GHOST} fillOpacity={0.55} radius={[0, 4, 4, 0]} />}
+      {c && <Bar {...anim} dataKey="cmp" name={L} fill={GHOST} fillOpacity={0.55} radius={[0, 4, 4, 0]} />}
     </BarChart></Frame>
   );
 }
@@ -293,14 +301,18 @@ export function AssetsVsClaims({ d, c }) {
 
 /** Income and expenses as bars, profit as a line; the comparison period's profit is a dashed line over the same months by position. */
 export function ProfitTrend({ d, c }) {
-  const rows = zip(d.months, c?.months, (x) => ({ cmp: x.profit }));
+  const L = useCmp();
+  const rows = zip(d.months, c?.months, (x) => ({ cmp: x.profit, cmpIncome: x.income, cmpExpenses: x.expenses, cmpMonth: x.month }));
+  const few = Boolean(c) && rows.length <= 3;   // one or two months: a line cannot show, so the other period gets bars of its own
   return (
     <Frame><ComposedChart data={rows} margin={{ top: 8, right: 8, left: 0, bottom: 0 }}>
-      <CartesianGrid stroke={GRID} vertical={false} /><XAxis dataKey="month" {...axis} tickFormatter={month} /><YAxis {...axis} tickFormatter={compact} width={48} />
-      <Tooltip {...tip} labelFormatter={month} /><Legend {...legend} />
+      <CartesianGrid stroke={GRID} vertical={false} /><XAxis dataKey="month" {...axis} tickFormatter={monthTick(rows)} /><YAxis {...axis} tickFormatter={compact} width={48} />
+      <Tooltip {...tip} labelFormatter={monthTip} /><Legend {...legend} />
       <Bar {...anim} dataKey="income" name="Income" fill={SERIES[0]} radius={[4, 4, 0, 0]} /><Bar {...anim} dataKey="expenses" name="Expenses" fill={SERIES[1]} radius={[4, 4, 0, 0]} />
+      {few && <Bar {...anim} dataKey="cmpIncome" name={`Income, ${L}`} fill={SERIES[0]} fillOpacity={0.35} stroke={SERIES[0]} strokeDasharray="4 3" radius={[4, 4, 0, 0]} />}
+      {few && <Bar {...anim} dataKey="cmpExpenses" name={`Expenses, ${L}`} fill={SERIES[1]} fillOpacity={0.35} stroke={SERIES[1]} strokeDasharray="4 3" radius={[4, 4, 0, 0]} />}
       <Line {...anim} type="monotone" dataKey="profit" name="Profit" stroke={SERIES[2]} strokeWidth={2} dot={{ r: 4, strokeWidth: 2, stroke: 'var(--surface-card, #fff)' }} />
-      {c && <Line {...anim} type="monotone" dataKey="cmp" name="Profit, earlier period" stroke={GHOST} strokeWidth={2} strokeDasharray="5 4" dot={false} />}
+      {c && <Line {...anim} type="monotone" dataKey="cmp" name={`Profit, ${L}`} stroke={GHOST} strokeWidth={2} strokeDasharray="5 4" dot={ghostDot} />}
     </ComposedChart></Frame>
   );
 }
@@ -409,28 +421,31 @@ export function Scorecard({ d, c }) {
 
 /** One figure by month, with the other period's drawn dashed over it by position. */
 export function MonthLine({ d, c, field, name, money = true }) {
-  const rows = zip(d.months, c?.months, (x) => ({ cmp: x[field] }));
+  const L = useCmp();
+  const rows = zip(d.months, c?.months, (x) => ({ cmp: x[field], cmpMonth: x.month }));
   return (
     <Frame><ComposedChart data={rows} margin={{ top: 8, right: 8, left: 0, bottom: 0 }}>
-      <CartesianGrid stroke={GRID} vertical={false} /><XAxis dataKey="month" {...axis} tickFormatter={month} /><YAxis {...axis} tickFormatter={money ? compact : (v) => `${v}`} width={48} />
-      <Tooltip {...tip} labelFormatter={month} formatter={(v, n) => [money ? full(v) : v, n]} />{c && <Legend {...legend} />}
+      <CartesianGrid stroke={GRID} vertical={false} /><XAxis dataKey="month" {...axis} tickFormatter={monthTick(rows)} /><YAxis {...axis} tickFormatter={money ? compact : (v) => `${v}`} width={48} />
+      <Tooltip {...tip} labelFormatter={monthTip} formatter={(v, n) => [money ? full(v) : v, n]} />{c && <Legend {...legend} />}
       <Area {...anim} type="monotone" dataKey={field} name={name} stroke={SERIES[0]} strokeWidth={2} fill={SERIES[0]} fillOpacity={0.12} dot={{ r: 3 }} />
-      {c && <Line {...anim} type="monotone" dataKey="cmp" name="Earlier period" stroke={GHOST} strokeWidth={2} strokeDasharray="5 4" dot={false} />}
+      {c && <Line {...anim} type="monotone" dataKey="cmp" name={L} stroke={GHOST} strokeWidth={2} strokeDasharray="5 4" dot={ghostDot} />}
     </ComposedChart></Frame>
   );
 }
 
 /** Gross and net margin by month. */
 export function Margins({ d, c }) {
-  const rows = zip(d.months, c?.months, (x) => ({ cmpNet: x.net_pct }));
+  const L = useCmp();
+  const rows = zip(d.months, c?.months, (x) => ({ cmpNet: x.net_pct, cmpGross: x.gross_pct, cmpMonth: x.month }));
   return (
     <div>
       <Frame><ComposedChart data={rows} margin={{ top: 8, right: 8, left: 0, bottom: 0 }}>
-        <CartesianGrid stroke={GRID} vertical={false} /><XAxis dataKey="month" {...axis} tickFormatter={month} /><YAxis {...axis} tickFormatter={(v) => `${v}%`} width={44} />
-        <Tooltip contentStyle={tip.contentStyle} labelFormatter={month} formatter={(v, n) => [v === null ? '—' : `${v}%`, n]} /><Legend {...legend} />
+        <CartesianGrid stroke={GRID} vertical={false} /><XAxis dataKey="month" {...axis} tickFormatter={monthTick(rows)} /><YAxis {...axis} tickFormatter={(v) => `${v}%`} width={44} />
+        <Tooltip contentStyle={tip.contentStyle} labelFormatter={monthTip} formatter={(v, n) => [v === null ? '—' : `${v}%`, n]} /><Legend {...legend} />
         <Line {...anim} type="monotone" dataKey="gross_pct" name="Gross margin" stroke={SERIES[0]} strokeWidth={2} dot={{ r: 3 }} connectNulls />
         <Line {...anim} type="monotone" dataKey="net_pct" name="Net margin" stroke={SERIES[2]} strokeWidth={2} dot={{ r: 3 }} connectNulls />
-        {c && <Line {...anim} type="monotone" dataKey="cmpNet" name="Net margin, earlier period" stroke={GHOST} strokeWidth={2} strokeDasharray="5 4" dot={false} connectNulls />}
+        {c && <Line {...anim} type="monotone" dataKey="cmpGross" name={`Gross margin, ${L}`} stroke={SERIES[0]} strokeOpacity={0.5} strokeWidth={2} strokeDasharray="5 4" dot={{ ...ghostDot, stroke: SERIES[0] }} connectNulls />}
+        {c && <Line {...anim} type="monotone" dataKey="cmpNet" name={`Net margin, ${L}`} stroke={GHOST} strokeWidth={2} strokeDasharray="5 4" dot={ghostDot} connectNulls />}
       </ComposedChart></Frame>
       <div style={{ fontSize: '0.74rem', color: colors.textBody }}>Over the period: gross {d.gross_pct ?? '—'}%, net {d.net_pct ?? '—'}%.</div>
     </div>

@@ -65,12 +65,52 @@ export function periodFor(preset, { years = [], n = 3, custom = null, now = toda
 
 export const COMPARES = [['none', 'No comparison'], ['previous', 'The period before'], ['year', 'Same dates last year'], ['custom', 'Choose dates']];
 
+/** How many months one step back is for a preset: a month, a quarter, a financial year, the N of "last N months"; null for dates the person typed (a step is then the period's own length in days). */
+export const stepMonths = (preset, n = 3) => ({ 'this-month': 1, 'last-month': 1, 'this-quarter': 3, 'last-quarter': 3, 'this-year': 12, 'last-year': 12 }[preset] ?? (preset === 'last-n' ? Math.max(1, Math.min(60, Number(n) || 1)) : null));
+
+/** True while a preset stops at today rather than at the end of its month, quarter or year ("this month" on the 20th). */
+export const isPartial = (preset, { to }, now = today()) => ['this-month', 'this-quarter', 'this-year', 'last-n'].includes(preset) && to >= now;
+
+/**
+ * The comparisons that make sense for the chosen period, in the order to offer them: a month against the month before and the same month last year, a quarter
+ * against the quarter before, a financial year against the one before (only when the books have one). Each is [mode, label].
+ */
+export function compareChoices(preset, period, { n = 3, years = [], now = today() } = {}) {
+  const step = stepMonths(preset, n);
+  const part = isPartial(preset, period, now) ? ', to the same day' : '';
+  const out = [['none', 'No comparison']];
+  if (preset === 'custom' || step === null) out.push(['previous', 'The same length just before'], ['year', 'Same dates last year']);
+  else if (step === 12) { if (!years.length || years.some((y) => y.to < period.from)) out.push(['previous', `The financial year before${part}`]); }
+  else {
+    const quarter = preset.endsWith('quarter');
+    const unit = step === 1 ? 'month' : quarter ? 'quarter' : `${step} months`;
+    out.push(['previous', `The ${unit} before${part}`], ['year', `Same ${step === 1 ? 'month' : quarter ? 'quarter' : `${step} months`} last year${part}`]);
+  }
+  out.push(['custom', 'Choose dates']);
+  return out;
+}
+
+/** A plain warning when two periods are not a fair pair: the other one falls after this one, or it runs for a very different number of days. */
+export function compareWarning(period, other) {
+  if (!other) return null;
+  const days = (p) => Math.round((parse(p.to) - parse(p.from)) / 86400000) + 1;
+  const a = days(period); const b = days(other);
+  if (b < 1) return 'The compared dates are the wrong way round.';
+  if (other.from > period.from) return 'The compared dates come after this period, so the change shown is from a later period to this one.';
+  if (b > a * 1.5 || b < a / 1.5) return `The periods run for ${a} and ${b} days, so totals are not like for like. Compare ${b > a ? 'a shorter' : 'a longer'} range, or read the percentages with care.`;
+  return null;
+}
+
 /** The period to set the main one against. `n` periods back moves a run of whole months by that many of the same length, a financial year by that many years, else by that many lengths in days. */
-export function compareFor(mode, { from, to }, { n = 1, custom = null, years = [] } = {}) {
+export function compareFor(mode, { from, to }, { n = 1, custom = null, years = [], unit = null } = {}) {
   if (mode === 'custom') return custom?.from && custom?.to ? { from: custom.from, to: custom.to } : null;
   if (mode === 'year') return { from: addMonths(from, -12), to: wholeMonths(from, to) ? endOfMonth(addMonths(to, -12)) : addMonths(to, -12) };
   if (mode !== 'previous') return null;
   const k = Math.max(1, Math.min(60, Number(n) || 1));
+  if (unit) {
+    const m = unit * k;
+    return { from: addMonths(from, -m), to: wholeMonths(from, to) ? endOfMonth(addMonths(to, -m)) : addMonths(to, -m) };
+  }
   const fy = years.find((y) => y.from === from && y.to === to);
   if (fy) return { from: addMonths(from, -12 * k), to: endOfMonth(addMonths(to, -12 * k)) };
   if (wholeMonths(from, to)) { const m = monthsBetween(from, to); return { from: addMonths(from, -m * k), to: endOfMonth(addMonths(to, -m * k)) }; }

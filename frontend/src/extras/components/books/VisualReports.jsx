@@ -15,7 +15,7 @@ import VisualNav from './VisualNav';
 import useVisualFavourites from './useVisualFavourites';
 import useVisualKeys from './useVisualKeys';
 import { CHARTS, QUESTIONS } from './visualCatalog';
-import { COMPARES, PRESETS, compareFor, label, periodFor } from './visualPeriods';
+import { PRESETS, compareChoices, compareFor, compareWarning, label, periodFor, stepMonths } from './visualPeriods';
 import { SAMPLE } from './visualSample';
 
 function Notice({ icon, title, children }) {
@@ -40,7 +40,7 @@ export default function VisualReports() {
   const [preset, setPreset] = useState('this-year');
   const [n, setN] = useState(3);
   const [custom, setCustom] = useState({ from: '', to: '' });
-  const [mode, setMode] = useState('none');
+  const [wanted, setWanted] = useState('none');
   const [back, setBack] = useState(1);
   const [cmpCustom, setCmpCustom] = useState({ from: '', to: '' });
   const [query, setQuery] = useSearchParams();
@@ -52,7 +52,10 @@ export default function VisualReports() {
 
   const years = useMemo(() => catalog?.years ?? [], [catalog]);
   const period = useMemo(() => periodFor(preset, { years, n, custom }), [preset, years, n, custom]);
-  const other = useMemo(() => compareFor(mode, period, { n: back, custom: cmpCustom, years }), [mode, period, back, cmpCustom, years]);
+  const choices = useMemo(() => compareChoices(preset, period, { n, years }), [preset, period, n, years]);
+  const mode = choices.some(([k]) => k === wanted) ? wanted : 'none';   // a choice the new period does not offer falls back to none
+  const other = useMemo(() => compareFor(mode, period, { n: back, custom: cmpCustom, years, unit: stepMonths(preset, n) }), [mode, period, back, cmpCustom, years, preset, n]);
+  const warning = useMemo(() => compareWarning(period, other), [period, other]);
   const params = useMemo(() => ({ from: period.from, to: period.to, ...(other ? { compare_from: other.from, compare_to: other.to } : {}) }), [period, other]);
   const openLedger = (id) => nav(`/admin/books?tab=reports&report=ledger&ledger=${id}`);
   const openPlanning = () => nav('/admin/books?tab=settings&sub=planning');
@@ -112,7 +115,7 @@ export default function VisualReports() {
           <Field label="From" htmlFor="vis-from"><TextInput id="vis-from" type="date" value={custom.from} onChange={(e) => setCustom((c) => ({ ...c, from: e.target.value }))} /></Field>
           <Field label="To" htmlFor="vis-to"><TextInput id="vis-to" type="date" value={custom.to} onChange={(e) => setCustom((c) => ({ ...c, to: e.target.value }))} /></Field>
         </>}
-        <Field label="Compare with" htmlFor="vis-cmp"><SelectInput id="vis-cmp" value={mode} onChange={(e) => setMode(e.target.value)}>{COMPARES.map(([k, l]) => <option key={k} value={k}>{l}</option>)}</SelectInput></Field>
+        <Field label="Compare with" htmlFor="vis-cmp"><SelectInput id="vis-cmp" value={mode} onChange={(e) => setWanted(e.target.value)}>{choices.map(([k, l]) => <option key={k} value={k}>{l}</option>)}</SelectInput></Field>
         {mode === 'previous' && <Field label="Periods back" htmlFor="vis-back"><NumberInput id="vis-back" min={1} max={60} value={back} onChange={(e) => setBack(e.target.value)} style={{ width: 80 }} /></Field>}
         {mode === 'custom' && <>
           <Field label="Other from" htmlFor="vis-cfrom"><TextInput id="vis-cfrom" type="date" value={cmpCustom.from} onChange={(e) => setCmpCustom((c) => ({ ...c, from: e.target.value }))} /></Field>
@@ -122,6 +125,8 @@ export default function VisualReports() {
           <b style={{ color: colors.text }}>{label(period.from, period.to)}</b>{other ? <> against <b style={{ color: colors.text }}>{label(other.from, other.to)}</b></> : null}
         </div>
       </div>
+
+      {warning && <div role="status" style={{ padding: '8px 12px', borderRadius: 8, background: colors.warningBg, color: colors.warningText, fontSize: '0.78rem' }}>{warning}</div>}
 
       {!catalog ? <p style={{ fontSize: '0.85rem', color: colors.textFaint }}>Loading…</p> : current ? (
         <div style={{ display: 'grid', gridTemplateColumns: 'minmax(190px, 240px) minmax(0, 1fr)', gap: 18, alignItems: 'start' }} className="vis-layout">
