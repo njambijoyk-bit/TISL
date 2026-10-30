@@ -160,14 +160,15 @@ Phase 1 includes organiser and vendor accounts because everything after depends 
 
 ---
 
-## 9. Decisions still needed (these change the build)
+## 9. Money decisions (taken)
 
-1. **Who collects ticket money for outside organisers?**
-   - *TISL collects, then pays out* (marketplace model): organisers need no payment accounts; TISL deducts a commission and fees and holds the rest as money owed to them. Needs a payout screen and a Books liability.
-   - *Organisers use their own payment accounts*: money goes straight to them; TISL bills a platform fee separately.
-2. **Vendor and venue bookings:** does TISL take the deposit and pay the vendor (and keep a commission), or are bookings only introductions, with vendors paid directly by the client or organiser?
-3. **How do outside organisers pay TISL?** A subscription plan (monthly), a commission per ticket sold, both, or free to start.
-4. **Verification:** what proof does an organiser, vendor or venue give (ID, business registration, tax PIN) before going live?
+| Question | Decision | What it means for the build |
+|---|---|---|
+| Who collects ticket money for outside organisers? | **TISL collects, then pays out.** | Buyers pay TISL through the shop's M-Pesa and card setup. Each order's money is split: TISL's commission and fees are income, the rest is **owed to the organiser** (a liability in Books, one control account with a sub-ledger per organiser). A payout screen pays organisers on a schedule, with a statement per organiser. Refunds reverse the organiser's share. |
+| Vendor and venue bookings | **TISL takes the deposit and pays the vendor.** | A booking has stages: deposit, balance, extras. Payments go to TISL; the vendor's share is owed to them (same liability model) less TISL's commission, and is paid out on delivery or on a schedule. Cancellation and refund rules are part of each package. |
+| How outside organisers pay TISL | **Commission per ticket, free to start.** | No subscription billing. A commission rate per organiser (default from admin settings, overridable), taken from ticket sales; advertising is billed separately. |
+
+Still open: **verification** (what proof an organiser, vendor or venue gives before going live: ID, business registration, tax PIN). I would start with admin-set required documents per type, reviewed by hand.
 
 ## 10. Cross-cutting rules
 - **Multi-ownership separation** on every table and query, tested with two organisers.
