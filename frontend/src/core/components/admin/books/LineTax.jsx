@@ -1,15 +1,13 @@
 import { useEffect, useState } from 'react';
 import toast from 'react-hot-toast';
 import booksAPI from '../../../../_shared/api/books';
-import taxAPI from '../../../../_shared/api/tax';
+import { loadTaxRates } from './taxRates';
 import { errMsg } from '../../../../_shared/store/helpers/apiState';
 import Modal from '../ui/Modal';
 import { Field, SelectInput, FormStack, ModalActions, FormError } from '../ui/Form';
 import { btnGhost, colors } from '../../../../_shared/theme/tokens';
 
 const NATURE = { taxable: 'VAT-able', zero_rated: 'Zero-rated', exempt: 'Exempt', out_of_scope: 'Out of scope' };
-let ratesCache = null;   // the percentage tax rates, fetched once
-const loadRates = () => (ratesCache ??= taxAPI.getRates({ active: true }).then((r) => (r.tax_rates ?? []).filter((x) => x.rate_type === 'percentage' && x.tax_type?.application_mode !== 'withheld')).catch(() => { ratesCache = null; return []; }));
 
 /** Can this ledger's tax be set from here? Sales, purchase and charge accounts, the optional ones (expense, asset, income) and delivery ledgers can; the rest cannot carry a tax. */
 const canSetTax = (l) => ['sales', 'purchase', 'charge', 'optional'].includes(l?.tax_behaviour) || l?.group?.behaviour === 'delivery';
@@ -85,7 +83,7 @@ function TaxModal({ ledger, rates, onClose, onSaved }) {
 export default function LineTax({ ledger, line, onSaved }) {
   const [rates, setRates] = useState([]);
   const [open, setOpen] = useState(false);
-  useEffect(() => { let live = true; loadRates().then((r) => { if (live) setRates(r); }); return () => { live = false; }; }, []);
+  useEffect(() => { let live = true; loadTaxRates().then((r) => { if (live) setRates(r); }); return () => { live = false; }; }, []);
   if (!ledger) return null;
   const applied = line?.taxes?.length ? line.taxes.map((t) => `${t.label} ${Number(t.tax_amount).toLocaleString(undefined, { minimumFractionDigits: 2 })}`).join(' · ') : null;
   const text = applied ?? (line ? 'No tax applied' : configured(ledger, rates));

@@ -954,6 +954,7 @@ class VoucherService
                 'hamper'  => $this->hamperLines($l, $ctx),
                 'charge'  => $this->chargeLine($l, $ctx),
                 'custom'  => $this->customLine($l, $ctx),
+                'tax'     => $this->taxLine($l, $ctx),
                 'dish'    => $this->dishLine($l, $ctx),
                 'ingredient' => $this->ingredientLine($l, $ctx),
                 default   => throw new BooksException('Unknown line type on line ' . ($i + 1) . '.'),
@@ -1383,6 +1384,43 @@ class VoucherService
                 throw new BooksException("A {$kind} line cannot post to {$ledger->name}: that is {$what}. Use a Receipt, Payment, Journal or credit/debit note to move money there.");
             }
         }
+    }
+
+    /** The note a tax line is kept with, so it is told apart from a ledger line when the voucher is opened again and checked as a tax, not as a sale or a cost. */
+    public const TAX_LINE = '__tax_line';
+
+    /**
+     * A tax entered as a line of its own (accounting invoices): the tax amount typed in, or a rate applied to a taxable amount. It sells or buys nothing: it only carries the tax, which posts
+     * to the tax rate's own ledger (output tax on a sale, input tax on a purchase) and adds to what the party owes.
+     * in: tax_rate_id, and base (the taxable amount) and / or amount (the tax itself, which wins when both are given).
+     */
+    private function taxLine(array $l, array $ctx): array
+    {
+        $rateId = (int) ($l['tax_rate_id'] ?? 0);
+        if (! $rateId) {
+            throw new BooksException('Choose the tax for a tax line.');
+        }
+        $base = round((float) ($l['base'] ?? 0), 2);
+        $given = isset($l['amount']) && $l['amount'] !== '' && $l['amount'] !== null ? round((float) $l['amount'], 2) : null;
+        if ($given === null && $base <= 0) {
+            throw new BooksException('For a tax line, enter the tax amount, or the taxable amount to work it out from at the tax rate.');
+        }
+        $rows = $this->taxes->manual($rateId, $base, $this->side($ctx));
+        if (! $rows) {
+            throw new BooksException('That tax cannot be entered as a line.');
+        }
+        if ($given !== null) {
+            $rows[0]['tax_amount'] = $given;   // typed in: it is what the supplier or the tax invoice says
+        }
+        $label = (string) ($rows[0]['label'] ?? 'Tax');
+        $line = array_merge($this->blank('custom'), [
+            'description' => trim((string) ($l['description'] ?? '')) ?: ($label . ($base > 0 ? ' on ' . number_format($base, 2) : '')),
+            'quantity' => 1.0, 'base_quantity' => 1.0, 'rate' => 0.0, 'amount' => 0.0, 'ledger_id' => (int) $rows[0]['ledger_id'], 'notes' => self::TAX_LINE,
+            'taxes' => $rows,
+        ]);
+        $this->summariseTaxes($line);
+
+        return $line;
     }
 
     private function customLine(array $l, array $ctx): array

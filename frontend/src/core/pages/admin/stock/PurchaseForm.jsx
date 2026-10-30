@@ -18,6 +18,7 @@ import { errMsg } from '../../../../_shared/store/helpers/apiState';
 import { defaultUnit, lookupStock, searchPlaceholder, stockKinds } from '../../../lib/stockKinds';
 import { btnPrimary, btnGhost, card, colors, input } from '../../../../_shared/theme/tokens';
 import useNarrow from '../../../components/admin/books/useNarrow';
+import TaxLineRow from '../../../components/admin/books/TaxLineRow';
 import LineTax from '../../../components/admin/books/LineTax';
 import SystemMetadata from '../../../components/admin/books/SystemMetadata';
 import LedgerPicker from '../../../components/admin/books/LedgerPicker';
@@ -50,6 +51,7 @@ const writeDraft = (key, v) => { try { sessionStorage.setItem(key, JSON.stringif
 const clearDraft = (key) => { try { sessionStorage.removeItem(key); } catch { /* ignore */ } };
 
 const blankHeader = () => ({ date: today(), location_id: '', party_ledger_id: '', currency_id: '', exchange_rate: '', reference_no: '', supplier_invoice_no: '', payment_method_id: '', party_name: '', party_phone: '', party_address: '', party_tax_id: '', due_date: '', narration: '', opening_ledger_id: '' });
+const blankTax = () => ({ key: newKey(), tax: true, tax_rate_id: '', base: '', amount: '' });   // a tax entered as a line of its own
 const blankOther = () => ({ key: newKey(), other: true, description: '', quantity: 1, rate: '', ledger_id: '' });
 
 /** A purchase line from a picked variant row (units limited to the ones you can buy in). */
@@ -225,6 +227,7 @@ export default function PurchaseForm({ kind = 'purchase' }) {
           return { key: `i${i.id}`, ingredient: true, item_id: i.ingredient_item_id, label: i.description, variantName: i.variant_label, sku: i.sku, units, unit, quantity: Number(i.quantity), rate: Number(i.rate), rate_auto: false,
             discount: Number(i.discount_amount) || '', track_expiry: Boolean(r?.track_expiry || i.expiry_date), last_cost: r?.last_cost ?? 0, batch_no: i.batch_no ?? '', mfg_date: '', expiry_date: i.expiry_date ?? '', ...(() => { const o = (i.taxes ?? []).map((t) => t.calc_snapshot?.base_override).find(Boolean); return o ? { tax_base: o.to, tax_base_reason: o.reason ?? '' } : {}; })() };
         }
+        if (i.item_type === 'custom' && i.notes === '__tax_line') { const t = (i.taxes ?? [])[0] ?? {}; return { key: `i${i.id}`, tax: true, tax_rate_id: t.tax_rate_id ?? '', base: t.base_amount ? Number(t.base_amount) : '', amount: t.tax_amount != null ? Number(t.tax_amount) : '' }; }
         if (i.item_type !== 'product') return { key: `i${i.id}`, other: true, description: i.description, quantity: Number(i.quantity), rate: Number(i.item_type === 'charge' ? i.amount : i.rate), ledger_id: i.ledger_id ?? '' };
         const r = info[i.variant_id];
         const base0 = r ? lineFrom(r, false) : { units: [], track_expiry: Boolean(i.batch_no || i.expiry_date) };
@@ -314,7 +317,9 @@ export default function PurchaseForm({ kind = 'purchase' }) {
     const p = {
       voucher_type_id: type?.id, date: h.date, location_id: h.location_id || null, reference_no: h.reference_no || null, supplier_invoice_no: receipt ? null : (h.supplier_invoice_no || null), narration: h.narration || null,
       currency_id: h.currency_id || null, exchange_rate: h.exchange_rate === '' ? undefined : Number(h.exchange_rate),
-      lines: lines.map((l) => (l.other
+      lines: lines.map((l) => (l.tax
+        ? { type: 'tax', tax_rate_id: Number(l.tax_rate_id) || undefined, base: l.base === '' ? undefined : Number(l.base), amount: l.amount === '' ? undefined : Number(l.amount) }
+        : l.other
         ? { type: 'custom', description: l.description, quantity: Number(l.quantity) || 1, rate: Number(l.rate) || 0, ledger_id: l.ledger_id || undefined, ...taxBase(l) }
         : l.ingredient
           ? { type: 'ingredient', ingredient_item_id: l.item_id, unit: l.unit, quantity: Number(l.quantity) || 0, rate: l.rate === '' ? undefined : Number(l.rate), discount: Number(l.discount) || 0,
@@ -335,13 +340,13 @@ export default function PurchaseForm({ kind = 'purchase' }) {
     return p;
   }, [type, h, lines, opening, receipt, acct, mode]);
 
-  const ready = Boolean(type) && lines.length > 0 && lines.every((l) => (l.other ? l.description && l.rate !== '' && l.ledger_id : l.ingredient ? l.item_id && Number(l.quantity) > 0 && l.rate !== '' && (!l.track_expiry || l.expiry_date) : l.variant_id && Number(l.quantity) > 0 && l.rate !== '')) && (opening || Boolean(h.party_ledger_id) || Boolean(h.payment_method_id));
+  const ready = Boolean(type) && lines.length > 0 && lines.every((l) => (l.tax ? l.tax_rate_id && (l.amount !== '' || Number(l.base) > 0) : l.other ? l.description && l.rate !== '' && l.ledger_id : l.ingredient ? l.item_id && Number(l.quantity) > 0 && l.rate !== '' && (!l.track_expiry || l.expiry_date) : l.variant_id && Number(l.quantity) > 0 && l.rate !== '')) && (opening || Boolean(h.party_ledger_id) || Boolean(h.payment_method_id));
 
   // what is still missing before the server can work the entries out (shown instead of a breakdown that quietly disappears)
   const missing = [
     ...lines.filter((l) => l.ingredient && l.item_id && l.track_expiry && !l.expiry_date).map((l) => `${l.label} ${l.variantName} needs its expiry date`),
     ...(!opening && lines.length > 0 && !h.party_ledger_id && !h.payment_method_id ? ['choose the supplier or how it was paid'] : []),
-    ...lines.filter((l) => !l.other && (l.ingredient ? !l.item_id || !(Number(l.quantity) > 0) || l.rate === '' : !l.variant_id || !(Number(l.quantity) > 0) || l.rate === '')).map((l) => `${l.label ?? 'an item'} needs a quantity and a cost`),
+    ...lines.filter((l) => !l.other && !l.tax && (l.ingredient ? !l.item_id || !(Number(l.quantity) > 0) || l.rate === '' : !l.variant_id || !(Number(l.quantity) > 0) || l.rate === '')).map((l) => `${l.label ?? 'an item'} needs a quantity and a cost`),
   ];
   useEffect(() => {
     if (!ready) { setPreview(null); setPreviewErr(null); return undefined; }
@@ -395,8 +400,8 @@ export default function PurchaseForm({ kind = 'purchase' }) {
   const changeMode = () => {
     if (!canAcct) return;
     if (!acct) {
-      if (lines.some((l) => !l.other) && !window.confirm('Switching to an accounting invoice removes the item lines. Continue?')) return;
-      setLines((ls) => (ls.length && ls.every((l) => l.other) ? ls : [blankOther()]));
+      if (lines.some((l) => !l.other && !l.tax) && !window.confirm('Switching to an accounting invoice removes the item lines. Continue?')) return;
+      setLines((ls) => (ls.length && ls.every((l) => l.other || l.tax) ? ls : [blankOther()]));
     }
     setAcct(!acct);
   };
@@ -539,7 +544,9 @@ export default function PurchaseForm({ kind = 'purchase' }) {
                 <p style={{ fontSize: '0.8rem', color: colors.textMuted, margin: 0 }}>{acct ? 'No lines yet. Add a ledger line below.' : <>No items yet. Search above{stockKinds().products ? ', or create a new product if it is not in the system' : ''}.</>}</p>
               ) : (
                 <div style={{ display: 'grid', gap: 10 }}>
-                  {lines.map((l) => (
+                  {lines.map((l) => (l.tax
+                    ? <TaxLineRow key={l.key} line={l} computed={preview?.lines?.[lines.indexOf(l)]} linesTotal={Number(preview?.subtotal) || 0} onChange={(patch) => setLine(l.key, patch)} onRemove={() => removeLine(l.key)} />
+                    : (
                     <div key={l.key} style={{ border: `1px solid ${colors.tint(0.12)}`, borderRadius: 10, padding: 10 }}>
                       {l.other ? (<>
                         <div style={{ display: 'grid', gridTemplateColumns: narrowLines ? 'repeat(2, minmax(0, 1fr))' : 'minmax(160px,2fr) 70px 100px minmax(120px,1fr) 100px 30px', gap: 8, alignItems: 'end' }}>
@@ -647,12 +654,13 @@ export default function PurchaseForm({ kind = 'purchase' }) {
                         </>
                       )}
                     </div>
-                  ))}
+                    )))}
                 </div>
               )}
 
-              <div style={{ marginTop: 12 }}>
+              <div style={{ marginTop: 12, display: 'flex', gap: 8, flexWrap: 'wrap' }}>
                 <button type="button" style={{ ...btnGhost, padding: '5px 10px', fontSize: '0.75rem' }} onClick={() => setLines((ls) => [...ls, blankOther()])}><Plus size={13} /> {acct ? 'Add ledger line' : 'Service or other charge'}</button>
+                {acct && <button type="button" style={{ ...btnGhost, padding: '5px 10px', fontSize: '0.75rem' }} onClick={() => setLines((ls) => [...ls, blankTax()])}><Plus size={13} /> Add tax line</button>}
               </div>
             </div>
 
