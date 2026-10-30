@@ -447,7 +447,7 @@ class PlanningTest extends TestCase
         $this->assertSame(['Admin'], $lines[1]['dimensions']);
         $this->assertNull($lines[2]['method_params'], 'a hand-typed row keeps no amounts');
         $this->assertSame($lines[0]['id'], $lines[3]['method_params']['of_line'], 'the row a percent is of became the template line');
-        $this->assertSame([['id' => $tid, 'name' => 'Retail operating', 'description' => 'Every year', 'type' => 'operating', 'lines' => 4]], $t->templates());
+        $this->assertSame([['assumptions' => [], 'id' => $tid, 'name' => 'Retail operating', 'description' => 'Every year', 'type' => 'operating', 'lines' => 4]], $t->templates());
         $t->removeLine($tid, $lines[2]['id']);
         $this->assertCount(3, $t->lines($tid));
         $t->update($tid, ['name' => 'Retail 2', 'description' => '']);
