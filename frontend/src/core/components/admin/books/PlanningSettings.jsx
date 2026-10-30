@@ -10,6 +10,7 @@ import BudgetControls from './BudgetControls';
 import BudgetGrid from './BudgetGrid';
 import BudgetInitiatives from './BudgetInitiatives';
 import BudgetTemplates from './BudgetTemplates';
+import BudgetTransfers from './BudgetTransfers';
 import ReportsSettings from './ReportsSettings';
 import { CheckboxRow, Field, FormGrid, NumberInput, SelectInput, TextInput } from '../ui/Form';
 
@@ -106,6 +107,7 @@ export default function PlanningSettings() {
       {!canPlan && <p style={{ fontSize: '0.78rem', color: colors.textFaint }}>You can look at these; changing them needs the Planning permission (budgets and forecast).</p>}
       <BudgetBar data={data} versionId={versionId} setVersionId={setVersionId} setYear={setYear} reload={load} />
       <BudgetGrid data={data} year={year} setYear={setYear} reload={load} canEdit={canEdit} versionId={versionId} />
+      <BudgetTransfers data={data} version={version} reload={load} />
       <BudgetTemplates data={data} versionId={versionId} canEdit={canPlan} reload={load} onMade={(v, y) => { setVersionId(v); setYear(y); }} />
       <BudgetControls data={data} canEdit={canPlan} reload={load} />
       <BudgetInitiatives initiatives={data.choices.initiatives} canEdit={canPlan} reload={load} />

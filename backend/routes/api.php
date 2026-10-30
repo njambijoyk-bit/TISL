@@ -1312,6 +1312,7 @@ Route::middleware('auth:sanctum')->group(function () {
         Route::get('/company',                          [\App\Http\Controllers\Api\CompanyProfileController::class, 'adminShow']);
         // Planning: budgets and the cash forecast's recurring items. Seeing them needs books.view (the group above); changing them books.planning
         Route::get('/planning',                         [\App\Http\Controllers\Api\PlanningController::class, 'show']);
+        Route::get('/planning/budget-sets/{id}/compare', [\App\Http\Controllers\Api\PlanningController::class, 'compare'])->whereNumber('id');
         Route::middleware('permission:books.planning')->group(function () {
             Route::put('/planning/budgets',             [\App\Http\Controllers\Api\PlanningController::class, 'saveBudgets']);
             Route::delete('/planning/budgets/{id}',     [\App\Http\Controllers\Api\PlanningController::class, 'removeBudget'])->whereNumber('id');
@@ -1325,6 +1326,8 @@ Route::middleware('auth:sanctum')->group(function () {
             Route::delete('/planning/templates/{id}',   [\App\Http\Controllers\Api\PlanningController::class, 'deleteTemplate'])->whereNumber('id');
             Route::delete('/planning/templates/{id}/lines/{line}', [\App\Http\Controllers\Api\PlanningController::class, 'deleteTemplateLine'])->whereNumber('id')->whereNumber('line');
             Route::post('/planning/templates/{id}/budget', [\App\Http\Controllers\Api\PlanningController::class, 'budgetFromTemplate'])->whereNumber('id');
+            Route::post('/planning/transfers',          [\App\Http\Controllers\Api\PlanningController::class, 'requestTransfer']);
+            Route::delete('/planning/transfers/{id}',   [\App\Http\Controllers\Api\PlanningController::class, 'withdrawTransfer'])->whereNumber('id');
             Route::post('/planning/control-rules',      [\App\Http\Controllers\Api\PlanningController::class, 'saveRule']);
             Route::delete('/planning/control-rules/{id}', [\App\Http\Controllers\Api\PlanningController::class, 'removeRule'])->whereNumber('id');
             Route::post('/planning/initiatives',        [\App\Http\Controllers\Api\PlanningController::class, 'saveInitiative']);
@@ -1335,6 +1338,7 @@ Route::middleware('auth:sanctum')->group(function () {
             Route::delete('/planning/items/{id}',       [\App\Http\Controllers\Api\PlanningController::class, 'deleteItem'])->whereNumber('id');
         });
         Route::middleware('permission:books.budget.approve')->post('/planning/versions/{id}/{action}', [\App\Http\Controllers\Api\PlanningController::class, 'transition'])->whereNumber('id')->where('action', 'approve|reject|lock|reopen');
+        Route::middleware('permission:books.budget.approve')->post('/planning/transfers/{id}/{action}', [\App\Http\Controllers\Api\PlanningController::class, 'decideTransfer'])->whereNumber('id')->where('action', 'approve|reject');
         Route::middleware('permission:books.budget.approve')->post('/planning/overrides/{id}/{action}', [\App\Http\Controllers\Api\PlanningController::class, 'decideOverride'])->whereNumber('id')->where('action', 'approve|reject');
         // Visual reports (the Extras module): the state of the page is open to the books; the figures are refused unless Extras is licensed and on
         Route::get('/visuals/status',                   [\App\Http\Controllers\Api\VisualsController::class, 'status']);

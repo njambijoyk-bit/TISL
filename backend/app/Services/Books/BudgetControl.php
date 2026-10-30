@@ -81,13 +81,22 @@ class BudgetControl
 
         // the budget lines, an expense and its recovery on the same account and dimensions counting as one
         $net = [];
-        foreach ($this->budgets->lines($from, $to, $version) as $r) {
+        $carry = $s['basis'] === 'month' && $this->budgets->carriesForward();
+        $seriesFrom = $carry ? $this->range($version, $date, 'ytd')[0] : $from;   // with carry-forward the months before this one matter
+        foreach ($this->budgets->lines($seriesFrom, $to, $version, true) as $r) {
             if ($r['section'] !== 'expense' || $r['initiative_id'] !== null) {
                 continue;
             }
             $k = implode('|', [$r['type'], $r['target_id'], $r['cost_centre_id'], $r['department_id'], $r['location_id']]);
-            $net[$k] ??= $r + ['budget' => 0.0];
-            $net[$k]['budget'] += ($r['is_recovery'] ? -1 : 1) * array_sum($r['months']);
+            $net[$k] ??= $r + ['budget' => 0.0, 'series' => []];
+            $sign = $r['is_recovery'] ? -1 : 1;
+            $thisMonth = substr($date, 0, 7);
+            foreach ($r['months'] as $ym => $amt) {
+                $net[$k]['series'][$ym] = ($net[$k]['series'][$ym] ?? 0) + $sign * $amt;
+                if ($carry ? $ym === $thisMonth : true) {
+                    $net[$k]['budget'] += $sign * $amt;
+                }
+            }
         }
         $breaches = [];
         $worst = 'none';
@@ -105,7 +114,14 @@ class BudgetControl
             }
             $amount = round(array_sum(array_column($mine, 'amount')), 2);
             $mode = $this->modeFor($row, $depCc, $rules, $s['mode']);
-            $actual = round(array_sum($this->budgets->actuals($row + ['nature' => 'expense'], $from, $date)['months']), 2);
+            $actualMonths = $this->budgets->actuals($row + ['nature' => 'expense'], $carry ? $seriesFrom : $from, $date)['months'];
+            if ($carry) {
+                $thisMonth = substr($date, 0, 7);
+                $before = fn (array $by) => array_filter($by, fn ($x, $ym) => $ym < $thisMonth, ARRAY_FILTER_USE_BOTH);
+                $row['budget'] += BudgetService::carriedInto($before($row['series']), $before($actualMonths));   // last month's leftover is this month's room
+                $actualMonths = [$thisMonth => $actualMonths[$thisMonth] ?? 0.0];
+            }
+            $actual = round(array_sum($actualMonths), 2);
             $after = round($actual + $amount, 2);
             $budget = round($row['budget'], 2);
             $over = $after > $budget + 0.005;

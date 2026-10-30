@@ -10,6 +10,7 @@ use App\Services\Books\BudgetMethods;
 use App\Services\Books\Engine\Reports\BudgetAgainstActualReport;
 use App\Services\Books\BudgetService;
 use App\Services\Books\BudgetTemplateService;
+use App\Services\Books\BudgetTransferService;
 use App\Services\Books\Engine\LedgerBalances;
 use App\Services\Books\Engine\Reports\MoneyFlowReport;
 use App\Services\Books\Engine\Scope;
@@ -28,7 +29,7 @@ class PlanningTest extends TestCase
     use Concerns\RunsSqlScripts;
     use Concerns\StandsInForAccess;
 
-    private const TABLES = ['locations', 'budget_lines', 'budget_rows', 'budget_initiatives', 'budgets', 'budget_versions', 'budget_approvals', 'budget_templates', 'budget_template_lines', 'budget_control_rules', 'budget_overrides', 'users', 'forecast_items', 'voucher_bill_refs', 'report_settings', 'report_settings_log'];
+    private const TABLES = ['locations', 'budget_lines', 'budget_rows', 'budget_initiatives', 'budgets', 'budget_versions', 'budget_approvals', 'budget_templates', 'budget_template_lines', 'budget_control_rules', 'budget_overrides', 'budget_transfers', 'users', 'forecast_items', 'voucher_bill_refs', 'report_settings', 'report_settings_log'];
 
     protected function setUp(): void
     {
@@ -37,7 +38,7 @@ class PlanningTest extends TestCase
         foreach (self::TABLES as $t) {
             Schema::dropIfExists($t);
         }
-        $this->runSqlScripts('237_planning.sql', '239_budgeting.sql', '240_budget_versions.sql', '241_budget_templates.sql', '242_budget_controls.sql');
+        $this->runSqlScripts('237_planning.sql', '239_budgeting.sql', '240_budget_versions.sql', '241_budget_templates.sql', '242_budget_controls.sql', '243_budget_transfers.sql');
         // script 239 replaces budget_lines' old (period, target) key with (row_id, period); SQLite here cannot drop an inline key, so the table is rebuilt as the script leaves it
         Schema::dropIfExists('budget_lines');
         Schema::create('budget_lines', function ($t) {
@@ -689,6 +690,190 @@ class PlanningTest extends TestCase
         $this->as(['books.view', 'books.budget.approve']);
         $this->postJson("/api/admin/books/planning/overrides/{$id}/reject", [])->assertStatus(422);
         $this->postJson("/api/admin/books/planning/overrides/{$id}/reject", ['note' => 'No'])->assertOk()->assertJsonPath('status', 'rejected');
+    }
+
+    // ── transfers, carry-forward and scenarios ─────────────────────────
+
+    /** An approved version with Rent on Admin and Rent on Head office, 1,000 a month each, in 2026. @return array{0: int, 1: int, 2: int} version, Admin row, Head office row */
+    private function transferWorld(bool $approve = true): array
+    {
+        $this->setting('second_approver_budget', true);
+        $svc = app(BudgetService::class);
+        $b = $svc->createBudget(['name' => '2026', 'from_month' => '2026-01', 'to_month' => '2026-12'], null);
+        $v = $svc->currentVersion($b);
+        $months = array_combine(array_map(fn ($m) => sprintf('2026-%02d', $m), range(1, 12)), array_fill(0, 12, 1000));
+        $ids = $svc->save([['type' => 'ledger', 'target_id' => 6, 'cost_centre_id' => 11, 'months' => $months], ['type' => 'ledger', 'target_id' => 6, 'cost_centre_id' => 10, 'months' => $months]], $this->user(1), $v);
+        if ($approve) {
+            $svc->transition($v, 'submit', $this->user(1));
+            $svc->transition($v, 'approve', $this->user(2));
+        }
+
+        return [$v, $ids[0], $ids[1]];
+    }
+
+    public function test_budget_moves_between_lines_of_an_approved_version_with_a_reason_and_a_second_persons_approval(): void
+    {
+        [$v, $admin, $head] = $this->transferWorld(false);
+        $t = app(BudgetTransferService::class);
+        $svc = app(BudgetService::class);
+        try {
+            $t->request(['from_row_id' => $admin, 'to_row_id' => $head, 'period' => '2026-08', 'amount' => 100], $this->user(1));
+            $this->fail('a draft was given a transfer');
+        } catch (ValidationException $e) {
+            $this->assertStringContainsString('draft can simply be edited', $e->errors()['version'][0]);
+        }
+        $svc->transition($v, 'submit', $this->user(1));
+        $svc->transition($v, 'approve', $this->user(2));
+        foreach ([
+            [['from_row_id' => $admin, 'to_row_id' => $admin, 'period' => '2026-08', 'amount' => 100], 'to_row_id'],
+            [['from_row_id' => $admin, 'to_row_id' => $head, 'period' => 'Aug', 'amount' => 100], 'period'],
+            [['from_row_id' => $admin, 'to_row_id' => $head, 'period' => '2026-08', 'amount' => 0], 'amount'],
+            [['from_row_id' => $admin, 'to_row_id' => $head, 'period' => '2026-08', 'amount' => 1500], 'amount'],
+            [['from_row_id' => 99999, 'to_row_id' => $head, 'period' => '2026-08', 'amount' => 5], 'from_row_id'],
+        ] as [$in, $key]) {
+            try {
+                $t->request($in, $this->user(1));
+                $this->fail("{$key} was accepted");
+            } catch (ValidationException $e) {
+                $this->assertArrayHasKey($key, $e->errors());
+            }
+        }
+        $id = $t->request(['from_row_id' => $admin, 'to_row_id' => $head, 'period' => '2026-08', 'amount' => 400, 'note' => 'Head office is moving'], $this->user(1));
+        $this->assertEquals(1000, collect($svc->lines('2026-01-01', '2026-12-31', $v, true))->firstWhere('id', $admin)['months']['2026-08'], 'a waiting transfer changes nothing');
+        try {
+            $t->request(['from_row_id' => $admin, 'to_row_id' => $head, 'period' => '2026-08', 'amount' => 700], $this->user(1));
+            $this->fail('more than was left after the one waiting');
+        } catch (ValidationException $e) {
+            $this->assertStringContainsString('only 600.00 left', $e->errors()['amount'][0]);
+        }
+        try {
+            $t->decide($id, 'approve', $this->user(1), null);
+            $this->fail('the person who asked accepted it');
+        } catch (ValidationException $e) {
+            $this->assertStringContainsString('second person', $e->errors()['status'][0]);
+        }
+        $this->assertSame('approved', $t->decide($id, 'approve', $this->user(2), 'Agreed'));
+        $eff = collect($svc->lines('2026-01-01', '2026-12-31', $v, true))->keyBy('id');
+        $this->assertEquals([600, 1400], [$eff[$admin]['months']['2026-08'], $eff[$head]['months']['2026-08']]);
+        $base = collect($svc->lines('2026-01-01', '2026-12-31', $v))->keyBy('id');
+        $this->assertEquals([1000, 1000], [$base[$admin]['months']['2026-08'], $base[$head]['months']['2026-08']], 'the approved version itself is untouched');
+        $r = $svc->against(Scope::dates('2026-08-01', '2026-08-31'), '2026-08-01', '2026-08-31', null, $v);
+        $this->assertEquals(2000, array_sum(array_column($r['rows'], 'budget')), 'what moves is neither made nor lost');
+        $adminRow = collect($r['rows'])->firstWhere('dimensions', ['Admin']);
+        $this->assertEquals([600, 1400], [$adminRow['budget'], collect($r['rows'])->firstWhere('dimensions', ['Head office'])['budget']], 'the report reads the plan with the approved transfer in it');
+        $log = $t->forVersion($v);
+        $this->assertSame(['approved', 'Rent, Head office', 'Rent, Admin', 400.0], [$log[0]['status'], $log[0]['to'], $log[0]['from'], $log[0]['amount']]);
+        $second = $t->request(['from_row_id' => $head, 'to_row_id' => $admin, 'period' => '2026-09', 'amount' => 50], $this->user(1));
+        $this->assertSame('pending', $t->forVersion($v)[0]['status'], 'the ones waiting come first');
+        try {
+            $t->withdraw($second, $this->user(3));
+            $this->fail('someone else took it back');
+        } catch (ValidationException $e) {
+            $this->assertArrayHasKey('status', $e->errors());
+        }
+        $t->withdraw($second, $this->user(1));
+        $this->assertCount(1, $t->forVersion($v));
+        $third = $t->request(['from_row_id' => $head, 'to_row_id' => $admin, 'period' => '2026-09', 'amount' => 50], $this->user(1));
+        try {
+            $t->decide($third, 'reject', $this->user(2), '');
+            $this->fail('turned down without a reason');
+        } catch (ValidationException $e) {
+            $this->assertArrayHasKey('note', $e->errors());
+        }
+        $this->assertSame('rejected', $t->decide($third, 'reject', $this->user(2), 'No need'));
+        $svc->transition($v, 'lock', $this->user(2));
+        $this->expectException(ValidationException::class);
+        $t->request(['from_row_id' => $admin, 'to_row_id' => $head, 'period' => '2026-10', 'amount' => 5], $this->user(1));
+    }
+
+    public function test_unused_expense_budget_expires_by_default_and_rolls_forward_when_the_company_says_so(): void
+    {
+        [$v] = $this->transferWorld();
+        $svc = app(BudgetService::class);
+        $this->assertFalse($svc->carriesForward());
+        $rows = fn () => collect($svc->against(Scope::dates('2026-01-01', '2026-08-31'), '2026-01-01', '2026-08-31', null, $v)['rows'])->firstWhere('dimensions', ['Admin'])['months'];
+        $this->assertEquals(0, $rows()[6]['carried_in'], 'nothing carries unless asked');
+        $this->assertEquals(1000, $rows()[6]['available']);
+        $this->setting('budget_carry_forward', 'carry');
+        $m = $rows();
+        $this->assertEquals([0, 1000], [$m[0]['carried_in'], $m[0]['available']]);
+        $this->assertEquals(6000, $m[6]['carried_in'], 'six unspent months of 1,000 roll into July');
+        $this->assertEquals(7000, $m[6]['available']);
+        $this->assertEquals(3000, $m[7]['carried_in'], 'July had 7,000 room and 4,000 spent');
+        $this->assertEquals(1000, $m[6]['budget'], 'the budget itself does not change, only the room');
+        $budget = ['2026-01' => 1000, '2026-02' => 1000, '2026-03' => 1000];
+        $this->assertEquals(1000.0, BudgetService::carriedInto($budget, ['2026-01' => 500, '2026-02' => 3000, '2026-03' => 0]), 'January leaves 500, February is overspent down to nothing (it does not owe March), March adds 1,000');
+        $this->assertEquals(0.0, BudgetService::carriedInto($budget, ['2026-01' => 5000, '2026-02' => 5000, '2026-03' => 5000]));
+    }
+
+    public function test_the_month_check_uses_last_months_leftover_when_unused_budget_carries_forward(): void
+    {
+        $this->controlWorld('warn');
+        $this->setting('budget_control_basis', 'month');
+        $this->assertSame('warn', $this->check(1500)['action'], 'August has 1,000 and the rest expired');
+        $this->setting('budget_carry_forward', 'carry');
+        $c = $this->check(3500);
+        $this->assertEquals(4000, $c['breaches'][0]['budget'], 'August 1,000 plus 3,000 left over from July');
+        $this->assertSame('warn', $c['action'], '3,500 of 4,000 is close');
+        $this->assertSame('near', $c['breaches'][0]['level']);
+        $this->assertSame('none', $this->check(1500)['action'], '1,500 of 4,000 is comfortable');
+        $this->assertSame('over', $this->check(4500)['breaches'][0]['level']);
+    }
+
+    public function test_a_scenario_is_a_copy_with_percent_changes_and_the_versions_can_be_set_side_by_side(): void
+    {
+        $this->setting('second_approver_budget', false);
+        $svc = app(BudgetService::class);
+        $b = $svc->createBudget(['name' => '2026', 'from_month' => '2026-01', 'to_month' => '2026-12'], null);
+        $orig = $svc->currentVersion($b);
+        $svc->save([['type' => 'group', 'target_id' => 6, 'months' => ['2026-01' => 100000, '2026-02' => 100000]], ['type' => 'ledger', 'target_id' => 6, 'months' => ['2026-01' => 10000]], ['type' => 'group', 'target_id' => 8, 'months' => ['2026-01' => 20000]]], $this->user(1), $orig);
+        $svc->transition($orig, 'submit', $this->user(1));
+        $svc->transition($orig, 'approve', $this->user(1));
+        $worst = $svc->createVersion($b, ['kind' => 'scenario', 'name' => 'Worst case', 'drivers' => [['scope' => 'income', 'percent' => -15], ['scope' => 'ledger', 'id' => 6, 'percent' => 10]]], $this->user(1));
+        $lines = collect($svc->lines('2026-01-01', '2026-12-31', $worst))->keyBy(fn ($l) => $l['type'] . $l['target_id']);
+        $this->assertEquals([85000, 85000], array_values($lines['group6']['months']), 'sales down 15%');
+        $this->assertEquals(11000, $lines['ledger6']['months']['2026-01'], 'rent up 10%');
+        $this->assertEquals(20000, $lines['group8']['months']['2026-01'], 'what no driver touches stays');
+        $this->assertSame('Drivers: All income -15%; Rent +10%', DB::table('budget_versions')->where('id', $worst)->value('note'));
+        $this->assertEquals(100000, collect($svc->lines('2026-01-01', '2026-12-31', $orig))->firstWhere('type', 'group')['months']['2026-01'], 'the approved original is as it was');
+        $log = array_column($svc->approvalLog($worst), 'note');
+        $this->assertStringContainsString('Drivers: All income -15%', $log[0]);
+        $cmp = collect($svc->compareVersions($b))->keyBy('name');
+        $this->assertEquals([200000, 30000, 170000], [$cmp['Original']['income'], $cmp['Original']['expense'], $cmp['Original']['result']]);
+        $this->assertEquals([170000, 31000, 139000], [$cmp['Worst case']['income'], $cmp['Worst case']['expense'], $cmp['Worst case']['result']]);
+        $this->assertEquals([-30000, 1000, -31000], [$cmp['Worst case']['income_change'], $cmp['Worst case']['expense_change'], $cmp['Worst case']['result_change']]);
+        $this->assertNull($cmp['Original']['result_change']);
+        foreach ([[['scope' => 'sky', 'percent' => 5], 'drivers.0.scope'], [['scope' => 'income', 'percent' => -150], 'drivers.0.percent'], [['scope' => 'ledger', 'id' => 99999, 'percent' => 5], 'drivers.0.id']] as [$d, $key]) {
+            try {
+                $svc->createVersion($b, ['kind' => 'scenario', 'drivers' => [$d]], null);
+                $this->fail("{$key} was accepted");
+            } catch (ValidationException $e) {
+                $this->assertArrayHasKey($key, $e->errors());
+            }
+        }
+        $this->expectException(ValidationException::class);
+        $svc->createVersion($b, ['kind' => 'revision', 'drivers' => [['scope' => 'all', 'percent' => 5]]], null);
+    }
+
+    public function test_the_transfer_and_compare_routes_need_the_right_permissions(): void
+    {
+        [$v, $admin, $head] = $this->transferWorld();
+        $this->as(['books.view']);
+        $this->postJson('/api/admin/books/planning/transfers', ['from_row_id' => $admin, 'to_row_id' => $head, 'period' => '2026-08', 'amount' => 10])->assertForbidden();
+        $b = DB::table('budget_versions')->where('id', $v)->value('budget_id');
+        $this->getJson("/api/admin/books/planning/budget-sets/{$b}/compare")->assertOk()->assertJsonCount(1, 'versions');
+        $this->as(['books.view', 'books.planning']);
+        $id = $this->postJson('/api/admin/books/planning/transfers', ['from_row_id' => $admin, 'to_row_id' => $head, 'period' => '2026-08', 'amount' => 10, 'note' => 'x'])->assertOk()->json('id');
+        $this->postJson('/api/admin/books/planning/transfers', ['from_row_id' => $admin, 'to_row_id' => $head, 'period' => '2026-08', 'amount' => 99999])->assertStatus(422);
+        $this->postJson("/api/admin/books/planning/transfers/{$id}/approve")->assertForbidden();
+        $this->getJson("/api/admin/books/planning?from=2026-01-01&to=2026-12-31&version_id={$v}")->assertOk()->assertJsonPath('transfers.0.status', 'pending')->assertJsonPath('transfers_ready', true);
+        $this->as(['books.view', 'books.budget.approve']);
+        $this->setting('second_approver_budget', false);
+        $this->postJson("/api/admin/books/planning/transfers/{$id}/approve")->assertOk()->assertJsonPath('status', 'approved');
+        $this->as(['books.view', 'books.planning']);
+        $again = $this->postJson('/api/admin/books/planning/transfers', ['from_row_id' => $head, 'to_row_id' => $admin, 'period' => '2026-08', 'amount' => 10])->assertOk()->json('id');
+        $this->deleteJson("/api/admin/books/planning/transfers/{$again}")->assertOk();
+        $this->postJson('/api/admin/books/planning/budget-sets/' . $b . '/versions', ['kind' => 'scenario', 'drivers' => [['scope' => 'all', 'percent' => -10]]])->assertOk();
     }
 
     // ── the report ─────────────────────────────────────────────────────

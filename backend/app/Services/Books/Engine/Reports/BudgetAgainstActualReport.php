@@ -91,6 +91,7 @@ final class BudgetAgainstActualReport extends ReportDefinition
             foreach ($row['months'] as $m) {
                 $g['months'][$m['month']]['budget'] = ($g['months'][$m['month']]['budget'] ?? 0) + $m['budget'];
                 $g['months'][$m['month']]['actual'] = ($g['months'][$m['month']]['actual'] ?? 0) + $m['actual'];
+                $g['months'][$m['month']]['carried_in'] = ($g['months'][$m['month']]['carried_in'] ?? 0) + ($m['carried_in'] ?? 0);
             }
             unset($g);
         }
@@ -100,7 +101,7 @@ final class BudgetAgainstActualReport extends ReportDefinition
             $var = BudgetService::variance($g['section'], $g['budget'], $g['actual']);
             $out[] = ['name' => $g['name'], 'section' => $g['section'], 'budget' => round($g['budget'], 2), 'actual' => round($g['actual'], 2), 'variance' => $var, 'variance_pct' => abs($g['budget']) > 0.005 ? round($var / abs($g['budget']) * 100, 1) : null,
                 'used_pct' => abs($g['budget']) > 0.005 ? round($g['actual'] / $g['budget'] * 100, 1) : null, 'remaining' => round($g['budget'] - $g['actual'], 2), 'actual_pending' => $g['pending'],
-                'children' => $g['children'], 'months' => array_map(fn ($ym, $m) => ['month' => $ym, 'budget' => round($m['budget'], 2), 'actual' => round($m['actual'], 2)], array_keys($g['months']), $g['months'])];
+                'children' => $g['children'], 'months' => array_map(fn ($ym, $m) => ['month' => $ym, 'budget' => round($m['budget'], 2), 'actual' => round($m['actual'], 2), 'carried_in' => round($m['carried_in'], 2), 'available' => round($m['budget'] + $m['carried_in'], 2)], array_keys($g['months']), $g['months'])];
         }
         usort($out, fn ($a, $b) => [$order[$a['section']], $a['name']] <=> [$order[$b['section']], $b['name']]);
 

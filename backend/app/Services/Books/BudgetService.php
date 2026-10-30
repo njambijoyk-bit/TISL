@@ -172,18 +172,125 @@ class BudgetService
         if (! $from || DB::table('budget_versions')->where('id', $from)->value('budget_id') != $budgetId) {
             $errors['from_version_id'] = 'Copy from a version of this budget.';
         }
+        $drivers = $this->cleanDrivers($in['drivers'] ?? [], $errors);
+        if ($drivers && $kind === 'revision') {
+            $errors['drivers'] = 'Drivers are for a scenario or a forecast; a revision is edited by hand.';
+        }
         if ($errors) {
             throw ValidationException::withMessages($errors);
         }
 
-        return DB::transaction(function () use ($budgetId, $kind, $name, $from, $in, $by) {
-            $v = (int) DB::table('budget_versions')->insertGetId(['budget_id' => $budgetId, 'name' => $name, 'kind' => $kind, 'status' => 'draft', 'copied_from_id' => $from, 'note' => ($in['note'] ?? '') !== '' ? mb_substr((string) $in['note'], 0, 255) : null,
+        return DB::transaction(function () use ($budgetId, $kind, $name, $from, $in, $by, $drivers) {
+            $said = $drivers ? 'Drivers: ' . implode('; ', array_map(fn ($d) => $d['label'] . ' ' . ($d['percent'] >= 0 ? '+' : '') . $d['percent'] . '%', $drivers)) : null;
+            $note = ($in['note'] ?? '') !== '' ? mb_substr((string) $in['note'], 0, 255) : ($said !== null ? mb_substr($said, 0, 255) : null);
+            $v = (int) DB::table('budget_versions')->insertGetId(['budget_id' => $budgetId, 'name' => $name, 'kind' => $kind, 'status' => 'draft', 'copied_from_id' => $from, 'note' => $note,
                 'prepared_by' => $by?->id, 'created_at' => now(), 'updated_at' => now()]);
             $this->copyRows($from, $v, $by);
-            $this->log($v, 'created', $by, 'Copied from ' . DB::table('budget_versions')->where('id', $from)->value('name'));
+            if ($drivers) {
+                $this->applyDrivers($v, $drivers);
+            }
+            $this->log($v, 'created', $by, 'Copied from ' . DB::table('budget_versions')->where('id', $from)->value('name') . ($said ? '. ' . $said : ''));
 
             return $v;
         });
+    }
+
+    /**
+     * Check the drivers of a scenario: each is a share of the plan (all, every income, every expense, one ledger group or one ledger) and a percent change.
+     *
+     * @param  array<int, mixed>  $raw
+     * @param  array<string, string>  $errors
+     * @return array<int, array{scope: string, id: ?int, percent: float, label: string}>
+     */
+    private function cleanDrivers(array $raw, array &$errors): array
+    {
+        $out = [];
+        foreach ($raw as $i => $d) {
+            $scope = (string) ($d['scope'] ?? '');
+            $pct = $d['percent'] ?? null;
+            $id = ! empty($d['id']) ? (int) $d['id'] : null;
+            if (! in_array($scope, ['all', 'income', 'expense', 'group', 'ledger'], true)) {
+                $errors["drivers.{$i}.scope"] = 'Choose what the change applies to.';
+                continue;
+            }
+            if (! is_numeric($pct) || (float) $pct < -100 || (float) $pct > 1000) {
+                $errors["drivers.{$i}.percent"] = 'The change is a percent between -100 and 1000.';
+                continue;
+            }
+            $label = ['all' => 'Everything', 'income' => 'All income', 'expense' => 'All expenses'][$scope] ?? null;
+            if (in_array($scope, ['group', 'ledger'], true)) {
+                $info = $id ? $this->targetInfo($scope, $id) : null;
+                if (! $info) {
+                    $errors["drivers.{$i}.id"] = 'Choose a ledger group or ledger that exists.';
+                    continue;
+                }
+                $label = $info['name'];
+            }
+            $out[] = ['scope' => $scope, 'id' => $id, 'percent' => round((float) $pct, 2), 'label' => $label];
+        }
+
+        return $out;
+    }
+
+    /** Scale the months of a version's rows by the drivers (each one on top of the last), so "sales down 15%, salaries up 10%" is one new version. */
+    private function applyDrivers(int $versionId, array $drivers): void
+    {
+        $ledgerGroup = collect(app(LedgerBalances::class)->ledgers())->pluck('group_id', 'id');
+        $settings = app(ReportSettings::class);
+        foreach (DB::table('budget_rows')->where('version_id', $versionId)->get() as $row) {
+            $info = $this->targetInfo($row->target_type, (int) $row->target_id);
+            $factor = 1.0;
+            foreach ($drivers as $d) {
+                $hit = match ($d['scope']) {
+                    'all' => true,
+                    'income' => ($info['section'] ?? '') === 'income',
+                    'expense' => ($info['section'] ?? '') === 'expense',
+                    'ledger' => $row->target_type === 'ledger' && (int) $row->target_id === $d['id'],
+                    'group' => $row->target_type === 'group' ? in_array((int) $row->target_id, $settings->withDescendants($d['id']), true)
+                        : in_array((int) ($ledgerGroup[(int) $row->target_id] ?? 0), $settings->withDescendants($d['id']), true),
+                };
+                if ($hit) {
+                    $factor *= 1 + $d['percent'] / 100;
+                }
+            }
+            if (abs($factor - 1) < 0.000001) {
+                continue;
+            }
+            foreach (DB::table('budget_lines')->where('row_id', $row->id)->get() as $l) {
+                DB::table('budget_lines')->where('id', $l->id)->update(['amount' => round((float) $l->amount * $factor, 2), 'updated_at' => now()]);
+            }
+        }
+    }
+
+    /**
+     * Every version of a budget over the whole budget, side by side: income, expenses and the result, and how each differs from the first version. Approved versions include their
+     * approved transfers. A recovery lowers the expense it belongs to.
+     *
+     * @return array<int, array<string, mixed>>
+     */
+    public function compareVersions(int $budgetId): array
+    {
+        $b = DB::table('budgets')->where('id', $budgetId)->first();
+        abort_unless($b, 404, 'That budget does not exist.');
+        $from = $b->from_month . '-01';
+        $to = Carbon::parse($b->to_month . '-01')->endOfMonth()->toDateString();
+        $out = [];
+        foreach (DB::table('budget_versions')->where('budget_id', $budgetId)->orderBy('id')->get() as $v) {
+            $t = ['income' => 0.0, 'expense' => 0.0];
+            foreach ($this->lines($from, $to, (int) $v->id, true) as $r) {
+                if (isset($t[$r['section']])) {
+                    $t[$r['section']] += ($r['is_recovery'] ? -1 : 1) * array_sum($r['months']);
+                }
+            }
+            $out[] = ['id' => (int) $v->id, 'name' => $v->name, 'kind' => $v->kind, 'status' => $v->status, 'note' => $v->note, 'income' => round($t['income'], 2), 'expense' => round($t['expense'], 2), 'result' => round($t['income'] - $t['expense'], 2)];
+        }
+        foreach ($out as $i => $row) {
+            $out[$i]['income_change'] = $i === 0 ? null : round($row['income'] - $out[0]['income'], 2);
+            $out[$i]['expense_change'] = $i === 0 ? null : round($row['expense'] - $out[0]['expense'], 2);
+            $out[$i]['result_change'] = $i === 0 ? null : round($row['result'] - $out[0]['result'], 2);
+        }
+
+        return $out;
     }
 
     private function copyRows(int $from, int $to, ?User $by): void
@@ -407,7 +514,7 @@ class BudgetService
      *
      * @return array<int, array<string, mixed>>
      */
-    public function lines(string $from, string $to, ?int $versionId = null): array
+    public function lines(string $from, string $to, ?int $versionId = null, bool $effective = false): array
     {
         if (! self::ready()) {
             return [];
@@ -425,15 +532,23 @@ class BudgetService
             $names[$col] = $ids && Schema::hasTable($table) ? DB::table($table)->whereIn('id', $ids)->pluck('name', 'id')->all() : [];
         }
         $out = [];
+        $adj = $effective ? app(BudgetTransferService::class)->adjustments($version) : [];   // approved transfers are added where the plan is read, never written into an approved version
+        $lo = substr($from, 0, 7);
+        $hi = substr($to, 0, 7);
         foreach ($rows as $r) {
             $info = $this->targetInfo($r->target_type, (int) $r->target_id);
             $m = [];
             foreach ($months[$r->id] ?? [] as $ln) {
                 $m[$ln->period] = (float) $ln->amount;
             }
-            if (! isset($months[$r->id]) && isset($withMonths[$r->id])) {
+            $moved = array_filter($adj[(int) $r->id] ?? [], fn ($d, $ym) => $ym >= $lo && $ym <= $hi && abs($d) > 0.004, ARRAY_FILTER_USE_BOTH);
+            if (! isset($months[$r->id]) && isset($withMonths[$r->id]) && ! $moved) {
                 continue;   // it has amounts, but in other years: not part of this one (a row with no amounts anywhere is new, and is shown)
             }
+            foreach ($moved as $ym => $d) {
+                $m[$ym] = round(max(0, ($m[$ym] ?? 0) + $d), 2);
+            }
+            ksort($m);
             $out[] = ['id' => (int) $r->id, 'type' => $r->target_type, 'target_id' => (int) $r->target_id, 'name' => $info['name'] ?? "#{$r->target_id} (gone)", 'nature' => $info['nature'] ?? null, 'section' => $info['section'] ?? 'balance',
                 'cost_centre_id' => $r->cost_centre_id ? (int) $r->cost_centre_id : null, 'department_id' => $r->department_id ? (int) $r->department_id : null, 'location_id' => $r->location_id ? (int) $r->location_id : null,
                 'initiative_id' => $r->initiative_id ? (int) $r->initiative_id : null, 'is_recovery' => (bool) $r->is_recovery, 'method' => $r->method, 'method_params' => $r->method_params ? json_decode($r->method_params, true) : null, 'note' => $r->note,
@@ -631,6 +746,29 @@ class BudgetService
         return $out;
     }
 
+    /** Does unused expense budget roll into the next month? Off by default: a month's budget expires with it (Budgeting -> Budget controls). */
+    public function carriesForward(): bool
+    {
+        return ReportSettings::ready() && (string) (app(ReportSettings::class)->values()['budget_carry_forward'] ?? 'expire') === 'carry';
+    }
+
+    /**
+     * How much unused budget has rolled into the month after the last one given: each month adds its budget and takes off what was spent, and never goes below nothing.
+     *
+     * @param  array<string, float>  $budget  by 'YYYY-MM'
+     * @param  array<string, float>  $actual  by 'YYYY-MM'
+     */
+    public static function carriedInto(array $budget, array $actual): float
+    {
+        $carry = 0.0;
+        ksort($budget);
+        foreach ($budget as $ym => $b) {
+            $carry = max(0.0, $b + $carry - (float) ($actual[$ym] ?? 0));
+        }
+
+        return round($carry, 2);
+    }
+
     /** The gap as a person reads it: positive is good news. Spending under budget is favourable; earnings above it are; a balance above its plan is shown the same way. */
     public static function variance(string $section, float $budget, float $actual): float
     {
@@ -650,9 +788,10 @@ class BudgetService
         if (! self::ready()) {
             throw new \RuntimeException('Run database scripts 239_budgeting.sql and 240_budget_versions.sql, then set a budget under Books → Configuration → Budgeting.');
         }
-        $lines = collect($this->lines($from, $to, $versionId ?? $this->currentVersionFor($from, $to)))->when($sections, fn ($c) => $c->whereIn('section', $sections));
+        $lines = collect($this->lines($from, $to, $versionId ?? $this->currentVersionFor($from, $to), true))->when($sections, fn ($c) => $c->whereIn('section', $sections));
         $months = self::months($from, $to);
         $rows = [];
+        $carries = $this->carriesForward();
         $monthTotals = array_fill_keys($months, ['budget' => 0.0, 'actual' => 0.0]);
         $groups = $lines->groupBy(fn ($l) => implode('|', [$l['type'], $l['target_id'], $l['cost_centre_id'], $l['department_id'], $l['location_id'], $l['initiative_id']]));
         foreach ($groups as $set) {
@@ -661,13 +800,16 @@ class BudgetService
             $act = $pending ? ['months' => array_fill_keys($months, 0.0), 'ledgers' => []] : $this->actuals($ln, $from, $to);
             $actualByMonth = $act['months'];
             $per = [];
+            $carry = 0.0;
             foreach ($months as $ym) {
                 $budget = 0.0;
                 foreach ($set as $s) {
                     $budget += ($s['is_recovery'] ? -1 : 1) * (float) ($s['months'][$ym] ?? 0);
                 }
                 $actual = (float) $actualByMonth[$ym];
-                $per[] = ['month' => $ym, 'budget' => round($budget, 2), 'actual' => round($actual, 2)];
+                $carriedIn = $carries && $ln['section'] === 'expense' ? $carry : 0.0;
+                $per[] = ['month' => $ym, 'budget' => round($budget, 2), 'actual' => round($actual, 2), 'carried_in' => round($carriedIn, 2), 'available' => round($budget + $carriedIn, 2)];
+                $carry = $carries ? max(0.0, $budget + $carriedIn - $actual) : 0.0;
                 $monthTotals[$ym]['budget'] += $budget;
                 $monthTotals[$ym]['actual'] += $actual;
             }

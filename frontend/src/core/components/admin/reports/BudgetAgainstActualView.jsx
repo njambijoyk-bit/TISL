@@ -111,11 +111,15 @@ export default function BudgetAgainstActualView({ result }) {
                           {open[k] && months[k] && (
                             <tr><td colSpan={cols + 1} style={{ padding: '4px 10px 10px 36px' }}>
                               <table style={{ borderCollapse: 'collapse', fontSize: '0.74rem' }}>
-                                <thead><tr><th style={th}>Month</th><th style={{ ...th, ...num }}>Budget</th><th style={{ ...th, ...num }}>Actual</th><th style={{ ...th, ...num }}>Variance</th></tr></thead>
-                                <tbody>{g.months.filter((m) => m.budget || m.actual).map((m) => (
-                                  <tr key={m.month}><td style={td}>{monthName(m.month)}</td><td style={{ ...td, ...num }}>{A(m.budget)}</td><td style={{ ...td, ...num }}>{g.actual_pending ? '' : A(m.actual)}</td>
-                                    <td style={{ ...td, ...num }}>{g.actual_pending ? '' : <Gap v={s === 'expense' ? m.budget - m.actual : m.actual - m.budget} A={A} />}</td></tr>
-                                ))}</tbody>
+                                <thead><tr><th style={th}>Month</th><th style={{ ...th, ...num }}>Budget</th>{g.months.some((m) => m.carried_in > 0) && <><th style={{ ...th, ...num }}>Carried in</th><th style={{ ...th, ...num }}>Room</th></>}<th style={{ ...th, ...num }}>Actual</th><th style={{ ...th, ...num }}>Variance</th></tr></thead>
+                                <tbody>{g.months.filter((m) => m.budget || m.actual).map((m) => {
+                                  const carried = g.months.some((x) => x.carried_in > 0);
+                                  const room = carried ? m.available : m.budget;
+                                  return (
+                                    <tr key={m.month}><td style={td}>{monthName(m.month)}</td><td style={{ ...td, ...num }}>{A(m.budget)}</td>{carried && <><td style={{ ...td, ...num }}>{m.carried_in ? A(m.carried_in) : ''}</td><td style={{ ...td, ...num }}>{A(m.available)}</td></>}<td style={{ ...td, ...num }}>{g.actual_pending ? '' : A(m.actual)}</td>
+                                      <td style={{ ...td, ...num }}>{g.actual_pending ? '' : <Gap v={s === 'expense' ? room - m.actual : m.actual - room} A={A} />}</td></tr>
+                                  );
+                                })}</tbody>
                               </table>
                             </td></tr>
                           )}
