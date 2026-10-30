@@ -40,7 +40,7 @@ Amounts are in the file's own base currency (`company.base_currency`); nothing i
 | Level | Name | Sections |
 |---|---|---|
 | 1 | Summary | `groups`, `ledgers`, `statements`, `balances` |
-| 2 | Books | adds `vouchers`, `entries`, `locations`, `cost_centres`, `financial_years`, `year_balances` |
+| 2 | Books | adds `vouchers`, `entries`, `locations`, `cost_centres`, `financial_years`, `year_balances`, and the budgets: `initiatives`, `budgets`, `budget_versions`, `budget_rows`, `budget_lines`, `budget_transfers` |
 | 3 | Detail | adds `voucher_items`, `voucher_taxes`, `bill_refs`, `customers`, `suppliers` |
 | 4 | Full | adds `products`, `variants`, `stock`, `batches`, `batch_balances`, `movements`, `departments` |
 
@@ -53,6 +53,12 @@ Fields (a field a company does not have is simply missing):
 - `balances`: ledger_id, opening, debit, credit, closing (for the period)
 - `vouchers`: id, voucher_number, date, status (posted, cancelled), type, base_type, location_id, cost_centre_id, party_ledger_id, customer_id, party_name, reference_no, supplier_invoice_no, narration, total_amount, base_total, currency, source_voucher_id, due_date (memoranda are left out; the period filters by date)
 - `entries` (posted vouchers only): voucher_id, line_no, ledger_id, side, amount, base_amount, narration, cost_centre_id, location_id
+- `initiatives`: id, parent_id, code, name, is_active. The budget initiatives (a one-off thing with its own budget; not the Projects module). A voucher or entry may carry an `initiative_id` (script 244).
+- `budgets`: id, name, type (operating, sales, purchases, payroll, capex, cash, project, departmental, master), from_month, to_month (`YYYY-MM`), current_version_id (the newest approved or locked version, else the newest).
+- `budget_versions`: id, budget_id, name, kind (original, revision, forecast, scenario), status (draft, submitted, approved, locked), copied_from_id, note (a scenario's percent drivers), submitted_at, approved_at, locked_at. Dates and status only: never who prepared, submitted or approved a version.
+- `budget_rows`: id, version_id, target_type (`group` or `ledger`), target_id, target_name, cost_centre_id, department_id, location_id, initiative_id, is_recovery (an expense expected to be credited back; on a balance-sheet line, a reduction), method (how the months were filled: manual, fixed, annual, seasonal, percent, quantity, history, copy), note.
+- `budget_lines`: row_id, period (`YYYY-MM`), amount (in the base currency, never negative). Only the months inside the file's period.
+- `budget_transfers`: id, version_id, from_row_id, to_row_id, period, amount, status (pending, approved, rejected), note, decision_note, decided_at. A budget moved between two rows of an approved version; an approved one is added to the plan when it is read. Withdrawn requests are not in the file.
 - `voucher_items`: id, voucher_id, line_no, item_type, variant_id, description, variant_label, sku, unit_code, quantity, rate, discount_amount, amount, tax_rate_percent, tax_amount, delivered_quantity, invoiced_quantity
 - `voucher_taxes`: voucher_id, label, ledger_id, base_amount, tax_amount
 - `bill_refs`: voucher_id, ledger_id, ref_type (new, against, advance), ref_name, against_voucher_id, amount, due_date
@@ -63,6 +69,7 @@ Fields (a field a company does not have is simply missing):
 ### Version rules
 
 The version in the header (byte 6) and in the document stays **1** while a change only *adds* sections or fields: a reader ignores what it does not know, a field a company does not have is simply missing, and the viewer here lists any section it has no special screen for under "All tables". The version goes up only when something a reader depends on changes meaning or is removed in a way that breaks it. Changes so far, all additive:
+- *November 2026 (budgeting):* at level 2 and above, the sections `initiatives`, `budgets`, `budget_versions`, `budget_rows`, `budget_lines` and `budget_transfers`, and `initiative_id` on `vouchers` and `entries`. A company that has not run the budget scripts has no such sections. An export for one branch (or by a branch-limited person) carries only the rows for that branch, with the company-wide rows for a limited person as for vouchers.
 - *October 2026 (the report engine):* `statements`, `financial_years`, `year_balances`; `statement_id` on `groups` and `ledgers`; `tax_country` and `tax_registrations` on the company. `affects_gross_profit` is no longer written (the trading section is the statement line), and no reader here used it. A file made before this has none of the new parts; the viewer then simply has no Statements tab.
 
 A file may hold at most 1 500 000 rows in all; a bigger export asks for a shorter period or a lower level.

@@ -53,4 +53,11 @@ class BackupMapCoversSqlScriptsTest extends TestCase
         }
         $this->assertSame([], $dupes, 'Listed under two modules: ' . implode(', ', $dupes));
     }
+
+    public function test_the_budgeting_tables_are_in_the_core_backup_so_a_business_keeps_its_plans(): void
+    {
+        $budgeting = ['budgets', 'budget_versions', 'budget_approvals', 'budget_rows', 'budget_lines', 'budget_initiatives', 'budget_templates', 'budget_template_lines',
+            'budget_control_rules', 'budget_overrides', 'budget_transfers', 'forecast_items'];
+        $this->assertSame([], array_values(array_diff($budgeting, ModuleTables::MAP['core'])), 'Core is always backed up, with the books');
+    }
 }

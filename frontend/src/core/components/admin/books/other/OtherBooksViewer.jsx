@@ -13,7 +13,8 @@ const input = { padding: '7px 10px', borderRadius: 8, border: `1px solid ${color
 const LABELS = { groups: 'Account groups', ledgers: 'Ledgers', balances: 'Balances', vouchers: 'Vouchers', entries: 'Entries', locations: 'Branches', cost_centres: 'Cost centres', voucher_items: 'Voucher lines',
   voucher_taxes: 'Voucher taxes', bill_refs: 'Bill references', customers: 'Customers', suppliers: 'Suppliers', products: 'Products', variants: 'Product options', stock: 'Stock on hand',
   batches: 'Batches', batch_balances: 'Batch balances', movements: 'Stock movements', departments: 'Departments',
-  statements: 'Statement lines', financial_years: 'Financial years', year_balances: 'Closing balances of closed years' };
+  statements: 'Statement lines', financial_years: 'Financial years', year_balances: 'Closing balances of closed years',
+  initiatives: 'Initiatives', budgets: 'Budgets', budget_versions: 'Budget versions', budget_rows: 'Budget lines (what is planned)', budget_lines: 'Budget amounts by month', budget_transfers: 'Budget transfers' };
 
 /** Every section as a plain table, whatever it holds: nothing is hidden because this screen has no special view for it. */
 const plainColumns = (rows) => Object.keys(rows[0] ?? {}).map((k) => ({ key: k, label: k.replace(/_/g, ' '), num: typeof rows[0][k] === 'number' }));

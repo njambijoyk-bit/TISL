@@ -23,7 +23,7 @@ class WnkjapExport
 {
     public const LEVELS = [
         1 => 'Summary: chart of accounts and balances',
-        2 => 'Books: adds vouchers and their entries',
+        2 => 'Books: adds vouchers, their entries and the budgets',
         3 => 'Detail: adds voucher lines, customers and suppliers',
         4 => 'Full: adds stock and stock movements',
     ];
@@ -77,6 +77,7 @@ class WnkjapExport
         if ($level >= 2) {
             $sections += $this->books($from, $to, $locationId);
             $sections += $this->years();
+            $sections += $this->budgets($from, $to, $locationId);
         }
         if ($level >= 3) {
             $sections += $this->detail($sections['vouchers'] ?? []);
@@ -145,12 +146,12 @@ class WnkjapExport
             ->when($locationId, fn ($w) => $w->where('v.location_id', $locationId));
         app(BranchFilter::class)->apply($q, 'v.location_id', 'books', 'export');
         $want = array_map(fn ($c) => 'v.' . $c, $this->cols('vouchers', ['id', 'voucher_number', 'date', 'status', 'location_id', 'cost_centre_id', 'party_ledger_id', 'customer_id', 'party_name', 'reference_no',
-            'supplier_invoice_no', 'narration', 'total_amount', 'base_total', 'source_voucher_id', 'due_date']));
+            'supplier_invoice_no', 'narration', 'total_amount', 'base_total', 'source_voucher_id', 'due_date', 'initiative_id']));
         $vouchers = $this->rows($q->select($want)->addSelect('t.name as type', 't.base_type', 'c.code as currency')->orderBy('v.date')->orderBy('v.id'), 'vouchers');
         $ids = array_column($vouchers, 'id');
         $entries = [];
         foreach (array_chunk($ids, 5000) as $chunk) {
-            $cols = array_map(fn ($c) => 'e.' . $c, $this->cols('voucher_entries', ['voucher_id', 'line_no', 'ledger_id', 'side', 'amount', 'base_amount', 'narration', 'cost_centre_id', 'location_id']));
+            $cols = array_map(fn ($c) => 'e.' . $c, $this->cols('voucher_entries', ['voucher_id', 'line_no', 'ledger_id', 'side', 'amount', 'base_amount', 'narration', 'cost_centre_id', 'location_id', 'initiative_id']));
             $entries = array_merge($entries, $this->rows(DB::table('voucher_entries as e')->join('vouchers as v', 'v.id', '=', 'e.voucher_id')->where('v.status', Voucher::POSTED)->whereIn('e.voucher_id', $chunk)->select($cols)->orderBy('e.voucher_id')->orderBy('e.line_no'), 'entries'));
         }
 
@@ -158,6 +159,53 @@ class WnkjapExport
             'vouchers' => $vouchers, 'entries' => $entries,
             'locations' => $this->rows(DB::table('locations')->select($this->cols('locations', ['id', 'name', 'code', 'kind', 'is_active']))->orderBy('id'), 'branches'),
             'cost_centres' => Schema::hasTable('cost_centres') ? $this->rows(DB::table('cost_centres')->select($this->cols('cost_centres', ['id', 'parent_id', 'location_id', 'name', 'code', 'type', 'purpose', 'is_active']))->orderBy('id'), 'cost centres') : [],
+        ];
+    }
+
+    /**
+     * The budgets (database scripts 237 to 244): the initiatives, each budget with its versions and their status and dates (never who did what), the rows with what they are for and how
+     * their months were filled, the amounts by month inside the period asked for, and the budget moves between rows. A branch-limited export, or one for a branch, carries only the rows
+     * for that branch (and, for a limited person, the company-wide ones, as with vouchers). Nothing here is written to a viewer's system: it is read from the file in the page.
+     *
+     * @return array<string, array<int, array<string, mixed>>>
+     */
+    private function budgets(?string $from, ?string $to, ?int $locationId): array
+    {
+        if (! \App\Services\Books\BudgetService::ready()) {
+            return [];
+        }
+        $svc = app(\App\Services\Books\BudgetService::class);
+        $rowsQ = DB::table('budget_rows')->when($locationId, fn ($w) => $w->where('location_id', $locationId))->orderBy('version_id')->orderBy('id');
+        app(BranchFilter::class)->apply($rowsQ, 'location_id', 'books', 'export');
+        $rows = $rowsQ->get();
+        $filtered = $locationId !== null || app(BranchFilter::class)->enforcing('books');
+        $versionIds = $rows->pluck('version_id')->unique()->all();
+        $versions = DB::table('budget_versions')->when($filtered, fn ($w) => $w->whereIn('id', $versionIds ?: [0]))->orderBy('id')->get();
+        $budgets = DB::table('budgets')->where('is_active', 1)->when($filtered, fn ($w) => $w->whereIn('id', $versions->pluck('budget_id')->all() ?: [0]))->orderBy('from_month')->orderBy('id')->get();
+        $rowIds = $rows->pluck('id')->all();
+        $lines = [];
+        foreach (array_chunk($rowIds, 2000) as $chunk) {
+            $lines = array_merge($lines, $this->rows(DB::table('budget_lines')->whereIn('row_id', $chunk)->when($from, fn ($w) => $w->where('period', '>=', substr($from, 0, 7)))->when($to, fn ($w) => $w->where('period', '<=', substr($to, 0, 7)))
+                ->orderBy('row_id')->orderBy('period')->select(['row_id', 'period', 'amount']), 'budget amounts'));
+        }
+        $lines = array_map(fn ($l) => ['row_id' => (int) $l['row_id'], 'period' => $l['period'], 'amount' => $this->number((float) $l['amount'])], $lines);
+        $names = ['group' => DB::table('ledger_groups')->pluck('name', 'id'), 'ledger' => DB::table('ledgers')->pluck('name', 'id')];
+        $current = [];
+        foreach ($budgets as $b) {
+            $current[(int) $b->id] = $svc->currentVersion((int) $b->id);
+        }
+
+        return [
+            'initiatives' => Schema::hasTable('budget_initiatives') ? $this->rows(DB::table('budget_initiatives')->select($this->cols('budget_initiatives', ['id', 'parent_id', 'code', 'name', 'is_active']))->orderBy('id'), 'initiatives') : [],
+            'budgets' => $budgets->map(fn ($b) => ['id' => (int) $b->id, 'name' => $b->name, 'type' => $b->budget_type, 'from_month' => $b->from_month, 'to_month' => $b->to_month, 'current_version_id' => $current[(int) $b->id] ?? null])->all(),
+            'budget_versions' => $versions->map(fn ($v) => ['id' => (int) $v->id, 'budget_id' => (int) $v->budget_id, 'name' => $v->name, 'kind' => $v->kind, 'status' => $v->status, 'copied_from_id' => $v->copied_from_id ? (int) $v->copied_from_id : null,
+                'note' => $v->note, 'submitted_at' => $v->submitted_at, 'approved_at' => $v->approved_at, 'locked_at' => $v->locked_at])->all(),
+            'budget_rows' => $rows->map(fn ($r) => ['id' => (int) $r->id, 'version_id' => (int) $r->version_id, 'target_type' => $r->target_type, 'target_id' => (int) $r->target_id, 'target_name' => $names[$r->target_type][$r->target_id] ?? null,
+                'cost_centre_id' => $r->cost_centre_id ? (int) $r->cost_centre_id : null, 'department_id' => $r->department_id ? (int) $r->department_id : null, 'location_id' => $r->location_id ? (int) $r->location_id : null,
+                'initiative_id' => $r->initiative_id ? (int) $r->initiative_id : null, 'is_recovery' => (bool) $r->is_recovery, 'method' => $r->method, 'note' => $r->note])->all(),
+            'budget_lines' => $lines,
+            'budget_transfers' => Schema::hasTable('budget_transfers') ? array_map(fn ($t) => ['amount' => $this->number((float) $t['amount'])] + $t, $this->rows(DB::table('budget_transfers')->whereIn('from_row_id', $rowIds ?: [0])->whereIn('to_row_id', $rowIds ?: [0])->where('status', '!=', 'withdrawn')
+                ->select($this->cols('budget_transfers', ['id', 'version_id', 'from_row_id', 'to_row_id', 'period', 'amount', 'status', 'note', 'decision_note', 'decided_at']))->orderBy('id'), 'budget transfers')) : [],
         ];
     }
 
