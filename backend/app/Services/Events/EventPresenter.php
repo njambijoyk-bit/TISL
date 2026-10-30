@@ -22,7 +22,7 @@ final class EventPresenter
         $bySession = $this->holds->sessionsByType($e->id);
         $valid = EventTicket::where('event_id', $e->id)->where('state', EventTicket::VALID)->selectRaw('ticket_type_id, COUNT(*) as n, SUM(price) as total')->groupBy('ticket_type_id')->get()->keyBy('ticket_type_id');
 
-        return $this->base($e) + [
+        return $this->base($e) + $this->platform($e) + [
             'description' => $e->description, 'venue_address' => $e->venue_address, 'map_url' => $e->map_url, 'online_url' => $e->online_url, 'organiser' => $e->organiser, 'refund_policy' => $e->refund_policy,
             'sales_ledger_id' => $e->sales_ledger_id, 'tax_rate_id' => $e->tax_rate_id, 'location_id' => $e->location_id, 'max_per_order' => (int) $e->max_per_order,
             'allow_name_change' => (bool) $e->allow_name_change, 'refund_until' => $e->refund_until?->format('Y-m-d\TH:i'), 'video' => ServiceVideo::describe($e->video_url),
@@ -44,7 +44,7 @@ final class EventPresenter
         $total = $cap->contains(fn ($t) => $t->capacity === null) ? null : (int) $cap->sum('capacity');
         $next = $e->sessions->where('is_cancelled', false)->filter(fn ($s) => ($s->ends_at ?? $s->starts_at)->isFuture())->first() ?? $e->sessions->first();
 
-        return $this->base($e) + [
+        return $this->base($e) + $this->platform($e) + [
             'next_at' => $next?->starts_at?->format('Y-m-d\TH:i'), 'sessions' => $e->sessions->count(), 'over' => $e->isOver(),
             'sold' => (int) EventTicket::where('event_id', $e->id)->where('state', EventTicket::VALID)->count(), 'capacity' => $total,
             'revenue' => (float) EventTicket::where('event_id', $e->id)->where('state', EventTicket::VALID)->sum('price'),
@@ -99,6 +99,20 @@ final class EventPresenter
     }
 
     /** @return array<string, mixed> */
+    /** Who owns it, its category, how people take part and where it stands with TISL's approval (staff screens only). */
+    private function platform(Event $e): array
+    {
+        if (! EventAccess::ready()) {
+            return [];
+        }
+        $e->loadMissing(['organiserAccount:id,name,status,is_internal', 'category:id,name,parent_id']);
+
+        return ['organiser_id' => $e->organiser_id ? (int) $e->organiser_id : null, 'organiser_name' => $e->organiserAccount?->name, 'organiser_status' => $e->organiserAccount?->is_internal ? 'verified' : $e->organiserAccount?->status, 'category_id' => $e->category_id ? (int) $e->category_id : null,
+            'category_name' => $e->category?->name, 'participation' => $e->participation, 'approval_status' => $e->approval_status, 'approval_note' => $e->approval_note, 'registration_status' => $e->registration_status,
+            'age_min' => $e->age_min, 'languages' => $e->languages, 'accessibility' => $e->accessibility, 'venue_id' => $e->venue_id, 'venue_space_id' => $e->venue_space_id, 'manager_user_id' => $e->manager_user_id,
+            'client_customer_id' => $e->client_customer_id];
+    }
+
     private function base(Event $e): array
     {
         return ['id' => $e->id, 'title' => $e->title, 'slug' => $e->slug, 'summary' => $e->summary, 'kind' => $e->kind, 'venue_name' => $e->venue_name, 'status' => $e->status, 'is_listed' => (bool) $e->is_listed, 'currency_id' => $e->currency_id,

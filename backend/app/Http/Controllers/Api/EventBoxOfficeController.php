@@ -13,6 +13,8 @@ use Illuminate\Http\Request;
 /** Selling at the door, for staff with events.sell: what is on offer (with what is left) and where the money can go, and the sale itself. */
 class EventBoxOfficeController extends Controller
 {
+    use \App\Http\Controllers\Api\Concerns\ScopesEvents;
+
     public function __construct(private EventPresenter $present)
     {
     }
@@ -26,7 +28,7 @@ class EventBoxOfficeController extends Controller
     /** GET /admin/events/{id}/box-office */
     public function show(int $id): JsonResponse
     {
-        $e = Event::findOrFail($id);
+        $e = $this->scopedEvent($id);
         $page = $this->present->admin($e);
 
         return response()->json(['event' => ['id' => $e->id, 'title' => $e->title, 'status' => $e->status, 'currency_id' => $e->currency_id],
@@ -39,7 +41,10 @@ class EventBoxOfficeController extends Controller
     {
         $d = $request->validate(['items' => 'required|array|min:1|max:20', 'items.*.ticket_type_id' => 'required|integer', 'items.*.quantity' => 'required|integer|min:1|max:100', 'mode' => 'required|in:cash,comp',
             'ledger_id' => 'nullable|integer', 'name' => 'nullable|string|max:160', 'email' => 'nullable|string|max:190', 'phone' => 'nullable|string|max:40', 'holders' => 'nullable|array|max:100', 'holders.*' => 'nullable|string|max:160']);
-        $event = Event::findOrFail($id);
+        $event = $this->scopedEvent($id);
+        if (($d['mode'] ?? null) === 'cash') {
+            $this->staffOnly('Selling for cash at the door');   // it posts a cash sale to TISL's till or bank
+        }
         try {
             return response()->json($this->box()->sell($event, $d['items'], $request->only(['name', 'email', 'phone']), $request->user(), $d['mode'], isset($d['ledger_id']) ? (int) $d['ledger_id'] : null, (array) ($d['holders'] ?? [])), 201);
         } catch (EventException $e) {

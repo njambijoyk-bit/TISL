@@ -17,7 +17,8 @@ use Illuminate\Support\Facades\DB;
 final class EventEditor
 {
     private const EVENT_FIELDS = ['title', 'summary', 'description', 'kind', 'venue_name', 'venue_address', 'map_url', 'online_url', 'organiser', 'is_listed', 'currency_id', 'sales_ledger_id', 'tax_rate_id',
-        'location_id', 'max_per_order', 'refund_until', 'refund_policy', 'allow_name_change'];
+        'location_id', 'max_per_order', 'refund_until', 'refund_policy', 'allow_name_change', 'organiser_id', 'category_id', 'participation', 'registration_status', 'age_min', 'languages', 'accessibility',
+        'venue_id', 'venue_space_id', 'manager_user_id', 'client_customer_id'];
 
     public function __construct(private TicketHolds $holds, private LedgerService $ledgers)
     {
@@ -30,6 +31,9 @@ final class EventEditor
     {
         return DB::transaction(function () use ($event, $d, $by) {
             $fields = array_intersect_key($d, array_flip(self::EVENT_FIELDS));
+            if (! EventAccess::ready()) {   // the platform columns arrive with script 253
+                $fields = array_diff_key($fields, array_flip(['organiser_id', 'category_id', 'participation', 'registration_status', 'age_min', 'languages', 'accessibility', 'venue_id', 'venue_space_id', 'manager_user_id', 'client_customer_id']));
+            }
             $this->validateFields($fields, $event);
             if ($event) {
                 $event->update($fields + ['updated_by' => $by]);
@@ -37,7 +41,7 @@ final class EventEditor
                 if (empty($fields['title'])) {
                     throw new EventException('Give the event a title.');
                 }
-                $event = Event::create($fields + ['status' => Event::DRAFT, 'created_by' => $by, 'updated_by' => $by]);
+                $event = Event::create($fields + ['status' => Event::DRAFT, 'created_by' => $by, 'updated_by' => $by] + $this->approvalOnCreate($fields['organiser_id'] ?? null));
             }
             $keys = array_key_exists('sessions', $d) ? $this->syncSessions($event, (array) $d['sessions']) : [];
             if (array_key_exists('ticket_types', $d)) {
@@ -240,8 +244,58 @@ final class EventEditor
         return $event->sales_ledger_id ?: (EventSettings::all()['sales_ledger_id'] ?: null);
     }
 
+    /** A new event of TISL itself is approved; an outside organiser's waits for TISL (when the setting is on). Before script 253 there is no approval. */
+    private function approvalOnCreate(?int $organiserId): array
+    {
+        if (! EventAccess::ready()) {
+            return [];
+        }
+        $external = $organiserId && ! \App\Models\Events\EventOrganiser::whereKey($organiserId)->value('is_internal');
+
+        return ['approval_status' => $external && EventSettings::all()['require_approval'] ? 'draft' : 'approved'];
+    }
+
+    /** Is this event one TISL must approve before it can be published? */
+    public function needsApproval(Event $event): bool
+    {
+        return EventAccess::ready() && $event->organiser_id && EventSettings::all()['require_approval'] && ! \App\Models\Events\EventOrganiser::whereKey($event->organiser_id)->value('is_internal');
+    }
+
+    /** The organiser asks TISL to approve the event. It must be complete, as for publishing. */
+    public function submitForApproval(Event $event, ?int $by = null): Event
+    {
+        if (! $this->needsApproval($event)) {
+            return $event;
+        }
+        if ($problems = $this->problems($event)) {
+            throw new EventException('It is not ready to send for approval. ' . implode(' ', $problems));
+        }
+        $event->update(['approval_status' => 'pending', 'approval_note' => null, 'updated_by' => $by]);
+
+        return $event->fresh();
+    }
+
+    /** TISL's decision on an outside organiser's event. */
+    public function decide(Event $event, bool $approve, ?string $note, ?int $by = null): Event
+    {
+        if ($approve && $event->organiser_id && ! \App\Models\Events\EventOrganiser::whereKey($event->organiser_id)->first()?->inGoodStanding()) {
+            throw new EventException('Verify the organiser first: an event of an organiser who is not verified cannot be approved.');
+        }
+        $event->update(['approval_status' => $approve ? 'approved' : 'rejected', 'approval_note' => $note, 'updated_by' => $by]);
+
+        return $event->fresh();
+    }
+
     public function publish(Event $event, ?int $by = null): Event
     {
+        if ($this->needsApproval($event)) {
+            if (! \App\Models\Events\EventOrganiser::whereKey($event->organiser_id)->first()?->inGoodStanding()) {
+                throw new EventException('The organiser has not been verified (or is suspended), so this event cannot be published.');
+            }
+            if ($event->approval_status !== 'approved') {
+                throw new EventException($event->approval_status === 'pending' ? 'TISL has not approved this event yet.' : 'Send it to TISL for approval first. It can be published once approved.');
+            }
+        }
         if ($event->status === Event::CANCELLED) {
             throw new EventException('A cancelled event can not be published again: make a new one.');
         }

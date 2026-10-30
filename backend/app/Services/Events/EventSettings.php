@@ -14,6 +14,8 @@ final class EventSettings
         'reminders_on' => false,           // send ticket holders a reminder before each date (off until the company switches it on)
         'reminder_hours' => 24,            // the reminder goes this long before the date starts
         'ticket_note' => '',               // a line printed on every ticket and in the ticket email
+        'commission_percent' => 10,        // what TISL keeps of ticket sales for an outside organiser, unless the organiser has its own rate
+        'require_approval' => true,        // an outside organiser's event is checked by TISL before it can be published
     ];
 
     public static function ready(): bool
@@ -46,6 +48,16 @@ final class EventSettings
                 throw new EventException('Seats can be held for 5 to 120 minutes.');
             }
             $cur['hold_minutes'] = $m;
+        }
+        if (array_key_exists('commission_percent', $in)) {
+            $c = (float) $in['commission_percent'];
+            if ($c < 0 || $c > 100) {
+                throw new EventException('A commission is between 0 and 100 percent.');
+            }
+            $cur['commission_percent'] = $c;
+        }
+        if (array_key_exists('require_approval', $in)) {
+            $cur['require_approval'] = (bool) $in['require_approval'];
         }
         if (array_key_exists('reminders_on', $in)) {
             $cur['reminders_on'] = (bool) $in['reminders_on'];

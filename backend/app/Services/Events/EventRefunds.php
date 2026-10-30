@@ -185,9 +185,9 @@ final class EventRefunds
     }
 
     /** What staff see: requests (waiting by default), with the ticket, the buyer and where the money can go back from. @return array<int, array<string, mixed>> */
-    public function list(?string $status = EventRefundRequest::PENDING, ?int $eventId = null): array
+    public function list(?string $status = EventRefundRequest::PENDING, ?int $eventId = null, ?array $onlyEventIds = null): array
     {
-        $rows = EventRefundRequest::query()->when($status, fn ($q, $s) => $q->where('status', $s))->when($eventId, fn ($q, $i) => $q->where('event_id', $i))->orderBy('id')->limit(300)->get();
+        $rows = EventRefundRequest::query()->when($status, fn ($q, $s) => $q->where('status', $s))->when($eventId, fn ($q, $i) => $q->where('event_id', $i))->when($onlyEventIds !== null, fn ($q) => $q->whereIn('event_id', $onlyEventIds ?: [0]))->orderBy('id')->limit(300)->get();
         $tickets = EventTicket::with('type')->whereIn('id', $rows->pluck('ticket_id'))->get()->keyBy('id');
         $events = Event::withTrashed()->whereIn('id', $rows->pluck('event_id'))->get()->keyBy('id');
         $out = [];

@@ -388,6 +388,7 @@ Route::prefix('menu')->middleware('module:menus')->group(function () {   // orde
 Route::prefix('events')->middleware('module:events')->group(function () {
     $c = \App\Http\Controllers\Api\EventPublicController::class;
     Route::get('/',                [$c, 'index']);
+    Route::get('/categories',      [\App\Http\Controllers\Api\EventPlatformController::class, 'publicCategories']);   // the category tree for the directory and the event form
     Route::get('/{slug}',          [$c, 'show'])->middleware('throttle:120,1');
     Route::post('/{slug}/quote',   [$c, 'quote'])->middleware('throttle:60,1');
     Route::post('/{slug}/buy',     [$c, 'buy'])->middleware('throttle:20,1');
@@ -1457,6 +1458,16 @@ Route::middleware('auth:sanctum')->group(function () {
         
         // My account: what I owe, what I have paid over, how to pay
         Route::get('/events/tickets', [\App\Http\Controllers\Api\EventTicketController::class, 'mine'])->middleware('module:events');   // my event tickets
+        // outside organisers: apply, see my organisers, and run my own organiser's profile, people and proof (the platform's admin verifies them)
+        Route::middleware('module:events')->prefix('events/organisers')->group(function () {
+            $p = \App\Http\Controllers\Api\EventPlatformController::class;
+            Route::post('/apply',                        [$p, 'apply'])->middleware('throttle:10,1');
+            Route::get('/mine',                          [$p, 'mine']);
+            Route::put('/{id}',                          [$p, 'updateOrganiser'])->whereNumber('id');
+            Route::post('/{id}/members',                 [$p, 'addOrganiserMember'])->whereNumber('id');
+            Route::delete('/{id}/members/{userId}',      [$p, 'removeOrganiserMember'])->whereNumber(['id', 'userId']);
+            Route::post('/{id}/documents',               [$p, 'addDocument'])->whereNumber('id')->middleware('throttle:20,1');
+        });
         Route::get('/account', [\App\Http\Controllers\Api\MyAccountController::class, 'show']);
         Route::get('/account/statement/export', [\App\Http\Controllers\Api\MyAccountController::class, 'statementExport']);
         Route::get('/account/outstandings/export', [\App\Http\Controllers\Api\MyAccountController::class, 'outstandingsExport']);
@@ -1873,6 +1884,19 @@ Route::middleware('auth:sanctum')->group(function () {
             Route::put('/{id}',                  [$c, 'update'])->whereNumber('id')->middleware('permission:events.edit');
             Route::delete('/{id}',               [$c, 'destroy'])->whereNumber('id')->middleware('permission:events.delete');
             Route::post('/{id}/publish',         [$c, 'publish'])->whereNumber('id')->middleware('permission:events.edit');
+            Route::post('/{id}/submit',          [$c, 'submit'])->whereNumber('id')->middleware('permission:events.edit');
+            Route::post('/{id}/decide',          [$c, 'decide'])->whereNumber('id')->middleware('permission:events.admin');
+            // the platform: categories and outside organisers (events.admin)
+            Route::get('/platform/categories',                   [\App\Http\Controllers\Api\EventPlatformController::class, 'categories'])->middleware('permission:events.admin');
+            Route::post('/platform/categories',                  [\App\Http\Controllers\Api\EventPlatformController::class, 'storeCategory'])->middleware('permission:events.admin');
+            Route::post('/platform/categories/standard',         [\App\Http\Controllers\Api\EventPlatformController::class, 'standardCategories'])->middleware('permission:events.admin');
+            Route::put('/platform/categories/{id}',              [\App\Http\Controllers\Api\EventPlatformController::class, 'updateCategory'])->whereNumber('id')->middleware('permission:events.admin');
+            Route::delete('/platform/categories/{id}',           [\App\Http\Controllers\Api\EventPlatformController::class, 'deleteCategory'])->whereNumber('id')->middleware('permission:events.admin');
+            Route::get('/platform/organisers',                   [\App\Http\Controllers\Api\EventPlatformController::class, 'organisers'])->middleware('permission:events.admin');
+            Route::get('/platform/organisers/{id}',              [\App\Http\Controllers\Api\EventPlatformController::class, 'organiser'])->whereNumber('id')->middleware('permission:events.admin');
+            Route::post('/platform/organisers/{id}/status',      [\App\Http\Controllers\Api\EventPlatformController::class, 'setOrganiserStatus'])->whereNumber('id')->middleware('permission:events.admin');
+            Route::post('/platform/organisers/{id}/commission',  [\App\Http\Controllers\Api\EventPlatformController::class, 'setOrganiserCommission'])->whereNumber('id')->middleware('permission:events.admin');
+            Route::post('/platform/documents/{id}/review',       [\App\Http\Controllers\Api\EventPlatformController::class, 'reviewDocument'])->whereNumber('id')->middleware('permission:events.admin');
             Route::post('/{id}/unpublish',       [$c, 'unpublish'])->whereNumber('id')->middleware('permission:events.edit');
             Route::post('/{id}/cancel',          [$c, 'cancel'])->whereNumber('id')->middleware('permission:events.edit');
             Route::post('/{id}/postpone',        [$c, 'postpone'])->whereNumber('id')->middleware('permission:events.edit');

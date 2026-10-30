@@ -50,7 +50,7 @@ class EventPublicController extends Controller
     /** Draft events are not found; cancelled and postponed ones are shown (with the notice) so people who hold tickets can read it. */
     private function find(string $slug): Event
     {
-        return Event::where('slug', $slug)->whereIn('status', [Event::PUBLISHED, Event::CANCELLED, Event::POSTPONED])->firstOrFail();
+        return Event::where('slug', $slug)->where(fn ($w) => $w->whereIn('status', [Event::CANCELLED, Event::POSTPONED])->orWhere(fn ($x) => $x->where('status', Event::PUBLISHED)->approvedAndInStanding()))->firstOrFail();   // a published event only once approved and of an organiser in good standing
     }
 
     public function show(string $slug): JsonResponse

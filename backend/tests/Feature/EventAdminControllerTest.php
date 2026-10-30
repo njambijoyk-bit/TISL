@@ -147,6 +147,7 @@ class EventAdminControllerTest extends TestCase
             $this->assertContains('module:events', $mw, $r->uri());
             $uri = $r->uri();
             $need = match (true) {
+                (bool) preg_match('#/platform/|/decide$#', $uri) => 'permission:events.admin',   // categories, outside organisers, and approving their events
                 (bool) preg_match('#/refunds|/tickets/\{ticketId\}/refund#', $uri) => 'permission:events.refund',   // deciding ticket refunds
                 (bool) preg_match('#/(sell|box-office)$#', $uri) => 'permission:events.sell',   // selling at the door
                 (bool) preg_match('#/(door|guests)$#', $uri) => 'permission:events.checkin,events.view',   // the door and the guest list: door staff or whoever may view

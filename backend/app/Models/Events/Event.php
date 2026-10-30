@@ -24,7 +24,12 @@ class Event extends Model
     protected $fillable = [
         'title', 'slug', 'summary', 'description', 'kind', 'venue_name', 'venue_address', 'map_url', 'online_url', 'organiser', 'main_image', 'video_url', 'status', 'is_listed', 'currency_id',
         'sales_ledger_id', 'tax_rate_id', 'location_id', 'max_per_order', 'refund_until', 'refund_policy', 'allow_name_change', 'published_at', 'created_by', 'updated_by',
+        'category_id', 'organiser_id', 'client_customer_id', 'manager_user_id', 'participation', 'approval_status', 'approval_note', 'registration_status', 'age_min', 'languages', 'accessibility', 'venue_id', 'venue_space_id',
     ];
+
+    public const PARTICIPATION = ['free' => 'Free registration', 'paid' => 'Paid tickets', 'invitation' => 'Invitation only', 'rsvp' => 'RSVP', 'approval' => 'Approval required', 'donation' => 'Donation based', 'members' => 'Members only'];
+    public const APPROVAL = ['draft', 'pending', 'approved', 'rejected'];
+    public const REGISTRATION = ['auto', 'closed', 'waitlist'];
 
     protected $casts = ['is_listed' => 'boolean', 'allow_name_change' => 'boolean', 'refund_until' => 'datetime', 'published_at' => 'datetime', 'max_per_order' => 'integer'];
 
@@ -63,7 +68,25 @@ class Event extends Model
 
     public function scopePublic($q)
     {
-        return $q->where('status', self::PUBLISHED)->where('is_listed', true);
+        return $q->where('status', self::PUBLISHED)->where('is_listed', true)->approvedAndInStanding();
+    }
+
+    /** Only events a visitor may reach: approved, and of TISL itself or an organiser in good standing. (Before script 253 every event is.) */
+    public function scopeApprovedAndInStanding($q)
+    {
+        return $q->when(\Illuminate\Support\Facades\Schema::hasColumn('events', 'approval_status'), fn ($w) => $w->where('approval_status', 'approved')
+            ->where(fn ($o) => $o->whereNull('organiser_id')->orWhereIn('organiser_id', fn ($x) => $x->select('id')->from('event_organisers')->where(fn ($g) => $g->where('is_internal', 1)->orWhere('status', 'verified')))));
+    }
+
+    /** The organiser account (the old free-text `organiser` column is a display name and stays as it was). */
+    public function organiserAccount(): \Illuminate\Database\Eloquent\Relations\BelongsTo
+    {
+        return $this->belongsTo(EventOrganiser::class, 'organiser_id');
+    }
+
+    public function category(): \Illuminate\Database\Eloquent\Relations\BelongsTo
+    {
+        return $this->belongsTo(EventCategory::class, 'category_id');
     }
 
     /** The moment the last session ends (or starts, when it has no end): after this nothing can be bought. */

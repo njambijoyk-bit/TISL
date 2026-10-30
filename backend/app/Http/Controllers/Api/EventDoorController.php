@@ -15,6 +15,8 @@ use Symfony\Component\HttpFoundation\StreamedResponse;
 /** The door of an event, for staff: the counts, scanning a ticket, letting someone in by hand, undoing a mistake, the guest list and its spreadsheet. */
 class EventDoorController extends Controller
 {
+    use \App\Http\Controllers\Api\Concerns\ScopesEvents;
+
     public function __construct(private CheckIn $door, private GuestList $guests)
     {
     }
@@ -31,7 +33,7 @@ class EventDoorController extends Controller
     /** GET /admin/events/{id}/door?session_id= */
     public function door(Request $request, int $id): JsonResponse
     {
-        return response()->json($this->guests->door(Event::findOrFail($id), $request->integer('session_id') ?: null));
+        return response()->json($this->guests->door($this->scopedEvent($id), $request->integer('session_id') ?: null));
     }
 
     /** POST /admin/events/{id}/checkin {code, session_id?}: a code was scanned or typed. Every answer is a normal 200 (a refused ticket is an answer, not an error). */
@@ -39,14 +41,14 @@ class EventDoorController extends Controller
     {
         $d = $request->validate(['code' => 'required|string|max:400', 'session_id' => 'nullable|integer']);
 
-        return response()->json($this->door->scan(Event::findOrFail($id), $d['code'], $d['session_id'] ?? null, $request->user()?->id));
+        return response()->json($this->door->scan($this->scopedEvent($id), $d['code'], $d['session_id'] ?? null, $request->user()?->id));
     }
 
     /** POST /admin/events/{id}/checkin/manual {ticket_id, session_id?} */
     public function manual(Request $request, int $id): JsonResponse
     {
         $d = $request->validate(['ticket_id' => 'required|integer', 'session_id' => 'nullable|integer']);
-        $event = Event::findOrFail($id);
+        $event = $this->scopedEvent($id);
         $ticket = EventTicket::where('event_id', $event->id)->findOrFail($d['ticket_id']);
 
         return response()->json($this->door->manual($event, $ticket, $d['session_id'] ?? null, $request->user()?->id));
@@ -55,7 +57,7 @@ class EventDoorController extends Controller
     public function undo(Request $request, int $id, int $checkinId): JsonResponse
     {
         return $this->guard(function () use ($request, $id, $checkinId) {
-            $this->door->undo(Event::findOrFail($id), $checkinId, $request->user()?->id);
+            $this->door->undo($this->scopedEvent($id), $checkinId, $request->user()?->id);
 
             return response()->json(['message' => 'The check-in was undone: the ticket can be used again.']);
         });
@@ -66,13 +68,13 @@ class EventDoorController extends Controller
     {
         $d = $request->validate(['q' => 'nullable|string|max:100', 'state' => 'nullable|in:valid,cancelled', 'session_id' => 'nullable|integer', 'arrived' => 'nullable|in:yes,no', 'page' => 'nullable|integer|min:1']);
 
-        return response()->json($this->guests->guests(Event::findOrFail($id), $d));
+        return response()->json($this->guests->guests($this->scopedEvent($id), $d));
     }
 
     /** GET /admin/events/{id}/guests/export: a CSV with everyone and when they arrived. */
     public function export(int $id): StreamedResponse
     {
-        $event = Event::findOrFail($id);
+        $event = $this->scopedEvent($id);
 
         return response()->streamDownload(function () use ($event) {
             $out = fopen('php://output', 'w');

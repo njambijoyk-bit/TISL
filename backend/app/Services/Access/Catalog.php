@@ -11,13 +11,14 @@ namespace App\Services\Access;
  */
 class Catalog
 {
-    public const VERSION = 24;
+    public const VERSION = 25;
 
     /** The key of the owner role: the one role that holds every permission, including ones added later. It cannot be changed or deleted. */
     public const OWNER = 'super_admin';
 
     /** Permissions added after version 1, by the version that added them. The seeder gives a new permission to the built-in roles that hold it by default once, and never again (an admin may take it back). */
     public const ADDED = [
+        25 => ['events.admin'],
         24 => ['books.budget.exceed'],
         23 => ['books.budget.approve'],
         22 => ['books.planning'],
@@ -216,6 +217,7 @@ class Catalog
         'events.sell'       => ['events', 'Events', 'Sell tickets at the box office and give complimentary tickets', true],
         'events.checkin'    => ['events', 'Events', 'Check people in at the door (scan or search)', false],
         'events.refund'     => ['events', 'Events', 'Approve or decline ticket refunds and cancel tickets', true],
+        'events.admin'      => ['events', 'Events', 'Run the events platform: categories, outside organisers, vendors and venues (verify, suspend, set commission) and approve their events', true],
         'codes.view'        => [null, 'Codes', 'See the Codes page and look up what a code stands for', false],
         'codes.manage'      => [null, 'Codes', 'Give products, batches and assets their barcodes and change or retire a code', true],
         'codes.print'       => [null, 'Codes', 'Print code labels and sheets', false],

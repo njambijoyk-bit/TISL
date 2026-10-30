@@ -14,6 +14,8 @@ use Illuminate\Http\Request;
 /** Staff deciding ticket refunds: the waiting requests, approving (money goes back in the books), declining with a reason, and refunding a ticket on someone's behalf. Needs events.refund. */
 class EventRefundController extends Controller
 {
+    use \App\Http\Controllers\Api\Concerns\ScopesEvents;
+
     public function __construct(private EventRefunds $refunds)
     {
     }
@@ -33,11 +35,15 @@ class EventRefundController extends Controller
         $d = $request->validate(['status' => 'nullable|in:pending,approved,declined,all', 'event_id' => 'nullable|integer']);
         $status = $d['status'] ?? EventRefundRequest::PENDING;
 
-        return response()->json(['data' => $this->refunds->list($status === 'all' ? null : $status, $d['event_id'] ?? null)]);
+        $ids = $this->eventAccess()->organiserIds($request->user());   // an outside organiser sees the requests on their own events, to read
+        $mine = $ids === null ? null : $this->eventAccess()->scope(\App\Models\Events\Event::query(), $request->user())->pluck('id')->all();
+
+        return response()->json(['data' => $this->refunds->list($status === 'all' ? null : $status, $d['event_id'] ?? null, $mine)]);
     }
 
     public function approve(Request $request, int $id): JsonResponse
     {
+        $this->staffOnly('Deciding a refund');
         $d = $request->validate(['refund_ledger_id' => 'nullable|integer', 'note' => 'nullable|string|max:300']);
 
         return $this->guard(function () use ($request, $id, $d) {
@@ -49,6 +55,7 @@ class EventRefundController extends Controller
 
     public function decline(Request $request, int $id): JsonResponse
     {
+        $this->staffOnly('Deciding a refund');
         $d = $request->validate(['note' => 'required|string|max:300']);
 
         return $this->guard(function () use ($request, $id, $d) {
@@ -61,8 +68,9 @@ class EventRefundController extends Controller
     /** POST /admin/events/{id}/refunds/approve-all {refund_ledger_id}: every request still waiting for one event (after it was cancelled). */
     public function approveAll(Request $request, int $id): JsonResponse
     {
+        $this->staffOnly('Deciding a refund');
         $d = $request->validate(['refund_ledger_id' => 'nullable|integer']);
-        $r = $this->refunds->approveAll(Event::findOrFail($id), $d['refund_ledger_id'] ?? null, $request->user());
+        $r = $this->refunds->approveAll($this->scopedEvent($id), $d['refund_ledger_id'] ?? null, $request->user());
 
         return response()->json($r + ['message' => "{$r['done']} refunded" . ($r['failed'] ? ', ' . count($r['failed']) . ' need attention.' : '.')]);
     }
@@ -70,6 +78,7 @@ class EventRefundController extends Controller
     /** POST /admin/events/{id}/tickets/{ticketId}/refund {refund_ledger_id, note}: staff refund a ticket for someone (a request and its approval in one step). */
     public function refundTicket(Request $request, int $id, int $ticketId): JsonResponse
     {
+        $this->staffOnly('Deciding a refund');
         $d = $request->validate(['refund_ledger_id' => 'nullable|integer', 'note' => 'nullable|string|max:300']);
         $t = EventTicket::where('event_id', $id)->findOrFail($ticketId);
 
