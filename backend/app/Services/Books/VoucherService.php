@@ -891,6 +891,9 @@ class VoucherService
                 }
                 unset($rl);
             }
+            if (AccountingInvoiceGuard::wanted($data)) {
+                app(AccountingInvoiceGuard::class)->assert($type, $lines);   // ledger lines only, posting to income (sale) or expense / asset (purchase)
+            }
             $plan['lines'] = $lines;
             app(HamperEditionService::class)->assertCanTake($lines, $type, $customer, $plan['source_id'], $existing);   // on sale, eligible, per-customer limit, edition size
             [$plan['subtotal'], $plan['tax_total']] = $this->totals($lines);

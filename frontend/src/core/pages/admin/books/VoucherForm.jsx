@@ -283,6 +283,7 @@ export default function VoucherForm({ api = booksAPI, mode = 'books' }) {
         if (paidEntry && Number(paidEntry.ledger_id) !== Number(v.party_ledger_id ?? 0)) { setCashPurchase(true); setH((x) => ({ ...x, paid_ledger_id: paidEntry.ledger_id })); }
       }
       if ((v.tenders ?? []).length > 1) setTenders(v.tenders.map((t) => ({ payment_method_id: t.payment_method_id, amount: t.amount, code: t.code ?? '', reference: t.reference ?? '' })));
+      setAcct(v.meta?.invoice_mode === 'accounting');
       if (v.type?.has_items) {
         setLines((v.items ?? []).filter((i) => !i.parent_item_id && i.notes !== '__rounding').map((i, idx) => {
           const shared = v.meta?.discount_shares ? Number(v.meta.discount_shares[idx] ?? 0) : (legacy && SHARE_SRC.includes(i.discount_source) ? Number(i.discount_amount) : 0);
@@ -426,6 +427,8 @@ export default function VoucherForm({ api = booksAPI, mode = 'books' }) {
   const contraBankOut = base === 'contra' && contraDr && contraCr && !isBankLedger(ledgers.find((l) => String(l.id) === String(contraDr.ledger_id))) && isBankLedger(ledgers.find((l) => String(l.id) === String(contraCr.ledger_id)));
   const insMissing = (moneyBank && (!ins.type || (ins.type === 'cheque' && !ins.number.trim()))) || (contraBankIn && !slip.number.trim());
 
+  const [acct, setAcct] = useState(false);   // an accounting invoice: ledger lines only (rent, fees, utilities), no products or stock
+  const canAcct = ['sales', 'purchase', 'credit_note', 'debit_note'].includes(base) && hasItems;
   const payload = useMemo(() => {
     const p = {
       voucher_type_id: Number(typeId), date: h.date, location_id: h.location_id || null, cost_centre_id: h.cost_centre_id || undefined, ...(ini.ready ? { initiative_id: h.initiative_id || null } : {}), reference_no: h.reference_no || null, narration: h.narration || null,
@@ -435,6 +438,7 @@ export default function VoucherForm({ api = booksAPI, mode = 'books' }) {
       currency_id: editing && h.currency_id ? Number(h.currency_id) : undefined,   // an edit keeps the voucher's own currency; a new one is in the base currency
       valid_until: h.valid_until || undefined,
     };
+    if (acct && canAcct) p.meta = { invoice_mode: 'accounting' };
     if (hasItems) {
       p.lines = lines.map((l) => {
         const b = { type: l.type, quantity: Number(l.quantity) || 0, discount: Number(l.discount) || 0, notes: l.notes || undefined };
@@ -481,7 +485,7 @@ export default function VoucherForm({ api = booksAPI, mode = 'books' }) {
       else if (h.series_id) p.series_id = h.series_id;
     }
     return p;
-  }, [typeId, h, cc.line_override, ini.ready, lines, entries, tenders, wh, alloc, ins, slip, moneyBank, contraBankIn, contraBankOut, refund, isAdvance, advanceFor, custCredits, creditPick, hasItems, isMoney, isEntries, manual, editing, expiredOverride, discountPick, giftPlan, giftPick, base, methods, preview?.total, rounding, cashPurchase]);
+  }, [typeId, acct, canAcct, h, cc.line_override, ini.ready, lines, entries, tenders, wh, alloc, ins, slip, moneyBank, contraBankIn, contraBankOut, refund, isAdvance, advanceFor, custCredits, creditPick, hasItems, isMoney, isEntries, manual, editing, expiredOverride, discountPick, giftPlan, giftPick, base, methods, preview?.total, rounding, cashPurchase]);
 
   // live preview (business errors show inline, not as toasts)
   useEffect(() => {
@@ -499,6 +503,7 @@ export default function VoucherForm({ api = booksAPI, mode = 'books' }) {
   const setLine = (key, patch) => setLines((ls) => ls.map((l) => (l.key === key ? { ...l, ...patch } : l)));
   // Products, services and hampers belong to the E-commerce module: with it off they cannot go on a voucher
   useModuleStore((st) => st.active);   // re-render when the switch changes
+  const chooseAcct = (on) => { setAcct(on); if (on) setLines((ls) => (ls.length && ls.every((l) => l.type === 'custom') ? ls : [emptyLine('custom')])); };
   const lineOff = (t) => ({ product: !isModuleActive(MODULES.ECOMMERCE), service: !isModuleActive(MODULES.ECOMMERCE), hamper: !isModuleActive(MODULES.HAMPERS) }[t] ?? false);
   const offTypes = [...new Set(lines.map((l) => l.type).filter(lineOff))];
   const addLine = (t) => {
@@ -547,7 +552,9 @@ export default function VoucherForm({ api = booksAPI, mode = 'books' }) {
   };
 
   // lines post to income/expense accounts — customers', suppliers', cash and bank accounts are moved with receipts, payments, journals and notes
-  const lineLedgers = ledgers.filter((l) => !['customer', 'supplier', 'cash', 'bank'].includes(l.kind) && !(['purchase', 'debit_note'].includes(base) && notForPurchaseLines(l)));
+  const salesSide = ['sales', 'credit_note'].includes(base);
+  const lineLedgers = ledgers.filter((l) => !['customer', 'supplier', 'cash', 'bank'].includes(l.kind) && !(['purchase', 'debit_note'].includes(base) && notForPurchaseLines(l))
+    && !(acct && canAcct && (['tax', 'stock', 'accumulated_depreciation', 'capital'].includes(l.kind) || (salesSide ? l.group?.nature !== 'income' : !['expense', 'asset'].includes(l.group?.nature)))));   // an accounting invoice sells to income and buys expenses or assets
   const partyLedgers = ledgers.filter((l) => ['Sundry Debtors', 'Sundry Creditors'].includes(l.group?.name));
   const moneyLedgers = ledgers.filter((l) => ['cash', 'bank'].includes(l.kind));
 
@@ -561,10 +568,23 @@ export default function VoucherForm({ api = booksAPI, mode = 'books' }) {
         {loading ? <p style={{ color: colors.textMuted }}>Loading…</p> : (
           <div style={{ display: 'grid', gridTemplateColumns: 'minmax(0,1fr)', gap: 16 }}>
             {!editing && ['credit_note', 'debit_note'].includes(base) && <InvoiceFinder base={base} />}
+            {canAcct && (
+              <div style={{ ...card, padding: '10px 14px', display: 'flex', gap: 12, alignItems: 'center', flexWrap: 'wrap' }}>
+                <strong style={{ fontSize: '0.8rem', color: colors.primary }}>Invoice mode</strong>
+                {editing
+                  ? <span style={{ fontSize: '0.8rem' }}>{acct ? 'Accounting invoice (ledger lines)' : 'Item invoice'}</span>
+                  : [[false, 'Item invoice'], [true, 'Accounting invoice']].map(([on, text]) => (
+                    <label key={text} style={{ display: 'inline-flex', gap: 6, alignItems: 'center', fontSize: '0.8rem', cursor: 'pointer' }}>
+                      <input type="radio" name="invoice-mode" checked={acct === on} onChange={() => chooseAcct(on)} /> {text}
+                    </label>
+                  ))}
+                {acct && <span style={{ fontSize: '0.74rem', color: colors.textFaint }}>{salesSide ? 'Bill service income that is not an item: choose the income ledger, a description and the amount.' : 'Record a bill with no stock: rent, electricity, professional fees. Choose the expense (or asset) ledger, a description and the amount.'}</span>}
+              </div>
+            )}
             <div style={{ ...card, padding: 18, display: 'grid', gridTemplateColumns: 'repeat(auto-fit,minmax(200px,1fr))', gap: 14 }}>
               <div>
                 <label style={label}>Voucher type</label>
-                <select value={typeId} disabled={editing} onChange={(e) => { setTypeId(e.target.value); setLines([]); setPreview(null); }} style={small}>
+                <select value={typeId} disabled={editing} onChange={(e) => { setTypeId(e.target.value); setLines([]); setPreview(null); setAcct(false); }} style={small}>
                   <option value="">Choose…</option>
                   {types.map((t) => <option key={t.id} value={t.id}>{t.name}</option>)}
                 </select>
@@ -816,7 +836,7 @@ export default function VoucherForm({ api = booksAPI, mode = 'books' }) {
                   );
                 })}
                 <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap', marginTop: 10 }}>
-                  {[['product', 'Product'], ['ingredient', 'Kitchen stock'], ['service', 'Service'], ['hamper', 'Hamper'], ['charge', 'Charge / discount'], ['custom', 'Custom line']].filter(([t]) => !lineOff(t) && (t !== 'ingredient' || (base === 'purchase_order' && isModuleActive(MODULES.MENUS)))).map(([t, l]) => (
+                  {[['product', 'Product'], ['ingredient', 'Kitchen stock'], ['service', 'Service'], ['hamper', 'Hamper'], ['charge', 'Charge / discount'], ['custom', acct ? 'Add ledger line' : 'Custom line']].filter(([t]) => (!acct || t === 'custom') && !lineOff(t) && (t !== 'ingredient' || (base === 'purchase_order' && isModuleActive(MODULES.MENUS)))).map(([t, l]) => (
                     <button key={t} type="button" onClick={() => addLine(t)} style={{ ...btnGhost, padding: '5px 12px', fontSize: '0.75rem' }}><Plus size={12} /> {l}</button>
                   ))}
                 </div>
