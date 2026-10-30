@@ -265,7 +265,7 @@ class ForecastService
                 ['key' => 'opening', 'label' => 'Starting cash', 'value' => number_format($opening, 2), 'detail' => 'What the cash and bank accounts hold on ' . $start . '.'],
                 ['key' => 'customers', 'label' => 'Customer bills', 'value' => $custCount . ' bills · ' . number_format($custTotal, 2), 'detail' => "Expected {$a['delay']} day(s) after the due date, {$a['percent']}% collected. An estimate of timing."],
                 ['key' => 'suppliers', 'label' => 'Supplier bills', 'value' => $suppCount . ' bills · ' . number_format($suppTotal, 2), 'detail' => 'Paid on the due date' . ($a['terms'] > 0 ? ", or {$a['terms']} day(s) after the bill date when there is no due date" : '') . '. Confirmed.'],
-                ['key' => 'items', 'label' => 'Recurring and one-off items', 'value' => count($items) . ' active', 'detail' => collect($items)->groupBy('certainty')->map(fn ($g, $c) => count($g) . ' ' . $c)->implode(', ') ?: 'None entered under Planning.'],
+                ['key' => 'items', 'label' => 'Recurring and one-off items', 'value' => count($items) . ' active', 'detail' => collect($items)->groupBy('certainty')->map(fn ($g, $c) => count($g) . ' ' . $c)->implode(', ') ?: 'None entered under Budgeting.'],
                 ['key' => 'tax', 'label' => 'Tax', 'value' => $a['tax'] ? 'Included' : 'Left out', 'detail' => $a['tax'] ? ($taxNote . ' An estimate.') : 'The tax payment is not in this forecast (Reports settings → Cash forecast).'],
                 ['key' => 'late', 'label' => 'Bills already late', 'value' => 'The next day', 'detail' => 'A bill past its date is placed on the day after the forecast starts.'],
             ],
