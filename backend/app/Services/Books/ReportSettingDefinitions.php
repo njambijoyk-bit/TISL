@@ -78,6 +78,7 @@ class ReportSettingDefinitions
                     'options' => ['ytd' => 'The budget year to date', 'month' => 'This month only', 'year' => 'The whole budget']],
                 'budget_carry_forward' => ['type' => 'enum', 'label' => 'Unused budget at the end of a month', 'hint' => 'Expire: a month\'s budget ends with it. Carry forward: what was not spent rolls into the next month\'s room (expenses only), in the report and in the month check. Moving budget between lines is done with a transfer.', 'default' => 'expire',
                     'options' => ['expire' => 'Expires', 'carry' => 'Carries forward to the next month']],
+                'budget_noncash_groups' => ['type' => 'group_list', 'label' => 'Expenses that are not cash', 'hint' => 'Ledger groups whose expenses use no cash when they happen, such as depreciation. The cash budget leaves them out.', 'default' => []],
                 'budget_alert_percent' => ['type' => 'int', 'label' => 'Warn when this much of the budget is used (%)', 'hint' => 'A voucher that takes a line past this share, but not over it, gets a gentle warning. 0 turns it off.', 'default' => 80, 'min' => 0, 'max' => 100],
             ]],
             'approvals' => ['title' => 'Approvals', 'hint' => 'Whether a second person must approve before a reconciliation, a budget or the year-end close is final. Every change here is logged.', 'permission' => 'books.reports.approval', 'settings' => [

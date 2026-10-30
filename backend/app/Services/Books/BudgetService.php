@@ -592,8 +592,8 @@ class BudgetService
                 $dim[$col] = $v;
             }
             $recovery = ! empty($r['is_recovery']);
-            if ($recovery && $info['section'] !== 'expense') {
-                $errors["rows.{$i}.is_recovery"] = 'Only an expense can be a recovery.';
+            if ($recovery && $info['section'] === 'income') {
+                $errors["rows.{$i}.is_recovery"] = 'Only an expense or a balance-sheet line can be a recovery or a reduction.';
                 continue;
             }
             $method = (string) ($r['method'] ?? 'manual');

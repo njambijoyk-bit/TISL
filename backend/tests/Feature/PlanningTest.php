@@ -11,6 +11,8 @@ use App\Services\Books\Engine\Reports\BudgetAgainstActualReport;
 use App\Services\Books\BudgetService;
 use App\Services\Books\BudgetTemplateService;
 use App\Services\Books\BudgetTransferService;
+use App\Services\Books\Engine\Reports\MasterBudgetReport;
+use App\Services\Books\MasterBudgetService;
 use App\Services\Books\Engine\LedgerBalances;
 use App\Services\Books\Engine\Reports\MoneyFlowReport;
 use App\Services\Books\Engine\Scope;
@@ -874,6 +876,124 @@ class PlanningTest extends TestCase
         $again = $this->postJson('/api/admin/books/planning/transfers', ['from_row_id' => $head, 'to_row_id' => $admin, 'period' => '2026-08', 'amount' => 10])->assertOk()->json('id');
         $this->deleteJson("/api/admin/books/planning/transfers/{$again}")->assertOk();
         $this->postJson('/api/admin/books/planning/budget-sets/' . $b . '/versions', ['kind' => 'scenario', 'drivers' => [['scope' => 'all', 'percent' => -10]]])->assertOk();
+    }
+
+    // ── master budget and cash ─────────────────────────────────────────
+
+    private function cashNow(): float
+    {
+        return round(array_sum(array_map(fn ($id) => app(LedgerBalances::class)->balance($id, '2026-10-28'), app(MoneyFlowReport::class)->moneyLedgerIds())), 2);
+    }
+
+    /** A 2027 budget for January to March, approved: sales 100,000 and rent 30,000 a month, 20,000 of equipment in January, 50,000 of capital in February, 5,000 of equipment sold in March. */
+    private function cashWorld(array $extra = [], bool $approve = true): int
+    {
+        $this->setting('second_approver_budget', false);
+        $svc = app(BudgetService::class);
+        $b = $svc->createBudget(['name' => '2027 plan', 'from_month' => '2027-01', 'to_month' => '2027-03'], $this->user(1));
+        $v = $svc->currentVersion($b);
+        $three = fn (int $x) => ['2027-01' => $x, '2027-02' => $x, '2027-03' => $x];
+        $svc->save(array_merge([
+            ['type' => 'group', 'target_id' => 6, 'months' => $three(100000)],
+            ['type' => 'ledger', 'target_id' => 6, 'months' => $three(30000)],
+            ['type' => 'ledger', 'target_id' => 3, 'months' => ['2027-01' => 20000]],
+            ['type' => 'ledger', 'target_id' => 7, 'months' => ['2027-02' => 50000]],
+            ['type' => 'ledger', 'target_id' => 3, 'is_recovery' => true, 'months' => ['2027-03' => 5000]],
+        ], $extra), $this->user(1), $v);
+        if ($approve) {
+            $svc->transition($v, 'submit', $this->user(1));
+            $svc->transition($v, 'approve', $this->user(1));
+        }
+
+        return $b;
+    }
+
+    public function test_the_master_budget_adds_up_the_plan_and_the_cash_budget_follows_the_cash(): void
+    {
+        $this->cashWorld();
+        $r = app(MasterBudgetService::class)->build('2027-01', '2027-03');
+        $open = $this->cashNow();
+        $this->assertEquals([300000, 90000, 210000], [$r['totals']['income'], $r['totals']['expense'], $r['totals']['result']]);
+        $this->assertEquals($open, $r['cash']['opening'], 'a budget that starts in the future begins from today\'s cash');
+        $this->assertStringContainsString('future', $r['cash']['opening_note']);
+        $m = collect($r['months'])->keyBy('month');
+        $this->assertEquals([50000, 120000, 75000], [$m['2027-01']['net_cash'], $m['2027-02']['net_cash'], $m['2027-03']['net_cash']], 'income less rent, less equipment bought, plus capital raised, plus equipment sold');
+        $this->assertEquals([20000, 0, -5000], [$m['2027-01']['assets'], $m['2027-02']['assets'], $m['2027-03']['assets']], 'a reduction on an asset line brings cash in');
+        $this->assertEquals($open + 245000, $r['cash']['closing']);
+        $this->assertTrue($r['cash']['can_finance']);
+        $this->assertSame(['2027-01'], [$r['cash']['lowest']['month']]);
+        $this->assertSame('Sales Accounts', $r['income_lines'][0]['name']);
+        $this->assertEquals(300000, $r['income_lines'][0]['total']);
+        $this->assertSame(['2027 plan'], array_column($r['budgets'], 'name'));
+        $this->assertFalse($r['not_approved']);
+    }
+
+    public function test_customers_who_pay_late_and_only_in_part_leave_the_business_short_of_cash(): void
+    {
+        $this->cashWorld();
+        $this->setting('forecast_collection_delay_days', 30);
+        $this->setting('forecast_collect_percent', 50);
+        $open = $this->cashNow();
+        $r = app(MasterBudgetService::class)->build('2027-01', '2027-03');
+        $m = collect($r['months'])->keyBy('month');
+        $this->assertEquals([0, 50000, 50000], [$m['2027-01']['receipts'], $m['2027-02']['receipts'], $m['2027-03']['receipts']], 'one month late, half of it');
+        $this->assertEquals(50000, $r['cash']['after_budget']['receipts'], "March's sales arrive after the budget ends");
+        $this->assertEquals($open - 50000, $m['2027-01']['closing'], 'January pays rent and equipment with nothing yet coming in');
+        $svc = app(BudgetService::class);
+        $v = $svc->currentVersion((int) DB::table('budgets')->value('id'));
+        $rev = $svc->createVersion((int) DB::table('budgets')->value('id'), ['kind' => 'revision'], $this->user(1));
+        $svc->save([['type' => 'ledger', 'target_id' => 3, 'months' => ['2027-01' => $open + 1000]]], $this->user(1), $rev);
+        $svc->transition($rev, 'submit', $this->user(1));
+        $svc->transition($rev, 'approve', $this->user(1));
+        $r = app(MasterBudgetService::class)->build('2027-01', '2027-03');
+        $this->assertFalse($r['cash']['can_finance'], 'equipment costing more than all the cash');
+        $this->assertSame('2027-01', $r['cash']['short_months'][0]);
+        $this->assertLessThan(0, $r['cash']['lowest']['balance']);
+        $this->assertNotSame($v, $svc->currentVersion((int) DB::table('budgets')->value('id')), 'the newest approved version is the one planned from');
+    }
+
+    public function test_an_expense_that_is_not_cash_and_a_budget_that_is_not_approved_are_handled(): void
+    {
+        $this->setting('budget_noncash_groups', [7]);
+        $this->cashWorld([['type' => 'ledger', 'target_id' => 5, 'months' => ['2027-01' => 10000]]], false);
+        $r = app(MasterBudgetService::class)->build('2027-01', '2027-03');
+        $m = collect($r['months'])->keyBy('month');
+        $this->assertEquals(40000, $m['2027-01']['expense'], 'rent and the 10,000 (depreciation-like) both count in the result');
+        $this->assertEquals(30000, $m['2027-01']['payments'], 'but only the rent uses cash');
+        $this->assertTrue($r['not_approved'], 'a draft is planned from, and flagged');
+        $this->assertStringContainsString('Left out', collect($r['assumptions'])->firstWhere('label', 'Not cash')['value']);
+    }
+
+    public function test_every_budget_that_covers_the_months_is_in_the_master_budget_and_one_can_be_chosen(): void
+    {
+        $b1 = $this->cashWorld();
+        $svc = app(BudgetService::class);
+        $b2 = $svc->createBudget(['name' => 'Capital', 'budget_type' => 'capex', 'from_month' => '2027-02', 'to_month' => '2027-06'], null);
+        $svc->save([['type' => 'ledger', 'target_id' => 3, 'months' => ['2027-02' => 8000]]], null, $svc->currentVersion($b2));
+        $all = app(MasterBudgetService::class)->build('2027-01', '2027-03');
+        $this->assertEqualsCanonicalizing(['2027 plan', 'Capital'], array_column($all['budgets'], 'name'));
+        $this->assertEquals(8000, collect($all['months'])->firstWhere('month', '2027-02')['assets'], 'February: only the capital budget buys equipment');
+        $only = app(MasterBudgetService::class)->build('2027-01', '2027-03', $b1);
+        $this->assertSame(['2027 plan'], array_column($only['budgets'], 'name'));
+        $this->assertEquals(0, collect($only['months'])->firstWhere('month', '2027-02')['assets']);
+    }
+
+    public function test_the_report_runs_on_the_engine_exports_and_asks_for_a_budget_when_there_is_none(): void
+    {
+        $rep = new MasterBudgetReport();
+        $r = $rep->run(Scope::dates('2027-01-01', '2027-03-31'), []);
+        $this->assertFalse($r['ready']);
+        $this->assertStringContainsString('Budgeting', $r['message']);
+        $this->cashWorld();
+        $r = $rep->run(Scope::dates('2027-01-01', '2027-03-31'), ['budget' => '0']);
+        $this->assertTrue($r['ready']);
+        $t = $rep->table($r, Scope::dates('2027-01-01', '2027-03-31'));
+        $this->assertCount(3, $t['rows']);
+        $this->assertSame('Whole period', $t['totals']['month']);
+        $this->assertFalse($rep->run(Scope::dates('2027-01-01', '2031-12-31'), [])['ready'], 'three years at most');
+        $this->assertArrayHasKey((string) DB::table('budgets')->value('id'), array_column($rep->options(), 'choices', 'key')['budget']);
+        $this->as(['books.view']);
+        $this->getJson('/api/admin/reports')->assertOk()->assertJsonFragment(['key' => 'master-budget']);
     }
 
     // ── the report ─────────────────────────────────────────────────────

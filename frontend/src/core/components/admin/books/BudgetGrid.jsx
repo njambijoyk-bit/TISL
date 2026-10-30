@@ -83,7 +83,7 @@ export default function BudgetGrid({ data, year, setYear, reload, canEdit, versi
               {open === r.key ? <ChevronDown size={14} /> : <ChevronRight size={14} />}
             </button>
             {r.name}
-            {r.is_recovery && <span style={{ marginLeft: 6, fontSize: '0.64rem', fontWeight: 700, color: colors.successText }}>recovery</span>}
+            {r.is_recovery && <span style={{ marginLeft: 6, fontSize: '0.64rem', fontWeight: 700, color: colors.successText }}>{r.section === 'balance' ? 'reduction' : 'recovery'}</span>}
             {sr.dimensions.length > 0 && <span style={{ marginLeft: 6, fontSize: '0.64rem', color: colors.textFaint }}>{sr.dimensions.join(' › ')}</span>}
             {r.method !== 'manual' && <span style={{ marginLeft: 6, fontSize: '0.62rem', color: colors.primaryDeep }}>{r.method}</span>}
           </td>

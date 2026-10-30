@@ -16,7 +16,7 @@ export default function ReportsNav({ visible, current, open, favourites, onStar,
   const byKey = useMemo(() => new Map(visible.map((r) => [r.engine, r])), [visible]);
   const favs = favourites.map((k) => byKey.get(k)).filter(Boolean);
   const term = q.trim().toLowerCase();
-  const found = term ? visible.filter((r) => `${r.label} ${r.group}`.toLowerCase().includes(term) || r.letter.toLowerCase() === term) : null;
+  const found = term ? visible.filter((r) => `${r.label} ${r.group}`.toLowerCase().includes(term) || (r.letter ?? '').toLowerCase() === term) : null;
 
   const onKey = (e) => {
     if (!found) return;
@@ -31,7 +31,7 @@ export default function ReportsNav({ visible, current, open, favourites, onStar,
       <button type="button" style={row(r.id === current.id || extra?.hi)} aria-current={r.id === current.id ? 'page' : undefined} onClick={() => { open(r); setQ(''); setShown(false); }}>
         {extra?.number && <span style={{ ...badge, color: colors.warningText, borderColor: colors.warning }}>{extra.number}</span>}
         <span style={{ flex: 1, minWidth: 0 }}>{r.label}</span>
-        <span style={badge} title={`Press G, then ${r.letter}`}>G {r.letter}</span>
+        {r.letter && <span style={badge} title={`Press G, then ${r.letter}`}>G {r.letter}</span>}
       </button>
       <button type="button" aria-label={favourites.includes(r.engine) ? `Remove ${r.label} from favourites` : `Add ${r.label} to favourites`} aria-pressed={favourites.includes(r.engine)} onClick={() => onStar(r)}
         style={{ background: 'none', border: 'none', cursor: 'pointer', padding: 4, display: 'inline-flex', color: favourites.includes(r.engine) ? colors.warning : colors.textGhost }}>

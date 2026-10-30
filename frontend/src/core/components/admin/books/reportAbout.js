@@ -31,6 +31,14 @@ export const GUIDE = {
     ],
     tips: ['Compare with the previous period or the same period last year, or show it month by month, from the report\'s options.', 'Direct and indirect is decided by the statement line a ledger is on: Revenue and Cost of sales are the trading section.', 'Ledgers that are on no statement line are shown apart and still counted, so no amount is lost.', 'Drafts are never counted; foreign-currency vouchers are shown in today\'s base currency.'],
   },
+  'master-budget': {
+    purpose: 'Every budget that covers the dates brought into one plan, and the question the plan alone cannot answer: does the business have the cash to do all of it? Income, expenses and the result by month and ledger group sit above a cash budget that starts from the cash you hold, delays what customers pay and what suppliers are paid as the forecast assumptions say, takes out assets bought and brings in loans and capital.',
+    differs: [
+      { key: 'budget-against-actual', text: 'Budget against actual sets one budget against what happened. This one sets the whole plan against your cash, looking forward.' },
+      { key: 'cash-flow', text: 'The cash flow statement reports the cash that moved. This one is the plan for it.' },
+    ],
+    tips: ['The timing comes from Reports settings, Cash forecast assumptions (customers pay N days after, share collected, supplier terms).', 'A balance-sheet line in a budget is read as a movement: an asset line is cash spent, a liability or equity line is cash raised; tick "reduction" for one sold or repaid.', 'Choose the groups that use no cash (depreciation) under Budget controls so they stay out of the cash.', 'It plans from each budget\'s newest approved version, or its newest draft when none is approved, and says so.'],
+  },
   'budget-against-actual': {
     purpose: 'Every budgeted line set against what the books actually show in the same dates: the budget, the actual, the gap, how much of the budget is used and what remains. Group it by account, cost centre, department, branch or initiative, and open any line to see what it is made of, down to the ledgers and their statements.',
     differs: [

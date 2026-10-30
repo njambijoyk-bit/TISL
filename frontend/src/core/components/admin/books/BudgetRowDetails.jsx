@@ -69,6 +69,10 @@ export default function BudgetRowDetails({ row, rows, choices, months, year, can
         <CheckboxRow disabled={!canEdit} checked={row.is_recovery} onChange={(e) => onChange({ is_recovery: e.target.checked })} label="This is a recovery"
           description="Money expected to be credited back to this expense (travel recharged to a customer). It lowers the net spend on the account." />
       )}
+      {row.section === 'balance' && (
+        <CheckboxRow disabled={!canEdit} checked={row.is_recovery} onChange={(e) => onChange({ is_recovery: e.target.checked })} label="This is a reduction"
+          description="The planned movement goes the other way: an asset sold, or a loan repaid. In the cash budget an asset line is cash spent and a liability or equity line is cash raised; a reduction reverses that." />
+      )}
       {canEdit && (
         <div style={{ marginTop: 12, paddingTop: 12, borderTop: `1px solid ${colors.tint(0.1)}` }}>
           <p style={{ margin: '0 0 8px', fontSize: '0.74rem', fontWeight: 700, color: colors.textMuted }}>Fill the months</p>
