@@ -12,6 +12,7 @@ import { Field, TextInput, NumberInput, SelectInput, TextArea, FormGrid, FormSta
 import SimpleTable from '../ui/SimpleTable';
 import { SheetView, BlocksView, MapView } from './ChartViews';
 import CurrencySelect from './CurrencySelect';
+import StarterAccounts from './StarterAccounts';
 import useNarrow from './useNarrow';
 import { exportElement } from '../../../../_shared/lib/captureExport';
 import { downloadCsv } from '../../../../_shared/lib/tableExport';
@@ -470,6 +471,7 @@ export default function AccountsTab({ canWrite }) {
   const [loading, setLoading] = useState(true);
   const [ledgerForm, setLedgerForm] = useState(null);
   const [groupForm, setGroupForm] = useState(false);
+  const [starters, setStarters] = useState(false);
   const [search, setSearch] = useState('');
   const narrow = useNarrow(900);
   const [showGroups, setShowGroups] = useState(false);   // on a small screen the group picker stays out of the way until asked for
@@ -606,6 +608,7 @@ export default function AccountsTab({ canWrite }) {
               )}
             </span>
             <input value={search} onChange={(e) => setSearch(e.target.value)} placeholder="Search ledgers…" aria-label="Search ledgers" style={{ flex: '1 1 150px', minWidth: 0, padding: '7px 10px', borderRadius: 8, border: `1.5px solid ${colors.tint(0.18)}`, fontSize: '0.8rem' }} />
+            {canWrite && <button type="button" style={btnGhost} onClick={() => setStarters(true)}>Add starter accounts</button>}
             {canWrite && <button type="button" style={btnPrimary} onClick={() => setLedgerForm('new')}><Plus size={14} /> New ledger</button>}
           </div>
         </div>
@@ -623,6 +626,7 @@ export default function AccountsTab({ canWrite }) {
       </div>
       {ledgerForm && <LedgerForm ledger={ledgerForm === 'new' ? null : ledgerForm} groups={groups} defaultGroupId={sel?.id} onClose={() => setLedgerForm(null)} onSaved={() => { loadLedgers(); loadGroups(); }} />}
       {groupForm && <GroupForm groups={groups} parentId={sel?.id} onClose={() => setGroupForm(false)} onSaved={loadGroups} />}
+      {starters && <StarterAccounts onClose={() => setStarters(false)} onDone={() => { loadGroups(); loadLedgers(); }} />}
     </div>
   );
 }

@@ -105,6 +105,9 @@ const booksAPI = {
 
   // masters
   groups: () => get('/admin/books/groups'),
+  chartStarters: () => get('/admin/books/chart-starters'),
+  previewChartStarters: (packs) => send('post', '/admin/books/chart-starters/preview', { packs }),
+  applyChartStarters: (packs) => send('post', '/admin/books/chart-starters/apply', { packs }),
   createGroup: (d) => send('post', '/admin/books/groups', d),
   updateGroup: (id, d) => send('put', `/admin/books/groups/${id}`, d),
   deleteGroup: (id) => send('delete', `/admin/books/groups/${id}`),

@@ -1238,6 +1238,8 @@ Route::middleware('auth:sanctum')->group(function () {
         Route::get('/groups',                   [BooksMasterController::class, 'groups']);
         Route::get('/statement-lines',          [\App\Http\Controllers\Api\StatementController::class, 'lines']);
         Route::get('/item-accounts',            [BooksMasterController::class, 'itemAccounts']);
+        Route::get('/chart-starters',           [\App\Http\Controllers\Api\ChartStarterController::class, 'index']);
+        Route::post('/chart-starters/preview',  [\App\Http\Controllers\Api\ChartStarterController::class, 'preview']);
         Route::get('/ledgers',                  [BooksMasterController::class, 'ledgers']);
         Route::get('/ledgers/{id}/tax-preview', [BooksMasterController::class, 'taxPreview'])->whereNumber('id');
         Route::get('/voucher-types',            [BooksMasterController::class, 'types']);
@@ -1274,6 +1276,7 @@ Route::middleware('auth:sanctum')->group(function () {
             Route::post('/vouchers/{id}/release-credit', [BooksVoucherController::class, 'releaseCredit'])->whereNumber('id');
             Route::post('/vouchers/{id}/request-payment', [BooksVoucherController::class, 'requestPayment']);
             Route::put('/item-accounts',            [BooksMasterController::class, 'updateItemAccounts']);
+            Route::post('/chart-starters/apply',    [\App\Http\Controllers\Api\ChartStarterController::class, 'apply']);
             Route::post('/groups',                  [BooksMasterController::class, 'storeGroup']);
             Route::put('/groups/{id}',              [BooksMasterController::class, 'updateGroup']);
             Route::delete('/groups/{id}',           [BooksMasterController::class, 'destroyGroup']);
