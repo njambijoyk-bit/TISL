@@ -141,8 +141,9 @@ function LedgerForm({ ledger, groups, defaultGroupId, onClose, onSaved }) {
       if (!bankish) { body.bank_name = null; body.account_number = null; body.branch = null; body.account_name = null; body.swift_code = null; body.branch_code = null; }
       if (!money) { ['accepts', 'mobile_kind', 'mobile_number', 'cash_kind', 'checkout_label', 'checkout_instructions'].forEach((k) => { body[k] = null; }); body.offer_at_checkout = false; body.checkout_sort = 0; }
       else { ['accepts', 'mobile_kind', 'mobile_number', 'cash_kind', 'checkout_label', 'checkout_instructions'].forEach((k) => { body[k] = blank(f[k]); }); body.checkout_sort = Number(f.checkout_sort) || 0; body.checkout_mode = f.offer_at_checkout ? f.checkout_mode : undefined; }
-      if (editing) await booksAPI.updateLedger(ledger.id, body); else await booksAPI.createLedger(body);
-      toast.success(editing ? 'Ledger saved' : 'Ledger created');
+      const r = editing ? await booksAPI.updateLedger(ledger.id, body) : await booksAPI.createLedger(body);
+      const type = r?.data?.asset_type;
+      toast.success(editing ? 'Ledger saved' : type ? `Ledger created, and “${type.name}” added as an asset type in Assets` : 'Ledger created');
       onSaved(); onClose();
     } catch (x) { setErrs(fieldErrors(x)); if (!x.response?.data?.errors) setErr(errMsg(x, 'Could not save the ledger')); }
     finally { setBusy(false); }
@@ -152,7 +153,7 @@ function LedgerForm({ ledger, groups, defaultGroupId, onClose, onSaved }) {
       <form onSubmit={submit}>
         <FormStack>
           <FormError message={err} />
-          <Field label="Name" error={errs.name}><TextInput required value={f.name} onChange={(e) => set('name')(e.target.value)} /></Field>
+          <Field label="Name" error={errs.name} hint={ledger?.is_system ? 'System ledgers keep their name: the books find them by it.' : undefined}><TextInput required disabled={ledger?.is_system} value={f.name} onChange={(e) => set('name')(e.target.value)} /></Field>
           <Field label="Group" error={errs.group_id} hint={ledger?.is_system ? 'System ledgers stay in their group.' : 'Where it appears in the chart and the reports.'}>
             <SelectInput required disabled={ledger?.is_system} value={f.group_id} onChange={(e) => set('group_id')(e.target.value)}>
               <option value="">Choose…</option>

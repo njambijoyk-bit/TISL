@@ -13,13 +13,26 @@ class InventoryCategory extends Model
         'parent_id', 'name', 'slug', 'description', 'icon', 'sort_order',
         'is_active', 'created_by',
         'asset_ledger_id', 'accumulated_ledger_id', 'expense_ledger_id', 'default_method', 'default_life_years', 'default_rate',
+        'default_floor_type', 'default_floor_value',
     ];
 
     protected $casts = [
         'is_active'  => 'boolean',
         'sort_order' => 'integer',
         'default_rate' => 'decimal:4',
+        'default_floor_value' => 'decimal:4',
     ];
+
+    /** The floor a new asset of this type starts with, for its cost: the amount (never above the cost), or the percent of the cost. Null when the type has none. */
+    public function floorFor(?float $cost): ?float
+    {
+        if (! $this->default_floor_type || $this->default_floor_value === null) {
+            return null;
+        }
+        $v = (float) $this->default_floor_value;
+
+        return $this->default_floor_type === 'percent' ? round((float) $cost * $v / 100, 2) : ($cost === null ? $v : min($v, $cost));
+    }
 
     public function parent(): BelongsTo
     {

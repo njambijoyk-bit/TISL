@@ -1644,7 +1644,7 @@ function SettingsModal({ onClose, toast }) {
   const [categories, setCategories] = useState([]);
   const [locations, setLocations] = useState([]);
   const [loading, setLoading] = useState(false);
-  const CAT_BLANK = { name: "", description: "", icon: "", is_active: true, asset_ledger_id: null, accumulated_ledger_id: null, expense_ledger_id: null, default_method: "none", default_life_years: null, default_rate: null };
+  const CAT_BLANK = { name: "", description: "", icon: "", is_active: true, asset_ledger_id: null, accumulated_ledger_id: null, expense_ledger_id: null, default_method: "none", default_life_years: null, default_rate: null, default_floor_type: null, default_floor_value: null };
   const accOpts = useAccountingOptions();
   const [catForm, setCatForm] = useState(CAT_BLANK);
   const [editCat, setEditCat] = useState(null);
@@ -1734,7 +1734,7 @@ function SettingsModal({ onClose, toast }) {
               <div key={c.id} style={{ display: "flex", alignItems: "center", justifyContent: "space-between", padding: "9px 0", borderBottom: `1px solid ${C.border}` }}>
                 <span style={{ fontFamily: mono, fontSize: 12 }}>{c.icon} {c.name}</span>
                 <div style={{ display: "flex", gap: 6 }}>
-                  <ActionBtn small outline color={C.cyan} onClick={() => { setEditCat(c); setCatForm({ name: c.name, description: c.description ?? "", icon: c.icon ?? "", is_active: c.is_active, asset_ledger_id: c.asset_ledger_id ?? null, accumulated_ledger_id: c.accumulated_ledger_id ?? null, expense_ledger_id: c.expense_ledger_id ?? null, default_method: c.default_method ?? "none", default_life_years: c.default_life_years ?? null, default_rate: c.default_rate ?? null }); }}>Edit</ActionBtn>
+                  <ActionBtn small outline color={C.cyan} onClick={() => { setEditCat(c); setCatForm({ name: c.name, description: c.description ?? "", icon: c.icon ?? "", is_active: c.is_active, asset_ledger_id: c.asset_ledger_id ?? null, accumulated_ledger_id: c.accumulated_ledger_id ?? null, expense_ledger_id: c.expense_ledger_id ?? null, default_method: c.default_method ?? "none", default_life_years: c.default_life_years ?? null, default_rate: c.default_rate ?? null, default_floor_type: c.default_floor_type ?? null, default_floor_value: c.default_floor_value ?? null }); }}>Edit</ActionBtn>
                   <ActionBtn small outline color={C.red} onClick={() => deleteCategory(c.id)}>✕</ActionBtn>
                 </div>
               </div>

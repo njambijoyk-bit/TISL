@@ -65,8 +65,10 @@ class InventoryController extends Controller
             'default_method'        => 'nullable|in:none,straight_line,reducing_balance',
             'default_life_years'    => 'nullable|integer|min:1|max:100',
             'default_rate'          => 'nullable|numeric|min:0|max:100',
-            
+            'default_floor_type'    => 'nullable|in:amount,percent',
+            'default_floor_value'   => 'nullable|numeric|min:0|required_with:default_floor_type',
         ]);
+        $data = $this->floorDefaults($data);
 
         $data['slug']       = \Illuminate\Support\Str::slug($data['name']);
         $data['created_by'] = Auth::id();
@@ -93,8 +95,10 @@ class InventoryController extends Controller
             'default_method'        => 'nullable|in:none,straight_line,reducing_balance',
             'default_life_years'    => 'nullable|integer|min:1|max:100',
             'default_rate'          => 'nullable|numeric|min:0|max:100',
-            
+            'default_floor_type'    => 'nullable|in:amount,percent',
+            'default_floor_value'   => 'nullable|numeric|min:0|required_with:default_floor_type',
         ]);
+        $data = $this->floorDefaults($data);
 
         if (isset($data['name'])) {
             $data['slug'] = \Illuminate\Support\Str::slug($data['name']);
@@ -103,6 +107,25 @@ class InventoryController extends Controller
         $category->update($data);
 
         return response()->json($category);
+    }
+
+    /** The least an asset of this type may be worth after depreciation: an amount, or a percent (up to 100) of its cost. Needs script 247. */
+    private function floorDefaults(array $data): array
+    {
+        if (! \Illuminate\Support\Facades\Schema::hasColumn('inventory_categories', 'default_floor_type')) {
+            unset($data['default_floor_type'], $data['default_floor_value']);
+
+            return $data;
+        }
+        if (array_key_exists('default_floor_type', $data) && empty($data['default_floor_type'])) {
+            $data['default_floor_type'] = null;
+            $data['default_floor_value'] = null;
+        }
+        if (($data['default_floor_type'] ?? null) === 'percent' && (float) ($data['default_floor_value'] ?? 0) > 100) {
+            throw \Illuminate\Validation\ValidationException::withMessages(['default_floor_value' => 'A percent of the cost cannot be more than 100.']);
+        }
+
+        return $data;
     }
 
     public function categoriesDestroy(int $id): JsonResponse
@@ -330,6 +353,13 @@ class InventoryController extends Controller
                 $data['depreciation_method'] = $cat->default_method ?: 'none';
                 $data['useful_life_years'] ??= $cat->default_life_years;
                 $data['depreciation_rate'] ??= $cat->default_rate;
+            }
+        }
+        if (! isset($data['floor_value']) && ! empty($data['item_id'])) {
+            // and with its type's floor: depreciation stops there
+            $cat ??= \App\Models\Inventory\InventoryCategory::find(\App\Models\Inventory\InventoryItem::find($data['item_id'])?->category_id);
+            if (($floor = $cat?->floorFor(isset($data['purchase_cost']) ? (float) $data['purchase_cost'] : null)) !== null) {
+                $data['floor_value'] = $floor;
             }
         }
         if (! \App\Services\Inventory\AssetAccountingService::ready()) {

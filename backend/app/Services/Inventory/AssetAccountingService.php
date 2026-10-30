@@ -337,8 +337,9 @@ class AssetAccountingService
         $name  = $cat->name;
         $cat->update([
             'asset_ledger_id'       => $cat->asset_ledger_id ?: $this->ledgers->ensure($name, $fixed->id)->id,
-            'accumulated_ledger_id' => $cat->accumulated_ledger_id ?: $this->ledgers->ensure("Accumulated Depreciation — {$name}", $fixed->id)->id,
-            'expense_ledger_id'     => $cat->expense_ledger_id ?: $this->ledgers->ensure("Depreciation — {$name}", $exp->id)->id,
+            // the chart may already have them written with another dash (the starter accounts use "–")
+            'accumulated_ledger_id' => $cat->accumulated_ledger_id ?: (FixedAssetLedgers::existing('Accumulated Depreciation', $name) ?? $this->ledgers->ensure("Accumulated Depreciation — {$name}", $fixed->id))->id,
+            'expense_ledger_id'     => $cat->expense_ledger_id ?: (FixedAssetLedgers::existing('Depreciation', $name) ?? $this->ledgers->ensure("Depreciation — {$name}", $exp->id))->id,
         ]);
 
         return $cat->fresh();

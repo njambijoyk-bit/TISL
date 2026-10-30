@@ -35,6 +35,22 @@ export function CategoryDepreciationFields({ form, set, opts, categoryId, onSetu
         <Field label="Life (years)"><input style={input} type="number" min="1" value={form.default_life_years ?? ''} onChange={(e) => set('default_life_years', e.target.value || null)} /></Field>
         <Field label="Rate % a year"><input style={input} type="number" min="0" max="100" step="0.01" value={form.default_rate ?? ''} onChange={(e) => set('default_rate', e.target.value || null)} /></Field>
       </div>
+      {opts.floor_ready ? (
+        <div style={{ display: 'grid', gridTemplateColumns: '1.4fr 1fr', gap: 8 }}>
+          <Field label="Least value (floor)" hint="New assets of this type start with it; depreciation stops there. Each asset can still set its own.">
+            <select style={input} value={form.default_floor_type ?? ''} onChange={(e) => { set('default_floor_type', e.target.value || null); if (!e.target.value) set('default_floor_value', null); }}>
+              <option value="">None (down to 0)</option>
+              <option value="amount">An amount</option>
+              <option value="percent">A percent of the cost</option>
+            </select>
+          </Field>
+          {form.default_floor_type && (
+            <Field label={form.default_floor_type === 'percent' ? '% of cost' : 'Amount'}>
+              <input style={input} type="number" min="0" max={form.default_floor_type === 'percent' ? 100 : undefined} step="0.01" value={form.default_floor_value ?? ''} onChange={(e) => set('default_floor_value', e.target.value || null)} />
+            </Field>
+          )}
+        </div>
+      ) : <div style={{ fontSize: '0.74rem', color: colors.textFaint }}>Run script 247 to give each asset type a least value (floor).</div>}
     </div>
   );
 }
@@ -54,7 +70,7 @@ export function AssetMoneyFields({ form, set, opts }) {
             {opts.currencies.filter((c) => !c.is_base).map((c) => <option key={c.id} value={c.id}>{c.code} — {c.name}</option>)}
           </select>
         </Field>
-        <Field label="Floor — depreciation stops here" hint="Land: its value. A sofa: what it is still worth.">
+        <Field label="Floor — depreciation stops here" hint="Land: its value. A sofa: what it is still worth. Left empty, the asset type's floor is used.">
           <input style={input} type="number" min="0" step="0.01" value={form.floor_value ?? ''} onChange={(e) => set('floor_value', e.target.value)} placeholder="0.00" />
         </Field>
       </div>

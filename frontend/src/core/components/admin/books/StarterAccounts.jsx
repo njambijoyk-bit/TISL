@@ -33,7 +33,7 @@ export default function StarterAccounts({ onClose, onDone }) {
     setBusy(true);
     try {
       const r = await booksAPI.applyChartStarters(ticked);
-      toast.success(`Added ${r.totals.new_groups} group${r.totals.new_groups === 1 ? '' : 's'} and ${r.totals.new_ledgers} ledger${r.totals.new_ledgers === 1 ? '' : 's'}${r.totals.moves ? `, moved ${r.totals.moves}` : ''}`);
+      toast.success(`Added ${r.totals.new_groups} group${r.totals.new_groups === 1 ? '' : 's'} and ${r.totals.new_ledgers} ledger${r.totals.new_ledgers === 1 ? '' : 's'}${r.totals.moves ? `, moved ${r.totals.moves}` : ''}${r.asset_types?.length ? `; ${r.asset_types.length} asset type${r.asset_types.length === 1 ? '' : 's'} added in Assets` : ''}`);
       onDone();
       onClose();
     } catch (e) { toast.error(errMsg(e, 'Could not add the accounts')); } finally { setBusy(false); }

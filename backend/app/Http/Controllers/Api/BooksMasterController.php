@@ -171,11 +171,17 @@ class BooksMasterController extends Controller
         } else {
             unset($d['statement_id']);
         }
-        $l = Ledger::create($d + ['opening_balance' => $d['opening_balance'] ?? 0, 'opening_side' => $d['opening_side'] ?? 'D', 'is_active' => true]);
-        $this->keepTaxesInStep($l, $taxes);
-        if ($mode && $l->offer_at_checkout) {
-            app(\App\Services\Books\PaymentModeService::class)->setMode($l->id, $mode);
-        }
+        // a ledger under Fixed Assets is also an asset type in Assets: both are saved or neither is
+        $l = DB::transaction(function () use ($d, $taxes, $mode, $request) {
+            $l = Ledger::create($d + ['opening_balance' => $d['opening_balance'] ?? 0, 'opening_side' => $d['opening_side'] ?? 'D', 'is_active' => true]);
+            $this->keepTaxesInStep($l, $taxes);
+            if ($mode && $l->offer_at_checkout) {
+                app(\App\Services\Books\PaymentModeService::class)->setMode($l->id, $mode);
+            }
+            $l->setAttribute('asset_type', app(\App\Services\Inventory\FixedAssetLedgers::class)->forNewLedger($l, $request->user()?->id)?->only(['id', 'name']));
+
+            return $l;
+        });
 
         return response()->json(['message' => 'Ledger created', 'data' => $l->load('group:id,name,nature')], 201);
     }
@@ -209,6 +215,9 @@ class BooksMasterController extends Controller
         }
         if ($l->is_system) {
             unset($d['group_id']);   // the system relies on where these sit
+            if (isset($d['name']) && trim($d['name']) !== $l->name) {   // and finds them by name: a renamed one would be made again beside it
+                return response()->json(['message' => "\"{$l->name}\" is a system ledger: the books find it by its name, so it cannot be renamed.", 'errors' => ['name' => ['System ledgers cannot be renamed.']]], 422);
+            }
         }
         $guard = app(\App\Services\Books\TaxAccountGuard::class);
         if (isset($d['group_id']) && (int) $d['group_id'] !== (int) $l->group_id) {
@@ -227,11 +236,17 @@ class BooksMasterController extends Controller
         if (isset($d['settings']) && is_array($d['settings'])) {
             $d['settings'] = array_merge($l->settings ?? [], $d['settings']);   // keep what the form did not send (a shipping option's description, icon, order)
         }
-        $l->update($d);
-        $this->keepTaxesInStep($l, $taxes, $request->hasAny(['tax_nature', 'tax_rate_ledger_id']));
-        if ($mode && $l->offer_at_checkout) {
-            app(\App\Services\Books\PaymentModeService::class)->setMode($l->id, $mode);
-        }
+        DB::transaction(function () use ($l, $d, $taxes, $mode, $request) {
+            $wasName = $l->name;
+            $wasGroup = (int) $l->group_id;
+            $l->update($d);
+            $this->keepTaxesInStep($l, $taxes, $request->hasAny(['tax_nature', 'tax_rate_ledger_id']));
+            if ($mode && $l->offer_at_checkout) {
+                app(\App\Services\Books\PaymentModeService::class)->setMode($l->id, $mode);
+            }
+            // its asset type in Assets follows it: renamed with it, or made when it moves under Fixed Assets
+            app(\App\Services\Inventory\FixedAssetLedgers::class)->forChangedLedger($l, $wasName, $wasGroup, $request->user()?->id);
+        });
 
         return response()->json(['message' => 'Ledger updated', 'data' => $l->load('group:id,name,nature')]);
     }

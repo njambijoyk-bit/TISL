@@ -62,7 +62,7 @@ class ChartStarterService
         'selling' => ['title' => 'Selling and distribution', 'blurb' => 'Delivery and transport, sales commission, sales promotion, packaging. Delivery Expenses stays under Direct Expenses.', 'sections' => [
             ['root' => 'Indirect Expenses', 'groups' => [['name' => 'Selling & Distribution Expenses', 'ledgers' => ['Delivery & Transport', 'Sales Commission', 'Sales Promotion', 'Packaging', 'Distribution Expenses']]]],
         ]],
-        'assets' => ['title' => 'Fixed assets and depreciation', 'blurb' => 'Asset classes, accumulated depreciation as its own accounts that reduce them, work in progress, and the depreciation expense.', 'sections' => [
+        'assets' => ['title' => 'Fixed assets and depreciation', 'blurb' => 'Asset classes, accumulated depreciation as its own accounts that reduce them, work in progress, and the depreciation expense. Each asset class also becomes an asset type in Assets (under Fixed Assets).', 'sections' => [
             ['root' => 'Fixed Assets', 'groups' => [
                 ['name' => 'Property, Plant & Equipment', 'ledgers' => ['Land', 'Buildings', 'Furniture & Fittings', 'Computers & IT Equipment', 'Motor Vehicles', 'Machinery & Equipment', 'Office Equipment', 'Leasehold Improvements']],
                 ['name' => 'Accumulated Depreciation', 'ledgers' => ['Accumulated Depreciation – Buildings', 'Accumulated Depreciation – Furniture & Fittings', 'Accumulated Depreciation – Computers & IT Equipment',
@@ -106,7 +106,15 @@ class ChartStarterService
     /** Do it: add what is new and make the moves. Everything or nothing. */
     public function apply(array $keys, ?User $by): array
     {
-        return DB::transaction(fn () => $this->run($keys, true, $by));
+        return DB::transaction(function () use ($keys, $by) {
+            $before = (int) (Ledger::max('id') ?? 0);
+            $out = $this->run($keys, true, $by);
+            // each new ledger under Fixed Assets is also an asset type in Assets; done after the walk so the packs' own depreciation ledgers are found, not made twice
+            $types = app(\App\Services\Inventory\FixedAssetLedgers::class);
+            $out['asset_types'] = Ledger::where('id', '>', $before)->orderBy('id')->get()->map(fn ($l) => $types->forNewLedger($l, $by?->id)?->name)->filter()->values()->all();
+
+            return $out;
+        });
     }
 
     private function run(array $keys, bool $apply, ?User $by): array

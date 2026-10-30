@@ -35,10 +35,13 @@ class AssetAccountingController extends Controller
         $ledgers = Ledger::with('group:id,name,nature')->where('is_active', true)->get();
         $pick = fn ($f) => $ledgers->filter($f)->map(fn ($l) => ['id' => $l->id, 'name' => $l->name, 'group' => $l->group?->name])->values();
 
-        return response()->json(['ready' => AssetAccountingService::ready(),
+        $fixed = \App\Models\Books\LedgerGroup::where('name', 'Fixed Assets')->first()?->selfAndDescendantIds() ?? [];
+        $fixed = array_map('intval', $fixed);   // its subgroups too (Property, Plant & Equipment, Accumulated Depreciation)
+
+        return response()->json(['ready' => AssetAccountingService::ready(), 'floor_ready' => \Illuminate\Support\Facades\Schema::hasColumn('inventory_categories', 'default_floor_type'),
             'methods' => collect(AssetAccountingService::METHODS)->map(fn ($label, $key) => ['key' => $key, 'label' => $label])->values(),
             'currencies' => Currency::where('is_active', true)->orderByDesc('is_base')->get(['id', 'code', 'name', 'is_base', 'conversion_rate']),
-            'asset_ledgers' => $pick(fn ($l) => $l->group?->name === 'Fixed Assets'),
+            'asset_ledgers' => $pick(fn ($l) => in_array((int) $l->group_id, $fixed, true)),
             'expense_ledgers' => $pick(fn ($l) => $l->group?->nature === 'expense'),
             'pay_from' => $pick(fn ($l) => in_array($l->group?->name, ['Cash-in-hand', 'Bank Accounts'], true)),
             'debtors' => $pick(fn ($l) => $l->group?->name === 'Sundry Debtors')]);
