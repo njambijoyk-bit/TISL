@@ -58,7 +58,8 @@ export default function OrganisePage() {
             {accounts.map((a) => (
               <div key={`${a.as}${a.id}`} style={{ ...box, display: 'flex', justifyContent: 'space-between', gap: 12, flexWrap: 'wrap' }}>
                 <span><strong>{a.name}</strong> <span style={{ color: 'var(--text-tertiary)', fontSize: '0.8rem' }}>· {a.as}</span></span>
-                <span style={{ fontSize: '0.82rem', fontWeight: 700 }}>{STATUS[a.status] ?? a.status}{a.status_note ? ` — ${a.status_note}` : ''}</span>
+                <span style={{ fontSize: '0.82rem', fontWeight: 700 }}>{STATUS[a.status] ?? a.status}{a.status_note ? ` — ${a.status_note}` : ''}
+                  {a.as !== 'Organiser' && <> · <Link to={`/organise/${a.as === 'Vendor' ? 'vendors' : 'venues'}/${a.id}`} style={{ color: 'var(--color-primary-500)' }}>Manage</Link></>}</span>
               </div>
             ))}
             {mine.organisers.length > 0 && <p style={{ margin: 0, fontSize: '0.82rem' }}>Organisers run their events from <Link to="/admin/events" style={{ color: 'var(--color-primary-500)', fontWeight: 700 }}>Events</Link>.</p>}

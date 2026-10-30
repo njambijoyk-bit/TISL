@@ -84,6 +84,11 @@ export const eventsPlatformAPI = {
   mineOrganisers: () => api.get('/events/organisers/mine').then((r) => r.data.data),
   applyOrganiser: (body) => api.post('/events/organisers/apply', body).then((r) => r.data),
   mineProviders: () => api.get('/events/market/mine').then((r) => r.data.data),
+  provider: (plural, id) => api.get(`/events/market/${plural}/${id}`).then((r) => r.data.data),
+  saveProvider: (plural, id, body) => api.put(`/events/market/${plural}/${id}`, body).then((r) => r.data.data),
+  saveOffer: (plural, id, offerId, body) => (offerId ? api.put(`/events/market/${plural}/${id}/offers/${offerId}`, body) : api.post(`/events/market/${plural}/${id}/offers`, body)).then((r) => r.data.data),
+  removeOffer: (plural, id, offerId) => api.delete(`/events/market/${plural}/${id}/offers/${offerId}`).then((r) => r.data),
+  addProof: (plural, id, type, file) => { const f = new FormData(); f.append('type', type); f.append('file', file); return api.post(`/events/market/${plural}/${id}/documents`, f, { headers: { 'Content-Type': 'multipart/form-data' } }).then((r) => r.data.data); },
   applyProvider: (plural, body) => api.post(`/events/market/${plural}/apply`, body).then((r) => r.data),
 };
 

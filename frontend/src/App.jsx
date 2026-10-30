@@ -375,6 +375,7 @@ const TicketPage = lazy(() => import('./events/pages/public/TicketPage'));
 const FindTicketsPage = lazy(() => import('./events/pages/public/FindTicketsPage'));
 const MyEventTickets = lazy(() => import('./events/pages/public/MyEventTickets'));
 const QrRedirect = lazy(() => import('./core/pages/customer/QrRedirect'));
+const ProviderPage = lazy(() => import('./events/pages/public/ProviderPage'));
 const OrganisePage = lazy(() => import('./events/pages/public/OrganisePage'));
 const EventsPage = lazy(() => import('./events/pages/public/EventsPage'));
 const EventPage = lazy(() => import('./events/pages/public/EventPage'));
@@ -590,6 +591,7 @@ function App() {
             <Route path="/menu/custom" element={<ModuleRoute module="menus"><CustomOrderPage /></ModuleRoute>} />
             <Route path="/menu/request/:token" element={<ModuleRoute module="menus"><CustomRequestPage /></ModuleRoute>} />
             <Route path="/events" element={<ModuleRoute module="events"><EventsPage /></ModuleRoute>} />
+            <Route path="/organise/:plural/:id" element={<ProtectedRoute><ModuleRoute module="events"><ProviderPage /></ModuleRoute></ProtectedRoute>} />
             <Route path="/organise" element={<ProtectedRoute><ModuleRoute module="events"><OrganisePage /></ModuleRoute></ProtectedRoute>} />
             <Route path="/events/:slug" element={<ModuleRoute module="events"><EventPage /></ModuleRoute>} />
             <Route path="/campaigns" element={<ModuleRoute module="campaigns"><CampaignsPage /></ModuleRoute>} />
