@@ -206,6 +206,7 @@ class NoRoleNamesInCodeTest extends TestCase
         'events.sell' => ['super_admin', 'admin', 'manager'],
         'events.checkin' => ['super_admin', 'admin', 'manager'],
         'events.refund' => ['super_admin', 'admin', 'manager'],
+        'events.admin' => ['super_admin', 'admin'],
         'codes.view' => ['super_admin', 'admin', 'manager'],
         'codes.manage' => ['super_admin', 'admin', 'manager'],
         'codes.print' => ['super_admin', 'admin', 'manager'],

@@ -1,13 +1,13 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { Link, useNavigate, useParams } from 'react-router-dom';
 import toast from 'react-hot-toast';
-import { ArrowLeft, Eye, EyeOff, ImagePlus, Megaphone, Save, ScanLine, Trash2 } from 'lucide-react';
+import { ArrowLeft, Eye, EyeOff, Send, Check, ImagePlus, Megaphone, Save, ScanLine, Trash2 } from 'lucide-react';
 import AdminLayout from '../../../_shared/components/layout/AdminLayout';
 import Tabs from '../../../core/components/admin/ui/Tabs';
 import Modal from '../../../core/components/admin/ui/Modal';
 import { CheckboxRow, Field, FormGrid, FormStack, ModalActions, NumberInput, SelectInput, TextArea, TextInput } from '../../../core/components/admin/ui/Form';
 import ServiceVideoField from '../../../ecommerce/components/admin/services/ServiceVideoField';
-import eventsAPI from '../../../_shared/api/events';
+import eventsAPI, { eventsPlatformAPI } from '../../../_shared/api/events';
 import useAuthStore from '../../../_shared/store/authStore';
 import { hasPermission } from '../../../_shared/lib/roles';
 import { errMsg } from '../../../_shared/store/helpers/apiState';
@@ -17,7 +17,7 @@ import DatesTab from '../../components/admin/DatesTab';
 import TicketsTab from '../../components/admin/TicketsTab';
 import EventSummary from '../../components/admin/EventSummary';
 import { blankEvent, blankSession, blankType, fromServer, snapshot, toServer } from '../../lib/eventForm';
-import { KINDS } from '../../lib/eventFormat';
+import { KINDS, PARTICIPATION } from '../../lib/eventFormat';
 
 const fresh = () => ({ event: blankEvent(), sessions: [blankSession()], types: [blankType({ name: 'General' })] });
 
@@ -27,11 +27,13 @@ export default function EventForm() {
   const navigate = useNavigate();
   const user = useAuthStore((s) => s.user);
   const canEdit = hasPermission(user, 'events.edit');
+  const canAdmin = hasPermission(user, 'events.admin');
   const [state, setState] = useState(fresh);
-  const [meta, setMeta] = useState({ status: 'draft', problems: [], image_url: null, video: null, slug: null });
+  const [meta, setMeta] = useState({ status: 'draft', problems: [], image_url: null, video: null, slug: null, approval: 'approved', approvalNote: '', organiser: null });
   const [tab, setTab] = useState('details');
   const [loading, setLoading] = useState(Boolean(id));
   const [busy, setBusy] = useState(false);
+  const [cats, setCats] = useState([]);
   const [tell, setTell] = useState(null);   // the message to all ticket holders, while it is being written
   const saved = useRef(snapshot(fresh()));
   const { event, sessions, types } = state;
@@ -40,8 +42,10 @@ export default function EventForm() {
     const s = fromServer(e);
     setState(s);
     saved.current = snapshot(s);
-    setMeta({ status: e.status, problems: e.problems ?? [], image_url: e.image_url, video: e.video ?? null, slug: e.slug });
+    setMeta({ status: e.status, problems: e.problems ?? [], image_url: e.image_url, video: e.video ?? null, slug: e.slug, approval: e.approval_status ?? 'approved', approvalNote: e.approval_note ?? '', organiser: e.organiser_name ?? null });
   }, []);
+
+  useEffect(() => { eventsPlatformAPI.categories().then(setCats).catch(() => {}); }, []);
 
   useEffect(() => {
     if (!id) { const f = fresh(); setState(f); saved.current = snapshot(f); setLoading(false); return undefined; }
@@ -85,6 +89,17 @@ export default function EventForm() {
     catch (e) { toast.error(errMsg(e, 'That did not work'), { duration: 9000 }); } finally { setBusy(false); }
   };
 
+  const decide = async (approve) => {
+    const note = approve ? undefined : window.prompt('Tell the organiser what to change:');
+    if (!approve && !note) return;
+    setBusy(true);
+    try { const r = await eventsAPI.decide(id, approve, note); toast.success(r.message); apply(r); } catch (e) { toast.error(errMsg(e, 'That did not work'), { duration: 9000 }); } finally { setBusy(false); }
+  };
+  const submitIt = async () => {
+    setBusy(true);
+    try { const r = await eventsAPI.submit(id); toast.success(r.message ?? 'Sent to TISL for approval'); apply(r); } catch (e) { toast.error(errMsg(e, 'Could not send it'), { duration: 9000 }); } finally { setBusy(false); }
+  };
+
   const sendNews = async () => {
     setBusy(true);
     try { const r = await eventsAPI.notifyHolders(id, tell); toast.success(r.message); setTell(null); } catch (e) { toast.error(errMsg(e, 'Could not send it'), { duration: 8000 }); } finally { setBusy(false); }
@@ -123,6 +138,7 @@ export default function EventForm() {
             <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
               {id && (status === 'published' || status === 'postponed') && <button type="button" style={btnGhost} onClick={() => setTell('')}><Megaphone size={14} /> Tell ticket holders</button>}
               {id && (status === 'draft' || status === 'postponed') && <button type="button" style={{ ...btnGhost, opacity: dirty || busy ? 0.55 : 1 }} disabled={dirty || busy || meta.problems.length > 0} title={dirty ? 'Save your changes first' : undefined} onClick={() => publish(true)}><Eye size={14} /> {status === 'postponed' ? 'Put on sale again' : 'Put on sale'}</button>}
+              {id && ['draft', 'rejected'].includes(meta.approval) && !canAdmin && <button type="button" style={{ ...btnGhost, opacity: dirty || busy ? 0.55 : 1 }} disabled={dirty || busy} onClick={submitIt}><Send size={14} /> Send for approval</button>}
               {id && status === 'published' && <button type="button" style={btnGhost} disabled={busy} onClick={() => publish(false)}><EyeOff size={14} /> Take down</button>}
               <button type="button" style={{ ...btnPrimary, opacity: busy || (id && !dirty) ? 0.6 : 1 }} disabled={busy || Boolean(id && !dirty)} onClick={save}><Save size={14} /> {busy ? 'Saving…' : id ? 'Save changes' : 'Make the event'}</button>
             </div>
@@ -137,6 +153,13 @@ export default function EventForm() {
           </div>
         )}
         {id && (status === 'draft' || status === 'postponed') && meta.problems.length === 0 && !dirty && <p role="status" style={{ ...card, padding: 12, margin: '0 0 16px', fontSize: '0.82rem', color: colors.successText, background: colors.successBg }}>Everything needed is filled in: you can put it on sale.</p>}
+        {id && meta.approval === 'pending' && (
+          <div role="status" style={{ ...card, padding: 12, margin: '0 0 16px', fontSize: '0.82rem', background: colors.warningBg, color: colors.warningText, display: 'flex', gap: 12, alignItems: 'center', flexWrap: 'wrap' }}>
+            <span style={{ flex: 1 }}>{canAdmin ? `Waiting for your approval${meta.organiser ? ` (${meta.organiser})` : ''}.` : 'Sent to TISL for approval. You can put it on sale once it is approved.'}</span>
+            {canAdmin && <><button type="button" style={btnGhost} disabled={busy} onClick={() => decide(true)}><Check size={14} /> Approve</button><button type="button" style={btnGhost} disabled={busy} onClick={() => decide(false)}>Send back</button></>}
+          </div>
+        )}
+        {id && meta.approval === 'rejected' && <p role="status" style={{ ...card, padding: 12, margin: '0 0 16px', fontSize: '0.82rem', color: colors.dangerText, background: colors.dangerBg }}>TISL sent this back{meta.approvalNote ? `: ${meta.approvalNote}` : '.'} Change it and send it again.</p>}
         {dirty && id && <p role="status" style={{ margin: '0 0 12px', fontSize: '0.78rem', color: colors.warningText }}>You have changes that are not saved yet.</p>}
 
         <Tabs tabs={TABS} active={tab} onChange={setTab} />
@@ -149,6 +172,18 @@ export default function EventForm() {
               <FormGrid min={220}>
                 <Field label="It is" htmlFor="ev-kind"><SelectInput id="ev-kind" value={event.kind} disabled={readOnly} onChange={field('kind')}>{KINDS.map((k) => <option key={k.id} value={k.id}>{k.label}</option>)}</SelectInput></Field>
                 <Field label="Organiser" htmlFor="ev-org" hint="Who is putting it on."><TextInput id="ev-org" value={event.organiser} maxLength={160} disabled={readOnly} onChange={field('organiser')} /></Field>
+              </FormGrid>
+              <FormGrid min={200}>
+                <Field label="Category" htmlFor="ev-cat"><SelectInput id="ev-cat" value={event.category_id} disabled={readOnly} onChange={field('category_id')}>
+                  <option value="">No category</option>
+                  {cats.map((c) => (c.children?.length ? <optgroup key={c.id} label={c.name}><option value={c.id}>{c.name} (general)</option>{c.children.map((k) => <option key={k.id} value={k.id}>{k.name}</option>)}</optgroup> : <option key={c.id} value={c.id}>{c.name}</option>))}
+                </SelectInput></Field>
+                <Field label="People take part by" htmlFor="ev-part"><SelectInput id="ev-part" value={event.participation} disabled={readOnly} onChange={field('participation')}>
+                  {PARTICIPATION.map((k) => <option key={k.id} value={k.id}>{k.label}</option>)}
+                </SelectInput></Field>
+                <Field label="Registration" htmlFor="ev-reg" hint="Auto follows the dates and sales."><SelectInput id="ev-reg" value={event.registration_status} disabled={readOnly} onChange={field('registration_status')}>
+                  <option value="auto">Automatic</option><option value="closed">Closed</option><option value="waitlist">Waiting list</option>
+                </SelectInput></Field>
               </FormGrid>
               {inPerson && (
                 <FormGrid min={220}>

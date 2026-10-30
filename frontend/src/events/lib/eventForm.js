@@ -7,6 +7,7 @@ export const newKey = () => `n${++counter}`;
 export const blankEvent = () => ({
   title: '', summary: '', description: '', kind: 'in_person', venue_name: '', venue_address: '', map_url: '', online_url: '', organiser: '', is_listed: true,
   currency_id: '', sales_ledger_id: '', max_per_order: 10, refund_until: '', refund_policy: '', allow_name_change: true,
+  category_id: '', participation: 'paid', registration_status: 'auto', age_min: '', languages: '', accessibility: '',
 });
 
 export const blankSession = (over = {}) => ({ key: newKey(), label: '', starts_at: '', ends_at: '', capacity: '', is_cancelled: false, ...over });
@@ -45,7 +46,7 @@ export function toServer({ event, sessions, types }) {
 
   return {
     ...event,
-    currency_id: num(event.currency_id), sales_ledger_id: num(event.sales_ledger_id), refund_until: event.refund_until || null, max_per_order: Number(event.max_per_order) || 10,
+    category_id: num(event.category_id), age_min: num(event.age_min), currency_id: num(event.currency_id), sales_ledger_id: num(event.sales_ledger_id), refund_until: event.refund_until || null, max_per_order: Number(event.max_per_order) || 10,
     sessions: sessions.map((s) => ({ id: s.id, key: s.key, label: s.label, starts_at: s.starts_at, ends_at: s.ends_at || null, capacity: num(s.capacity), is_cancelled: s.is_cancelled })),
     ticket_types: types.map((t, i) => ({
       id: t.id, name: t.name, description: t.description, price: Number(t.price) || 0, capacity: num(t.capacity), min_per_order: Number(t.min_per_order) || 1, max_per_order: num(t.max_per_order),

@@ -18,9 +18,10 @@ import { btnGhost, btnPrimary, colors } from '../../../_shared/theme/tokens';
 import StatusBadge from '../../components/admin/StatusBadge';
 import EventSettingsTab from '../../components/admin/EventSettingsTab';
 import RefundsTab from '../../components/admin/RefundsTab';
+import PlatformTab from '../../components/admin/PlatformTab';
 import { whenText } from '../../lib/eventFormat';
 
-const BASE_TABS = [{ id: 'events', label: 'Events' }, { id: 'refunds', label: 'Refunds' }, { id: 'settings', label: 'Configuration' }];
+const BASE_TABS = [{ id: 'events', label: 'Events' }, { id: 'refunds', label: 'Refunds' }, { id: 'platform', label: 'Platform' }, { id: 'settings', label: 'Configuration' }];
 const small = { ...btnGhost, padding: '4px 10px', fontSize: '0.74rem' };
 
 /** Admin → Events: every event with what is sold, and the buttons to put it on sale, take it down or cancel it. */
@@ -28,9 +29,9 @@ export default function EventsList() {
   const navigate = useNavigate();
   const [params, setParams] = useSearchParams();
   const user = useAuthStore((s) => s.user);
-  const can = { edit: hasPermission(user, 'events.edit'), del: hasPermission(user, 'events.delete'), refund: hasPermission(user, 'events.refund'), door: hasPermission(user, 'events.checkin') || hasPermission(user, 'events.view') };
+  const can = { edit: hasPermission(user, 'events.edit'), del: hasPermission(user, 'events.delete'), refund: hasPermission(user, 'events.refund'), platform: hasPermission(user, 'events.admin'), door: hasPermission(user, 'events.checkin') || hasPermission(user, 'events.view') };
   const [waiting, setWaiting] = useState(null);
-  const TABS = BASE_TABS.filter((t) => t.id !== 'refunds' || can.refund).map((t) => (t.id === 'refunds' && waiting ? { ...t, count: waiting } : t));
+  const TABS = BASE_TABS.filter((t) => (t.id !== 'refunds' || can.refund) && (t.id !== 'platform' || can.platform)).map((t) => (t.id === 'refunds' && waiting ? { ...t, count: waiting } : t));
   const tab = TABS.some((t) => t.id === params.get('tab')) ? params.get('tab') : 'events';
   const { adminCurrencies, fetchAdminCurrencies } = useCurrencyStore();
   const [q, setQ] = useState('');
@@ -111,7 +112,7 @@ export default function EventsList() {
           action={can.edit && <Link to="/admin/events/new" style={{ ...btnPrimary, textDecoration: 'none' }}><Plus size={14} /> New event</Link>} />
         <Tabs tabs={TABS} active={tab} onChange={(id) => setParams(id === 'events' ? {} : { tab: id })} />
 
-        {tab === 'settings' ? <EventSettingsTab canEdit={can.edit} /> : tab === 'refunds' ? <RefundsTab onCount={setWaiting} /> : (
+        {tab === 'settings' ? <EventSettingsTab canEdit={can.edit} /> : tab === 'platform' ? <PlatformTab /> : tab === 'refunds' ? <RefundsTab onCount={setWaiting} /> : (
           <>
             {!ready && <p role="status" style={{ margin: '0 0 12px', fontSize: '0.82rem', color: colors.textMuted }}>Run database script 120_events.sql, then reload: events can not be saved until then.</p>}
             <Toolbar right={<span style={{ fontSize: '0.78rem', color: colors.textMuted }}>{totals.live} on sale · {totals.sold} ticket{totals.sold === 1 ? '' : 's'} sold</span>}>

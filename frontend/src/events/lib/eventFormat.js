@@ -44,3 +44,9 @@ export const priceLabel = (e) => {
   return `From ${formatMoney(e.price_from, e.currency?.symbol || e.currency?.code || '', { decimals: 'auto' })}`;
 };
 
+
+/** How people take part in an event (the server holds the same list). */
+export const PARTICIPATION = [
+  { id: 'paid', label: 'Paid tickets' }, { id: 'free', label: 'Free registration' }, { id: 'invitation', label: 'Invitation only' }, { id: 'rsvp', label: 'RSVP' },
+  { id: 'approval', label: 'Approval required' }, { id: 'donation', label: 'Donation based' }, { id: 'members', label: 'Members only' },
+];

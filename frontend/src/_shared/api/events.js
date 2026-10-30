@@ -43,6 +43,29 @@ const eventsAPI = {
   },
   settings: () => api.get('/admin/events/settings').then((r) => r.data),
   saveSettings: (body) => api.put('/admin/events/settings', body).then((r) => r.data),
+  // approval of an outside organiser's event
+  submit: (id) => api.post(`/admin/events/${id}/submit`).then((r) => r.data),
+  decide: (id, approve, note) => api.post(`/admin/events/${id}/decide`, { approve, note }).then((r) => r.data),
+  // the platform (events.admin): categories, outside organisers, vendors and venues
+  categories: () => api.get('/admin/events/platform/categories').then((r) => r.data),
+  saveCategory: (id, body) => (id ? api.put(`/admin/events/platform/categories/${id}`, body) : api.post('/admin/events/platform/categories', body)).then((r) => r.data),
+  removeCategory: (id) => api.delete(`/admin/events/platform/categories/${id}`).then((r) => r.data),
+  standardCategories: () => api.post('/admin/events/platform/categories/standard').then((r) => r.data),
+  /** kind: organisers | vendors | venues */
+  providers: (kind, status) => api.get(`/admin/events/platform/${kind}`, { params: { status: status || undefined } }).then((r) => r.data.data),
+  provider: (kind, id) => api.get(`/admin/events/platform/${kind}/${id}`).then((r) => r.data.data),
+  setProviderStatus: (kind, id, status, note) => api.post(`/admin/events/platform/${kind}/${id}/status`, { status, note: note || undefined }).then((r) => r.data.data),
+  setProviderCommission: (kind, id, commission_percent) => api.post(`/admin/events/platform/${kind}/${id}/commission`, { commission_percent }).then((r) => r.data.data),
+  reviewDocument: (id, status, note) => api.post(`/admin/events/platform/documents/${id}/review`, { status, note: note || undefined }).then((r) => r.data),
+};
+
+/** Signed-in people who organise events, or offer their service or place (no staff permission needed). */
+export const eventsPlatformAPI = {
+  categories: () => api.get('/events/categories').then((r) => r.data.data),
+  mineOrganisers: () => api.get('/events/organisers/mine').then((r) => r.data.data),
+  applyOrganiser: (body) => api.post('/events/organisers/apply', body).then((r) => r.data),
+  mineProviders: () => api.get('/events/market/mine').then((r) => r.data.data),
+  applyProvider: (plural, body) => api.post(`/events/market/${plural}/apply`, body).then((r) => r.data),
 };
 
 export default eventsAPI;
