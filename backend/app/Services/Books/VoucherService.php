@@ -80,6 +80,8 @@ class VoucherService
         }
 
         $out = $this->describe($plan);
+        // the customer or supplier says exempt, zero-rated or out of scope: the form warns when a tax is added by hand anyway
+        $out['party_tax'] = in_array($plan['party']?->tax_nature, ['exempt', 'zero_rated', 'out_of_scope'], true) ? $plan['party']->tax_nature : null;
         if (VoucherAdminNotes::ready()) {
             $out['admin_notes'] = $this->adminNotes($plan, $data, $user, null);   // what the system will record about it, for the screen to show
         }

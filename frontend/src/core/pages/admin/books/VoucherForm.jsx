@@ -827,7 +827,7 @@ export default function VoucherForm({ api = booksAPI, mode = 'books' }) {
                   if (l.type === 'tax') {
                     return (
                       <div key={l.key} style={{ padding: '8px 0', borderTop: `1px solid ${colors.tint(0.06)}` }}>
-                        <TaxLineRow line={l} computed={pv} linesTotal={Number(preview?.subtotal) || 0} onChange={(patch) => setLine(l.key, patch)} onRemove={() => setLines((ls) => ls.filter((x) => x.key !== l.key))} />
+                        <TaxLineRow line={l} computed={pv} partyTax={preview?.party_tax} partyName={preview?.party} linesTotal={Number(preview?.subtotal) || 0} onChange={(patch) => setLine(l.key, patch)} onRemove={() => setLines((ls) => ls.filter((x) => x.key !== l.key))} />
                       </div>
                     );
                   }

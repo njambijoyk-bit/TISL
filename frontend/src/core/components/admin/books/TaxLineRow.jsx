@@ -8,9 +8,11 @@ const label = { display: 'block', fontSize: '0.65rem', fontWeight: 700, color: c
 
 /**
  * A tax entered as a line of its own: choose the tax, then either type the tax amount, or give the taxable amount and let the tax rate work it out. A typed tax amount wins.
- * line: { tax_rate_id, base, amount }. linesTotal: the ledger lines' total, offered as the taxable amount. computed: what the preview worked out for this line.
+ * line: { tax_rate_id, base, amount }. partyTax: the customer's or supplier's own treatment (exempt, zero_rated, out_of_scope), which cancels the ledgers' tax but not a tax added here. linesTotal: the ledger lines' total, offered as the taxable amount. computed: what the preview worked out for this line.
  */
-export default function TaxLineRow({ line, onChange, onRemove, linesTotal = 0, computed }) {
+const TREATMENT = { exempt: 'exempt', zero_rated: 'zero-rated', out_of_scope: 'out of scope' };
+
+export default function TaxLineRow({ line, onChange, onRemove, linesTotal = 0, computed, partyTax, partyName }) {
   const [rates, setRates] = useState([]);
   useEffect(() => { let live = true; loadTaxRates().then((r) => { if (live) setRates(r); }); return () => { live = false; }; }, []);
   const rate = rates.find((r) => String(r.id) === String(line.tax_rate_id));
@@ -39,6 +41,11 @@ export default function TaxLineRow({ line, onChange, onRemove, linesTotal = 0, c
           <button type="button" aria-label="Remove tax line" onClick={onRemove} style={{ ...btnGhost, padding: '6px 8px', color: colors.danger }}><Trash2 size={14} /></button>
         </div>
       </div>
+      {partyTax && TREATMENT[partyTax] && (
+        <div role="status" style={{ padding: '6px 10px', borderRadius: 8, background: colors.warningBg, color: colors.warningText, fontSize: '0.74rem' }}>
+          ⚠ {partyName ? `${partyName} is` : 'This customer or supplier is'} {TREATMENT[partyTax]}, so the tax on the other lines is cancelled. This tax was added by hand and is charged as entered.
+        </div>
+      )}
       <div style={{ display: 'flex', gap: 10, alignItems: 'center', flexWrap: 'wrap', fontSize: '0.72rem', color: colors.textMuted }}>
         {linesTotal > 0 && <button type="button" style={{ ...btnGhost, padding: '2px 8px', fontSize: '0.7rem' }} onClick={() => onChange({ base: String(Math.round(linesTotal * 100) / 100), amount: '' })}>Use the lines’ total ({linesTotal.toLocaleString(undefined, { minimumFractionDigits: 2 })})</button>}
         <span>{rate ? `Enter the tax amount, or the taxable amount to work it out at ${Number(rate.rate_value)}%. A typed tax amount wins.` : 'Enter the tax amount, or the taxable amount to work it out at the tax’s rate.'}</span>

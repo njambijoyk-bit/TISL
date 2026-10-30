@@ -545,7 +545,7 @@ export default function PurchaseForm({ kind = 'purchase' }) {
               ) : (
                 <div style={{ display: 'grid', gap: 10 }}>
                   {lines.map((l) => (l.tax
-                    ? <TaxLineRow key={l.key} line={l} computed={preview?.lines?.[lines.indexOf(l)]} linesTotal={Number(preview?.subtotal) || 0} onChange={(patch) => setLine(l.key, patch)} onRemove={() => removeLine(l.key)} />
+                    ? <TaxLineRow key={l.key} line={l} partyTax={preview?.party_tax} partyName={preview?.party} computed={preview?.lines?.[lines.indexOf(l)]} linesTotal={Number(preview?.subtotal) || 0} onChange={(patch) => setLine(l.key, patch)} onRemove={() => removeLine(l.key)} />
                     : (
                     <div key={l.key} style={{ border: `1px solid ${colors.tint(0.12)}`, borderRadius: 10, padding: 10 }}>
                       {l.other ? (<>
