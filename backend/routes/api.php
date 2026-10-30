@@ -389,6 +389,8 @@ Route::prefix('events')->middleware('module:events')->group(function () {
     $c = \App\Http\Controllers\Api\EventPublicController::class;
     Route::get('/',                [$c, 'index']);
     Route::get('/categories',      [\App\Http\Controllers\Api\EventPlatformController::class, 'publicCategories']);   // the category tree for the directory and the event form
+    Route::get('/directory/{plural}',        [\App\Http\Controllers\Api\EventMarketplaceController::class, 'directory'])->where('plural', 'vendors|venues')->middleware('throttle:120,1');
+    Route::get('/directory/{plural}/{slug}', [\App\Http\Controllers\Api\EventMarketplaceController::class, 'showPublic'])->where('plural', 'vendors|venues')->middleware('throttle:120,1');
     Route::get('/{slug}',          [$c, 'show'])->middleware('throttle:120,1');
     Route::post('/{slug}/quote',   [$c, 'quote'])->middleware('throttle:60,1');
     Route::post('/{slug}/buy',     [$c, 'buy'])->middleware('throttle:20,1');
@@ -1468,6 +1470,31 @@ Route::middleware('auth:sanctum')->group(function () {
             Route::delete('/{id}/members/{userId}',      [$p, 'removeOrganiserMember'])->whereNumber(['id', 'userId']);
             Route::post('/{id}/documents',               [$p, 'addDocument'])->whereNumber('id')->middleware('throttle:20,1');
         });
+        // vendors and venues: apply, run my own profile, offers (packages / spaces), people and proof
+        Route::middleware('module:events')->prefix('events/market')->where(['plural' => 'vendors|venues'])->group(function () {
+            $m = \App\Http\Controllers\Api\EventMarketplaceController::class;
+            Route::get('/mine',                                        [$m, 'mineList']);
+            Route::post('/{plural}/apply',                             [$m, 'apply'])->middleware('throttle:10,1');
+            Route::get('/{plural}/{id}',                               [$m, 'show'])->whereNumber('id');
+            Route::put('/{plural}/{id}',                               [$m, 'update'])->whereNumber('id');
+            Route::post('/{plural}/{id}/offers',                       [$m, 'saveOffer'])->whereNumber('id');
+            Route::put('/{plural}/{id}/offers/{offerId}',              [$m, 'saveOffer'])->whereNumber(['id', 'offerId']);
+            Route::delete('/{plural}/{id}/offers/{offerId}',           [$m, 'removeOffer'])->whereNumber(['id', 'offerId']);
+            Route::post('/{plural}/{id}/members',                      [$m, 'addMember'])->whereNumber('id');
+            Route::delete('/{plural}/{id}/members/{userId}',           [$m, 'removeMember'])->whereNumber(['id', 'userId']);
+            Route::post('/{plural}/{id}/documents',                    [$m, 'addDocument'])->whereNumber('id')->middleware('throttle:20,1');
+        });
+        // media gallery for an event, organiser, vendor, venue, package or space (the owner or events staff)
+        Route::middleware('module:events')->prefix('events/media')->group(function () {
+            $g = \App\Http\Controllers\Api\EventMediaController::class;
+            Route::get('/item/{mediaId}/download',     [$g, 'download'])->whereNumber('mediaId');
+            Route::put('/item/{mediaId}',              [$g, 'update'])->whereNumber('mediaId');
+            Route::delete('/item/{mediaId}',           [$g, 'destroy'])->whereNumber('mediaId');
+            Route::get('/{type}/{id}',                 [$g, 'index'])->whereNumber('id');
+            Route::post('/{type}/{id}/upload',         [$g, 'upload'])->whereNumber('id')->middleware('throttle:60,1');
+            Route::post('/{type}/{id}/embed',          [$g, 'embed'])->whereNumber('id')->middleware('throttle:60,1');
+            Route::post('/{type}/{id}/reorder',        [$g, 'reorder'])->whereNumber('id');
+        });
         Route::get('/account', [\App\Http\Controllers\Api\MyAccountController::class, 'show']);
         Route::get('/account/statement/export', [\App\Http\Controllers\Api\MyAccountController::class, 'statementExport']);
         Route::get('/account/outstandings/export', [\App\Http\Controllers\Api\MyAccountController::class, 'outstandingsExport']);
@@ -1897,6 +1924,10 @@ Route::middleware('auth:sanctum')->group(function () {
             Route::post('/platform/organisers/{id}/status',      [\App\Http\Controllers\Api\EventPlatformController::class, 'setOrganiserStatus'])->whereNumber('id')->middleware('permission:events.admin');
             Route::post('/platform/organisers/{id}/commission',  [\App\Http\Controllers\Api\EventPlatformController::class, 'setOrganiserCommission'])->whereNumber('id')->middleware('permission:events.admin');
             Route::post('/platform/documents/{id}/review',       [\App\Http\Controllers\Api\EventPlatformController::class, 'reviewDocument'])->whereNumber('id')->middleware('permission:events.admin');
+            Route::get('/platform/{plural}',                     [\App\Http\Controllers\Api\EventMarketplaceController::class, 'adminList'])->where('plural', 'vendors|venues')->middleware('permission:events.admin');
+            Route::get('/platform/{plural}/{id}',                [\App\Http\Controllers\Api\EventMarketplaceController::class, 'adminShow'])->where('plural', 'vendors|venues')->whereNumber('id')->middleware('permission:events.admin');
+            Route::post('/platform/{plural}/{id}/status',        [\App\Http\Controllers\Api\EventMarketplaceController::class, 'setStatus'])->where('plural', 'vendors|venues')->whereNumber('id')->middleware('permission:events.admin');
+            Route::post('/platform/{plural}/{id}/commission',    [\App\Http\Controllers\Api\EventMarketplaceController::class, 'setCommission'])->where('plural', 'vendors|venues')->whereNumber('id')->middleware('permission:events.admin');
             Route::post('/{id}/unpublish',       [$c, 'unpublish'])->whereNumber('id')->middleware('permission:events.edit');
             Route::post('/{id}/cancel',          [$c, 'cancel'])->whereNumber('id')->middleware('permission:events.edit');
             Route::post('/{id}/postpone',        [$c, 'postpone'])->whereNumber('id')->middleware('permission:events.edit');
