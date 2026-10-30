@@ -64,7 +64,7 @@ WHERE @grp_exp IS NOT NULL AND NOT EXISTS (SELECT 1 FROM ledgers WHERE name = 'B
 
 INSERT INTO ledgers (group_id, name, opening_balance, is_system, is_active, created_at, updated_at)
 SELECT @grp_exp, 'Discount Allowed', 0, 1, 1, NOW(), NOW()
-WHERE @grp_exp IS NOT NULL AND NOT EXISTS (SELECT 1 FROM ledgers WHERE name = 'Discount Allowed');
+WHERE @grp_exp IS NOT NULL AND NOT EXISTS (SELECT 1 FROM ledgers WHERE name IN ('Discount Allowed', 'Discounts Allowed'));   -- the seeded "Discounts Allowed" is the same account: never make a second one
 
 INSERT INTO ledgers (group_id, name, opening_balance, is_system, is_active, created_at, updated_at)
 SELECT @grp_exp, 'Bank Charges', 0, 1, 1, NOW(), NOW()
@@ -86,7 +86,7 @@ INSERT INTO accounting_settings (id, edit_window_days)
 SELECT 1, 30 WHERE NOT EXISTS (SELECT 1 FROM accounting_settings WHERE id = 1);
 
 UPDATE accounting_settings SET bad_debt_ledger_id        = (SELECT id FROM ledgers WHERE name = 'Bad Debts Written Off' ORDER BY id LIMIT 1) WHERE id = 1 AND bad_debt_ledger_id IS NULL;
-UPDATE accounting_settings SET discount_allowed_ledger_id = (SELECT id FROM ledgers WHERE name = 'Discount Allowed'       ORDER BY id LIMIT 1) WHERE id = 1 AND discount_allowed_ledger_id IS NULL;
+UPDATE accounting_settings SET discount_allowed_ledger_id = (SELECT id FROM ledgers WHERE name IN ('Discount Allowed', 'Discounts Allowed') ORDER BY (name = 'Discounts Allowed') DESC, id LIMIT 1) WHERE id = 1 AND discount_allowed_ledger_id IS NULL;
 UPDATE accounting_settings SET bank_charges_ledger_id    = (SELECT id FROM ledgers WHERE name = 'Bank Charges'            ORDER BY id LIMIT 1) WHERE id = 1 AND bank_charges_ledger_id IS NULL;
 UPDATE accounting_settings SET bounce_fee_ledger_id      = (SELECT id FROM ledgers WHERE name = 'Bounced Cheque Charges'  ORDER BY id LIMIT 1) WHERE id = 1 AND bounce_fee_ledger_id IS NULL;
 UPDATE accounting_settings SET cash_over_short_ledger_id = (SELECT id FROM ledgers WHERE name = 'Cash Over / Short'       ORDER BY id LIMIT 1) WHERE id = 1 AND cash_over_short_ledger_id IS NULL;

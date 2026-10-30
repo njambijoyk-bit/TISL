@@ -73,13 +73,13 @@ SET @grp_ind := (SELECT id FROM ledger_groups WHERE name = 'Indirect Expenses' O
 
 INSERT INTO ledgers (group_id, name, opening_balance, is_system, is_active, created_at, updated_at)
 SELECT @grp_ind, 'Rounding', 0, 1, 1, NOW(), NOW()
-WHERE @grp_ind IS NOT NULL AND NOT EXISTS (SELECT 1 FROM ledgers WHERE name = 'Rounding');
+WHERE @grp_ind IS NOT NULL AND NOT EXISTS (SELECT 1 FROM ledgers WHERE name IN ('Rounding', 'Rounding Off'));   -- the seeded "Rounding Off" is the same account: never make a second one
 
 INSERT INTO accounting_settings (id, edit_window_days)
 SELECT 1, 30 WHERE NOT EXISTS (SELECT 1 FROM accounting_settings WHERE id = 1);
 
 UPDATE accounting_settings
-SET rounding_ledger_id = (SELECT id FROM ledgers WHERE name = 'Rounding' ORDER BY id LIMIT 1)
+SET rounding_ledger_id = (SELECT id FROM ledgers WHERE name IN ('Rounding', 'Rounding Off') ORDER BY (name = 'Rounding Off') DESC, id LIMIT 1)
 WHERE id = 1 AND rounding_ledger_id IS NULL;
 
 COMMIT;
