@@ -37,6 +37,23 @@ class FixedAssetLedgersTest extends TestCase
             $t->string('default_floor_type', 10)->nullable(); $t->decimal('default_floor_value', 18, 4)->nullable();
             $t->timestamps();
         });
+        Schema::dropIfExists('inventory_items');
+        Schema::create('inventory_items', function ($t) {
+            $t->id(); $t->unsignedBigInteger('category_id')->nullable(); $t->string('name'); $t->text('description')->nullable(); $t->string('brand')->nullable(); $t->string('model')->nullable();
+            $t->string('type')->default('asset'); $t->boolean('is_serialized')->default(true); $t->string('unit_of_measure')->nullable(); $t->unsignedBigInteger('default_location_id')->nullable();
+            $t->decimal('purchase_cost', 18, 2)->nullable(); $t->decimal('replacement_cost', 18, 2)->nullable(); $t->boolean('is_loanable')->default(false); $t->integer('max_loan_days')->nullable();
+            foreach (['total_qty', 'available_qty', 'reserved_qty', 'issued_qty', 'loaned_qty', 'in_repair_qty', 'retired_qty'] as $c) { $t->integer($c)->default(0); }
+            $t->boolean('is_active')->default(true); $t->text('notes')->nullable(); $t->unsignedBigInteger('created_by')->nullable(); $t->unsignedBigInteger('updated_by')->nullable(); $t->timestamps(); $t->softDeletes();
+        });
+        Schema::dropIfExists('inventory_instances');
+        Schema::create('inventory_instances', function ($t) {
+            $t->id(); $t->unsignedBigInteger('item_id'); $t->string('serial_number')->nullable(); $t->string('asset_tag')->nullable(); $t->string('barcode')->nullable();
+            $t->string('status')->default('available'); $t->string('condition')->default('new'); $t->decimal('condition_score', 5, 2)->nullable(); $t->decimal('condition_score_override', 5, 2)->nullable();
+            $t->unsignedBigInteger('current_location_id')->nullable(); $t->date('purchase_date')->nullable(); $t->decimal('purchase_cost', 18, 2)->nullable(); $t->date('warranty_expiry')->nullable(); $t->integer('useful_life_years')->nullable();
+            $t->text('notes')->nullable(); $t->unsignedBigInteger('created_by')->nullable(); $t->unsignedBigInteger('updated_by')->nullable();
+            $t->unsignedBigInteger('currency_id')->nullable(); $t->decimal('exchange_rate', 18, 6)->nullable(); $t->decimal('floor_value', 18, 2)->nullable(); $t->string('depreciation_method')->nullable(); $t->decimal('depreciation_rate', 7, 4)->nullable(); $t->date('in_service_date')->nullable();
+            $t->timestamps(); $t->softDeletes();
+        });
         $this->fixed = (int) LedgerGroup::create(['name' => 'Fixed Assets', 'nature' => 'asset', 'is_primary' => true, 'is_system' => true, 'sort_order' => 30, 'behaviour' => 'standard'])->id;
         $u = new User();
         $u->id = 77;
@@ -46,6 +63,8 @@ class FixedAssetLedgersTest extends TestCase
 
     protected function tearDown(): void
     {
+        Schema::dropIfExists('inventory_instances');
+        Schema::dropIfExists('inventory_items');
         Schema::dropIfExists('inventory_categories');
         LedgerBalances::forget();
         parent::tearDown();
@@ -70,6 +89,25 @@ class FixedAssetLedgersTest extends TestCase
 
         $this->postJson('/api/admin/books/ledgers', ['name' => 'Vehicles', 'group_id' => $this->fixed])->assertCreated();
         $this->assertSame(1, InventoryCategory::where('name', 'Fixed Assets')->count(), 'one parent type for all of them');
+    }
+
+    public function test_the_asset_itself_is_made_with_the_ledgers_name_under_its_type(): void
+    {
+        $this->postJson('/api/admin/books/ledgers', ['name' => 'Test seats', 'group_id' => $this->fixed, 'opening_balance' => 12000, 'opening_side' => 'D'])->assertCreated();
+        $cat = InventoryCategory::where('name', 'Test seats')->first();
+        $item = \App\Models\Inventory\InventoryItem::where('name', 'Test seats')->first();
+        $this->assertSame((int) $cat->id, (int) $item->category_id);
+        $this->assertSame('Fixed Assets', InventoryCategory::find($cat->parent_id)->name);
+        $inst = \App\Models\Inventory\InventoryInstance::where('item_id', $item->id)->first();
+        $this->assertNotNull($inst);
+        $this->assertSame(12000.0, (float) $inst->purchase_cost, 'the opening balance, already in the books: nothing is posted');
+        $this->assertSame('AST-' . str_pad((string) $inst->id, 5, '0', STR_PAD_LEFT), $inst->asset_tag);
+        $this->assertSame(1, (int) $item->fresh()->total_qty);
+        $this->putJson('/api/admin/books/ledgers/' . Ledger::where('name', 'Test seats')->value('id'), ['name' => 'Hall seats'])->assertOk();
+        $this->assertSame(1, \App\Models\Inventory\InventoryItem::where('name', 'Hall seats')->count(), 'the asset follows a rename');
+
+        $this->postJson('/api/admin/books/ledgers', ['name' => 'Tables', 'group_id' => $this->fixed])->assertCreated();
+        $this->assertSame(1, \App\Models\Inventory\InventoryInstance::where('item_id', \App\Models\Inventory\InventoryItem::where('name', 'Tables')->value('id'))->count());
     }
 
     public function test_if_assets_refuses_the_ledger_is_not_saved_either(): void
@@ -130,6 +168,7 @@ class FixedAssetLedgersTest extends TestCase
     {
         $r = app(ChartStarterService::class)->apply(['assets'], null);
         $this->assertContains('Computers & IT Equipment', $r['asset_types']);
+        $this->assertSame(0, \App\Models\Inventory\InventoryInstance::count(), 'starter classes make types, not assets');
         $this->assertNotContains('Accumulated Depreciation – Buildings', $r['asset_types']);
         $this->assertNotContains('Work in Progress – Buildings', $r['asset_types']);
         $cat = InventoryCategory::where('name', 'Computers & IT Equipment')->first();

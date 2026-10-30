@@ -143,7 +143,7 @@ function LedgerForm({ ledger, groups, defaultGroupId, onClose, onSaved }) {
       else { ['accepts', 'mobile_kind', 'mobile_number', 'cash_kind', 'checkout_label', 'checkout_instructions'].forEach((k) => { body[k] = blank(f[k]); }); body.checkout_sort = Number(f.checkout_sort) || 0; body.checkout_mode = f.offer_at_checkout ? f.checkout_mode : undefined; }
       const r = editing ? await booksAPI.updateLedger(ledger.id, body) : await booksAPI.createLedger(body);
       const type = r?.data?.asset_type;
-      toast.success(editing ? 'Ledger saved' : type ? `Ledger created, and “${type.name}” added as an asset type in Assets` : 'Ledger created');
+      toast.success(editing ? 'Ledger saved' : type ? `Ledger created, and “${type.name}” added to Assets as an asset` : 'Ledger created');
       onSaved(); onClose();
     } catch (x) { setErrs(fieldErrors(x)); if (!x.response?.data?.errors) setErr(errMsg(x, 'Could not save the ledger')); }
     finally { setBusy(false); }

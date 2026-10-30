@@ -5,6 +5,8 @@ namespace App\Services\Inventory;
 use App\Models\Books\Ledger;
 use App\Models\Books\LedgerGroup;
 use App\Models\Inventory\InventoryCategory;
+use App\Models\Inventory\InventoryInstance;
+use App\Models\Inventory\InventoryItem;
 use Illuminate\Support\Facades\Schema;
 use Illuminate\Validation\ValidationException;
 
@@ -88,7 +90,7 @@ class FixedAssetLedgers
      *
      * @throws ValidationException when the register already has a type of that name belonging to another ledger
      */
-    public function forNewLedger(Ledger $ledger, ?int $userId = null): ?InventoryCategory
+    public function forNewLedger(Ledger $ledger, ?int $userId = null, bool $withAsset = true): ?InventoryCategory
     {
         if (! self::ready() || ! $this->isAssetTypeGroup((int) $ledger->group_id) || preg_match('/^(accumulated )?depreciation\b/i', $ledger->name)) {
             return null;
@@ -103,12 +105,47 @@ class FixedAssetLedgers
         $fields = ['asset_ledger_id' => $ledger->id, 'accumulated_ledger_id' => $existing?->accumulated_ledger_id ?: $acc, 'expense_ledger_id' => $existing?->expense_ledger_id ?: $exp];
         if ($existing) {
             $existing->update($fields);
+            if ($withAsset) {
+                $this->makeAsset($ledger, $existing, $userId);
+            }
 
             return $existing->fresh();
         }
 
-        return InventoryCategory::create($fields + ['name' => $ledger->name, 'slug' => \Illuminate\Support\Str::slug($ledger->name), 'parent_id' => $parent->id, 'is_active' => true, 'created_by' => $userId,
+        $cat = InventoryCategory::create($fields + ['name' => $ledger->name, 'slug' => \Illuminate\Support\Str::slug($ledger->name), 'parent_id' => $parent->id, 'is_active' => true, 'created_by' => $userId,
             'default_method' => 'none', 'description' => self::nonDepreciating($ledger->name) ? 'Made from the ledger in Books. Land does not depreciate.' : 'Made from the ledger in Books. Set its depreciation method and life here.']);
+        if ($withAsset) {
+            $this->makeAsset($ledger, $cat, $userId);
+        }
+
+        return $cat;
+    }
+
+    /**
+     * The asset itself: an item and one asset (instance) with the ledger's name, under its type. Its cost is the ledger's opening balance, which is already in the books,
+     * so nothing is posted. Skipped when the type already has an item of that name, or the asset tables are not there.
+     */
+    private function makeAsset(Ledger $ledger, InventoryCategory $cat, ?int $userId): void
+    {
+        if (! Schema::hasTable('inventory_items') || ! Schema::hasTable('inventory_instances')) {
+            return;
+        }
+        if (InventoryItem::where('category_id', $cat->id)->where('name', $ledger->name)->exists()) {
+            return;
+        }
+        $cost = $ledger->opening_side === 'D' ? (float) $ledger->opening_balance : 0.0;
+        $item = InventoryItem::create(['category_id' => $cat->id, 'name' => $ledger->name, 'type' => 'asset', 'is_serialized' => true, 'purchase_cost' => $cost ?: null,
+            'notes' => 'Made from the ' . $ledger->name . ' ledger in Books.', 'is_active' => true, 'created_by' => $userId, 'updated_by' => $userId]);
+        $fields = ['item_id' => $item->id, 'status' => 'available', 'condition' => 'good', 'purchase_cost' => $cost, 'purchase_date' => today(), 'notes' => 'Made from the ' . $ledger->name . ' ledger in Books.', 'created_by' => $userId, 'updated_by' => $userId];
+        if (AssetAccountingService::ready()) {
+            $fields += ['depreciation_method' => $cat->default_method ?: 'none', 'useful_life_years' => $cat->default_life_years, 'depreciation_rate' => $cat->default_rate, 'in_service_date' => today()];
+            if (($floor = $cat->floorFor($cost)) !== null) {
+                $fields['floor_value'] = $floor;
+            }
+        }
+        $instance = InventoryInstance::create($fields);
+        $instance->update(['asset_tag' => 'AST-' . str_pad((string) $instance->id, 5, '0', STR_PAD_LEFT)]);
+        app(InventoryTransactionService::class)->syncItemQty($item->id);
     }
 
     /** After a ledger is edited: its asset type takes the new name, or one is made when the ledger has moved under Fixed Assets. */
@@ -124,6 +161,9 @@ class FixedAssetLedgers
                     throw ValidationException::withMessages(['name' => "Assets already has a type called \"{$ledger->name}\". Nothing was saved."]);
                 }
                 $linked->update(['name' => $ledger->name, 'slug' => \Illuminate\Support\Str::slug($ledger->name)]);
+                if (Schema::hasTable('inventory_items')) {   // and the asset made from it
+                    InventoryItem::where('category_id', $linked->id)->where('name', $wasName)->update(['name' => $ledger->name]);
+                }
             }
 
             return;

@@ -111,7 +111,7 @@ class ChartStarterService
             $out = $this->run($keys, true, $by);
             // each new ledger under Fixed Assets is also an asset type in Assets; done after the walk so the packs' own depreciation ledgers are found, not made twice
             $types = app(\App\Services\Inventory\FixedAssetLedgers::class);
-            $out['asset_types'] = Ledger::where('id', '>', $before)->orderBy('id')->get()->map(fn ($l) => $types->forNewLedger($l, $by?->id)?->name)->filter()->values()->all();
+            $out['asset_types'] = Ledger::where('id', '>', $before)->orderBy('id')->get()->map(fn ($l) => $types->forNewLedger($l, $by?->id, false)?->name)->filter()->values()->all();
 
             return $out;
         });
