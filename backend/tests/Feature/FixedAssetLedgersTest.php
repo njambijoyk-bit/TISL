@@ -179,6 +179,7 @@ class FixedAssetLedgersTest extends TestCase
         $lease = InventoryCategory::where('name', 'Leasehold Improvements')->first();
         $this->assertSame(LedgerGroup::where('name', 'Accumulated Depreciation')->value('id'), Ledger::find($lease->accumulated_ledger_id)->group_id, 'made in the Accumulated Depreciation group');
         $this->assertNull(InventoryCategory::where('name', 'Land')->value('accumulated_ledger_id'));
+        $this->assertSame((int) LedgerGroup::where('name', 'Indirect Incomes')->value('id'), (int) Ledger::where('name', 'Gain on disposal of assets')->value('group_id'), 'the gain on disposal goes to income');
         $names = DB::table('ledgers')->pluck('name');
         $this->assertSame($names->count(), $names->unique()->count());
     }

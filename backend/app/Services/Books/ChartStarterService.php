@@ -71,6 +71,7 @@ class ChartStarterService
             ]],
             ['root' => 'Indirect Expenses', 'groups' => [['name' => 'Depreciation', 'ledgers' => ['Depreciation – Buildings', 'Depreciation – Furniture & Fittings', 'Depreciation – Computers & IT Equipment', 'Depreciation – Motor Vehicles',
                 'Depreciation – Machinery & Equipment', 'Depreciation – Office Equipment']]]],
+            ['root' => 'Indirect Incomes', 'ledgers' => ['Gain on disposal of assets']],   // where a sold asset's gain goes (the asset register and the Disposal template look for this names)
         ]],
         'deposits' => ['title' => 'Deposits, prepayments and advances', 'blurb' => 'Refundable deposits are assets, not expenses. Prepayments are expenses paid ahead.', 'sections' => [
             ['root' => 'Deposits (Asset)', 'ledgers' => ['Electricity Deposit', 'Water Deposit', 'Rent Deposit', 'Security Deposit', 'Utility Connection Deposit', 'Tender Deposits', 'Other Refundable Deposits']],
