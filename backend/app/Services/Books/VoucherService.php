@@ -786,6 +786,7 @@ class VoucherService
         $ctx = compact('type', 'currency', 'baseCurrency', 'rate', 'customer', 'locationId', 'date');
         $ctx['channel'] = (string) ($data['channel'] ?? 'admin');
         $ctx['user'] = $user;
+        $ctx['party'] = $party;   // the customer's or supplier's account: it may say exempt or zero-rated for every line
 
         $plan = [
             'source_id' => ! empty($data['source_voucher_id']) ? (int) $data['source_voucher_id'] : null,
