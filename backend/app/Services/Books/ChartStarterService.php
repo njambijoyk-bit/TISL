@@ -34,7 +34,7 @@ class ChartStarterService
             ['root' => 'Indirect Expenses', 'groups' => [
                 ['name' => 'Administrative Expenses', 'groups' => [
                     ['name' => 'Office Expenses', 'ledgers' => ['Stationery & Printing', 'Intern Allowances', 'Audit & Accountancy Fees', 'Legal & Professional Fees', 'Telephone & Internet', 'Postage & Courier', 'Software & Subscriptions']],
-                    ['name' => 'Other Administrative Expenses', 'ledgers' => ['Miscellaneous Administrative Expenses', 'Test Starter Account']],
+                    ['name' => 'Other Administrative Expenses', 'ledgers' => ['Miscellaneous Administrative Expenses']],
                 ]],
                 ['name' => 'Other Operating Expenses', 'ledgers' => ['Donations', 'Penalties & Fines', 'Loss on Disposal of Assets', 'Miscellaneous Operating Expenses']],
             ]],
@@ -75,7 +75,7 @@ class ChartStarterService
         'deposits' => ['title' => 'Deposits, prepayments and advances', 'blurb' => 'Refundable deposits are assets, not expenses. Prepayments are expenses paid ahead.', 'sections' => [
             ['root' => 'Deposits (Asset)', 'ledgers' => ['Electricity Deposit', 'Water Deposit', 'Rent Deposit', 'Security Deposit', 'Utility Connection Deposit', 'Tender Deposits', 'Other Refundable Deposits']],
             ['root' => 'Current Assets', 'groups' => [['name' => 'Prepayments', 'ledgers' => ['Prepaid Rent', 'Prepaid Insurance', 'Prepaid Licences', 'Other Prepaid Expenses']]]],
-            ['root' => 'Loans & Advances (Asset)', 'ledgers' => ['Employee Advances', 'Staff Travel Advances', 'Supplier Advances']],
+            ['root' => 'Loans & Advances (Asset)', 'ledgers' => ['Employee Advances', 'Staff Travel Advances', 'Supplier Advances', 'Staff Loans', 'Imprest Advances', 'Withholding Tax Recoverable']],
         ]],
         'provisions' => ['title' => 'Provisions and payables', 'blurb' => 'Provisions are uncertain obligations; accrued expenses are bills not yet paid whose amount is known.', 'sections' => [
             ['root' => 'Provisions', 'ledgers' => ['Provision for Audit Fees', 'Provision for Utilities', 'Provision for Legal Expenses', 'Provision for Employee Benefits', 'Other Current Provisions']],
