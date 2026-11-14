@@ -138,8 +138,10 @@ final class ModuleTables
 
         'careers'        => ['job_postings', 'applicants', 'applications', 'application_documents', 'application_status_history'],
         'projects'       => [
-            'projects', 'project_milestones', 'project_tasks', 'project_messages',
-            'project_participants', 'project_links', 'project_items', 'project_activities',
+            // the rebuilt module (scripts 256 and 257, docs/PROJECTS_STAGE1_SPEC.md)
+            'project_industries', 'project_terms', 'project_term_names', 'project_term_overrides', 'project_types', 'project_stages', 'project_fields', 'project_field_values',
+            'project_series', 'projects', 'project_phases', 'project_links', 'project_roles', 'project_role_permissions', 'project_members', 'project_log',
+            'project_settings', 'project_setting_versions', 'project_setting_logs', 'project_user_prefs',
         ],
         'listings'       => [/* built later */],
         'campaigns'      => ['campaigns', 'campaign_sections', 'campaign_items', 'campaign_events',

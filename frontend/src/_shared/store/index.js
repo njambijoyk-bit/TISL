@@ -11,7 +11,6 @@ export { default as useWithholdingStore } from './withholdingStore';
 export { default as useTaxCertificateStore } from './taxCertificateStore';
 export { default as useUomStore } from './uomStore';
 export { default as useProductVariantStore } from './productVariantStore';
-export { default as useProjectStore } from './projectStore';
 export { default as useUsersStore } from './usersStore';
 export { default as useReferralsStore } from './referralsStore';
 export { default as usePromoCodeStore } from './promoCodeStore';

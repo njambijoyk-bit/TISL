@@ -178,7 +178,7 @@ One sidebar replaces four places. Groups: Dashboard; Sales (Orders, Payments, Cr
 | **Core** | ✅ built (customers, orders, quotes, payments, credit, loyalty, tickets, publications, reports, activity logs, themes, nav, Module Center, bookings admin) | `src/core/`, `src/_shared/` |
 | **E-commerce** | ✅ products (variants, categories, brands), services, wishlist, reviews, hampers, auctions; specials customer page (admin ❌) | `src/ecommerce/` |
 | **Careers** | ✅ job board, applicant portal, ATS, interview scheduling, offers | `src/careers/` |
-| **Projects** | ✅ projects, milestones, tasks, messages, participants, My Projects, work board | `src/projects/` |
+| **Projects** | 🔨 being rebuilt from nothing (`docs/PROJECTS_CRM_PLAN.md`); the old module was removed in build 1.1 | `src/projects/` |
 | **TISL Extras** | ✅ inventory, delivery (manifests, routes, incidents, ratings, driver portal), employees, worksheets, algorithm/analytics | `src/extras/` |
 
 The seven remaining modules (Listings, Campaigns, Courses, Accommodations, Menus, Events, Memberships) are not yet built — see `PLATFORM_PLAN.md`.

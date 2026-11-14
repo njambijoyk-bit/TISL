@@ -1001,8 +1001,6 @@ function RouteMapAppendix() {
         { path: '/my-tickets',                  comp: 'TicketController@myTickets' },
         { path: '/my-tickets/:id',              comp: 'TicketController@customerShow' },
         { path: '/profile',                     comp: 'RoleBasedProfile' },
-        { path: '/my-projects',                 comp: 'ProjectController@customerIndex' },
-        { path: '/my-projects/:id',             comp: 'ProjectController@customerShow' },
       ]} />
 
       <RouteGroup title="4. Admin — Core & Dashboard" routes={[
@@ -1078,10 +1076,7 @@ function RouteMapAppendix() {
       ]} />
 
       <RouteGroup title="11. Admin — Projects & Careers" routes={[
-        { path: '/admin/projects',                      comp: 'ProjectController@statistics' },
-        { path: '/admin/projects/list',                 comp: 'ProjectController@adminIndex' },
-        { path: '/admin/projects/create',               comp: 'ProjectController@adminStore' },
-        { path: '/admin/projects/:id',                  comp: 'ProjectController@adminShow' },
+        { path: '/admin/projects',                      comp: 'Projects (being rebuilt)' },
         { path: '/admin/careers',                       comp: 'Admin Careers Stats' },
         { path: '/admin/careers/jobs',                  comp: 'AdminJobController' },
         { path: '/admin/careers/jobs/:id',              comp: 'Admin Job Detail' },
@@ -1180,7 +1175,6 @@ function RouteMapAppendix() {
       <RoleGroup role="STAFF" description="Bookings, projects, and service worksheets."
         pages={[
           { path: '/admin/projects',                      label: 'Projects — assigned workspaces' },
-          { path: '/admin/projects/:id',                  label: 'Project Detail — tasks & milestones' },
         ]}
       />
 
@@ -1192,7 +1186,6 @@ function RouteMapAppendix() {
           { path: '/services/:id/book',    label: 'Book Service — scheduling calendar' },
           { path: '/my-quotes',            label: 'My Quotes — approved proposals' },
             { path: '/my-tickets',           label: 'My Tickets — support history' },
-          { path: '/my-projects',          label: 'My Projects — collaborative workspaces' },
           { path: '/hampers',              label: 'Hampers — tier-gated bundles' },
           { path: '/checkout',             label: 'Checkout — standard order payment' },
           { path: '/auctions/:id',         label: 'Auction Detail — live bidding' },

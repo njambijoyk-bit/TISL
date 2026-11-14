@@ -20,7 +20,6 @@ export { default as brandsAPI } from './brands';
 export { default as customersAPI } from './customers';
 export { default as servicesAPI } from './services';
 export { default as serviceCategoriesAPI } from './serviceCategories';
-export { default as projectsAPI } from './projects';
 export { default as usersAPI } from './users';
 export { default as employeesAPI } from './employees.js';
 export { default as referralsAPI } from './referrals';

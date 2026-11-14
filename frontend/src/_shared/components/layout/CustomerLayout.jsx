@@ -1,6 +1,6 @@
 import {
   ShoppingCart, Heart, User, Package, Wrench, FileText, ClipboardList,
-  FolderOpen, LogOut, Settings, Zap, Star, LifeBuoy, Bug, ChevronLeft,
+  LogOut, Settings, Zap, Star, LifeBuoy, Bug, ChevronLeft,
   LayoutGrid, Volume2, VolumeX, BookOpen, Truck, BarChart3, Newspaper,
   HelpCircle, Gavel, CreditCard, Calendar, Gift, Receipt, FileQuestion,
   Shield, Cookie, Globe, Lock, Monitor, BookMarked, MessageSquare,
@@ -40,7 +40,6 @@ const CUSTOMER_GROUPS = [
       { name: 'My Account',      icon: User,          bg: 'linear-gradient(135deg,#6366f1,#818cf8)', path: '/my-account',        active: true },
       { name: 'My Wallet',       icon: Gift,          bg: 'linear-gradient(135deg,#ec4899,#f472b6)', path: '/gift-vouchers',     active: true },
       { name: 'My Quotes',       icon: FileText,      bg: 'linear-gradient(135deg,#3b82f6,#60a5fa)', path: '/my-quotes',         active: true },
-      { name: 'My Projects',     icon: FolderOpen,    bg: 'linear-gradient(135deg,#06b6d4,#22d3ee)', path: '/my-projects',       active: true },
       { name: 'My Tickets',      icon: LifeBuoy,      bg: 'linear-gradient(135deg,var(--color-primary-400),var(--color-primary-400))', path: '/my-tickets',        active: true },
       { name: 'My Hampers',      icon: Gift,          bg: 'linear-gradient(135deg,#ec4899,#f472b6)', path: '/hampers/my-orders', active: true },
       { name: 'On the way',       icon: Truck,         bg: 'linear-gradient(135deg,#0ea5e9,#38bdf8)', path: '/my-deliveries',     active: true },

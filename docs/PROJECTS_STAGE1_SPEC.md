@@ -1,6 +1,6 @@
-# Projects rebuild, Stage 1: Foundation (SPEC, not built)
+# Projects rebuild, Stage 1: Foundation (SPEC; build 1.1 done)
 
-Part of `docs/PROJECTS_CRM_PLAN.md`. Written 2026-11-14. Nothing here is built.
+Part of `docs/PROJECTS_CRM_PLAN.md`. Written 2026-11-14. Build status is at the end.
 
 ## Scope
 
@@ -63,7 +63,7 @@ Old tables dropped by the first script: `projects`, `project_milestones`, `proje
 
 ## Permission catalogue (98; catalogue version 26)
 
-S = sensitive. O = owner only by default. The stage is when the permission first does something. `projects.manage` and `projects.moderate` are retired; `bulkimport.projects` stays.
+S = sensitive (to be enforced through the serious-actions settings of Stage 2; the catalogue's own flag is `is_write`, set on every permission that changes something). O = owner only by default. The stage is when the permission first does something. `projects.manage` and `projects.moderate` are retired; `bulkimport.projects` stays.
 
 | Key | Label | Flags | Stage |
 |---|---|---|---|
@@ -199,6 +199,26 @@ S = sensitive. O = owner only by default. The stage is when the permission first
 | 1.7 | Link registry; Books vouchers and shop orders/quotations |
 | 1.8 | Types, stages and fields configuration; extra fields on the form; sensitive fields |
 | 1.9 | Shortcut keys; colour and font build check; calendar, Mimi, activity feed, backup map and menus pointed at the new module |
+
+## As built
+
+### 1.1 Clear the ground (done)
+
+To switch it on, in this order:
+1. Take a backup.
+2. Run `database/sql/256_projects_drop_old.sql` in Workbench (parts A, B, C). It deletes the old Projects data for good. It refuses to run if the new tables are already there.
+3. Run `database/sql/257_projects_foundation.sql` (parts A, B, C). Part C should show 20 tables, 15 industries, 30 terms, 450 names, 40 kinds of work, 212 stages, 6 project roles.
+4. Run `php artisan access:seed` (catalogue version 26: adds the Projects permissions and gives the built-in roles their defaults).
+
+Until the scripts are run nothing breaks: `App\Services\Projects\ProjectsSetup::ready()` is false and the calendar, Mimi, AI analytics and the activity feed simply show no project data.
+
+- **Removed:** the 8 old models, 8 controllers, 2 traits, the policy, 6 route groups, 31 frontend files, the API and store files, and the My Projects links in the customer menus.
+- **Scripts:** 256 (drop, with a guard) and 257 (20 tables and the starter rows). Both were run end to end on a throw-away MariaDB 10.11, including a second run of each (257 leaves an owner's changes alone; 256 refuses). Not run on MySQL 8.
+- **Catalogue 26:** 98 project permissions (95 new, 3 kept; `projects.manage` and `projects.moderate` retired and removed from the database by 256). Defaults: admin holds all but the three owner-only ones; manager, finance, senior accountant and sales rep get a working set, only where they already open Projects.
+- **Repointed to the new record:** calendar (project due dates of the people on it), Mimi's customer answer, AI analytics (confidential projects are never handed to the model), the Core activity feed (`project_log`), the backup map, the vault archiver's defaults.
+- **Frontend:** `/admin/projects` is one plain page that says the module is being rebuilt; every old address lands on it. `/my-projects` goes to the account page until the client portal (Stage 9). `npm run lint` now also runs `scripts/check-projects-theme.mjs`, which fails on a colour or font written in `src/projects`.
+- **Tests:** `tests/Unit/ProjectsFoundationTest.php` (catalogue, both scripts read as text, every industry names every term, every kind of work ends on a closed stage, no money column).
+- **Different from the spec:** the built-in role defaults above were not in the spec and are a first proposal; change them on the Access screens.
 
 ## To confirm before building
 

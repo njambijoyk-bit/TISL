@@ -41,14 +41,6 @@ use App\Http\Controllers\Api\CurrencyController;
 use App\Http\Controllers\Api\ContentPageController;
 use App\Http\Controllers\Api\ContentSectionController;
 use App\Http\Controllers\Api\PaymentController;
-use App\Http\Controllers\Api\ProjectController;
-use App\Http\Controllers\Api\ProjectParticipantController;
-use App\Http\Controllers\Api\ProjectLinkController;
-use App\Http\Controllers\Api\ProjectItemController;
-use App\Http\Controllers\Api\ProjectTaskController;
-use App\Http\Controllers\Api\ProjectMilestoneController;
-use App\Http\Controllers\Api\ProjectMessageController;
-use App\Http\Controllers\Api\ProjectActivityController;
 use App\Http\Controllers\Api\InventoryController;
 use App\Http\Controllers\Api\UserController;
 use App\Http\Controllers\Api\VerificationController;
@@ -1572,33 +1564,6 @@ Route::middleware('auth:sanctum')->group(function () {
             Route::post('/{id}/revision', [QuotationController::class, 'revision']);
         });
 
-        Route::prefix('projects')->middleware('module:projects')->group(function () {
-            Route::get('/', [ProjectController::class, 'customerIndex']);
-            Route::post('/', [ProjectController::class, 'customerStore']); // optional, keep if you want
-            Route::get('/{project}', [ProjectController::class, 'customerShow']);
-
-            // Participants: customer can invite customers if owner/editor (policy)
-            Route::post('/{project}/participants/customer-invite', [ProjectParticipantController::class, 'customerInvite']);
-            Route::get('/{project}/participants', [ProjectParticipantController::class, 'index']);
-
-            // Messages: customer_viewer CAN comment ✅
-            Route::get('/{project}/messages', [ProjectMessageController::class, 'index']);
-            Route::post('/{project}/messages', [ProjectMessageController::class, 'storeCustomerMessage']);
-            // Customer (same controller, same method — policy handles permissions)
-            Route::put( '/{project}/messages/{message}', [ProjectMessageController::class, 'update']);
-            Route::delete('/{project}/messages/{message}',[ProjectMessageController::class, 'destroy']);
-            Route::delete('/{project}/messages',          [ProjectMessageController::class, 'destroyBulk']);
-            // Note: clearChat is admin-only, no customer route needed
-
-            // Read-only project content
-            Route::get('/{project}/links', [ProjectLinkController::class, 'index']);
-            Route::get('/{project}/items', [ProjectItemController::class, 'index']);
-            Route::get('/{project}/tasks', [ProjectTaskController::class, 'index']);
-            
-            Route::get('/{project}/milestones', [ProjectMilestoneController::class, 'index']);
-            Route::post('/{project}/milestones/{milestone}/approve', [ProjectMilestoneController::class, 'approve']);
-            Route::delete('/{project}/milestones/force-delete', [ProjectMilestoneController::class, 'forceDelete']);
-        });
         
         // Referrals
         Route::prefix('referrals')->group(function () {
@@ -2614,57 +2579,6 @@ Route::middleware('auth:sanctum')->group(function () {
             });
         });
 
-        Route::prefix('projects')->middleware(['module:projects', 'permission:projects.use'])->group(function () {
-            // Core project CRUD (some roles may be restricted via policy)
-            Route::get('/statistics', [ProjectController::class, 'statistics']);
-            Route::get('/trash', [ProjectController::class, 'adminTrashed']);  
-            Route::get('/', [ProjectController::class, 'adminIndex']);
-            Route::post('/', [ProjectController::class, 'adminStore']);
-            Route::get('/{project}', [ProjectController::class, 'adminShow']);
-            Route::put('/{project}', [ProjectController::class, 'adminUpdate']);
-            Route::get('/{project}/activity', [ProjectActivityController::class, 'index']);
-
-            // Participants
-            Route::get('/{project}/participants', [ProjectParticipantController::class, 'index']);
-            Route::post('/{project}/participants/add-admin', [ProjectParticipantController::class, 'addAdmin']);
-            Route::post('/{project}/participants/add-customer', [ProjectParticipantController::class, 'addCustomer']);
-            Route::put('/{project}/participants/{participant}', [ProjectParticipantController::class, 'update']);
-            Route::delete('/{project}/participants/{participant}', [ProjectParticipantController::class, 'remove']);
-            Route::delete('/{project}/participants/{participant}/force', [ProjectParticipantController::class, 'forceDelete']);
-
-            // Links: exclusive binding contract enforced here
-            Route::get('/{project}/links', [ProjectLinkController::class, 'index']);
-            Route::post('/{project}/links', [ProjectLinkController::class, 'store']);        // attach quote_request/quote/order
-            Route::delete('/{project}/links/{link}', [ProjectLinkController::class, 'destroy']);
-
-            // Items: multi-currency project scope ledger
-            Route::get('/{project}/items', [ProjectItemController::class, 'index']);
-            Route::post('/{project}/items', [ProjectItemController::class, 'store']);
-            Route::put('/{project}/items/{item}', [ProjectItemController::class, 'update']);
-            Route::delete('/{project}/items/{item}', [ProjectItemController::class, 'destroy']);
-
-            // Tasks
-            Route::get('/{project}/tasks', [ProjectTaskController::class, 'index']);
-            Route::post('/{project}/tasks', [ProjectTaskController::class, 'store']);
-            Route::put('/{project}/tasks/{task}', [ProjectTaskController::class, 'update']);
-            Route::delete('/{project}/tasks/{task}', [ProjectTaskController::class, 'destroy']);
-
-            // Milestones
-            Route::get('/{project}/milestones', [ProjectMilestoneController::class, 'index']);
-            Route::post('/{project}/milestones', [ProjectMilestoneController::class, 'store']);
-            Route::put('/{project}/milestones/{milestone}', [ProjectMilestoneController::class, 'update']);
-            Route::post('/{project}/milestones/{milestone}/approve', [ProjectMilestoneController::class, 'approve']);
-            Route::post('/{project}/milestones/{milestone}/reject', [ProjectMilestoneController::class, 'reject']);
-            Route::delete('/{project}/milestones/force-delete', [ProjectMilestoneController::class, 'forceDelete']);
-
-            // Messages (admin can post internal/customer-visible)
-            Route::get('/{project}/messages', [ProjectMessageController::class, 'index']);
-            Route::post('/{project}/messages', [ProjectMessageController::class, 'storeAdminMessage']);
-            Route::put( '/{project}/messages/{message}', [ProjectMessageController::class, 'update']);
-            Route::delete('/{project}/messages/clear',   [ProjectMessageController::class, 'clearChat']);   // MUST be before /{message}
-            Route::delete('/{project}/messages/{message}',[ProjectMessageController::class, 'destroy']);
-            Route::delete('/{project}/messages',          [ProjectMessageController::class, 'destroyBulk']);
-        });
 
         Route::prefix('employees')->middleware('module:extras')->group(function () {
             Route::get('/my-record', [EmployeeController::class, 'myRecord']);
@@ -2996,21 +2910,6 @@ Route::middleware('auth:sanctum')->group(function () {
             });
         });
 
-        // Projects — policy-gated, same as admin
-        Route::prefix('projects')->middleware(['module:projects', 'permission:projects.use'])->group(function () {
-            Route::get('/',                          [ProjectController::class, 'adminIndex']);
-            Route::get('/{project}',                 [ProjectController::class, 'adminShow']);
-            Route::get('/{project}/activity',        [ProjectActivityController::class, 'index']);
-            Route::get('/{project}/participants',    [ProjectParticipantController::class, 'index']);
-            Route::get('/{project}/links',           [ProjectLinkController::class, 'index']);
-            Route::get('/{project}/items',           [ProjectItemController::class, 'index']);
-            Route::get('/{project}/tasks',           [ProjectTaskController::class, 'index']);
-            Route::get('/{project}/milestones',      [ProjectMilestoneController::class, 'index']);
-            Route::get('/{project}/messages',        [ProjectMessageController::class, 'index']);
-            Route::post('/{project}/messages',       [ProjectMessageController::class, 'storeAdminMessage']);
-            Route::put('/{project}/messages/{message}',    [ProjectMessageController::class, 'update']);
-            Route::delete('/{project}/messages/{message}', [ProjectMessageController::class, 'destroy']);
-        });
 
         // Referrals 
         Route::prefix('referrals')->middleware('permission:promos.manage')->group(function () {
@@ -3155,21 +3054,6 @@ Route::middleware('auth:sanctum')->group(function () {
             });
         });
 
-        // Projects — policy-gated, same as admin
-        Route::prefix('projects')->group(function () {
-            Route::get('/',                          [ProjectController::class, 'adminIndex']);
-            Route::get('/{project}',                 [ProjectController::class, 'adminShow']);
-            Route::get('/{project}/activity',        [ProjectActivityController::class, 'index']);
-            Route::get('/{project}/participants',    [ProjectParticipantController::class, 'index']);
-            Route::get('/{project}/links',           [ProjectLinkController::class, 'index']);
-            Route::get('/{project}/items',           [ProjectItemController::class, 'index']);
-            Route::get('/{project}/tasks',           [ProjectTaskController::class, 'index']);
-            Route::get('/{project}/milestones',      [ProjectMilestoneController::class, 'index']);
-            Route::get('/{project}/messages',        [ProjectMessageController::class, 'index']);
-            Route::post('/{project}/messages',       [ProjectMessageController::class, 'storeAdminMessage']);
-            Route::put('/{project}/messages/{message}',    [ProjectMessageController::class, 'update']);
-            Route::delete('/{project}/messages/{message}', [ProjectMessageController::class, 'destroy']);
-        });
 
         // Own employee record
         Route::prefix('employees')->group(function () {
@@ -3370,11 +3254,6 @@ Route::middleware('auth:sanctum')->group(function () {
         });
 
         
-        Route::prefix('projects')->middleware(['module:projects', 'permission:projects.delete'])->group(function () {
-            Route::delete('/{project}', [ProjectController::class, 'adminDestroy']);          // soft delete → trash
-            Route::post('/{project}/transfer-ownership', [ProjectController::class, 'transferOwnership']);
-            Route::post('/{id}/restore', [ProjectController::class, 'adminRestore']);
-        });
         
         // ── Admin hamper routes ───────────────────────────────────────────────────────
         Route::prefix('hampers')->middleware(['module:ecommerce', 'permission:hampers.manage'])->group(function () {
@@ -3531,10 +3410,6 @@ Route::middleware('auth:sanctum')->group(function () {
         // Route::get('/settings', [SettingsController::class, 'index']);
         // Route::put('/settings', [SettingsController::class, 'update']);
 
-        Route::prefix('projects')->middleware(['module:projects', 'permission:projects.purge'])->group(function () {
-            Route::delete('/{project}/force', [ProjectController::class, 'forceDestroy'])
-               ->withTrashed();
-        });
 
         Route::prefix('users')->middleware('permission:users.purge')->group(function () {
             Route::delete('/{id}/force', [UserController::class, 'forceDelete']);

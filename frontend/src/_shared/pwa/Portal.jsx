@@ -65,7 +65,6 @@ const CUSTOMER_ROUTES = [
   { key: 'orders',         label: 'My Orders',      icon: ShoppingBag,   path: '/orders',            color: '#f97316' },
   { key: 'quotes',         label: 'My Quotes',      icon: FileText,      path: '/my-quotes',         color: 'var(--color-primary-400)' },
   { key: 'tickets',        label: 'Support',        icon: LifeBuoy,      path: '/my-tickets',        color: '#ef4444' },
-  { key: 'projects',       label: 'Projects',       icon: FolderOpen,    path: '/my-projects',       color: '#14b8a6', module: MODULES.PROJECTS },
   { key: 'wishlist',       label: 'Wishlist',       icon: Heart,         path: '/wishlist',          color: '#f43f5e', module: MODULES.ECOMMERCE },
   { key: 'hampers',        label: 'Hampers',        icon: Gift,          path: '/hampers',           color: 'var(--color-primary-500)', module: MODULES.HAMPERS },
   { key: 'products',       label: 'Products',       icon: Package,       path: '/products',          color: '#3b82f6', module: MODULES.ECOMMERCE },

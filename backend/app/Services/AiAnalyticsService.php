@@ -238,66 +238,50 @@ class AiAnalyticsService
 
     // ─────────────────────────────────────────────────────────────────
 
+    /** Projects were rebuilt (docs/PROJECTS_STAGE1_SPEC.md): this reads the new record. Tasks and time come back with their own stage. */
     private function fetchProjectsData(?int $entityId): array
     {
+        if (! \App\Services\Projects\ProjectsSetup::ready()) {
+            return ['note' => 'The Projects module has no data yet.'];
+        }
         if ($entityId) {
             $project = DB::selectOne("
-                SELECT p.id, p.project_number, p.title, p.status, p.priority,
-                    p.target_end_date, p.base_currency,
-                    COUNT(t.id) as total_tasks,
-                    COUNT(CASE WHEN t.status = 'done' THEN 1 END) as completed_tasks,
-                    COUNT(CASE WHEN t.status = 'blocked' THEN 1 END) as blocked_tasks
+                SELECT p.id, p.number, p.title, p.state, p.priority, p.start_date, p.due_date, s.name AS stage, t.name AS type, p.industry_key
                 FROM projects p
-                LEFT JOIN project_tasks t ON t.project_id = p.id
-                WHERE p.id = ?
-                GROUP BY p.id
+                LEFT JOIN project_stages s ON s.id = p.stage_id
+                LEFT JOIN project_types t ON t.id = p.type_id
+                WHERE p.id = ? AND p.deleted_at IS NULL AND p.confidential = 0
             ", [$entityId]);
 
-            $participants = DB::select("
-                SELECT u.name, u.role, pp.role as project_role, pp.status
-                FROM project_participants pp
-                JOIN users u ON u.id = pp.admin_user_id
-                WHERE pp.project_id = ? AND pp.participant_type = 'admin'
-            ", [$entityId]);
+            $members = $project ? DB::select("
+                SELECT u.name, r.name AS project_role, m.status
+                FROM project_members m
+                JOIN users u ON u.id = m.user_id
+                LEFT JOIN project_roles r ON r.id = m.project_role_id
+                WHERE m.project_id = ? AND m.status = 'active'
+            ", [$entityId]) : [];
 
-            return ['project' => $project, 'participants' => $participants];
+            return ['project' => $project, 'members' => $members];
         }
 
+        // confidential projects are never handed to the model
         $stats = DB::selectOne("
             SELECT
-                COUNT(*)                                                               AS total_projects,
-                COUNT(CASE WHEN status = 'active'    THEN 1 END)                      AS active,
-                COUNT(CASE WHEN status = 'completed' THEN 1 END)                      AS completed,
-                COUNT(CASE WHEN status = 'on_hold'   THEN 1 END)                      AS on_hold,
-                COUNT(CASE WHEN status = 'planning'  THEN 1 END)                      AS planning,
-                COUNT(CASE WHEN target_end_date < NOW() AND status NOT IN ('completed','cancelled') THEN 1 END) AS overdue
+                COUNT(*)                                                    AS total_projects,
+                COUNT(CASE WHEN state = 'open'      THEN 1 END)            AS open,
+                COUNT(CASE WHEN state = 'on_hold'   THEN 1 END)            AS on_hold,
+                COUNT(CASE WHEN state = 'closed'    THEN 1 END)            AS closed,
+                COUNT(CASE WHEN state = 'cancelled' THEN 1 END)            AS cancelled,
+                COUNT(CASE WHEN due_date < CURRENT_DATE AND state IN ('open','on_hold') THEN 1 END) AS overdue
             FROM projects
+            WHERE deleted_at IS NULL AND confidential = 0
         ");
 
-        $taskStats = DB::selectOne("
-            SELECT
-                COUNT(*)                                                  AS total_tasks,
-                COUNT(CASE WHEN status = 'done'    THEN 1 END)           AS completed,
-                COUNT(CASE WHEN status = 'blocked' THEN 1 END)           AS blocked,
-                COUNT(CASE WHEN status = 'doing'   THEN 1 END)           AS in_progress,
-                COUNT(CASE WHEN due_date < NOW() AND status != 'done' THEN 1 END) AS past_due
-            FROM project_tasks
-            WHERE created_at >= NOW() - INTERVAL 30 DAY
-        ");
+        $dueSoon = DB::table('projects')->whereNull('deleted_at')->where('confidential', 0)->where('state', 'open')
+            ->whereNotNull('due_date')->where('due_date', '<=', now()->addDays(7)->toDateString())
+            ->orderBy('due_date')->limit(5)->get(['id', 'number', 'title', 'due_date'])->all();
 
-        $atRisk = DB::select("
-            SELECT p.id, p.title, p.target_end_date, p.status,
-                COUNT(CASE WHEN t.status = 'blocked' THEN 1 END) as blocked_tasks
-            FROM projects p
-            LEFT JOIN project_tasks t ON t.project_id = p.id
-            WHERE p.status = 'active'
-            AND p.target_end_date <= NOW() + INTERVAL 7 DAY
-            GROUP BY p.id
-            ORDER BY p.target_end_date ASC
-            LIMIT 5
-        ");
-
-        return compact('stats', 'taskStats', 'atRisk');
+        return compact('stats', 'dueSoon');
     }
 
     // ─────────────────────────────────────────────────────────────────

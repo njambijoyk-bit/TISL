@@ -507,7 +507,6 @@ class VaultArchiverService
 
             // ── Additional tables ─────────────────────────────────────────────────────
             ['dev_access_key_logs',              'Dev Access Key Logs',             30,        'json'],
-            ['project_activities',               'Project Activities',              90,        'json'],
             ['customer_tier_activities',         'Customer Tier Activities',        90,        'json'],
             ['inventory_export_logs',            'Inventory Export Logs',           90,        'json'],
             ['leave_logs',                       'Employee Leave Logs',             365,       'json'],

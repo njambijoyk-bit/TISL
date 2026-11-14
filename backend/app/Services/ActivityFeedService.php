@@ -38,7 +38,7 @@ class ActivityFeedService
             ['key' => 'withholding_activity', 'label' => 'Withholding', 'group' => 'Books', 'permission' => $f, 'table' => 'withholding_activity_logs', 'at' => 'created_at'],
             ['key' => 'currency_activity', 'label' => 'Currency', 'group' => 'Books', 'permission' => $f, 'table' => 'currency_activity_logs', 'at' => 'created_at'],
             ['key' => 'delivery_activity', 'label' => 'Delivery', 'group' => 'Operations', 'permission' => $o, 'table' => 'delivery_activity_logs', 'at' => 'created_at'],
-            ['key' => 'project_activity', 'label' => 'Projects', 'group' => 'Work', 'permission' => $o, 'table' => 'project_activities', 'at' => 'created_at'],
+            ['key' => 'project_activity', 'label' => 'Projects', 'group' => 'Work', 'permission' => 'projects.log.view', 'table' => 'project_log', 'at' => 'created_at'],   // its own permission; confidential projects are left out below
             ['key' => 'leave', 'label' => 'Leave', 'group' => 'People', 'permission' => $o, 'table' => 'leave_logs', 'at' => 'created_at'],
             ['key' => 'application_status', 'label' => 'Job applications', 'group' => 'People', 'permission' => $a, 'table' => 'application_status_history', 'at' => 'created_at'],
             ['key' => 'bug_status', 'label' => 'Bug reports', 'group' => 'System', 'permission' => $a, 'table' => 'bug_report_status_history', 'at' => 'created_at'],
@@ -95,6 +95,9 @@ class ActivityFeedService
             $q->leftJoin('vouchers as v', 'v.id', '=', 'l.voucher_id')->select('l.*', 'v.voucher_number as _ref');
         } elseif ($s['key'] === 'verification' && Schema::hasTable('verification_items')) {
             $q->leftJoin('verification_items as i', 'i.id', '=', 'l.item_id')->select('l.*', 'i.ref as _ref');
+        } elseif ($s['key'] === 'project_activity' && Schema::hasTable('projects')) {
+            // a confidential project is only for the people on it: its log never shows on the company-wide timeline, with or without a name
+            $q->leftJoin('projects as p', 'p.id', '=', 'l.project_id')->where(fn ($w) => $w->whereNull('l.project_id')->orWhere('p.confidential', 0))->select('l.*', 'p.number as _ref');
         } else {
             $q->select('l.*');
         }
@@ -158,7 +161,7 @@ class ActivityFeedService
             case 'delivery_activity':
                 $actor = $r->performer_name ?: $r->performed_by; $action = $r->action; $subject = class_basename((string) $r->loggable_type) . ' #' . $r->loggable_id; $summary = $r->severity ? Str::headline($r->severity) : ''; break;
             case 'project_activity':
-                $actor = $r->actor_user_id; $action = $r->action; $subject = 'Project #' . $r->project_id . ($r->entity_type ? ' · ' . Str::headline($r->entity_type) . ' #' . $r->entity_id : ''); break;
+                $actor = $r->actor_id; $action = $r->action . ($r->result === 'refused' ? ' (refused)' : ''); $subject = ($r->project_id ? 'Project ' . ($r->_ref ?? '#' . $r->project_id) : 'Projects') . ($r->subject_type ? ' · ' . Str::headline($r->subject_type) . ($r->subject_id ? ' #' . $r->subject_id : '') : ''); $summary = $this->short($r->reason, 100); break;
             case 'leave':
                 $actor = $r->actioned_by; $action = $r->action; $subject = 'Employee #' . $r->employee_id; $summary = trim(($r->days !== null ? $r->days . ' day(s). ' : '') . $this->short($r->reason, 100)); break;
             case 'application_status':

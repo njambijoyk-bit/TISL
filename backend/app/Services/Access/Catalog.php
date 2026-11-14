@@ -11,13 +11,14 @@ namespace App\Services\Access;
  */
 class Catalog
 {
-    public const VERSION = 25;
+    public const VERSION = 26;
 
     /** The key of the owner role: the one role that holds every permission, including ones added later. It cannot be changed or deleted. */
     public const OWNER = 'super_admin';
 
     /** Permissions added after version 1, by the version that added them. The seeder gives a new permission to the built-in roles that hold it by default once, and never again (an admin may take it back). */
     public const ADDED = [
+        26 => ['projects.view_all', 'projects.create', 'projects.edit', 'projects.stage', 'projects.close', 'projects.freeze', 'projects.transfer', 'projects.confidential', 'projects.phases', 'projects.fields.sensitive', 'projects.export', 'projects.links', 'projects.members.view', 'projects.members.manage', 'projects.log.view', 'projects.log.export', 'projects.guests', 'projects.access.rules', 'projects.locks.reset', 'projects.approve', 'projects.security.view', 'projects.config.view', 'projects.config.manage', 'projects.config.industry', 'projects.config.names', 'projects.naming.personal', 'projects.config.fields', 'projects.config.stages', 'projects.config.roles', 'projects.shortcuts', 'projects.config.actions', 'projects.leads.view', 'projects.leads.manage', 'projects.pipeline', 'projects.clients.view', 'projects.clients.manage', 'projects.parties', 'projects.interactions', 'projects.health.view', 'projects.flags', 'projects.clients.export', 'projects.directory.yellow', 'projects.directory.white', 'projects.directory.contacts', 'projects.directory.staff', 'projects.directory.manage', 'projects.directory.visibility', 'projects.directory.publish', 'projects.directory.export', 'projects.money.view', 'projects.money.budget', 'projects.money.bill', 'projects.money.disbursements', 'projects.money.rates', 'projects.money.writeoff', 'projects.money.retention', 'projects.money.held.view', 'projects.money.held.pay', 'projects.ledgers.create', 'projects.ledgers.bank', 'projects.tasks', 'projects.scope', 'projects.dates', 'projects.changes', 'projects.changes.approve', 'projects.time.log', 'projects.time.approve', 'projects.time.others', 'projects.capacity', 'projects.daily', 'projects.materials', 'projects.plant', 'projects.subcontracts', 'projects.inspections', 'projects.messages.client', 'projects.messages.internal', 'projects.messages.moderate', 'projects.meetings', 'projects.inbox.all', 'projects.files.view', 'projects.files.manage', 'projects.files.share', 'projects.files.sign', 'projects.templates', 'projects.team.view', 'projects.team.manage', 'projects.team.checklists', 'projects.casebook.report', 'projects.casebook.handle', 'projects.casebook.configure', 'projects.casebook.identity', 'projects.insights', 'projects.insights.team', 'projects.kpis', 'projects.rules'],
         25 => ['events.admin'],
         24 => ['books.budget.exceed'],
         23 => ['books.budget.approve'],
@@ -43,7 +44,7 @@ class Catalog
             'content.manage', 'tickets.manage', 'bookings.manage'],
         3 => ['books.writeoff', 'books.bounce', 'books.pettycash', 'quotes.write', 'loyalty.grant', 'loyalty.deduct', 'loyalty.configure', 'loyalty.export', 'customers.represent',
             'stock.override_expiry', 'stock.expiry_alerts', 'verification.manage', 'verification.override', 'vendors.approve', 'calendar.team', 'attendance.manage', 'attendance.arbitrate',
-            'hr.view', 'hr.purge', 'hr.team', 'projects.manage', 'projects.moderate', 'campaigns.admin', 'campaigns.purge', 'catalogue.publish', 'catalogue.purge', 'engagement.view',
+            'hr.view', 'hr.purge', 'hr.team', 'campaigns.admin', 'campaigns.purge', 'catalogue.publish', 'catalogue.purge', 'engagement.view',
             'engagement.moderate', 'engagement.settings', 'insight.ops', 'driver.app', 'ai.keys', 'vault.bypass', 'settings.delete'],
         2 => ['system.restore', 'system.logs', 'policies.manage', 'appearance.manage', 'vault.policies', 'vault.settings', 'users.manage', 'users.purge', 'tickets.purge', 'tax.view', 'tax.manage',
             'currency.manage', 'currency.base', 'inventory.accounting', 'inventory.manage', 'catalogue.settings', 'hampers.manage', 'promos.manage', 'promos.admin', 'algorithm.manage',
@@ -52,7 +53,7 @@ class Catalog
 
     /**
      * A permission that already existed but a built-in role now holds by default: version => role key => permissions. The seeder gives it once, when it
-     * upgrades from an older version, and never takes it back. (The sales rep manages milestones and posts messages, so it needs to open projects.)
+     * upgrades from an older version, and never takes it back. (The sales rep works with customers' projects, so it needs to open them.)
      */
     public const GRANTED = [
         18 => ['manager' => ['tenders.view', 'prequalification.view'], 'senior_accountant' => ['tenders.view', 'tenders.manage', 'prequalification.view']],
@@ -198,9 +199,9 @@ class Catalog
         'promos.admin'      => [null, 'Marketing', 'Create, change and delete promo codes and referral programmes', true],
         'algorithm.manage'  => ['extras', 'Marketing', 'Tune the ranking algorithm', true],
         'algorithm.run'     => ['extras', 'Marketing', 'Run customer scoring', true],
-        'projects.use'      => ['projects', 'Projects', 'Open projects and take part', false],
-        'projects.delete'   => ['projects', 'Projects', 'Delete, restore and transfer projects', true],
-        'projects.purge'    => ['projects', 'Projects', 'Delete projects for good', true],
+        'projects.use'      => ['projects', 'Projects', 'Open Projects and work on the projects you are on', false],
+        'projects.delete'   => ['projects', 'Projects', 'Put projects and their parts in the trash and take them back out', true],
+        'projects.purge'    => ['projects', 'Projects', 'Delete from the Projects trash for good', true],
         'hr.manage'         => ['extras', 'People', 'Manage employee records', true],
         'careers.manage'    => ['careers', 'People', 'Post jobs and manage applications', true],
         'analytics.view'    => ['extras', 'Insight', 'See search and customer analytics', false],
@@ -261,8 +262,6 @@ class Catalog
         'hr.view'           => ['extras', 'People', 'See employee records', false],
         'hr.purge'          => ['extras', 'People', 'Delete employee records for good', true],
         'hr.team'           => ['extras', 'People', 'Edit the records of the people who report to you', true],
-        'projects.manage'   => ['projects', 'Projects', 'Manage milestones and post staff messages', true],
-        'projects.moderate' => ['projects', 'Projects', 'Edit or remove anyone\'s project messages and see internal notes', true],
         'campaigns.admin'   => ['campaigns', 'Campaigns', 'Change the customer pin settings and see who looked', true],
         'campaigns.purge'   => ['campaigns', 'Campaigns', 'Delete boards, campaigns, pins and moodboards for good', true],
         'catalogue.publish' => ['ecommerce', 'Catalogue', 'Make price lists and catalogues live', true],
@@ -295,13 +294,109 @@ class Catalog
         'imports.view'      => [null, 'Books', 'Open another company\'s books from a .wnkjap file or a connection (view only, nothing is stored)', false],
         'imports.export'    => [null, 'Books', 'Make .wnkjap exports of these books and the keys other companies fetch them with', true],
         'imports.manage'    => [null, 'Books', 'Keep the connections to other companies\' sites', true],
+        // Projects, rebuilt (version 26, docs/PROJECTS_STAGE1_SPEC.md). All are listed now so roles can be prepared once; each starts to matter when its stage is built.
+        'projects.view_all' => ['projects', 'Projects', 'See every project that is not confidential', false],
+        'projects.create' => ['projects', 'Projects', 'Start a project', true],
+        'projects.edit' => ['projects', 'Projects', 'Change a project\'s details', true],
+        'projects.stage' => ['projects', 'Projects', 'Move a project from stage to stage', true],
+        'projects.close' => ['projects', 'Projects', 'Close and reopen a project', true],
+        'projects.freeze' => ['projects', 'Projects', 'Freeze a finished project so nothing on it can change, and unfreeze it', true],
+        'projects.transfer' => ['projects', 'Projects', 'Hand a project to another lead', true],
+        'projects.confidential' => ['projects', 'Projects', 'Make a project confidential (only the people on it can find it) or open', true],
+        'projects.phases' => ['projects', 'Projects', 'Add and change a project\'s phases', true],
+        'projects.fields.sensitive' => ['projects', 'Projects', 'See project fields marked sensitive', false],
+        'projects.export' => ['projects', 'Projects', 'Export project lists and details', false],
+        'projects.links' => ['projects', 'Projects', 'Attach records from other modules to a project, and remove them', true],
+        'projects.members.view' => ['projects', 'Projects: access', 'See who can get into a project', false],
+        'projects.members.manage' => ['projects', 'Projects: access', 'Invite people to a project, remove them and change their project role', true],
+        'projects.log.view' => ['projects', 'Projects: access', 'Read the Projects activity log', false],
+        'projects.log.export' => ['projects', 'Projects: access', 'Export the Projects activity log', false],
+        'projects.guests' => ['projects', 'Projects: access', 'Invite an outsider to a project by link', true],
+        'projects.access.rules' => ['projects', 'Projects: access', 'Set hours, end dates and locked areas on a project', true],
+        'projects.locks.reset' => ['projects', 'Projects: access', 'Approve a locked-area password reset', true],
+        'projects.approve' => ['projects', 'Projects: access', 'Approve serious actions in Projects as a supervisor', true],
+        'projects.security.view' => ['projects', 'Projects: access', 'See security alerts raised inside Projects', false],
+        'projects.config.view' => ['projects', 'Projects: configuration', 'Open the Projects configuration page', false],
+        'projects.config.manage' => ['projects', 'Projects: configuration', 'Change Projects settings and roll them back', true],
+        'projects.config.industry' => ['projects', 'Projects: configuration', 'Change the default industry', true],
+        'projects.config.names' => ['projects', 'Projects: configuration', 'Rename project fields for the company', true],
+        'projects.naming.personal' => ['projects', 'Projects: configuration', 'Choose my own industry names for my screens', false],
+        'projects.config.fields' => ['projects', 'Projects: configuration', 'Add and change extra project fields', true],
+        'projects.config.stages' => ['projects', 'Projects: configuration', 'Add and change project types and stages', true],
+        'projects.config.roles' => ['projects', 'Projects: configuration', 'Add and change project roles', true],
+        'projects.shortcuts' => ['projects', 'Projects: configuration', 'Change the company\'s shortcut keys for Projects', true],
+        'projects.config.actions' => ['projects', 'Projects: configuration', 'Decide which actions are serious and what they need', true],
+        'projects.leads.view' => ['projects', 'Projects: relationships', 'See leads', false],
+        'projects.leads.manage' => ['projects', 'Projects: relationships', 'Add, change and convert leads', true],
+        'projects.pipeline' => ['projects', 'Projects: relationships', 'Work the pipeline of opportunities', true],
+        'projects.clients.view' => ['projects', 'Projects: relationships', 'Open client pages', false],
+        'projects.clients.manage' => ['projects', 'Projects: relationships', 'Change a client\'s contacts, roles and account manager', true],
+        'projects.parties' => ['projects', 'Projects: relationships', 'Add and change other parties', true],
+        'projects.interactions' => ['projects', 'Projects: relationships', 'Log calls, visits and notes', true],
+        'projects.health.view' => ['projects', 'Projects: relationships', 'See relationship health and worth', false],
+        'projects.flags' => ['projects', 'Projects: relationships', 'Put a flag on a client and remove it', true],
+        'projects.clients.export' => ['projects', 'Projects: relationships', 'Export clients and contacts', false],
+        'projects.directory.yellow' => ['projects', 'Projects: directory', 'Open the yellow pages', false],
+        'projects.directory.white' => ['projects', 'Projects: directory', 'Open the white pages', false],
+        'projects.directory.contacts' => ['projects', 'Projects: directory', 'Reveal phone numbers and emails in the directory', false],
+        'projects.directory.staff' => ['projects', 'Projects: directory', 'See staff details in the directory', false],
+        'projects.directory.manage' => ['projects', 'Projects: directory', 'Add and change directory entries, categories and trades', true],
+        'projects.directory.visibility' => ['projects', 'Projects: directory', 'Set who can see a directory entry', true],
+        'projects.directory.publish' => ['projects', 'Projects: directory', 'Make a directory entry public', true],
+        'projects.directory.export' => ['projects', 'Projects: directory', 'Export the directory', false],
+        'projects.money.view' => ['projects', 'Projects: money', 'See a project\'s money', false],
+        'projects.money.budget' => ['projects', 'Projects: money', 'Set and change a project budget', true],
+        'projects.money.bill' => ['projects', 'Projects: money', 'Raise bills from a project', true],
+        'projects.money.disbursements' => ['projects', 'Projects: money', 'Record costs paid for a client', true],
+        'projects.money.rates' => ['projects', 'Projects: money', 'Set rates for people and projects', true],
+        'projects.money.writeoff' => ['projects', 'Projects: money', 'Write off time or costs on a project', true],
+        'projects.money.retention' => ['projects', 'Projects: money', 'Release retention', true],
+        'projects.money.held.view' => ['projects', 'Projects: money', 'See money held for clients', false],
+        'projects.money.held.pay' => ['projects', 'Projects: money', 'Pay out of money held for a client', true],
+        'projects.ledgers.create' => ['projects', 'Projects: money', 'Create a ledger in Books from a project', true],
+        'projects.ledgers.bank' => ['projects', 'Projects: money', 'Create a bank ledger in Books from a project', true],
+        'projects.tasks' => ['projects', 'Projects: work', 'Create and assign tasks', true],
+        'projects.scope' => ['projects', 'Projects: work', 'Change scope lines', true],
+        'projects.dates' => ['projects', 'Projects: work', 'Add and change key dates', true],
+        'projects.changes' => ['projects', 'Projects: work', 'Raise a change', true],
+        'projects.changes.approve' => ['projects', 'Projects: work', 'Approve a change', true],
+        'projects.time.log' => ['projects', 'Projects: work', 'Log my time', true],
+        'projects.time.approve' => ['projects', 'Projects: work', 'Approve timesheets', true],
+        'projects.time.others' => ['projects', 'Projects: work', 'Change other people\'s time', true],
+        'projects.capacity' => ['projects', 'Projects: work', 'See team load and plan people', false],
+        'projects.daily' => ['projects', 'Projects: work', 'Write the daily record', true],
+        'projects.materials' => ['projects', 'Projects: work', 'Request and issue materials', true],
+        'projects.plant' => ['projects', 'Projects: work', 'Assign plant and equipment and record hours', true],
+        'projects.subcontracts' => ['projects', 'Projects: work', 'Manage subcontracts and their bills', true],
+        'projects.inspections' => ['projects', 'Projects: work', 'Run inspections and snag lists', true],
+        'projects.messages.client' => ['projects', 'Projects: communication', 'Message clients on a project', true],
+        'projects.messages.internal' => ['projects', 'Projects: communication', 'See and write team-only notes', true],
+        'projects.messages.moderate' => ['projects', 'Projects: communication', 'Edit or remove anyone\'s project messages', true],
+        'projects.meetings' => ['projects', 'Projects: communication', 'Plan, move and cancel meetings', true],
+        'projects.inbox.all' => ['projects', 'Projects: communication', 'See every conversation on projects I can open', false],
+        'projects.files.view' => ['projects', 'Projects: documents', 'Open project files', false],
+        'projects.files.manage' => ['projects', 'Projects: documents', 'Add, replace and remove project files', true],
+        'projects.files.share' => ['projects', 'Projects: documents', 'Share a project file with the client', true],
+        'projects.files.sign' => ['projects', 'Projects: documents', 'Ask for sign-off on a file', true],
+        'projects.templates' => ['projects', 'Projects: documents', 'Manage document templates', true],
+        'projects.team.view' => ['projects', 'Projects: people', 'Open the team view', false],
+        'projects.team.manage' => ['projects', 'Projects: people', 'Set goals, write reviews and one-to-one notes', true],
+        'projects.team.checklists' => ['projects', 'Projects: people', 'Run joining and leaving checklists', true],
+        'projects.casebook.report' => ['projects', 'Projects: people', 'Report something in the casebook', true],
+        'projects.casebook.handle' => ['projects', 'Projects: people', 'Receive and handle casebook reports', true],
+        'projects.casebook.configure' => ['projects', 'Projects: people', 'Set casebook routing and hidden-name rules', true],
+        'projects.casebook.identity' => ['projects', 'Projects: people', 'Reveal a hidden name on a casebook report', false],
+        'projects.insights' => ['projects', 'Projects: insights', 'See scorecards for my projects', false],
+        'projects.insights.team' => ['projects', 'Projects: insights', 'See scorecards for people', false],
+        'projects.kpis' => ['projects', 'Projects: insights', 'Set KPIs and targets', true],
+        'projects.rules' => ['projects', 'Projects: insights', 'Create automatic rules', true],
     ];
 
     /** What the admin role does not hold by default (the owner holds everything, and builds roles that hold these). Admin gets everything else. */
     public const OWNER_ONLY = ['system.modules', 'system.devtools', 'system.restore', 'access.roles', 'books.period', 'books.statements', 'books.reports.format', 'books.reports.reconcile_setup', 'books.reports.approval', 'books.close.prepare', 'books.tax.control', 'books.tax.admin', 'payroll.run', 'currency.base',
         'vault.settings', 'algorithm.run', 'projects.purge', 'tickets.purge', 'users.purge',
-        'books.writeoff', 'books.bounce', 'verification.override', 'attendance.arbitrate', 'hr.purge', 'projects.moderate', 'campaigns.purge', 'driver.app',
-        'vault.bypass', 'ai.keys', 'settings.delete', 'mimi.routing', 'notifications.keys.purge', 'payments.keys', 'security.manage'];
+        'books.writeoff', 'books.bounce', 'verification.override', 'attendance.arbitrate', 'hr.purge', 'campaigns.purge', 'driver.app',
+        'vault.bypass', 'ai.keys', 'settings.delete', 'mimi.routing', 'notifications.keys.purge', 'payments.keys', 'security.manage', 'projects.ledgers.bank', 'projects.casebook.identity'];
 
     /** Things a role can approve, optionally up to an amount. approval key => label. */
     public const APPROVALS = [
@@ -320,7 +415,7 @@ class Catalog
      */
     public static function roles(): array
     {
-        return self::withUnits(self::builtInRoles());
+        return self::withProjects(self::withUnits(self::builtInRoles()));
     }
 
     /**
@@ -338,6 +433,29 @@ class Catalog
             $has = fn (array $any) => (bool) array_intersect($any, $role['permissions']);
             $add = array_merge($has(['catalogue.edit']) ? ['units.manage'] : [], $has(['catalogue.view', 'catalogue.edit', 'tax.view', 'stock.view', 'menus.view']) ? ['units.view'] : []);
             $roles[$key]['permissions'] = array_values(array_unique(array_merge($role['permissions'], $add)));
+        }
+
+        return $roles;
+    }
+
+    /**
+     * What the built-in roles hold in the rebuilt Projects module by default (version 26). Admin holds everything that is not owner-only, as always.
+     * A role only gets these if it already opens Projects (`projects.use`), so a role without Projects is left alone.
+     */
+    private const PROJECTS_DEFAULTS = [
+        'manager' => ['projects.view_all', 'projects.create', 'projects.edit', 'projects.stage', 'projects.close', 'projects.phases', 'projects.export', 'projects.links', 'projects.members.view', 'projects.members.manage', 'projects.config.view', 'projects.naming.personal', 'projects.leads.view', 'projects.leads.manage', 'projects.pipeline', 'projects.clients.view', 'projects.clients.manage', 'projects.parties', 'projects.interactions', 'projects.health.view', 'projects.directory.yellow', 'projects.directory.white', 'projects.directory.manage', 'projects.money.view', 'projects.money.budget', 'projects.tasks', 'projects.scope', 'projects.dates', 'projects.changes', 'projects.time.log', 'projects.time.approve', 'projects.capacity', 'projects.daily', 'projects.materials', 'projects.plant', 'projects.inspections', 'projects.messages.client', 'projects.messages.internal', 'projects.meetings', 'projects.inbox.all', 'projects.files.view', 'projects.files.manage', 'projects.files.share', 'projects.files.sign', 'projects.team.view', 'projects.team.checklists', 'projects.casebook.report', 'projects.insights'],
+        'finance' => ['projects.view_all', 'projects.export', 'projects.links', 'projects.members.view', 'projects.naming.personal', 'projects.clients.view', 'projects.health.view', 'projects.directory.yellow', 'projects.money.view', 'projects.money.budget', 'projects.money.bill', 'projects.money.disbursements', 'projects.time.log', 'projects.files.view', 'projects.casebook.report', 'projects.insights'],
+        'senior_accountant' => ['projects.view_all', 'projects.export', 'projects.links', 'projects.members.view', 'projects.naming.personal', 'projects.clients.view', 'projects.health.view', 'projects.directory.yellow', 'projects.money.view', 'projects.money.budget', 'projects.money.bill', 'projects.money.disbursements', 'projects.time.log', 'projects.files.view', 'projects.casebook.report', 'projects.insights'],
+        'sales_rep' => ['projects.create', 'projects.links', 'projects.naming.personal', 'projects.leads.view', 'projects.leads.manage', 'projects.pipeline', 'projects.clients.view', 'projects.clients.manage', 'projects.interactions', 'projects.directory.yellow', 'projects.directory.white', 'projects.tasks', 'projects.time.log', 'projects.daily', 'projects.messages.client', 'projects.messages.internal', 'projects.meetings', 'projects.files.view', 'projects.files.manage', 'projects.casebook.report'],
+    ];
+
+    /** @param array<string, array<string, mixed>> $roles */
+    private static function withProjects(array $roles): array
+    {
+        foreach (self::PROJECTS_DEFAULTS as $key => $add) {
+            if (isset($roles[$key]) && is_array($roles[$key]['permissions']) && in_array('projects.use', $roles[$key]['permissions'], true)) {
+                $roles[$key]['permissions'] = array_values(array_unique(array_merge($roles[$key]['permissions'], $add)));
+            }
         }
 
         return $roles;
@@ -369,7 +487,7 @@ class Catalog
                     'pos.view', 'pos.sell', 'pos.invoice', 'pos.order', 'pos.return', 'pos.discount', 'pos.void', 'pos.reprint', 'pos.shift', 'pos.supervise', 'pos.manage',
                     'catalogue.delete', 'credit.act', 'delivery.manage', 'tax.view', 'inventory.accounting', 'inventory.manage', 'catalogue.settings', 'promos.manage', 'projects.use',
                     'analytics.view', 'insight.mimi', 'resources.manage', 'quotes.write', 'calendar.team', 'hr.view', 'hr.team', 'stock.override_expiry', 'stock.expiry_alerts', 'loyalty.grant',
-                    'loyalty.deduct', 'loyalty.export', 'projects.manage', 'catalogue.publish', 'engagement.view', 'engagement.moderate', 'insight.ops', 'vendors.approve', 'tenders.view', 'prequalification.view', 'users.manage', 'customers.view', 'customers.manage', 'credit.view', 'quotes.view', 'catalogue.view', 'catalogue.edit', 'auctions.manage', 'shipping.manage', 'tickets.manage', 'bookings.manage', 'costcentres.view', 'codes.view', 'codes.manage', 'codes.print', 'events.view', 'events.edit', 'events.sell', 'events.checkin', 'events.refund']),
+                    'loyalty.deduct', 'loyalty.export', 'catalogue.publish', 'engagement.view', 'engagement.moderate', 'insight.ops', 'vendors.approve', 'tenders.view', 'prequalification.view', 'users.manage', 'customers.view', 'customers.manage', 'credit.view', 'quotes.view', 'catalogue.view', 'catalogue.edit', 'auctions.manage', 'shipping.manage', 'tickets.manage', 'bookings.manage', 'costcentres.view', 'codes.view', 'codes.manage', 'codes.print', 'events.view', 'events.edit', 'events.sell', 'events.checkin', 'events.refund']),
                 'approvals' => ['campaign.publish' => null], 'sort' => 40],
             'finance' => ['name' => 'Finance', 'kind' => 'staff', 'min_clearance' => 3, 'scope_type' => 'assigned', 'data_scope' => 'all', 'module' => null, 'acts_as' => [],
                 'description' => 'Does the finance work of the branches assigned or granted.', 'modules' => ['*'],
@@ -381,7 +499,7 @@ class Catalog
             'logistics' => ['name' => 'Logistics', 'kind' => 'staff', 'min_clearance' => 2, 'scope_type' => 'assigned', 'data_scope' => 'all', 'module' => null, 'acts_as' => [],
                 'description' => 'Runs deliveries.', 'modules' => ['*'], 'permissions' => array_merge(self::STAFF, ['delivery.manage', 'hr.view', 'customers.view', 'quotes.view', 'catalogue.view', 'shipping.manage', 'tickets.manage']), 'approvals' => [], 'sort' => 60],
             'sales_rep' => ['name' => 'Sales representative', 'kind' => 'staff', 'min_clearance' => 2, 'scope_type' => 'assigned', 'data_scope' => 'assigned', 'module' => null, 'acts_as' => [],
-                'description' => 'Works with the customers assigned to them.', 'modules' => ['*'], 'permissions' => array_merge(self::STAFF, ['campaigns.build', 'catalogue.pricelists', 'quotes.write', 'loyalty.grant', 'customers.represent', 'projects.manage', 'projects.use', 'engagement.view', 'users.manage', 'customers.view', 'customers.manage', 'credit.view', 'quotes.view', 'catalogue.view', 'tickets.manage', 'bookings.manage']), 'approvals' => [], 'sort' => 70],
+                'description' => 'Works with the customers assigned to them.', 'modules' => ['*'], 'permissions' => array_merge(self::STAFF, ['campaigns.build', 'catalogue.pricelists', 'quotes.write', 'loyalty.grant', 'customers.represent', 'projects.use', 'engagement.view', 'users.manage', 'customers.view', 'customers.manage', 'credit.view', 'quotes.view', 'catalogue.view', 'tickets.manage', 'bookings.manage']), 'approvals' => [], 'sort' => 70],
             'cashier' => ['name' => 'Cashier', 'kind' => 'staff', 'min_clearance' => 1, 'scope_type' => 'assigned', 'data_scope' => 'own', 'module' => null, 'acts_as' => [],
                 'description' => 'Takes payments at a branch: sells at the point of sale from a station, invoices, takes orders and starts returns (a supervisor\'s PIN completes them).', 'modules' => ['*'], 'permissions' => ['admin.access', 'customers.view', 'catalogue.view', 'bookings.manage', 'pos.view', 'pos.sell', 'pos.invoice', 'pos.order', 'pos.return', 'pos.discount', 'pos.void', 'pos.reprint', 'pos.shift', 'menus.till', 'menus.tips.view', 'menus.tips.issue'], 'approvals' => [], 'sort' => 80],
             'chef' => ['name' => 'Chef', 'kind' => 'staff', 'min_clearance' => 1, 'scope_type' => 'assigned', 'data_scope' => 'all', 'module' => 'menus', 'acts_as' => [],

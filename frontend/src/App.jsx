@@ -73,8 +73,6 @@ const MyGiftVouchers       = lazy(() => import('./core/pages/customer/MyGiftVouc
 const RequestQuote         = lazy(() => import('./core/pages/customer/RequestQuote'));
 const MyQuotes             = lazy(() => import('./core/pages/customer/MyQuotations'));
 const CustomerQuoteDetail  = lazy(() => import('./core/pages/customer/CustomerQuotationDetail'));
-const MyProjects           = lazy(() => import('./projects/pages/customer/MyProjects'));
-const MyProjectDetail      = lazy(() => import('./projects/pages/customer/MyProjectDetail'));
 const Profile              = lazy(() => import('./core/pages/customer/Profile'));
 const CustomerAppearance   = lazy(() => import('./core/pages/customer/AppearanceSettings'));
 const About                = lazy(() => import('./core/pages/customer/About'));
@@ -264,10 +262,7 @@ const VoucherView        = lazy(() => import('./core/pages/admin/books/VoucherVi
 const ReturnFromInvoice  = lazy(() => import('./core/pages/admin/books/ReturnFromInvoice'));
 const OrdersRegister     = lazy(() => import('./core/pages/admin/books/OrdersRegister'));
 const OtherCompanies     = lazy(() => import('./core/pages/admin/books/OtherCompanies'));
-const ProjectDashboard   = lazy(() => import('./projects/pages/admin/ProjectDashboard'));
-const Projects           = lazy(() => import('./projects/pages/admin/Projects'));
-const ProjectCreate      = lazy(() => import('./projects/pages/admin/ProjectCreate'));
-const ProjectDetail      = lazy(() => import('./projects/pages/admin/ProjectDetail'));
+const ProjectsHome       = lazy(() => import('./projects/pages/admin/ProjectsHome'));
 const UsersPage          = lazy(() => import('./core/pages/admin/users/Users'));
 const UserDetail         = lazy(() => import('./core/pages/admin/users/UserDetail'));
 const EmployeeList       = lazy(() => import('./extras/pages/admin/employees/EmployeeList'));
@@ -833,22 +828,8 @@ function App() {
                 </ProtectedRoute>
               }
             />
-            <Route
-              path="/my-projects"
-              element={
-                <ProtectedRoute>
-                  <ModuleRoute module="projects"><MyProjects /></ModuleRoute>
-                </ProtectedRoute>
-              }
-            />
-            <Route
-              path="/my-projects/:id"
-              element={
-                <ProtectedRoute>
-                  <ModuleRoute module="projects"><MyProjectDetail /></ModuleRoute>
-                </ProtectedRoute>
-              }
-            />
+            {/* The client side of Projects comes back with the client portal (docs/PROJECTS_CRM_PLAN.md, stage 9) */}
+            <Route path="/my-projects/*" element={<Navigate to="/my-account" replace />} />
 
             {/* ── Admin Routes ─────────────────────────────────────────────── */}
             {/* One frame (sidebar, section tabs, Ctrl+K) for every /admin and /driver page */}
@@ -1429,39 +1410,9 @@ function App() {
               {/* Payments Dashboard */}
               <Route path="/admin/finance/payments" element={<ProtectedRoute requireAdmin permission="books.view"><OrdersRegister initial="receipt" /></ProtectedRoute>} />
 
-              {/* Projects */}
-              <Route
-                path="/admin/projects"
-                element={
-                  <ProtectedRoute requireAdmin permission="projects.use">
-                    <ProjectDashboard />
-                  </ProtectedRoute>
-                }
-              />
-              <Route
-                path="/admin/projects/list"
-                element={
-                  <ProtectedRoute requireAdmin permission="projects.use">
-                    <Projects />
-                  </ProtectedRoute>
-                }
-              />
-              <Route
-                path="/admin/projects/create"
-                element={
-                  <ProtectedRoute requireAdmin permission="projects.use">
-                    <ProjectCreate />
-                  </ProtectedRoute>
-                }
-              />
-              <Route
-                path="/admin/projects/:id"
-                element={
-                  <ProtectedRoute requireAdmin permission="projects.use">
-                    <ProjectDetail />
-                  </ProtectedRoute>
-                }
-              />
+              {/* Projects: rebuilt from nothing (docs/PROJECTS_STAGE1_SPEC.md). The screens arrive build by build; until then every old address lands on the one page. */}
+              <Route path="/admin/projects" element={<ProtectedRoute requireAdmin permission="projects.use"><ModuleRoute module="projects" redirectTo="/admin"><ProjectsHome /></ModuleRoute></ProtectedRoute>} />
+              <Route path="/admin/projects/*" element={<Navigate to="/admin/projects" replace />} />
               <Route path="/admin/work" element={<Navigate to="/admin/calendar" replace />} />
 
               {/* Customers & Users */}

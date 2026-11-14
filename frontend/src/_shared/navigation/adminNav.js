@@ -311,12 +311,7 @@ export const ADMIN_NAV = [
     module: MODULES.PROJECTS,
     items: [
       {
-        id: 'projects', title: 'Projects', icon: ClipboardList, color: '#14b8a6', path: '/admin/projects', perm: 'projects.use', keywords: 'milestones tasks',
-        tabs: [
-          { title: 'Overview', path: '/admin/projects', exact: true },
-          { title: 'All projects', path: '/admin/projects/list' },
-          { title: 'New project', path: '/admin/projects/create' },
-        ],
+        id: 'projects', title: 'Projects', icon: ClipboardList, color: '#14b8a6', path: '/admin/projects', perm: 'projects.use', keywords: 'matters contracts jobs engagements clients work',
       },
     ],
   },

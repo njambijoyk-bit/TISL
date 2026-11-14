@@ -15,7 +15,8 @@ use App\Models\Books\Voucher;
 use App\Models\Books\VoucherType;
 use App\Models\Customer;
 use App\Models\User;
-use App\Models\Project;
+use App\Services\Projects\ProjectsSetup;
+use Illuminate\Support\Facades\DB;
 use App\Models\ReferralCode;
 use App\Models\Payment;
 use App\Services\Chat\Local\CallerContext;
@@ -229,15 +230,11 @@ class ChatController extends Controller
                 )->join("\n") ?: 'No orders yet.';
 
             // ── Projects ──────────────────────────────────────────────────────
-            $projects = Project::whereHas('participants', fn($q) =>
-                $q->where('customer_id', $customer->id)
-            )->select('id', 'title', 'status', 'created_at')
-                ->latest()
-                ->limit(3)
-                ->get()
-                ->map(fn($p) =>
-                    "🚀 Project: {$p->title} | Status: {$p->status} | Started: {$p->created_at->format('M d, Y')}"
-                )->join("\n") ?: 'No active projects.';
+            $projects = ! ProjectsSetup::ready() ? 'No active projects.' : (DB::table('projects')
+                ->where('customer_id', $customer->id)->whereNull('deleted_at')->whereIn('state', ['open', 'on_hold'])
+                ->orderByDesc('created_at')->limit(3)->get(['number', 'title', 'state', 'created_at'])
+                ->map(fn ($p) => "🚀 Project: {$p->number} {$p->title} | Status: " . str_replace('_', ' ', $p->state) . ' | Started: ' . \Carbon\Carbon::parse($p->created_at)->format('M d, Y'))
+                ->join("\n") ?: 'No active projects.');
 
             // ── Payment history (per order, customer-safe fields only) ─────────
             $payments = $this->safe(fn() => Payment::where('customer_id', $customer->id)
