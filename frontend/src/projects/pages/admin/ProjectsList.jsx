@@ -71,6 +71,8 @@ export default function ProjectsList() {
         subtitle={filters.scope === 'mine' ? `The ${many} you are on` : `Every ${one} you may see`}
         actions={(
           <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
+            {hasPermission(user, 'projects.log.view') && ready && <Btn onClick={() => navigate('/admin/projects/log')}>Activity log</Btn>}
+            {hasPermission(user, 'projects.delete') && ready && <Btn onClick={() => navigate('/admin/projects/trash')}>Trash</Btn>}
             {hasPermission(user, 'projects.config.view') && <Btn onClick={() => navigate('/admin/projects/configuration')}>Configuration</Btn>}
             {hasPermission(user, 'projects.create') && ready && <Btn variant="primary" data-hotkey="F2" onClick={() => navigate('/admin/projects/new')}>New {one}</Btn>}
           </div>

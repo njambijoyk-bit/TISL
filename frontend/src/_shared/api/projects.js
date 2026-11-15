@@ -23,6 +23,14 @@ const projectsAPI = {
   changePhase: async (id, phaseId, data) => (await api.put(`/admin/projects/${id}/phases/${phaseId}`, data)).data,
   removePhase: async (id, phaseId) => (await api.delete(`/admin/projects/${id}/phases/${phaseId}`)).data,
 
+  // the log and the trash
+  log: async (id, params) => (await api.get(`/admin/projects/${id}/log`, { params })).data,
+  logAll: async (params) => (await api.get('/admin/projects/log', { params })).data,
+  remove: async (id) => (await api.delete(`/admin/projects/${id}`)).data,
+  trash: async () => (await api.get('/admin/projects/trash')).data,
+  restore: async (type, id) => (await api.post('/admin/projects/trash/restore', { type, id })).data,
+  purge: async (type, id) => (await api.post('/admin/projects/trash/purge', { type, id })).data,
+
   // the people on a piece of work: each call answers { members, roles, candidates, can }
   members: async (id) => (await api.get(`/admin/projects/${id}/members`)).data,
   invite: async (id, data) => (await api.post(`/admin/projects/${id}/members`, data)).data,

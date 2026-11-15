@@ -8,11 +8,14 @@ import { day, message, PRIORITY, STATE } from '../../lib/format';
 import { Btn, Chip, Notice, Panel, PanelTitle, Tabs } from '../../components/ui';
 import PhasesPanel from '../../components/PhasesPanel';
 import PeoplePanel from '../../components/PeoplePanel';
+import ActivityPanel from '../../components/ActivityPanel';
+import { hasPermission } from '../../../_shared/lib/roles';
+import { useAuthStore } from '../../../_shared/store/index';
 import { STATUS_TOKEN, tint } from '../../components/uiTokens';
 
 /**
  * One piece of work, open (docs/PROJECTS_STAGE1_SPEC.md, builds 1.3 and 1.4): where it is in its stages, its details, its cost centre in the books, and its
- * phases and the people on it. Links and the activity log arrive as tabs with builds 1.6 and 1.7. Every button is there only when the server says this person
+ * phases, the people on it and its activity log. Links arrive as a tab with build 1.7. Every button is there only when the server says this person
  * may do it on this project (`can`); the words are the ones the server sends for this piece of work (`words`).
  */
 function Row({ label, children }) {
@@ -56,6 +59,8 @@ export default function ProjectDetail() {
   const [busy, setBusy] = useState(false);
   const [asking, setAsking] = useState(null);   // an action waiting for "are you sure": { label, run }
   const [tab, setTab] = useState('overview');
+  const user = useAuthStore((s) => s.user);
+  const fetchLog = useCallback((params) => projectsAPI.log(id, params), [id]);
 
   const load = useCallback(async () => {
     try {
@@ -101,6 +106,11 @@ export default function ProjectDetail() {
   const can = p.can;
   const next = p.stages[p.stages.findIndex((s) => s.id === p.stage?.id) + 1];
   const mayMoveNext = next && can.stage && p.state === 'open' && (next.state !== 'closed' || can.close);
+  const removeIt = async () => {
+    setBusy(true);
+    setAsking(null);
+    try { await projectsAPI.remove(p.id); toast.success('In the trash'); navigate('/admin/projects'); } catch (e) { toast.error(message(e, 'That could not be done. Try again.')); setBusy(false); }
+  };
   const move = (s) => act(() => projectsAPI.moveStage(p.id, s.id), s.state === 'closed' ? 'Closed' : `Moved to ${s.name}`);
 
   return (
@@ -117,6 +127,7 @@ export default function ProjectDetail() {
             {can.close && p.state === 'cancelled' && <Btn busy={busy} onClick={() => act(() => projectsAPI.setState(p.id, 'reopen'), 'Reopened')}>Reopen</Btn>}
             {can.freeze && !p.frozen && (p.state === 'closed' || p.state === 'cancelled') && <Btn busy={busy} onClick={() => setAsking({ label: 'Freeze it? Nothing on it can be changed until it is unfrozen.', yes: 'Yes, freeze it', run: () => act(() => projectsAPI.freeze(p.id, true), 'Frozen') })}>Freeze</Btn>}
             {can.freeze && p.frozen && <Btn busy={busy} onClick={() => act(() => projectsAPI.freeze(p.id, false), 'Unfrozen')}>Unfreeze</Btn>}
+            {can.edit && hasPermission(user, 'projects.delete') && <Btn variant="danger" busy={busy} onClick={() => setAsking({ label: 'Put it in the trash? It can be taken back out.', yes: 'Yes, put it in the trash', run: removeIt })}>Delete</Btn>}
             {mayMoveNext && <Btn variant="primary" busy={busy} onClick={() => move(next)}>{next.state === 'closed' ? 'Close it' : `Move to ${next.name}`}</Btn>}
             <Btn onClick={() => navigate('/admin/projects')}>Close</Btn>
           </div>
@@ -138,9 +149,10 @@ export default function ProjectDetail() {
         {PRIORITY[p.priority] && p.priority !== 'medium' && <Chip status={PRIORITY[p.priority].status}>{PRIORITY[p.priority].label} priority</Chip>}
       </div>
       <StageBar project={p} onMove={move} busy={busy} />
-      <Tabs tabs={[{ key: 'overview', label: 'Overview' }, { key: 'phases', label: word('phase', true) }, ...(can.members_view ? [{ key: 'people', label: 'People' }] : [])]} value={tab} onChange={setTab} label="Parts of this page" />
+      <Tabs tabs={[{ key: 'overview', label: 'Overview' }, { key: 'phases', label: word('phase', true) }, ...(can.members_view ? [{ key: 'people', label: 'People' }] : []), ...(can.log ? [{ key: 'activity', label: 'Activity' }] : [])]} value={tab} onChange={setTab} label="Parts of this page" />
 
       {tab === 'phases' && <PhasesPanel key={`${p.id}-${p.frozen}`} projectId={p.id} word={word} />}
+      {tab === 'activity' && <ActivityPanel fetch={fetchLog} describe={(what) => what.replace(/^Project\b/, word('project')).replace(/^Phase\b/, word('phase'))} />}
       {tab === 'people' && <PeoplePanel key={`${p.id}-${p.frozen}`} projectId={p.id} word={word} onTransferred={setProject} />}
       {tab === 'overview' && (
       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(300px, 1fr))', gap: 16, alignItems: 'start' }}>

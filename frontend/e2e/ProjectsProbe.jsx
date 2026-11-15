@@ -3,6 +3,8 @@ import ProjectsList from '/src/projects/pages/admin/ProjectsList.jsx';
 import ProjectForm from '/src/projects/pages/admin/ProjectForm.jsx';
 import ProjectDetail from '/src/projects/pages/admin/ProjectDetail.jsx';
 import ProjectConfiguration from '/src/projects/pages/admin/ProjectConfiguration.jsx';
+import ProjectsLog from '/src/projects/pages/admin/ProjectsLog.jsx';
+import ProjectsTrash from '/src/projects/pages/admin/ProjectsTrash.jsx';
 
 /** The Projects screens with their own addresses, so moving between them works as in the app. Starts at ?at=/admin/projects/... */
 export default function ProjectsProbe() {
@@ -12,6 +14,8 @@ export default function ProjectsProbe() {
       <Route path="/e2e/*" element={<Navigate to={at} replace />} />
       <Route path="/admin/projects" element={<ProjectsList />} />
       <Route path="/admin/projects/configuration" element={<ProjectConfiguration />} />
+      <Route path="/admin/projects/log" element={<ProjectsLog />} />
+      <Route path="/admin/projects/trash" element={<ProjectsTrash />} />
       <Route path="/admin/projects/new" element={<ProjectForm />} />
       <Route path="/admin/projects/:id" element={<ProjectDetail />} />
       <Route path="/admin/projects/:id/edit" element={<ProjectForm />} />

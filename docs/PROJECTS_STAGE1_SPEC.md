@@ -275,6 +275,20 @@ Nothing new to run. Screens: `docs/screens/projects-people.png`, `projects-roles
 - **Tests:** `tests/Feature/ProjectsPeopleTest.php` (11); `frontend/e2e/projects-people-ui.mjs` (27 checks in a real browser).
 - **Left for Stage 2:** hours of the day and locked areas per person; a supervisor approving a transfer; rescuing a confidential project.
 
+### 1.6 The log and the trash (done)
+
+Nothing new to run by hand. The scheduler now also runs `projects:empty-trash` daily at 01:20. Screens: `docs/screens/projects-activity.png`, `projects-trash.png`.
+
+- **Services:** `ProjectActivity` (reads the log), `ProjectTrash` (delete, restore, delete for good, the clean-up).
+- **The log on screen:** an Activity tab on a project (needs `projects.log.view` and a project role that reads the log, or seeing every project on a non-confidential one) and a module-wide page. The module-wide page never shows a line of a project the reader could not open, and shows no lines of a project that was deleted for good except the line saying so. Filter by done or refused; search by person, action or reason. There is no route that changes or removes a line.
+- **Deleting a project** needs `projects.delete` and a project role that changes the project; a frozen project cannot be deleted. It leaves every list at once and answers "not found" until restored.
+- **The trash** shows a person only what they could have opened before it was deleted. A phase deleted with its parent shows once and comes back with everything under it. Items are kept for the company's `trash_days`.
+- **Deleting for good** needs `projects.purge` and is refused for anything whose cost centre, or any of its phases' cost centres, carries a voucher: that work can only be restored, closed and frozen. Deleting for good removes the project, its phases, people, links and field values, switches its cost centres off (they are not erased), and keeps the log.
+- **The daily clean-up** removes what is older than the keeping period and never what the books hold vouchers for.
+- **Routes:** `GET /log`, `GET /{id}/log`, `DELETE /{id}`, `GET /trash`, `POST /trash/restore`, `POST /trash/purge`.
+- **Tests:** `tests/Feature/ProjectsLogAndTrashTest.php` (10); `frontend/e2e/projects-log-trash-ui.mjs` (25 checks in a real browser).
+- **Left for Stage 2:** a supervisor approving a delete for good; exporting the log.
+
 ## To confirm before building
 
 1. The owner runs the two database scripts; the first deletes all current project data for good. Take a backup first.

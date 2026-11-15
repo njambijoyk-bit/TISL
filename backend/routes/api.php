@@ -1895,6 +1895,12 @@ Route::middleware('auth:sanctum')->group(function () {
             Route::get('/options', [$prj, 'options']);
             Route::get('/options/customers', [$prj, 'customers'])->middleware('permission:projects.create,projects.edit');
             Route::post('/', [$prj, 'store'])->middleware('permission:projects.create');
+            Route::get('/log', [$prj, 'logAll'])->middleware('permission:projects.log.view');
+            Route::get('/trash', [$prj, 'trash'])->middleware('permission:projects.delete');
+            Route::post('/trash/restore', [$prj, 'restore'])->middleware('permission:projects.delete');
+            Route::post('/trash/purge', [$prj, 'purge'])->middleware('permission:projects.purge');
+            Route::get('/{project}/log', [$prj, 'log'])->whereNumber('project')->middleware('permission:projects.log.view');
+            Route::delete('/{project}', [$prj, 'destroy'])->whereNumber('project')->middleware('permission:projects.delete');
             Route::get('/{project}', [$prj, 'show'])->whereNumber('project');
             Route::put('/{project}', [$prj, 'update'])->whereNumber('project')->middleware('permission:projects.edit');
             Route::put('/{project}/stage', [$prj, 'stage'])->whereNumber('project')->middleware('permission:projects.stage');

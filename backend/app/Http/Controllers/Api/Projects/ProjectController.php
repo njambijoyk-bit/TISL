@@ -7,6 +7,7 @@ use App\Services\Projects\ProjectException;
 use App\Services\Projects\ProjectLog;
 use App\Services\Projects\ProjectPhases;
 use App\Services\Projects\ProjectService;
+use App\Services\Projects\ProjectTrash;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 
@@ -78,6 +79,60 @@ class ProjectController extends Controller
         $data = $request->validate(['frozen' => 'required|boolean']);
 
         return $this->change($request, $project, fn ($p) => $this->projects->freeze($p, (bool) $data['frozen'], $request->user()));
+    }
+
+    // ------------------------------------------------------------------ the log and the trash
+
+    public function log(Request $request, int $project): JsonResponse
+    {
+        return $this->guard(function () use ($request, $project) {
+            $p = $this->projects->findFor($request->user(), $project, 'log');
+
+            return response()->json(app(\App\Services\Projects\ProjectActivity::class)->forProject($p, $request->only(['result', 'q', 'page', 'per_page'])));
+        });
+    }
+
+    public function logAll(Request $request): JsonResponse
+    {
+        return response()->json(app(\App\Services\Projects\ProjectActivity::class)->all($request->user(), $request->only(['result', 'q', 'page', 'per_page'])));
+    }
+
+    public function destroy(Request $request, int $project): JsonResponse
+    {
+        return $this->guard(function () use ($request, $project) {
+            app(ProjectTrash::class)->deleteProject($this->projects->findFor($request->user(), $project), $request->user());
+
+            return response()->json(['message' => 'In the trash.']);
+        });
+    }
+
+    public function trash(Request $request): JsonResponse
+    {
+        $user = $request->user();
+
+        return response()->json(['items' => app(ProjectTrash::class)->list($user), 'days' => (int) app(\App\Services\Projects\ProjectSettings::class)->get('general')['trash_days'], 'can' => ['purge' => $user->hasPermission('projects.purge')]]);
+    }
+
+    public function restore(Request $request): JsonResponse
+    {
+        $data = $request->validate(['type' => 'required|string|in:project,phase', 'id' => 'required|integer']);
+
+        return $this->guard(function () use ($request, $data) {
+            app(ProjectTrash::class)->restore($data['type'], (int) $data['id'], $request->user());
+
+            return $this->trash($request);
+        });
+    }
+
+    public function purge(Request $request): JsonResponse
+    {
+        $data = $request->validate(['type' => 'required|string|in:project,phase', 'id' => 'required|integer']);
+
+        return $this->guard(function () use ($request, $data) {
+            app(ProjectTrash::class)->purge($data['type'], (int) $data['id'], $request->user());
+
+            return $this->trash($request);
+        });
     }
 
     // ------------------------------------------------------------------ phases
