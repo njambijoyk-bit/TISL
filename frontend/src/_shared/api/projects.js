@@ -23,6 +23,13 @@ const projectsAPI = {
   changePhase: async (id, phaseId, data) => (await api.put(`/admin/projects/${id}/phases/${phaseId}`, data)).data,
   removePhase: async (id, phaseId) => (await api.delete(`/admin/projects/${id}/phases/${phaseId}`)).data,
 
+  // records of other modules attached to a piece of work: each call answers { groups, hidden, off, can }
+  links: async (id) => (await api.get(`/admin/projects/${id}/links`)).data,
+  findLinkable: async (id, type, q) => (await api.get(`/admin/projects/${id}/links/find`, { params: { type, q } })).data.found,
+  addLink: async (id, data) => (await api.post(`/admin/projects/${id}/links`, data)).data,
+  removeLink: async (id, linkId) => (await api.delete(`/admin/projects/${id}/links/${linkId}`)).data,
+  linkedTo: async (type, id) => (await api.get('/admin/projects/linked', { params: { type, id } })).data.projects,
+
   // the log and the trash
   log: async (id, params) => (await api.get(`/admin/projects/${id}/log`, { params })).data,
   logAll: async (params) => (await api.get('/admin/projects/log', { params })).data,

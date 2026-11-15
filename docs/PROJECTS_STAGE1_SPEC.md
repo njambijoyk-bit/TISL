@@ -289,6 +289,24 @@ Nothing new to run by hand. The scheduler now also runs `projects:empty-trash` d
 - **Tests:** `tests/Feature/ProjectsLogAndTrashTest.php` (10); `frontend/e2e/projects-log-trash-ui.mjs` (25 checks in a real browser).
 - **Left for Stage 2:** a supervisor approving a delete for good; exporting the log.
 
+### 1.7 Links to other modules (done)
+
+Nothing new to run. Screen: `docs/screens/projects-links.png`.
+
+- **The registry:** `ProjectLinkTypes`. Each module registers what of its own can be attached, in one place (`AppServiceProvider`, the same pattern as signed codes and membership benefits): its module key, its words, the permission needed to see its records, how to search them and how to describe them. Projects needs no change when a module is added (a test registers one on the spot).
+- **Shipped:** `books.voucher` (Core, always on; `books.view`) and `events.event` (Events; `events.view`).
+- **Three checks every time:** the module is licensed and switched on, the person holds that module's own permission, and they can open the project. A link whose module is off is kept, not shown, and back when the module is. Someone who may not see a module's records is told only how many links they cannot see.
+- **The agreed value without a number:** a linked quotation or sales order shows its total, read from the books each time it is shown. Change the voucher and the project shows the new figure. `project_links` has no amount column.
+- **Changes:** adding and removing need `projects.links` and a project role that allows links (Lead, Member, Finance). A record that has since gone says so and can be unlinked. Removing a link never touches the record.
+- **The other way round:** `GET /api/admin/projects/linked?type=&id=` answers which projects a record is part of (never a confidential one the asker is not on), for the "part of project" strip other modules will show in Stage 7.
+- **Routes:** `GET /{id}/links`, `GET /{id}/links/find`, `POST /{id}/links`, `DELETE /{id}/links/{link}`, `GET /linked`.
+- **Tests:** `tests/Feature/ProjectsLinksTest.php` (8); `frontend/e2e/projects-links-ui.mjs` (15 checks in a real browser).
+- **Not yet:** an unlinked link does not show in the trash page (it is kept and comes back when linked again). The other modules' links and their "part of project" strip are Stage 7.
+
+### The whole test suite
+
+Run after build 1.7: **3,064 backend tests, 1 failure**, and that one is Laravel's stock `ExampleTest` asking for a home page the API does not serve (not part of Projects, and failing before this work). An earlier run in this build environment showed several hundred failures; they came from the environment's own autoloader shadowing the app's service provider with a development tool's file of the same name, not from the code, and went once that was corrected.
+
 ## To confirm before building
 
 1. The owner runs the two database scripts; the first deletes all current project data for good. Take a backup first.

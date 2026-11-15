@@ -1918,6 +1918,11 @@ Route::middleware('auth:sanctum')->group(function () {
             Route::get('/configuration/roles', [$mem, 'roles'])->middleware('permission:projects.config.view');
             Route::post('/configuration/roles', [$mem, 'addRole'])->middleware('permission:projects.config.roles');
             Route::put('/configuration/roles/{role}', [$mem, 'changeRole'])->whereNumber('role')->middleware('permission:projects.config.roles');
+            Route::get('/linked', [$prj, 'linkedTo']);                                  // for another module's page: which projects a record is part of
+            Route::get('/{project}/links', [$prj, 'links'])->whereNumber('project');
+            Route::get('/{project}/links/find', [$prj, 'findLinkable'])->whereNumber('project')->middleware('permission:projects.links');
+            Route::post('/{project}/links', [$prj, 'addLink'])->whereNumber('project')->middleware('permission:projects.links');
+            Route::delete('/{project}/links/{link}', [$prj, 'removeLink'])->whereNumber(['project', 'link'])->middleware('permission:projects.links');
             Route::get('/{project}/phases', [$prj, 'phases'])->whereNumber('project');
             Route::post('/{project}/phases', [$prj, 'addPhase'])->whereNumber('project')->middleware('permission:projects.phases');
             Route::put('/{project}/phases/{phase}', [$prj, 'changePhase'])->whereNumber(['project', 'phase'])->middleware('permission:projects.phases');

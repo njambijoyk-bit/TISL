@@ -4,6 +4,7 @@ namespace App\Http\Controllers\Api\Projects;
 
 use App\Http\Controllers\Controller;
 use App\Services\Projects\ProjectException;
+use App\Services\Projects\ProjectLinks;
 use App\Services\Projects\ProjectLog;
 use App\Services\Projects\ProjectPhases;
 use App\Services\Projects\ProjectService;
@@ -133,6 +134,60 @@ class ProjectController extends Controller
 
             return $this->trash($request);
         });
+    }
+
+    // ------------------------------------------------------------------ links to other modules
+
+    public function links(Request $request, int $project): JsonResponse
+    {
+        return $this->guard(fn () => $this->linkList($request, $this->projects->findFor($request->user(), $project)));
+    }
+
+    public function findLinkable(Request $request, int $project): JsonResponse
+    {
+        $data = $request->validate(['type' => 'required|string|max:80', 'q' => 'nullable|string|max:80']);
+
+        return $this->guard(function () use ($request, $project, $data) {
+            $p = $this->projects->findFor($request->user(), $project);
+            app(\App\Services\Projects\ProjectAccess::class)->authorize($request->user(), 'links', $p);
+
+            return response()->json(['found' => app(ProjectLinks::class)->search($request->user(), $data['type'], (string) ($data['q'] ?? ''))]);
+        });
+    }
+
+    public function addLink(Request $request, int $project): JsonResponse
+    {
+        $data = $request->validate(['type' => 'required|string|max:80', 'linked_id' => 'required|integer', 'note' => 'nullable|string|max:200']);
+
+        return $this->guard(function () use ($request, $project, $data) {
+            $p = $this->projects->findFor($request->user(), $project);
+            app(ProjectLinks::class)->add($p, $data['type'], (int) $data['linked_id'], $data['note'] ?? null, $request->user());
+
+            return $this->linkList($request, $p, 201);
+        });
+    }
+
+    public function removeLink(Request $request, int $project, int $link): JsonResponse
+    {
+        return $this->guard(function () use ($request, $project, $link) {
+            $p = $this->projects->findFor($request->user(), $project);
+            app(ProjectLinks::class)->remove($p, $link, $request->user());
+
+            return $this->linkList($request, $p);
+        });
+    }
+
+    /** For another module's page: the projects one of its records is attached to. */
+    public function linkedTo(Request $request): JsonResponse
+    {
+        $data = $request->validate(['type' => 'required|string|max:80', 'id' => 'required|integer']);
+
+        return response()->json(['projects' => app(ProjectLinks::class)->projectsOf($request->user(), $data['type'], (int) $data['id'])]);
+    }
+
+    private function linkList(Request $request, object $p, int $status = 200): JsonResponse
+    {
+        return response()->json(app(ProjectLinks::class)->forProject($p, $request->user()) + ['can' => ['links' => app(\App\Services\Projects\ProjectAccess::class)->allows($request->user(), 'links', $p)]], $status);
     }
 
     // ------------------------------------------------------------------ phases

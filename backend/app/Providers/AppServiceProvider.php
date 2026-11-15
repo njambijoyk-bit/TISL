@@ -51,6 +51,11 @@ class AppServiceProvider extends ServiceProvider
         // Projects: one of each per request, so a name or setting saved by one part of a request is what the rest of it reads (they keep what they read)
         $this->app->scoped(\App\Services\Projects\ProjectSettings::class);
         $this->app->scoped(\App\Services\Projects\ProjectNames::class);
+        $this->app->singleton(\App\Services\Projects\ProjectLinkTypes::class);   // each module says what of its own can be attached to a project
+        $this->app->afterResolving(\App\Services\Projects\ProjectLinkTypes::class, function ($types) {
+            \App\Services\Projects\Links\BooksLinks::register($types);
+            \App\Services\Projects\Links\EventsLinks::register($types);
+        });
         $this->app->singleton(\App\Services\Codes\CodeResolvers::class);   // modules register what their signed codes mean
         $this->app->singleton(\App\Services\Memberships\MembershipBenefits::class);
         $this->app->afterResolving(\App\Services\Memberships\MembershipBenefits::class, function ($r) {   // each module says what it can give to a member

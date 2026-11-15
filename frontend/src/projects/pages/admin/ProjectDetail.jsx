@@ -9,13 +9,14 @@ import { Btn, Chip, Notice, Panel, PanelTitle, Tabs } from '../../components/ui'
 import PhasesPanel from '../../components/PhasesPanel';
 import PeoplePanel from '../../components/PeoplePanel';
 import ActivityPanel from '../../components/ActivityPanel';
+import LinksPanel from '../../components/LinksPanel';
 import { hasPermission } from '../../../_shared/lib/roles';
 import { useAuthStore } from '../../../_shared/store/index';
 import { STATUS_TOKEN, tint } from '../../components/uiTokens';
 
 /**
  * One piece of work, open (docs/PROJECTS_STAGE1_SPEC.md, builds 1.3 and 1.4): where it is in its stages, its details, its cost centre in the books, and its
- * phases, the people on it and its activity log. Links arrive as a tab with build 1.7. Every button is there only when the server says this person
+ * phases, the people on it, what is linked to it from other modules, and its activity log. Every button is there only when the server says this person
  * may do it on this project (`can`); the words are the ones the server sends for this piece of work (`words`).
  */
 function Row({ label, children }) {
@@ -149,9 +150,10 @@ export default function ProjectDetail() {
         {PRIORITY[p.priority] && p.priority !== 'medium' && <Chip status={PRIORITY[p.priority].status}>{PRIORITY[p.priority].label} priority</Chip>}
       </div>
       <StageBar project={p} onMove={move} busy={busy} />
-      <Tabs tabs={[{ key: 'overview', label: 'Overview' }, { key: 'phases', label: word('phase', true) }, ...(can.members_view ? [{ key: 'people', label: 'People' }] : []), ...(can.log ? [{ key: 'activity', label: 'Activity' }] : [])]} value={tab} onChange={setTab} label="Parts of this page" />
+      <Tabs tabs={[{ key: 'overview', label: 'Overview' }, { key: 'phases', label: word('phase', true) }, ...(can.members_view ? [{ key: 'people', label: 'People' }] : []), { key: 'links', label: 'Links' }, ...(can.log ? [{ key: 'activity', label: 'Activity' }] : [])]} value={tab} onChange={setTab} label="Parts of this page" />
 
       {tab === 'phases' && <PhasesPanel key={`${p.id}-${p.frozen}`} projectId={p.id} word={word} />}
+      {tab === 'links' && <LinksPanel key={`${p.id}-${p.frozen}`} projectId={p.id} />}
       {tab === 'activity' && <ActivityPanel fetch={fetchLog} describe={(what) => what.replace(/^Project\b/, word('project')).replace(/^Phase\b/, word('phase'))} />}
       {tab === 'people' && <PeoplePanel key={`${p.id}-${p.frozen}`} projectId={p.id} word={word} onTransferred={setProject} />}
       {tab === 'overview' && (

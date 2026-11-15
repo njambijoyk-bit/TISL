@@ -20,12 +20,15 @@ trait CreatesProjectsWorld
 
     protected bool $projectsLicensed = true;
 
+    /** modules that are not licensed or are switched off, for the tests that need one to be */
+    protected array $modulesOff = [];
+
     protected function createProjectsWorld(): void
     {
         if (! Schema::hasTable('users')) {
             Schema::create('users', function ($t) { $t->id(); $t->string('name'); $t->string('email')->nullable(); $t->string('password')->nullable(); $t->string('role')->nullable(); $t->softDeletes(); $t->timestamps(); });
         }
-        $this->mock(LicenseManager::class, fn ($m) => $m->shouldReceive('isActive')->andReturnUsing(fn () => $this->projectsLicensed));
+        $this->mock(LicenseManager::class, fn ($m) => $m->shouldReceive('isActive')->andReturnUsing(fn ($module = null) => $this->projectsLicensed && ! in_array($module, $this->modulesOff, true)));
         // the books' cost centres and branches, and the customers, with the columns Projects reads and writes
         Schema::create('cost_centres', function ($t) { $t->id(); $t->unsignedBigInteger('parent_id')->nullable(); $t->unsignedBigInteger('location_id')->nullable(); $t->string('name'); $t->string('code')->unique();
             $t->string('type')->default('other'); $t->string('purpose')->nullable(); $t->string('description')->nullable(); $t->boolean('is_system')->default(false); $t->boolean('is_active')->default(true); $t->integer('sort_order')->default(0); $t->timestamps(); });
