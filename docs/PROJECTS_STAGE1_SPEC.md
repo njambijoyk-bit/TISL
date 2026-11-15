@@ -303,6 +303,21 @@ Nothing new to run. Screen: `docs/screens/projects-links.png`.
 - **Tests:** `tests/Feature/ProjectsLinksTest.php` (8); `frontend/e2e/projects-links-ui.mjs` (15 checks in a real browser).
 - **Not yet:** an unlinked link does not show in the trash page (it is kept and comes back when linked again). The other modules' links and their "part of project" strip are Stage 7.
 
+### 1.8 Kinds of work, stages and extra fields (done)
+
+Nothing new to run. Screens: `docs/screens/projects-stages.png`, `projects-fields.png`, `projects-new-with-fields.png`.
+
+- **Service:** `ProjectShape`. Two new Configuration tabs, each looking at one industry at a time.
+- **Kinds of work:** add (with its own number prefix and two starter stages, usable at once), rename, switch off. A prefix is 1 to 8 letters and digits, unique across every industry so no two pieces of work can share a number, and cannot change once work carries it. No new work can start in a kind that is switched off; work already there is untouched.
+- **Stages:** add (placed before the first closed stage), rename, move, open or closed, shown as one of the theme's four named statuses (a colour value is refused), and the fields a project must have filled before entering. A stage with work at it cannot be removed or flipped between open and closed; a kind of work keeps at least one stage.
+- **Extra fields:** text, number, date, yes or no, pick one, pick several, a member of staff. Each shows on every piece of work, on all of one industry, or on one kind of work. Required and sensitive are ticks. The kind of a field never changes (values already hold that kind). A field is switched off, never deleted, and its values are kept.
+- **On a project:** the form shows the fields of the chosen kind of work; values are checked per kind; a required field left empty undoes the whole start (no number used). A change is logged by the field's label with old and new values.
+- **Sensitive fields:** absent, not blank, for someone without `projects.fields.sensitive`, on the form, on the project and in what the form is offered. What such a person sends for one is ignored. A change to one is logged as "(changed)", never in words.
+- **A stage can ask for an extra field** (`field:key` in its list); the refusal names it by its label.
+- **Routes:** `GET /configuration/shape`; `POST /configuration/types`, `PUT /configuration/types/{type}`; `POST /configuration/types/{type}/stages`, `PUT`, `DELETE /configuration/stages/{stage}`; `POST /configuration/fields`, `PUT /configuration/fields/{field}`.
+- **Tests:** `tests/Feature/ProjectsShapeTest.php` (11); `frontend/e2e/projects-shape-ui.mjs` (22 checks in a real browser).
+- **Not yet:** reordering fields and kinds of work; deleting a kind of work (it can be switched off).
+
 ### The whole test suite
 
 Run after build 1.7: **3,064 backend tests, 1 failure**, and that one is Laravel's stock `ExampleTest` asking for a home page the API does not serve (not part of Projects, and failing before this work). An earlier run in this build environment showed several hundred failures; they came from the environment's own autoloader shadowing the app's service provider with a development tool's file of the same name, not from the code, and went once that was corrected.

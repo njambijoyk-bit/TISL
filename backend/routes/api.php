@@ -1915,6 +1915,16 @@ Route::middleware('auth:sanctum')->group(function () {
             Route::put('/{project}/members/{member}', [$mem, 'change'])->whereNumber(['project', 'member'])->middleware('permission:projects.members.manage');
             Route::delete('/{project}/members/{member}', [$mem, 'remove'])->whereNumber(['project', 'member'])->middleware('permission:projects.members.manage');
             Route::post('/{project}/transfer', [$mem, 'transfer'])->whereNumber('project')->middleware('permission:projects.transfer');
+            // the shape of the work: kinds of work, stages, extra fields
+            $shp = \App\Http\Controllers\Api\Projects\ShapeController::class;
+            Route::get('/configuration/shape', [$shp, 'show'])->middleware('permission:projects.config.view');
+            Route::post('/configuration/types', [$shp, 'addType'])->middleware('permission:projects.config.stages');
+            Route::put('/configuration/types/{type}', [$shp, 'changeType'])->whereNumber('type')->middleware('permission:projects.config.stages');
+            Route::post('/configuration/types/{type}/stages', [$shp, 'addStage'])->whereNumber('type')->middleware('permission:projects.config.stages');
+            Route::put('/configuration/stages/{stage}', [$shp, 'changeStage'])->whereNumber('stage')->middleware('permission:projects.config.stages');
+            Route::delete('/configuration/stages/{stage}', [$shp, 'removeStage'])->whereNumber('stage')->middleware('permission:projects.config.stages');
+            Route::post('/configuration/fields', [$shp, 'addField'])->middleware('permission:projects.config.fields');
+            Route::put('/configuration/fields/{field}', [$shp, 'changeField'])->whereNumber('field')->middleware('permission:projects.config.fields');
             Route::get('/configuration/roles', [$mem, 'roles'])->middleware('permission:projects.config.view');
             Route::post('/configuration/roles', [$mem, 'addRole'])->middleware('permission:projects.config.roles');
             Route::put('/configuration/roles/{role}', [$mem, 'changeRole'])->whereNumber('role')->middleware('permission:projects.config.roles');

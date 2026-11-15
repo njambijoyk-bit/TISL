@@ -36,6 +36,7 @@ node e2e/projects-record-ui.mjs                 # Projects: the list (mine or al
 node e2e/projects-people-ui.mjs                 # Projects: invitations on the list, the people on a piece of work (invite, role, withdraw, remove), transfer, and the project roles grid in Configuration (needs only the website)
 node e2e/projects-log-trash-ui.mjs              # Projects: the activity log on a piece of work and for the whole module, deleting, and the trash (restore, delete for good, what the books protect) (needs only the website)
 node e2e/projects-links-ui.mjs                  # Projects: the Links tab (records of other modules attached to a piece of work, amounts read from the books, linking and unlinking, modules that are off) (needs only the website)
+node e2e/projects-shape-ui.mjs                  # Projects configuration: kinds of work with their number series, stages and what each asks for, extra fields; and those fields on the form and the open piece of work (needs only the website)
 ```
 
 Needs Playwright (`PLAYWRIGHT_MODULE_DIR` points at the folder holding it, default `/opt/node22/lib/node_modules/`) and a Chromium (`CHROME`).

@@ -111,6 +111,7 @@ class ProjectService
         // a project in an industry other than the person's own is shown in ITS words, so a law firm's one construction job still reads as a contract
         $industry = $project->industry_key === $this->settings()->defaultIndustry() ? $this->names()->industryFor($user) : $project->industry_key;
         $out['words'] = array_map(fn ($n) => ['name' => $n['name'], 'plural' => $n['plural']], $this->names()->names($industry));
+        $out['fields'] = app(ProjectShape::class)->valuesFor($project, $user);
         $out['can'] = $this->access->abilities($user, $project);
 
         return $out;
@@ -129,13 +130,21 @@ class ProjectService
             ? DB::table('locations')->where('is_active', 1)->orderBy('sort_order')->orderBy('name')->get(['id', 'name'])
                 ->filter(fn ($l) => $this->authorizer->canAccessLocation($user, (int) $l->id, true))->map(fn ($l) => ['id' => (int) $l->id, 'name' => $l->name])->values()->all()
             : [];
+        // the extra fields each kind of work asks for (a sensitive one is not offered to someone who may not see it)
+        $shape = app(ProjectShape::class);
+        $maySee = $user->hasPermission('projects.fields.sensitive');
+        $fields = [];
+        foreach ($types as $t) {
+            $fields[$t['id']] = array_values(array_filter($shape->fields($t['industry'], $t['id']), fn ($f) => $maySee || ! $f['sensitive']));
+        }
+        $staff = app(\App\Services\Notify\Staff::class)->holding('projects.use')->map(fn ($u) => ['id' => (int) $u->id, 'name' => $u->name])->sortBy('name')->values()->all();
         $words = [];
         foreach ($industries as $i) {
             $words[$i['key']] = array_map(fn ($n) => ['name' => $n['name'], 'plural' => $n['plural']], $this->names()->names($i['key']));
         }
 
         return ['default_industry' => $general['default_industry'], 'industries' => $industries, 'types' => $types, 'branches' => $branches,
-            'leads' => app(\App\Services\Notify\Staff::class)->holding('projects.use')->map(fn ($u) => ['id' => (int) $u->id, 'name' => $u->name])->sortBy('name')->values()->all(),
+            'leads' => $staff, 'fields' => $fields,
             'priorities' => self::PRIORITIES, 'words' => $words, 'cost_centres' => $this->costCentres->ready(),
             'can' => ['create' => $user->hasPermission('projects.create'), 'confidential' => $user->hasPermission('projects.confidential')]];
     }
@@ -206,7 +215,7 @@ class ProjectService
             throw new ProjectException('The Lead project role is missing or switched off. Put it back in Configuration first.');
         }
 
-        $id = DB::transaction(function () use ($values, $industry, $type, $stage, $confidential, $lead, $locationId, $by, $roles) {
+        $id = DB::transaction(function () use ($values, $industry, $type, $stage, $confidential, $lead, $locationId, $by, $roles, $d) {
             $number = $this->nextNumber($type->number_prefix);
             $cc = $this->costCentres->forProject($number, $values['title'], $locationId);   // a failure here undoes everything: no project without its cost centre
             $now = now();
@@ -221,6 +230,8 @@ class ProjectService
             if ((int) $lead->id !== (int) $by->id) {
                 $member((int) $by->id, (int) ($roles['member'] ?? $roles['lead']));   // whoever started it stays on it
             }
+            // the extra fields an owner defined for this kind of work: a required one left empty undoes the whole start
+            app(ProjectShape::class)->saveValues(DB::table('projects')->where('id', $id)->first(), (array) ($d['fields'] ?? []), $by, true);
 
             return $id;
         });
@@ -246,16 +257,26 @@ class ProjectService
             $new['confidential'] = $d['confidential'] ? 1 : 0;
         }
         $changed = array_filter($new, fn ($v, $k) => (string) ($project->$k ?? '') !== (string) ($v ?? ''), ARRAY_FILTER_USE_BOTH);
-        if (! $changed) {
+        $hasFields = array_key_exists('fields', $d) && is_array($d['fields']);
+        if (! $changed && ! $hasFields) {
             return $project;
         }
-        DB::transaction(function () use ($project, $changed, $by) {
-            DB::table('projects')->where('id', $project->id)->update($changed + ['updated_by' => $by->id, 'updated_at' => now()]);
+        $extra = ['old' => [], 'new' => []];
+        DB::transaction(function () use ($project, $changed, $by, $hasFields, $d, &$extra) {
+            if ($changed) {
+                DB::table('projects')->where('id', $project->id)->update($changed + ['updated_by' => $by->id, 'updated_at' => now()]);
+            }
             if (isset($changed['title'])) {
                 $this->costCentres->rename($project->cost_centre_id ? (int) $project->cost_centre_id : null, $project->number, $changed['title']);
             }
+            if ($hasFields) {
+                $extra = app(ProjectShape::class)->saveValues($project, $d['fields'], $by, false);
+            }
         });
-        ProjectLog::record((int) $project->id, $by, 'project.changed', 'project', (int) $project->id, array_intersect_key((array) $project, $changed), $changed);
+        if (! $changed && ! $extra['new']) {
+            return $project;
+        }
+        ProjectLog::record((int) $project->id, $by, 'project.changed', 'project', (int) $project->id, array_intersect_key((array) $project, $changed) + $extra['old'], $changed + $extra['new']);
 
         return $this->find((int) $project->id);
     }
@@ -277,7 +298,8 @@ class ProjectService
         if ($stage->state === 'closed' || $project->state === 'closed') {
             $this->access->authorize($by, 'close', $project);
         }
-        $missing = $this->missingFor($project, json_decode((string) $stage->required_fields, true) ?: []);
+        $required = json_decode((string) $stage->required_fields, true) ?: [];
+        $missing = array_merge($this->missingFor($project, $required), app(ProjectShape::class)->missingExtra($project, $required));
         if ($missing) {
             throw new ProjectException('Fill these in first: ' . implode(', ', $missing) . '.');
         }

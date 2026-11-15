@@ -52,7 +52,7 @@ await page.route(/\/api\/admin\/projects\/\d+(\/\w+)?$/, (route) => {
   const [, id, sub] = route.request().url().match(/projects\/(\d+)(?:\/(\w+))?$/); const method = route.request().method(); const b = method === 'GET' ? null : route.request().postDataJSON();
   if (id === '999') return json(route, { message: 'Not found.' }, 404);
   if (method === 'GET') return json(route, { project: current });
-  if (!sub) { sent.push(['update', b]); current = { ...current, ...b, customer: b.customer_id ? { id: b.customer_id, name: 'Imara Holdings' } : null }; return json(route, { project: current }); }
+  if (!sub) { sent.push(['update', b]); const { fields: _sentFields, ...rest } = b; void _sentFields; current = { ...current, ...rest, customer: b.customer_id ? { id: b.customer_id, name: 'Imara Holdings' } : null }; return json(route, { project: current }); }
   if (sub === 'stage') { sent.push(['stage', b]); if (b.stage_id === 3) return json(route, { message: 'Fill these in first: Court.' }, 422); const s = STAGES.find((x) => x.id === b.stage_id); current = { ...current, stage: { id: s.id, name: s.name, status: s.status }, state: s.state }; return json(route, { project: current }); }
   if (sub === 'state') { sent.push(['state', b]); current = { ...current, state: { hold: 'on_hold', resume: 'open', cancel: 'cancelled', reopen: 'open' }[b.action] }; return json(route, { project: current }); }
   if (sub === 'freeze') { sent.push(['freeze', b]); current = { ...current, frozen: b.frozen, can: b.frozen ? { ...CAN, edit: false, stage: false, close: false } : CAN }; return json(route, { project: current }); }

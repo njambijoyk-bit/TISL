@@ -50,6 +50,16 @@ const projectsAPI = {
   addProjectRole: async (data) => (await api.post('/admin/projects/configuration/roles', data)).data,
   changeProjectRole: async (roleId, data) => (await api.put(`/admin/projects/configuration/roles/${roleId}`, data)).data,
 
+  // the shape of the work: every call answers the whole shape of the industry being looked at
+  shape: async (industry) => (await api.get('/admin/projects/configuration/shape', { params: { industry } })).data,
+  addType: async (industry, data) => (await api.post('/admin/projects/configuration/types', { ...data, industry_key: industry })).data,
+  changeType: async (industry, typeId, data) => (await api.put(`/admin/projects/configuration/types/${typeId}`, data, { params: { industry } })).data,
+  addStage: async (industry, typeId, data) => (await api.post(`/admin/projects/configuration/types/${typeId}/stages`, data, { params: { industry } })).data,
+  changeStage: async (industry, stageId, data) => (await api.put(`/admin/projects/configuration/stages/${stageId}`, data, { params: { industry } })).data,
+  removeStage: async (industry, stageId) => (await api.delete(`/admin/projects/configuration/stages/${stageId}`, { params: { industry } })).data,
+  addField: async (industry, data) => (await api.post('/admin/projects/configuration/fields', data, { params: { industry } })).data,
+  changeField: async (industry, fieldId, data) => (await api.put(`/admin/projects/configuration/fields/${fieldId}`, data, { params: { industry } })).data,
+
   configuration: async (industry) => (await api.get('/admin/projects/configuration', { params: industry ? { industry } : {} })).data,
   saveGeneral: async (data) => (await api.put('/admin/projects/configuration/general', data)).data,
   setIndustryActive: async (industry, isActive) => (await api.put(`/admin/projects/configuration/industries/${industry}`, { is_active: isActive })).data,

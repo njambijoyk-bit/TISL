@@ -28,3 +28,14 @@ export const PRIORITY = {
 export const where = (p) => (p.state === 'on_hold' || p.state === 'cancelled' || !p.stage
   ? STATE[p.state] || STATE.open
   : { label: p.stage.name, status: p.stage.status || 'info' });
+
+/** An extra field's value in words, for the open project. Null when there is nothing to say. */
+export const extraValue = (f) => {
+  const v = f.value;
+  if (v === null || v === undefined || v === '' || (Array.isArray(v) && v.length === 0)) return null;
+  if (f.kind === 'yes_no') return v ? 'Yes' : 'No';
+  if (f.kind === 'pick_many') return v.join(', ');
+  if (f.kind === 'date') return day(v);
+  if (f.kind === 'person') return f.display || 'Someone who has left';
+  return String(v);
+};

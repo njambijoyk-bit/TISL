@@ -4,7 +4,7 @@ import toast from 'react-hot-toast';
 import AdminLayout from '../../../_shared/components/layout/AdminLayout';
 import PageHeader from '../../../_shared/components/layout/PageHeader';
 import projectsAPI from '../../../_shared/api/projects';
-import { day, message, PRIORITY, STATE } from '../../lib/format';
+import { day, extraValue, message, PRIORITY, STATE } from '../../lib/format';
 import { Btn, Chip, Notice, Panel, PanelTitle, Tabs } from '../../components/ui';
 import PhasesPanel from '../../components/PhasesPanel';
 import PeoplePanel from '../../components/PeoplePanel';
@@ -170,6 +170,7 @@ export default function ProjectDetail() {
           <Row label="Start">{day(p.start_date)}</Row>
           <Row label="Expected end">{day(p.due_date)}</Row>
           <Row label={`${w('closing_period')} ends`}>{day(p.closing_period_ends)}</Row>
+          {(p.fields || []).map((f) => <Row key={f.key} label={<>{f.label}{f.sensitive && <Chip status="problem" style={{ marginLeft: 6 }}>Sensitive</Chip>}</>}>{extraValue(f)}</Row>)}
           {p.description && <p style={{ margin: '12px 0 0', fontSize: 13.5, lineHeight: 1.6, whiteSpace: 'pre-wrap' }}>{p.description}</p>}
         </Panel>
 

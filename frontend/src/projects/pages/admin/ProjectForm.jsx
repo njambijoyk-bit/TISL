@@ -7,6 +7,7 @@ import projectsAPI from '../../../_shared/api/projects';
 import { useProjectNames } from '../../lib/names';
 import { message, PRIORITY } from '../../lib/format';
 import { Btn, Field, Notice, Panel, PanelTitle, SelectInput, TextInput } from '../../components/ui';
+import { ExtraFieldInputs } from '../../components/ExtraFields';
 import { check } from '../../components/uiTokens';
 
 /**
@@ -69,6 +70,7 @@ export default function ProjectForm() {
   const [failed, setFailed] = useState('');
   const [busy, setBusy] = useState(false);
   const [problem, setProblem] = useState('');
+  const [extra, setExtra] = useState({});
 
   useEffect(() => {
     let live = true;
@@ -80,6 +82,7 @@ export default function ProjectForm() {
         if (p) {
           setProject(p);
           setClient(p.customer);
+          setExtra(Object.fromEntries((p.fields || []).map((f) => [f.key, f.value])));
           setForm({ ...EMPTY, industry_key: p.industry.key, type_id: p.type.id, title: p.title, description: p.description || '', priority: p.priority, reference: p.reference || '', authority: p.authority || '',
             place: p.place || '', start_date: p.start_date || '', due_date: p.due_date || '', confidential: p.confidential });
         } else {
@@ -103,13 +106,15 @@ export default function ProjectForm() {
   const type = types.find((x) => String(x.id) === String(form.type_id));
   const set = (patch) => { setProblem(''); setForm((f) => ({ ...f, ...patch })); };   // a refusal is about what was sent: it goes once something is changed
   const canConfidential = editing ? project?.can?.confidential : options?.can?.confidential;
+  const extraFields = (editing ? project?.fields : options?.fields?.[form.type_id]) || [];
 
   const submit = async (e) => {
     e.preventDefault();
     setBusy(true);
     setProblem('');
     const common = { title: form.title, description: form.description, customer_id: client ? client.id : null, priority: form.priority, reference: form.reference, authority: form.authority, place: form.place,
-      start_date: form.start_date || null, due_date: form.due_date || null };
+      start_date: form.start_date || null, due_date: form.due_date || null,
+      fields: Object.fromEntries(extraFields.map((f) => [f.key, extra[f.key] ?? (f.kind === 'pick_many' ? [] : f.kind === 'yes_no' ? false : null)])) };
     try {
       const saved = editing
         ? await projectsAPI.update(id, { ...common, ...(canConfidential && form.confidential !== project.confidential ? { confidential: form.confidential } : {}) })
@@ -192,6 +197,7 @@ export default function ProjectForm() {
               <Field label="Expected end" htmlFor="project-due">
                 <TextInput id="project-due" type="date" value={form.due_date} min={form.start_date || undefined} onChange={(e) => set({ due_date: e.target.value })} />
               </Field>
+              <ExtraFieldInputs fields={extraFields} values={extra} onChange={(v) => { setProblem(''); setExtra(v); }} people={options.leads} />
               <Field label="Description" htmlFor="project-description" style={{ gridColumn: '1 / -1' }}>
                 <textarea id="project-description" value={form.description} rows={4} onChange={(e) => set({ description: e.target.value })}
                   style={{ width: '100%', boxSizing: 'border-box', padding: '8px 10px', borderRadius: 9, border: '1px solid var(--line-strong)', background: 'var(--surface-card)', color: 'var(--text-primary)', fontSize: 13.5, fontFamily: 'var(--font-body)', resize: 'vertical' }} />
