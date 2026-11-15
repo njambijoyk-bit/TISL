@@ -7,6 +7,7 @@ import projectsAPI from '../../../_shared/api/projects';
 import { useProjectNames } from '../../lib/names';
 import { message, PRIORITY } from '../../lib/format';
 import { Btn, Field, Notice, Panel, PanelTitle, SelectInput, TextInput } from '../../components/ui';
+import { check } from '../../components/uiTokens';
 
 /**
  * Start a piece of work, or change one (docs/PROJECTS_STAGE1_SPEC.md, build 1.3). One form for every industry: the labels come from the names
@@ -197,7 +198,7 @@ export default function ProjectForm() {
               </Field>
               {canConfidential && (
                 <label htmlFor="project-confidential" style={{ gridColumn: '1 / -1', display: 'flex', gap: 8, alignItems: 'flex-start', fontSize: 13.5 }}>
-                  <input id="project-confidential" type="checkbox" checked={form.confidential} onChange={(e) => set({ confidential: e.target.checked })} />
+                  <input id="project-confidential" type="checkbox" style={check} checked={form.confidential} onChange={(e) => set({ confidential: e.target.checked })} />
                   <span><b>Confidential.</b> Only the people on it can find it, even in search. Every time it is opened is recorded.</span>
                 </label>
               )}

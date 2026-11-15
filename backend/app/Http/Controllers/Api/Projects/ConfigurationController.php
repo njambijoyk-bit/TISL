@@ -62,6 +62,7 @@ class ConfigurationController extends Controller
                 'manage' => $user->hasPermission('projects.config.manage'),
                 'industry' => $user->hasPermission('projects.config.manage') && $user->hasPermission('projects.config.industry'),
                 'names' => $user->hasPermission('projects.config.names'),
+                'roles' => $user->hasPermission('projects.config.roles'),
             ],
         ]);
     }

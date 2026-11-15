@@ -23,6 +23,18 @@ const projectsAPI = {
   changePhase: async (id, phaseId, data) => (await api.put(`/admin/projects/${id}/phases/${phaseId}`, data)).data,
   removePhase: async (id, phaseId) => (await api.delete(`/admin/projects/${id}/phases/${phaseId}`)).data,
 
+  // the people on a piece of work: each call answers { members, roles, candidates, can }
+  members: async (id) => (await api.get(`/admin/projects/${id}/members`)).data,
+  invite: async (id, data) => (await api.post(`/admin/projects/${id}/members`, data)).data,
+  changeMember: async (id, memberId, data) => (await api.put(`/admin/projects/${id}/members/${memberId}`, data)).data,
+  removeMember: async (id, memberId) => (await api.delete(`/admin/projects/${id}/members/${memberId}`)).data,
+  transfer: async (id, userId, note) => (await api.post(`/admin/projects/${id}/transfer`, { user_id: userId, note })).data.project,
+  invitations: async () => (await api.get('/admin/projects/invitations')).data.invitations,
+  answerInvitation: async (id, accept) => (await api.put(`/admin/projects/${id}/invitation`, { accept })).data.invitations,
+  projectRoles: async () => (await api.get('/admin/projects/configuration/roles')).data,
+  addProjectRole: async (data) => (await api.post('/admin/projects/configuration/roles', data)).data,
+  changeProjectRole: async (roleId, data) => (await api.put(`/admin/projects/configuration/roles/${roleId}`, data)).data,
+
   configuration: async (industry) => (await api.get('/admin/projects/configuration', { params: industry ? { industry } : {} })).data,
   saveGeneral: async (data) => (await api.put('/admin/projects/configuration/general', data)).data,
   setIndustryActive: async (industry, isActive) => (await api.put(`/admin/projects/configuration/industries/${industry}`, { is_active: isActive })).data,

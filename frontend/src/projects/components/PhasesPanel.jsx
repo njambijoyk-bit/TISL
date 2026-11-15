@@ -3,7 +3,7 @@ import toast from 'react-hot-toast';
 import projectsAPI from '../../_shared/api/projects';
 import { day, message } from '../lib/format';
 import { Btn, Chip, DataTable, Field, Notice, Panel, PanelTitle, SelectInput, TextInput } from './ui';
-import { td, th } from './uiTokens';
+import { check, td, th } from './uiTokens';
 
 /**
  * The parts of a piece of work, as a tree (docs/PROJECTS_STAGE1_SPEC.md, build 1.4). Each part has a cost centre of its own in the books or
@@ -38,7 +38,7 @@ function PhaseForm({ initial, phases, word, onSave, onCancel, adding }) {
       <Field label="End" htmlFor="phase-due"><TextInput id="phase-due" type="date" value={f.due_date} min={f.start_date || undefined} onChange={(e) => set({ due_date: e.target.value })} /></Field>
       {adding && (
         <label htmlFor="phase-own-cc" style={{ gridColumn: '1 / -1', display: 'flex', gap: 8, alignItems: 'flex-start', fontSize: 13 }}>
-          <input id="phase-own-cc" type="checkbox" checked={f.own_cost_centre} onChange={(e) => set({ own_cost_centre: e.target.checked })} />
+          <input id="phase-own-cc" type="checkbox" style={check} checked={f.own_cost_centre} onChange={(e) => set({ own_cost_centre: e.target.checked })} />
           <span>Give it a cost centre of its own in the books, so its costs can be seen apart. Otherwise it uses the one above it.</span>
         </label>
       )}

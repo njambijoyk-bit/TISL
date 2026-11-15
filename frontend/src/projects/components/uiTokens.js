@@ -15,3 +15,6 @@ export const STATUS_TOKEN = {
 /** Table cells. */
 export const th = { textAlign: 'left', padding: '8px 10px', fontSize: 11, fontWeight: 700, letterSpacing: '0.08em', textTransform: 'uppercase', color: 'var(--text-secondary)', borderBottom: '1px solid var(--line)' };
 export const td = { padding: '8px 10px', fontSize: 13.5, color: 'var(--text-primary)', borderBottom: '1px solid var(--line)', verticalAlign: 'middle' };
+
+/** A tick box takes the theme's colour too (a browser's own blue is not ours to use). */
+export const check = { accentColor: 'var(--color-primary-500)' };

@@ -26,6 +26,7 @@ export default function ProjectsList() {
   const [typed, setTyped] = useState('');
   const [result, setResult] = useState(null);
   const [failed, setFailed] = useState('');
+  const [invitations, setInvitations] = useState([]);
 
   const load = useCallback(async () => {
     try {
@@ -37,12 +38,21 @@ export default function ProjectsList() {
   }, [filters]);
 
   useEffect(() => { load(); }, [load]);
+  useEffect(() => { projectsAPI.invitations().then(setInvitations).catch(() => setInvitations([])); }, []);
   useEffect(() => {
     const id = setTimeout(() => setFilters((f) => (f.q === typed ? f : { ...f, q: typed, page: 1 })), 300);
     return () => clearTimeout(id);
   }, [typed]);
 
   const set = (patch) => setFilters((f) => ({ ...f, page: 1, ...patch }));
+  const answer = async (inv, accept) => {
+    try {
+      setInvitations(await projectsAPI.answerInvitation(inv.project_id, accept));
+      if (accept) navigate(`/admin/projects/${inv.project_id}`); else load();
+    } catch (e) {
+      setFailed(message(e, 'That could not be done. Try again.'));
+    }
+  };
   const pages = result ? Math.max(1, Math.ceil(result.total / result.per_page)) : 1;
   const countOf = (key) => {
     if (!result) return null;
@@ -71,6 +81,15 @@ export default function ProjectsList() {
         <Notice status="warning" style={{ marginBottom: 16 }}>The database for the new module is not in place yet. Run scripts 256 and 257, then load the permissions.</Notice>
       )}
       {failed && <Notice status="problem" style={{ marginBottom: 16 }}>{failed} <Btn small variant="quiet" onClick={load}>Try again</Btn></Notice>}
+      {invitations.map((inv) => (
+        <Notice key={inv.project_id} status="info" style={{ marginBottom: 12, display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 12, flexWrap: 'wrap' }}>
+          <span>{inv.invited_by || 'Someone'} invited you to <b>{inv.number}{inv.title ? ` · ${inv.title}` : ''}</b>{inv.confidential ? ' (confidential: you see what it is once you accept)' : ''} as {inv.role}.</span>
+          <span style={{ display: 'flex', gap: 8 }}>
+            <Btn small variant="primary" aria-label={`Accept the invitation to ${inv.number}`} onClick={() => answer(inv, true)}>Accept</Btn>
+            <Btn small aria-label={`Decline the invitation to ${inv.number}`} onClick={() => answer(inv, false)}>Decline</Btn>
+          </span>
+        </Notice>
+      ))}
 
       <Panel>
         <div style={{ display: 'flex', gap: 10, flexWrap: 'wrap', alignItems: 'center', marginBottom: 14 }}>

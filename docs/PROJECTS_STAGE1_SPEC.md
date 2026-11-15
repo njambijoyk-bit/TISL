@@ -261,6 +261,20 @@ Nothing new to run. Screen: `docs/screens/projects-phases.png`.
 - **Tests:** `tests/Feature/ProjectsPhasesTest.php` (5); the browser check `projects-record-ui.mjs` now has 48 checks.
 - **Not yet:** moving a phase under a different parent.
 
+### 1.5 People and project roles (done)
+
+Nothing new to run. Screens: `docs/screens/projects-people.png`, `projects-roles.png`.
+
+- **Services:** `ProjectMembers` (invite, answer, change, remove, transfer, who could be invited), `ProjectRoles` (the roles and what each allows).
+- **Invitations:** someone invited is not on the project until they accept; until then it answers "not found" to them. Their invitations show on the list page. An invitation to a confidential project keeps its title back. Someone who declined or was removed can be asked again. Putting yourself on needs no invitation.
+- **Rules:** only someone who can open Projects can be invited, and only into a role that is switched on. A day given without a time means the whole day. The lead cannot be removed; the project must always have someone on it now whose role manages people, and a change that would break that is undone.
+- **Transfer** (`projects.transfer`): the new lead leads at once, the old lead stays as a Member, the note is kept in the log. Someone who sees every project and may transfer can rescue a project they are not on (its lead has left), but never a confidential one and never by adding themselves.
+- **Project roles** are rows: rename, change the ticks, add, switch off. What a role allows is read afresh on every check, so a change takes effect at once. The Lead role always keeps open, change and manage people, and cannot be switched off. A role people hold cannot be switched off under them.
+- **Routes:** `GET /invitations`, `PUT /{id}/invitation`; `GET`, `POST /{id}/members`; `PUT`, `DELETE /{id}/members/{member}`; `POST /{id}/transfer`; `GET`, `POST /configuration/roles`; `PUT /configuration/roles/{role}`.
+- **Screens:** the People tab (shown only with `projects.members.view`), invitations on the list, the Project roles tab in Configuration. Tick boxes take the theme colour.
+- **Tests:** `tests/Feature/ProjectsPeopleTest.php` (11); `frontend/e2e/projects-people-ui.mjs` (27 checks in a real browser).
+- **Left for Stage 2:** hours of the day and locked areas per person; a supervisor approving a transfer; rescuing a confidential project.
+
 ## To confirm before building
 
 1. The owner runs the two database scripts; the first deletes all current project data for good. Take a backup first.

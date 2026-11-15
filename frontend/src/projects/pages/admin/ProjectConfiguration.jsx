@@ -6,7 +6,8 @@ import PageHeader from '../../../_shared/components/layout/PageHeader';
 import projectsAPI from '../../../_shared/api/projects';
 import { useProjectNames } from '../../lib/names';
 import { Btn, Chip, DataTable, Field, Notice, Panel, PanelTitle, SelectInput, Tabs, TextInput } from '../../components/ui';
-import { td, th } from '../../components/uiTokens';
+import { check, td, th } from '../../components/uiTokens';
+import ProjectRolesPanel from '../../components/ProjectRolesPanel';
 
 /**
  * Projects configuration (docs/PROJECTS_STAGE1_SPEC.md, build 1.2): the company's default industry, what things are called, each person's own
@@ -179,7 +180,7 @@ export default function ProjectConfiguration() {
   };
 
   const industryName = (key) => data?.industries.find((i) => i.key === key)?.name || key;
-  const tabs = [{ key: 'names', label: 'Industry and names' }, { key: 'industries', label: 'Industries' }, { key: 'history', label: 'History and roll back' }];
+  const tabs = [{ key: 'names', label: 'Industry and names' }, { key: 'industries', label: 'Industries' }, { key: 'roles', label: 'Project roles' }, { key: 'history', label: 'History and roll back' }];
 
   return (
     <AdminLayout>
@@ -212,7 +213,7 @@ export default function ProjectConfiguration() {
                         </SelectInput>
                       </Field>
                       <label htmlFor="cfg-other-industry" style={{ display: 'flex', gap: 8, alignItems: 'flex-start', fontSize: 13.5 }}>
-                        <input id="cfg-other-industry" type="checkbox" checked={!!general.project_may_use_other_industry} disabled={!data.can.manage} onChange={(e) => setGeneral({ ...general, project_may_use_other_industry: e.target.checked })} />
+                        <input id="cfg-other-industry" type="checkbox" style={check} checked={!!general.project_may_use_other_industry} disabled={!data.can.manage} onChange={(e) => setGeneral({ ...general, project_may_use_other_industry: e.target.checked })} />
                         <span>One piece of work may use a different industry from the default, for a company with more than one line of work.</span>
                       </label>
                       <Field label="Days things stay in the trash" htmlFor="cfg-trash-days">
@@ -283,6 +284,8 @@ export default function ProjectConfiguration() {
               </DataTable>
             </Panel>
           )}
+
+          {tab === 'roles' && <ProjectRolesPanel canEdit={!!data.can.roles} />}
 
           {tab === 'history' && (
             <Panel>

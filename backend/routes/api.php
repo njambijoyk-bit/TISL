@@ -1900,6 +1900,18 @@ Route::middleware('auth:sanctum')->group(function () {
             Route::put('/{project}/stage', [$prj, 'stage'])->whereNumber('project')->middleware('permission:projects.stage');
             Route::put('/{project}/state', [$prj, 'state'])->whereNumber('project')->middleware('permission:projects.stage,projects.close');
             Route::put('/{project}/freeze', [$prj, 'freeze'])->whereNumber('project')->middleware('permission:projects.freeze');
+            // the people on it. An invitation is answered by the person invited, who is not on the project yet.
+            $mem = \App\Http\Controllers\Api\Projects\MemberController::class;
+            Route::get('/invitations', [$mem, 'invitations']);
+            Route::put('/{project}/invitation', [$mem, 'answer'])->whereNumber('project');
+            Route::get('/{project}/members', [$mem, 'index'])->whereNumber('project')->middleware('permission:projects.members.view');
+            Route::post('/{project}/members', [$mem, 'invite'])->whereNumber('project')->middleware('permission:projects.members.manage');
+            Route::put('/{project}/members/{member}', [$mem, 'change'])->whereNumber(['project', 'member'])->middleware('permission:projects.members.manage');
+            Route::delete('/{project}/members/{member}', [$mem, 'remove'])->whereNumber(['project', 'member'])->middleware('permission:projects.members.manage');
+            Route::post('/{project}/transfer', [$mem, 'transfer'])->whereNumber('project')->middleware('permission:projects.transfer');
+            Route::get('/configuration/roles', [$mem, 'roles'])->middleware('permission:projects.config.view');
+            Route::post('/configuration/roles', [$mem, 'addRole'])->middleware('permission:projects.config.roles');
+            Route::put('/configuration/roles/{role}', [$mem, 'changeRole'])->whereNumber('role')->middleware('permission:projects.config.roles');
             Route::get('/{project}/phases', [$prj, 'phases'])->whereNumber('project');
             Route::post('/{project}/phases', [$prj, 'addPhase'])->whereNumber('project')->middleware('permission:projects.phases');
             Route::put('/{project}/phases/{phase}', [$prj, 'changePhase'])->whereNumber(['project', 'phase'])->middleware('permission:projects.phases');
