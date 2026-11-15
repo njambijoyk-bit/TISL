@@ -17,6 +17,12 @@ const projectsAPI = {
   setState: async (id, action, reason) => (await api.put(`/admin/projects/${id}/state`, { action, reason })).data.project,
   freeze: async (id, frozen) => (await api.put(`/admin/projects/${id}/freeze`, { frozen })).data.project,
 
+  // phases: each call answers { phases, can }
+  phases: async (id) => (await api.get(`/admin/projects/${id}/phases`)).data,
+  addPhase: async (id, data) => (await api.post(`/admin/projects/${id}/phases`, data)).data,
+  changePhase: async (id, phaseId, data) => (await api.put(`/admin/projects/${id}/phases/${phaseId}`, data)).data,
+  removePhase: async (id, phaseId) => (await api.delete(`/admin/projects/${id}/phases/${phaseId}`)).data,
+
   configuration: async (industry) => (await api.get('/admin/projects/configuration', { params: industry ? { industry } : {} })).data,
   saveGeneral: async (data) => (await api.put('/admin/projects/configuration/general', data)).data,
   setIndustryActive: async (industry, isActive) => (await api.put(`/admin/projects/configuration/industries/${industry}`, { is_active: isActive })).data,

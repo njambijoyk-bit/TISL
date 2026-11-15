@@ -165,6 +165,62 @@ ok('frozen: it says so, and only Unfreeze and Close are left', JSON.stringify(la
 await page.getByRole('button', { name: 'Unfreeze' }).click();
 await page.getByRole('button', { name: 'Edit' }).waitFor({ timeout: 5000 });
 
+// ---------------------------------------------------------------- its phases
+let phases = [
+  { id: 1, parent_id: null, depth: 0, code: '1', name: 'Pre-trial', state: 'open', start_date: '2026-11-14', due_date: '2027-02-01', has_own_cost_centre: true, cost_centre_id: 20, cost_centre_path: 'Nairobi › Projects › M-0413 › 1 Pre-trial', children: 1 },
+  { id: 2, parent_id: 1, depth: 1, code: '1.1', name: 'Pleadings', state: 'done', start_date: null, due_date: null, has_own_cost_centre: false, cost_centre_id: 20, cost_centre_path: 'Nairobi › Projects › M-0413 › 1 Pre-trial', children: 0 },
+  { id: 3, parent_id: null, depth: 0, code: '2', name: 'Trial', state: 'open', start_date: null, due_date: null, has_own_cost_centre: false, cost_centre_id: 9, cost_centre_path: 'Nairobi › Projects › M-0413', children: 0 }];
+let phaseCan = { phases: true, delete: true };
+await page.route(/\/api\/admin\/projects\/\d+\/phases(\/\d+)?$/, (route) => {
+  const method = route.request().method(); const id = (route.request().url().match(/phases\/(\d+)$/) || [])[1];
+  if (method === 'POST') sent.push(['phase.add', route.request().postDataJSON()]);
+  if (method === 'PUT') sent.push(['phase.change', Number(id), route.request().postDataJSON()]);
+  if (method === 'DELETE') { sent.push(['phase.remove', Number(id)]); phases = phases.filter((x) => x.id !== Number(id) && x.parent_id !== Number(id)); }
+  return json(route, { phases, can: phaseCan }, method === 'POST' ? 201 : 200);
+});
+words('legal');
+current = project({ words: { ...words('legal'), phase: { name: 'Phase', plural: 'Phases' } } });
+await go('/admin/projects/413');
+await page.getByRole('tab', { name: 'Phases' }).click();
+await page.locator('[data-phase="Pre-trial"]').waitFor({ timeout: 10000 });
+text = await body();
+ok('the phases show as a tree with their codes, dates and whether each is done', /1\s*Pre-trial/.test(text) && /14 Nov 2026 to 01 Feb 2027/.test(text) && /Done/.test(await page.locator('[data-phase="Pleadings"]').innerText()));
+ok('each says where its costs land: its own cost centre, or the one above', /Its own/.test(await page.locator('[data-phase="Pre-trial"]').innerText()) && /1 Pre-trial/.test(await page.locator('[data-phase="Pre-trial"]').innerText()) && /The one above/.test(await page.locator('[data-phase="Trial"]').innerText()));
+ok('a phase that already has its own cost centre is not offered another', (await page.getByRole('button', { name: 'Give 1 Pre-trial its own cost centre' }).count()) === 0 && (await page.getByRole('button', { name: 'Give 2 Trial its own cost centre' }).count()) === 1);
+await page.screenshot({ path: D + 'projects-phases.png', fullPage: true });
+await page.getByRole('button', { name: 'Add under 1 Pre-trial' }).click();
+await page.getByLabel('Code').fill('1.2');
+await page.getByLabel('Name', { exact: true }).fill('Discovery');
+await page.getByLabel(/cost centre of its own/).check();
+await page.getByRole('button', { name: 'Add phase' }).click();
+await page.waitForTimeout(400);
+ok('adding under a phase sends its parent, code, name and the wish for its own cost centre', JSON.stringify(last('phase.add')[1]) === JSON.stringify({ code: '1.2', name: 'Discovery', start_date: null, due_date: null, parent_id: 1, own_cost_centre: true }), JSON.stringify(last('phase.add')[1]));
+await page.getByRole('button', { name: 'Mark 2 Trial done' }).click();
+await page.waitForTimeout(300);
+ok('marking done sends the state', JSON.stringify(last('phase.change')) === JSON.stringify(['phase.change', 3, { state: 'done' }]));
+await page.getByRole('button', { name: 'Move 2 Trial up' }).click();
+await page.waitForTimeout(300);
+ok('moving sends the direction', JSON.stringify(last('phase.change')) === JSON.stringify(['phase.change', 3, { move: 'up' }]));
+await page.getByRole('button', { name: 'Give 2 Trial its own cost centre' }).click();
+await page.waitForTimeout(300);
+ok('a cost centre of its own can be given later', JSON.stringify(last('phase.change')) === JSON.stringify(['phase.change', 3, { own_cost_centre: true }]));
+await page.getByRole('button', { name: 'Change 2 Trial' }).click();
+await page.getByLabel('Name', { exact: true }).fill('Trial and judgment');
+await page.getByRole('button', { name: 'Save changes' }).click();
+await page.waitForTimeout(300);
+ok('changing sends the code, name and dates and never the parent', JSON.stringify(last('phase.change')) === JSON.stringify(['phase.change', 3, { code: '2', name: 'Trial and judgment', start_date: null, due_date: null }]), JSON.stringify(last('phase.change')));
+await page.getByRole('button', { name: 'Delete 1 Pre-trial' }).click();
+ok('deleting asks first and says what goes with it', /and everything under it in the trash\? It can be taken back out/.test(await body()) && !last('phase.remove'));
+await page.getByRole('button', { name: 'Yes, put it in the trash' }).click();
+await page.locator('[data-phase="Pre-trial"]').waitFor({ state: 'detached', timeout: 5000 });
+ok('saying yes sends it', JSON.stringify(last('phase.remove')) === JSON.stringify(['phase.remove', 1]) && (await page.locator('[data-phase="Pleadings"]').count()) === 0);
+phaseCan = { phases: false, delete: false };
+current = project({ industry: { key: 'construction', name: 'Construction' }, words: { ...words('construction'), phase: { name: 'Section', plural: 'Sections' } } });
+await go('/admin/projects/413');
+await page.getByRole('tab', { name: 'Sections' }).click();
+await page.locator('[data-phase="Trial"]').waitFor({ timeout: 10000 });
+ok('the tab and the panel use the industry\'s word, and someone who may not change phases is offered nothing', /Break the work into sections/.test(await body()) && (await page.getByRole('button', { name: /New section|Add under|Change |Delete |Mark / }).count()) === 0);
+
 // ---------------------------------------------------------------- changing it
 current = project();
 await go('/admin/projects/413/edit');

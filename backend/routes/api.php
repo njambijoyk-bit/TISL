@@ -1900,6 +1900,10 @@ Route::middleware('auth:sanctum')->group(function () {
             Route::put('/{project}/stage', [$prj, 'stage'])->whereNumber('project')->middleware('permission:projects.stage');
             Route::put('/{project}/state', [$prj, 'state'])->whereNumber('project')->middleware('permission:projects.stage,projects.close');
             Route::put('/{project}/freeze', [$prj, 'freeze'])->whereNumber('project')->middleware('permission:projects.freeze');
+            Route::get('/{project}/phases', [$prj, 'phases'])->whereNumber('project');
+            Route::post('/{project}/phases', [$prj, 'addPhase'])->whereNumber('project')->middleware('permission:projects.phases');
+            Route::put('/{project}/phases/{phase}', [$prj, 'changePhase'])->whereNumber(['project', 'phase'])->middleware('permission:projects.phases');
+            Route::delete('/{project}/phases/{phase}', [$prj, 'removePhase'])->whereNumber(['project', 'phase'])->middleware('permission:projects.phases');
         });
 
         Route::prefix('events')->middleware('module:events')->group(function () {   // staff side of ticketed events

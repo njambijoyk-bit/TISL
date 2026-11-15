@@ -37,6 +37,24 @@ class ProjectCostCentres
             'description' => 'Made by Projects for ' . $number, 'sort_order' => 100]);
     }
 
+    /** A cost centre for one phase, under the cost centre the phase above it uses. Null when the books have none or there is nothing to nest it under. */
+    public function forPhase(?int $parentCostCentreId, string $projectNumber, string $label): ?CostCentre
+    {
+        if (! $this->ready() || ! $parentCostCentreId || ! CostCentre::whereKey($parentCostCentreId)->exists()) {
+            return null;
+        }
+
+        return $this->costCentres->create(['parent_id' => $parentCostCentreId, 'name' => Str::limit($label, 117, '...'), 'code' => $projectNumber . '-' . $label, 'purpose' => 'project_phase',
+            'description' => 'Made by Projects for a part of ' . $projectNumber, 'sort_order' => 100]);
+    }
+
+    public function renamePhase(int $costCentreId, string $label): void
+    {
+        if ($this->ready() && ($cc = CostCentre::find($costCentreId))) {
+            $cc->update(['name' => Str::limit($label, 117, '...')]);
+        }
+    }
+
     /** Keep the cost centre's name in step when the project is renamed. */
     public function rename(?int $costCentreId, string $number, string $title): void
     {

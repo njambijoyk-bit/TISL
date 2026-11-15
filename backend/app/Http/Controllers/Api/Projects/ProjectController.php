@@ -5,6 +5,7 @@ namespace App\Http\Controllers\Api\Projects;
 use App\Http\Controllers\Controller;
 use App\Services\Projects\ProjectException;
 use App\Services\Projects\ProjectLog;
+use App\Services\Projects\ProjectPhases;
 use App\Services\Projects\ProjectService;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
@@ -77,6 +78,55 @@ class ProjectController extends Controller
         $data = $request->validate(['frozen' => 'required|boolean']);
 
         return $this->change($request, $project, fn ($p) => $this->projects->freeze($p, (bool) $data['frozen'], $request->user()));
+    }
+
+    // ------------------------------------------------------------------ phases
+
+    public function phases(Request $request, int $project): JsonResponse
+    {
+        return $this->guard(fn () => $this->phaseList($request, $this->projects->findFor($request->user(), $project)));
+    }
+
+    public function addPhase(Request $request, int $project): JsonResponse
+    {
+        return $this->guard(function () use ($request, $project) {
+            $p = $this->projects->findFor($request->user(), $project);
+            app(ProjectPhases::class)->create($p, $request->all(), $request->user());
+
+            return $this->phaseList($request, $p, 201);
+        });
+    }
+
+    public function changePhase(Request $request, int $project, int $phase): JsonResponse
+    {
+        return $this->guard(function () use ($request, $project, $phase) {
+            $p = $this->projects->findFor($request->user(), $project);
+            app(ProjectPhases::class)->update($p, $phase, $request->all(), $request->user());
+
+            return $this->phaseList($request, $p);
+        });
+    }
+
+    public function removePhase(Request $request, int $project, int $phase): JsonResponse
+    {
+        return $this->guard(function () use ($request, $project, $phase) {
+            $p = $this->projects->findFor($request->user(), $project);
+            app(ProjectPhases::class)->delete($p, $phase, $request->user());
+
+            return $this->phaseList($request, $p);
+        });
+    }
+
+    private function phaseList(Request $request, object $p, int $status = 200): JsonResponse
+    {
+        $phases = app(ProjectPhases::class)->tree($p);
+        $paths = [];
+        foreach ($phases as &$phase) {
+            $id = $phase['cost_centre_id'];
+            $phase['cost_centre_path'] = $id ? ($paths[$id] ??= app(\App\Services\Projects\ProjectCostCentres::class)->path($id)) : null;
+        }
+
+        return response()->json(['phases' => $phases, 'can' => ['phases' => app(\App\Services\Projects\ProjectAccess::class)->allows($request->user(), 'phases', $p), 'delete' => $request->user()->hasPermission('projects.delete')]], $status);
     }
 
     private function change(Request $request, int $project, callable $do): JsonResponse

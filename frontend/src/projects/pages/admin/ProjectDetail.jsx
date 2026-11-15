@@ -5,12 +5,13 @@ import AdminLayout from '../../../_shared/components/layout/AdminLayout';
 import PageHeader from '../../../_shared/components/layout/PageHeader';
 import projectsAPI from '../../../_shared/api/projects';
 import { day, message, PRIORITY, STATE } from '../../lib/format';
-import { Btn, Chip, Notice, Panel, PanelTitle } from '../../components/ui';
+import { Btn, Chip, Notice, Panel, PanelTitle, Tabs } from '../../components/ui';
+import PhasesPanel from '../../components/PhasesPanel';
 import { STATUS_TOKEN, tint } from '../../components/uiTokens';
 
 /**
- * One piece of work, open (docs/PROJECTS_STAGE1_SPEC.md, build 1.3): where it is in its stages, its details, and its cost centre in the books.
- * Phases, people, links and the activity log arrive as tabs with builds 1.4 to 1.7. Every button is there only when the server says this person
+ * One piece of work, open (docs/PROJECTS_STAGE1_SPEC.md, builds 1.3 and 1.4): where it is in its stages, its details, its cost centre in the books, and its
+ * phases. People, links and the activity log arrive as tabs with builds 1.5 to 1.7. Every button is there only when the server says this person
  * may do it on this project (`can`); the words are the ones the server sends for this piece of work (`words`).
  */
 function Row({ label, children }) {
@@ -53,6 +54,7 @@ export default function ProjectDetail() {
   const [failed, setFailed] = useState(null);
   const [busy, setBusy] = useState(false);
   const [asking, setAsking] = useState(null);   // an action waiting for "are you sure": { label, run }
+  const [tab, setTab] = useState('overview');
 
   const load = useCallback(async () => {
     try {
@@ -93,7 +95,8 @@ export default function ProjectDetail() {
   }
 
   const p = project;
-  const w = (key, lower = false) => { const word = p.words[key]?.name || key; return lower ? word.charAt(0).toLowerCase() + word.slice(1) : word; };
+  const word = (key, plural = false, lower = false) => { const n = p.words[key]; const text = n ? (plural ? n.plural : n.name) : key; return lower ? text.charAt(0).toLowerCase() + text.slice(1) : text; };
+  const w = (key, lower = false) => word(key, false, lower);
   const can = p.can;
   const next = p.stages[p.stages.findIndex((s) => s.id === p.stage?.id) + 1];
   const mayMoveNext = next && can.stage && p.state === 'open' && (next.state !== 'closed' || can.close);
@@ -134,7 +137,10 @@ export default function ProjectDetail() {
         {PRIORITY[p.priority] && p.priority !== 'medium' && <Chip status={PRIORITY[p.priority].status}>{PRIORITY[p.priority].label} priority</Chip>}
       </div>
       <StageBar project={p} onMove={move} busy={busy} />
+      <Tabs tabs={[{ key: 'overview', label: 'Overview' }, { key: 'phases', label: word('phase', true) }]} value={tab} onChange={setTab} label="Parts of this page" />
 
+      {tab === 'phases' && <PhasesPanel key={`${p.id}-${p.frozen}`} projectId={p.id} word={word} />}
+      {tab === 'overview' && (
       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(300px, 1fr))', gap: 16, alignItems: 'start' }}>
         <Panel>
           <PanelTitle>Details</PanelTitle>
@@ -158,6 +164,7 @@ export default function ProjectDetail() {
             : <p style={{ margin: 0, fontSize: 13.5, color: 'var(--text-secondary)' }}>It has no cost centre: the books had none when it was started.</p>}
         </Panel>
       </div>
+      )}
     </AdminLayout>
   );
 }

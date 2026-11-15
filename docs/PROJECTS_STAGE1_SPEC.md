@@ -249,6 +249,18 @@ Nothing new to run. Screens: `docs/screens/projects-list.png`, `projects-new.png
 - **Found on the way:** services kept the settings they first read, so a changed default industry was not seen by a service that outlived the request. Settings and names are now asked for when needed and shared per request.
 - **Different from the spec:** a project in an industry other than the company's is shown in that industry's words to everyone. The Client and Guest project roles do not open the staff screens (they are for the portal, Stage 9).
 
+### 1.4 Phases (done)
+
+Nothing new to run. Screen: `docs/screens/projects-phases.png`.
+
+- **Service:** `ProjectPhases`. A tree to twelve levels. Each phase has a cost centre of its own in the books (nested under the cost centre the phase above it uses, purpose `project_phase`) or uses the one above it, in the end the project's. One can be given later; it is never taken away, because vouchers may already carry it. Renaming a phase renames its cost centre.
+- **Changes:** name, code, dates, open or done, move up or down among its siblings. Deleting a phase takes everything under it to the trash with it and needs `projects.delete` as well as `projects.phases`.
+- **Access:** the same two questions as the project (a Lead or Member may, a Reviewer may not), and nothing on a frozen project. A phase is only reachable through its own project.
+- **Routes:** `GET`, `POST /api/admin/projects/{id}/phases`; `PUT`, `DELETE /api/admin/projects/{id}/phases/{phase}`. Each answers the whole tree, with where each phase's costs land.
+- **Screen:** a tab on the open project, named with the industry's word (Phases, Sections, Design stages, Episodes of care).
+- **Tests:** `tests/Feature/ProjectsPhasesTest.php` (5); the browser check `projects-record-ui.mjs` now has 48 checks.
+- **Not yet:** moving a phase under a different parent.
+
 ## To confirm before building
 
 1. The owner runs the two database scripts; the first deletes all current project data for good. Take a backup first.
