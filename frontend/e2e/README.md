@@ -31,6 +31,7 @@ node e2e/menus-cooking-ui.mjs                   # cakes and catering: the reques
 node e2e/menus-chefs-ui.mjs                     # the chefs screen (profiles, certificate standing, on duty), the chefs page guests see and the chef named on a dish
 node e2e/menus-operations-ui.mjs                # kitchen operations: the prep list for a day, the waste log with its report and taking an entry back, and what to buy with the purchase orders it makes
 node e2e/actions.mjs                            # the owner's page for sensitive actions and the sign-in check, and the real payment keys screen asking once (passkey) instead of the password
+node e2e/projects-config-ui.mjs                 # Projects configuration: default industry, renaming, own names, industries, history and roll back, and that the theme decides every colour and font (needs only the website: the API and who is signed in are answered by the check itself)
 ```
 
 Needs Playwright (`PLAYWRIGHT_MODULE_DIR` points at the folder holding it, default `/opt/node22/lib/node_modules/`) and a Chromium (`CHROME`).

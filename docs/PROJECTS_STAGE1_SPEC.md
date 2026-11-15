@@ -220,6 +220,18 @@ Until the scripts are run nothing breaks: `App\Services\Projects\ProjectsSetup::
 - **Tests:** `tests/Unit/ProjectsFoundationTest.php` (catalogue, both scripts read as text, every industry names every term, every kind of work ends on a closed stage, no money column).
 - **Different from the spec:** the built-in role defaults above were not in the spec and are a first proposal; change them on the Access screens.
 
+### 1.2 Names and configuration (done)
+
+Nothing new to run: it uses the tables of script 257 and the permissions of catalogue 26.
+
+- **Services** (`app/Services/Projects`): `ProjectNames` (the shipped name, the company's own name over it, and whose words a person sees), `ProjectSettings` (parts, a numbered version on every save, roll back as a new version, a settings log), `ProjectLog` (the add-only log; refusals carry a reason), `ProjectException`.
+- **Routes** under `/api/admin/projects` (module on and `projects.use` for all): `GET names`; `PUT my/naming` (`projects.naming.personal`); `GET configuration`, `GET configuration/history` (`projects.config.view`); `PUT configuration/general`, `POST configuration/rollback`, `PUT configuration/industries/{industry}` (`projects.config.manage`); `PUT` and `DELETE configuration/names/{industry}/{term}` (`projects.config.names`).
+- **Rules built in:** changing the default industry, by a save or by a roll back, also needs `projects.config.industry`, and a refusal is written to the log. The default industry cannot be switched off. A name is plain text on one line, up to 80 characters; typing the shipped name back removes the company's own. A person's own naming counts only while they hold the permission and the industry is on; without the permission the choice is not even sent to the screen. Exports and documents use `companyTerm()`, never a person's own words.
+- **Screens:** `/admin/projects/configuration` (Industry and names, Industries, History and roll back), opened from the Configuration button on the Projects home (so F12 finds it). `projects/lib/names.js` gives every screen `t('project')`; `projects/components/ui.jsx` holds the building blocks. They are Projects' own because the shared `Button` and `EmptyState` carry fixed greys and reds, which the theme rule does not allow here.
+- **Tests:** `tests/Feature/ProjectsConfigurationTest.php` (13, on the tables and starter rows exactly as script 257 makes them, through `Concerns/CreatesProjectsWorld`); `frontend/e2e/projects-config-ui.mjs` (27 checks in a real browser, including that changing the theme's values changes the button, panel, text and font).
+- **Found on the way:** a saved yes/no setting read back as 1 and was counted as a change; settings now read back as the kind their default is.
+- **Not yet:** the Types and stages, Fields, Project roles, Number series and Shortcuts tabs (builds 1.5, 1.8 and 1.9).
+
 ## To confirm before building
 
 1. The owner runs the two database scripts; the first deletes all current project data for good. Take a backup first.

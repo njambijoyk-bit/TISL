@@ -1876,6 +1876,20 @@ Route::middleware('auth:sanctum')->group(function () {
             Route::delete('/connections/{id}',         [$c, 'deleteConnection'])->whereNumber('id')->middleware('permission:imports.manage');
             Route::post('/connections/{id}/fetch',     [$c, 'fetch'])->whereNumber('id')->middleware('permission:imports.view');
         });
+        // Projects, rebuilt (docs/PROJECTS_STAGE1_SPEC.md). Every route asks for a Projects permission of its own on top of opening the module.
+        Route::prefix('projects')->middleware(['module:projects', 'permission:projects.use'])->group(function () {
+            $cfg = \App\Http\Controllers\Api\Projects\ConfigurationController::class;
+            Route::get('/names', [$cfg, 'names']);                                        // the words this person sees
+            Route::put('/my/naming', [$cfg, 'myNaming'])->middleware('permission:projects.naming.personal');
+            Route::get('/configuration', [$cfg, 'show'])->middleware('permission:projects.config.view');
+            Route::get('/configuration/history', [$cfg, 'history'])->middleware('permission:projects.config.view');
+            Route::put('/configuration/general', [$cfg, 'saveGeneral'])->middleware('permission:projects.config.manage');
+            Route::post('/configuration/rollback', [$cfg, 'rollback'])->middleware('permission:projects.config.manage');
+            Route::put('/configuration/industries/{industry}', [$cfg, 'setIndustry'])->middleware('permission:projects.config.manage');
+            Route::put('/configuration/names/{industry}/{term}', [$cfg, 'rename'])->middleware('permission:projects.config.names');
+            Route::delete('/configuration/names/{industry}/{term}', [$cfg, 'resetName'])->middleware('permission:projects.config.names');
+        });
+
         Route::prefix('events')->middleware('module:events')->group(function () {   // staff side of ticketed events
             $c = \App\Http\Controllers\Api\EventAdminController::class;
             Route::get('/',                      [$c, 'index'])->middleware('permission:events.view');

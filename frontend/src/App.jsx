@@ -263,6 +263,7 @@ const ReturnFromInvoice  = lazy(() => import('./core/pages/admin/books/ReturnFro
 const OrdersRegister     = lazy(() => import('./core/pages/admin/books/OrdersRegister'));
 const OtherCompanies     = lazy(() => import('./core/pages/admin/books/OtherCompanies'));
 const ProjectsHome       = lazy(() => import('./projects/pages/admin/ProjectsHome'));
+const ProjectConfiguration = lazy(() => import('./projects/pages/admin/ProjectConfiguration'));
 const UsersPage          = lazy(() => import('./core/pages/admin/users/Users'));
 const UserDetail         = lazy(() => import('./core/pages/admin/users/UserDetail'));
 const EmployeeList       = lazy(() => import('./extras/pages/admin/employees/EmployeeList'));
@@ -1412,6 +1413,7 @@ function App() {
 
               {/* Projects: rebuilt from nothing (docs/PROJECTS_STAGE1_SPEC.md). The screens arrive build by build; until then every old address lands on the one page. */}
               <Route path="/admin/projects" element={<ProtectedRoute requireAdmin permission="projects.use"><ModuleRoute module="projects" redirectTo="/admin"><ProjectsHome /></ModuleRoute></ProtectedRoute>} />
+              <Route path="/admin/projects/configuration" element={<ProtectedRoute requireAdmin permission="projects.config.view"><ModuleRoute module="projects" redirectTo="/admin"><ProjectConfiguration /></ModuleRoute></ProtectedRoute>} />
               <Route path="/admin/projects/*" element={<Navigate to="/admin/projects" replace />} />
               <Route path="/admin/work" element={<Navigate to="/admin/calendar" replace />} />
 

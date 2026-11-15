@@ -45,3 +45,4 @@ export { default as vendorPortalAPI } from './vendorPortal';
 export { default as tendersAPI } from './tenders';
 export { default as publicTendersAPI } from './publicTenders';
 export { default as vendorPrequalificationsAPI } from './vendorPrequalifications';
+export { default as projectsAPI } from './projects';
