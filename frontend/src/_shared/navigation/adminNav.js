@@ -313,7 +313,8 @@ export const ADMIN_NAV = [
       {
         id: 'projects', title: 'Projects', icon: ClipboardList, color: '#14b8a6', path: '/admin/projects', perm: 'projects.use', keywords: 'matters contracts jobs engagements clients work',
         tabs: [
-          { title: 'Overview', path: '/admin/projects', exact: true },
+          { title: 'All work', path: '/admin/projects', exact: true },
+          { title: 'New', path: '/admin/projects/new', perm: 'projects.create' },
           { title: 'Configuration', path: '/admin/projects/configuration', perm: 'projects.config.view' },
         ],
       },

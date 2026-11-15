@@ -232,6 +232,23 @@ Nothing new to run: it uses the tables of script 257 and the permissions of cata
 - **Found on the way:** a saved yes/no setting read back as 1 and was counted as a change; settings now read back as the kind their default is.
 - **Not yet:** the Types and stages, Fields, Project roles, Number series and Shortcuts tabs (builds 1.5, 1.8 and 1.9).
 
+### 1.3 The project record (done)
+
+Nothing new to run. Screens: `docs/screens/projects-list.png`, `projects-new.png`, `projects-open.png`.
+
+- **Services:** `ProjectService` (start, change, stages, hold/resume/cancel/reopen, freeze, the list, the form's options), `ProjectAccess` (the two-question check), `ProjectCostCentres` (the cost centre in the books).
+- **Starting a project** is one transaction: the next number of the kind of work's series (row locked, so two people at once get two numbers), the cost centre, the row, the lead as Lead and whoever started it as Member, then the log line. If the books refuse the cost centre nothing is made and no number is used.
+- **The cost centre** is `Branch > Projects > NUMBER Title`, code = the project number, purpose `project`. The branch's "Projects" cost centre is made the first time it is needed; a project with no branch, or a branch with no cost centre yet, uses a free-standing "Projects". Renaming the project renames the cost centre; its code never changes. Where the books have no cost centres at all (script 100 not run) a project starts without one.
+- **Who may do what** (`ProjectAccess`): the person's TISL role must hold the permission AND their project role must allow it. `projects.view_all` opens a project they are not on for reading only, never a confidential one. A project a person may not open answers "not found", so its existence is not given away. A frozen project can be read and unfrozen, nothing else. Membership is read afresh on every check and honours its start and end dates. Every refusal is logged with its reason.
+- **Opening a confidential project is always logged** (`project.opened`).
+- **Stage and state:** moving to a closed stage, or out of one, also needs `projects.close`. A stage can name fields that must be filled first; the message names them in the project's own words. Hold, resume, cancel and reopen are separate from the stages. Only closed or cancelled work can be frozen.
+- **What cannot change after the start:** industry, kind of work, number, branch, lead (the lead changes by transfer, build 1.5).
+- **Routes** under `/api/admin/projects`: `GET /`, `GET /options`, `GET /options/customers`, `POST /`, `GET /{id}`, `PUT /{id}`, `PUT /{id}/stage`, `PUT /{id}/state`, `PUT /{id}/freeze`.
+- **Screens:** the list (mine or all I may see, state with counts, search, pages), the new/change form (labels in the words of the chosen industry; "when you save" says what will happen), the open project (stage bar, details, cost centre). A button exists only when the server says this person may use it on this project.
+- **Tests:** `tests/Feature/ProjectsRecordTest.php` (17); `frontend/e2e/projects-record-ui.mjs` (37 checks in a real browser).
+- **Found on the way:** services kept the settings they first read, so a changed default industry was not seen by a service that outlived the request. Settings and names are now asked for when needed and shared per request.
+- **Different from the spec:** a project in an industry other than the company's is shown in that industry's words to everyone. The Client and Guest project roles do not open the staff screens (they are for the portal, Stage 9).
+
 ## To confirm before building
 
 1. The owner runs the two database scripts; the first deletes all current project data for good. Take a backup first.

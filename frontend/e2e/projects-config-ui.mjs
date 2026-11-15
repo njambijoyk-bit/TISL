@@ -10,6 +10,7 @@ const me = { user: { id: 1, name: 'Owner', email: 'owner@example.com' }, custome
   access: { account: 'staff', clearance: 6, permissions: ['admin.access', 'projects.use', 'projects.config.view', 'projects.config.manage', 'projects.config.industry', 'projects.config.names', 'projects.naming.personal'] } };
 await page.addInitScript((who) => { localStorage.setItem('auth-storage', JSON.stringify({ state: { ...who, isAuthenticated: true }, version: 0 })); }, me);
 await page.route('**/api/me', (route) => json(route, me));
+await page.route('**/api/admin/projects?**', (route) => json(route, { data: [], total: 0, page: 1, per_page: 25, counts: { open: 0, on_hold: 0, closed: 0, cancelled: 0 } }));
 const sent = [];
 const go = async (which) => { await page.goto(`${SITE}/e2e/harness.html?c=${which}`, { waitUntil: 'networkidle' }); await page.addStyleTag({ content: '#root{max-width:1100px!important}' }); };
 
@@ -159,12 +160,8 @@ state = fresh({ ready: false });
 await go('ProjectConfiguration');
 await page.getByText('Projects is not set up yet').waitFor({ timeout: 15000 });
 ok('before the database is in place the page says so and offers nothing to save', (await page.getByRole('button', { name: 'Save', exact: true }).count()) === 0);
-await go('ProjectsHome');
+await go('ProjectsList');
 await page.getByText('The database for the new module is not in place yet').waitFor({ timeout: 15000 });
-ok('the Projects home says the same', true);
-state = fresh();
-await go('ProjectsHome');
-await page.getByRole('heading', { name: 'Matters', exact: true }).waitFor({ timeout: 15000 });
-ok('the home is named in the company\'s words and has the Configuration button the F12 key looks for', (await page.getByRole('button', { name: 'Configuration', exact: true }).count()) === 1);
+ok('the list of work says the same', true);
 
 await finish();

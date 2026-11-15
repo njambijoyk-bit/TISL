@@ -262,7 +262,9 @@ const VoucherView        = lazy(() => import('./core/pages/admin/books/VoucherVi
 const ReturnFromInvoice  = lazy(() => import('./core/pages/admin/books/ReturnFromInvoice'));
 const OrdersRegister     = lazy(() => import('./core/pages/admin/books/OrdersRegister'));
 const OtherCompanies     = lazy(() => import('./core/pages/admin/books/OtherCompanies'));
-const ProjectsHome       = lazy(() => import('./projects/pages/admin/ProjectsHome'));
+const ProjectsList       = lazy(() => import('./projects/pages/admin/ProjectsList'));
+const ProjectForm        = lazy(() => import('./projects/pages/admin/ProjectForm'));
+const ProjectDetail      = lazy(() => import('./projects/pages/admin/ProjectDetail'));
 const ProjectConfiguration = lazy(() => import('./projects/pages/admin/ProjectConfiguration'));
 const UsersPage          = lazy(() => import('./core/pages/admin/users/Users'));
 const UserDetail         = lazy(() => import('./core/pages/admin/users/UserDetail'));
@@ -1411,9 +1413,12 @@ function App() {
               {/* Payments Dashboard */}
               <Route path="/admin/finance/payments" element={<ProtectedRoute requireAdmin permission="books.view"><OrdersRegister initial="receipt" /></ProtectedRoute>} />
 
-              {/* Projects: rebuilt from nothing (docs/PROJECTS_STAGE1_SPEC.md). The screens arrive build by build; until then every old address lands on the one page. */}
-              <Route path="/admin/projects" element={<ProtectedRoute requireAdmin permission="projects.use"><ModuleRoute module="projects" redirectTo="/admin"><ProjectsHome /></ModuleRoute></ProtectedRoute>} />
+              {/* Projects: rebuilt from nothing (docs/PROJECTS_STAGE1_SPEC.md). The screens arrive build by build; an address that is not built yet lands on the list. */}
+              <Route path="/admin/projects" element={<ProtectedRoute requireAdmin permission="projects.use"><ModuleRoute module="projects" redirectTo="/admin"><ProjectsList /></ModuleRoute></ProtectedRoute>} />
               <Route path="/admin/projects/configuration" element={<ProtectedRoute requireAdmin permission="projects.config.view"><ModuleRoute module="projects" redirectTo="/admin"><ProjectConfiguration /></ModuleRoute></ProtectedRoute>} />
+              <Route path="/admin/projects/new" element={<ProtectedRoute requireAdmin permission="projects.create"><ModuleRoute module="projects" redirectTo="/admin"><ProjectForm /></ModuleRoute></ProtectedRoute>} />
+              <Route path="/admin/projects/:id" element={<ProtectedRoute requireAdmin permission="projects.use"><ModuleRoute module="projects" redirectTo="/admin"><ProjectDetail /></ModuleRoute></ProtectedRoute>} />
+              <Route path="/admin/projects/:id/edit" element={<ProtectedRoute requireAdmin permission="projects.edit"><ModuleRoute module="projects" redirectTo="/admin"><ProjectForm /></ModuleRoute></ProtectedRoute>} />
               <Route path="/admin/projects/*" element={<Navigate to="/admin/projects" replace />} />
               <Route path="/admin/work" element={<Navigate to="/admin/calendar" replace />} />
 

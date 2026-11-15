@@ -26,6 +26,25 @@ trait CreatesProjectsWorld
             Schema::create('users', function ($t) { $t->id(); $t->string('name'); $t->string('email')->nullable(); $t->string('password')->nullable(); $t->string('role')->nullable(); $t->softDeletes(); $t->timestamps(); });
         }
         $this->mock(LicenseManager::class, fn ($m) => $m->shouldReceive('isActive')->andReturnUsing(fn () => $this->projectsLicensed));
+        // the books' cost centres and branches, and the customers, with the columns Projects reads and writes
+        Schema::create('cost_centres', function ($t) { $t->id(); $t->unsignedBigInteger('parent_id')->nullable(); $t->unsignedBigInteger('location_id')->nullable(); $t->string('name'); $t->string('code')->unique();
+            $t->string('type')->default('other'); $t->string('purpose')->nullable(); $t->string('description')->nullable(); $t->boolean('is_system')->default(false); $t->boolean('is_active')->default(true); $t->integer('sort_order')->default(0); $t->timestamps(); });
+        Schema::create('locations', function ($t) { $t->id(); $t->string('name'); $t->string('code')->nullable(); $t->unsignedBigInteger('cost_centre_id')->nullable(); $t->boolean('is_active')->default(true); $t->integer('sort_order')->default(0); $t->timestamps(); });
+        Schema::create('customers', function ($t) { $t->id(); $t->string('customer_number')->nullable(); $t->string('first_name')->nullable(); $t->string('last_name')->nullable(); $t->string('company_name')->nullable(); $t->string('email')->nullable(); $t->softDeletes(); $t->timestamps(); });
+        DB::table('cost_centres')->insert(['id' => 1, 'name' => 'Nairobi', 'code' => 'BR-NBO', 'type' => 'branch', 'purpose' => 'branch', 'location_id' => 1, 'is_system' => 1]);
+        DB::table('locations')->insert([['id' => 1, 'name' => 'Nairobi', 'code' => 'NBO', 'cost_centre_id' => 1], ['id' => 2, 'name' => 'Mombasa', 'code' => 'MSA', 'cost_centre_id' => null]]);
+        DB::table('customers')->insert([['id' => 1, 'customer_number' => 'C-001', 'first_name' => 'Achieng', 'last_name' => 'Otieno', 'company_name' => 'Imara Sacco', 'email' => 'achieng@imara.test'],
+            ['id' => 2, 'customer_number' => 'C-002', 'first_name' => 'Brian', 'last_name' => 'Kariuki', 'company_name' => null, 'email' => 'brian@example.test']]);
+        // "the staff who hold a permission" is answered from what the test granted
+        $test = $this;
+        $this->app->instance(\App\Services\Notify\Staff::class, new class($test) extends \App\Services\Notify\Staff {
+            public function __construct(private $test) {}
+
+            public function holding(string $permission): \Illuminate\Support\Collection
+            {
+                return User::all()->filter(fn ($u) => in_array($permission, $this->test->permsOf($u->id), true))->values();
+            }
+        });
         $this->runSqlScripts('257_projects_foundation.sql');
         $this->runProjectStarterRows();
         ProjectsSetup::forget();

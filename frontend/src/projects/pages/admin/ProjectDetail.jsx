@@ -1,0 +1,163 @@
+import { useCallback, useEffect, useState } from 'react';
+import { useNavigate, useParams } from 'react-router-dom';
+import toast from 'react-hot-toast';
+import AdminLayout from '../../../_shared/components/layout/AdminLayout';
+import PageHeader from '../../../_shared/components/layout/PageHeader';
+import projectsAPI from '../../../_shared/api/projects';
+import { day, message, PRIORITY, STATE } from '../../lib/format';
+import { Btn, Chip, Notice, Panel, PanelTitle } from '../../components/ui';
+import { STATUS_TOKEN, tint } from '../../components/uiTokens';
+
+/**
+ * One piece of work, open (docs/PROJECTS_STAGE1_SPEC.md, build 1.3): where it is in its stages, its details, and its cost centre in the books.
+ * Phases, people, links and the activity log arrive as tabs with builds 1.4 to 1.7. Every button is there only when the server says this person
+ * may do it on this project (`can`); the words are the ones the server sends for this piece of work (`words`).
+ */
+function Row({ label, children }) {
+  if (children === null || children === undefined || children === '') return null;
+  return (
+    <div style={{ display: 'flex', justifyContent: 'space-between', gap: 16, padding: '8px 0', borderBottom: '1px solid var(--line)', fontSize: 13.5 }}>
+      <span style={{ color: 'var(--text-secondary)', flex: 'none' }}>{label}</span>
+      <span style={{ textAlign: 'right', minWidth: 0, overflowWrap: 'anywhere' }}>{children}</span>
+    </div>
+  );
+}
+
+function StageBar({ project, onMove, busy }) {
+  const current = project.stages.findIndex((s) => s.id === project.stage?.id);
+  const still = project.state === 'on_hold' || project.state === 'cancelled';
+  return (
+    <ol aria-label="Stages" style={{ display: 'flex', flexWrap: 'wrap', gap: 4, listStyle: 'none', margin: '0 0 16px', padding: 0 }}>
+      {project.stages.map((s, i) => {
+        const here = i === current;
+        const token = STATUS_TOKEN[still && here ? STATE[project.state].status : s.status] || STATUS_TOKEN.info;
+        const base = { padding: '6px 12px', borderRadius: 8, fontSize: 12.5, fontWeight: 600, fontFamily: 'var(--font-body)', border: `1px solid ${here ? `var(${token})` : 'var(--line)'}`,
+          background: here ? `var(${token})` : i < current ? tint(token, 12) : 'var(--surface-card)', color: here ? 'var(--surface-card)' : i < current ? `var(${token})` : 'var(--text-secondary)' };
+        const can = project.can.stage && !still && !here && (s.state !== 'closed' && project.state !== 'closed' ? true : project.can.close);
+        return (
+          <li key={s.id}>
+            {can
+              ? <button type="button" disabled={busy} onClick={() => onMove(s)} aria-label={`Move to ${s.name}`} style={{ ...base, cursor: 'pointer' }}>{s.name}</button>
+              : <span aria-current={here ? 'step' : undefined} style={{ ...base, display: 'inline-block' }}>{s.name}</span>}
+          </li>
+        );
+      })}
+    </ol>
+  );
+}
+
+export default function ProjectDetail() {
+  const { id } = useParams();
+  const navigate = useNavigate();
+  const [project, setProject] = useState(null);
+  const [failed, setFailed] = useState(null);
+  const [busy, setBusy] = useState(false);
+  const [asking, setAsking] = useState(null);   // an action waiting for "are you sure": { label, run }
+
+  const load = useCallback(async () => {
+    try {
+      setProject(await projectsAPI.get(id));
+      setFailed(null);
+    } catch (e) {
+      setFailed(e?.response?.status === 404 ? 'notfound' : message(e, 'This could not be loaded. Check your connection and try again.'));
+    }
+  }, [id]);
+
+  useEffect(() => { load(); }, [load]);
+
+  const act = async (run, done) => {
+    setBusy(true);
+    setAsking(null);
+    try {
+      setProject(await run());
+      toast.success(done);
+    } catch (e) {
+      toast.error(message(e, 'That could not be done. Try again.'));
+    } finally {
+      setBusy(false);
+    }
+  };
+
+  if (failed) {
+    return (
+      <AdminLayout>
+        <PageHeader title="Not found" actions={<Btn onClick={() => navigate('/admin/projects')}>Close</Btn>} />
+        <Notice status={failed === 'notfound' ? 'info' : 'problem'}>
+          {failed === 'notfound' ? 'There is nothing here that you can open. It may have been removed, or you may not be on it.' : failed}
+        </Notice>
+      </AdminLayout>
+    );
+  }
+  if (!project) {
+    return <AdminLayout><PageHeader title="Loading…" /><Panel><p style={{ margin: 0, color: 'var(--text-secondary)' }}>Loading…</p></Panel></AdminLayout>;
+  }
+
+  const p = project;
+  const w = (key, lower = false) => { const word = p.words[key]?.name || key; return lower ? word.charAt(0).toLowerCase() + word.slice(1) : word; };
+  const can = p.can;
+  const next = p.stages[p.stages.findIndex((s) => s.id === p.stage?.id) + 1];
+  const mayMoveNext = next && can.stage && p.state === 'open' && (next.state !== 'closed' || can.close);
+  const move = (s) => act(() => projectsAPI.moveStage(p.id, s.id), s.state === 'closed' ? 'Closed' : `Moved to ${s.name}`);
+
+  return (
+    <AdminLayout>
+      <PageHeader
+        title={`${p.number} · ${p.title}`}
+        subtitle={`${p.type.name}${p.industry.name ? ` · ${p.industry.name}` : ''}`}
+        actions={(
+          <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
+            {can.edit && <Btn onClick={() => navigate(`/admin/projects/${p.id}/edit`)}>Edit</Btn>}
+            {can.stage && p.state === 'open' && <Btn busy={busy} onClick={() => act(() => projectsAPI.setState(p.id, 'hold'), 'Put on hold')}>Put on hold</Btn>}
+            {can.stage && p.state === 'on_hold' && <Btn busy={busy} onClick={() => act(() => projectsAPI.setState(p.id, 'resume'), 'Resumed')}>Resume</Btn>}
+            {can.close && (p.state === 'open' || p.state === 'on_hold') && <Btn variant="danger" busy={busy} onClick={() => setAsking({ label: `Cancel this ${w('project', true)}? It can be reopened later.`, yes: 'Yes, cancel it', run: () => act(() => projectsAPI.setState(p.id, 'cancel'), 'Cancelled') })}>Cancel it</Btn>}
+            {can.close && p.state === 'cancelled' && <Btn busy={busy} onClick={() => act(() => projectsAPI.setState(p.id, 'reopen'), 'Reopened')}>Reopen</Btn>}
+            {can.freeze && !p.frozen && (p.state === 'closed' || p.state === 'cancelled') && <Btn busy={busy} onClick={() => setAsking({ label: 'Freeze it? Nothing on it can be changed until it is unfrozen.', yes: 'Yes, freeze it', run: () => act(() => projectsAPI.freeze(p.id, true), 'Frozen') })}>Freeze</Btn>}
+            {can.freeze && p.frozen && <Btn busy={busy} onClick={() => act(() => projectsAPI.freeze(p.id, false), 'Unfrozen')}>Unfreeze</Btn>}
+            {mayMoveNext && <Btn variant="primary" busy={busy} onClick={() => move(next)}>{next.state === 'closed' ? 'Close it' : `Move to ${next.name}`}</Btn>}
+            <Btn onClick={() => navigate('/admin/projects')}>Close</Btn>
+          </div>
+        )}
+      />
+
+      {asking && (
+        <Notice status="warning" style={{ marginBottom: 16, display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 12, flexWrap: 'wrap' }}>
+          <span>{asking.label}</span>
+          <span style={{ display: 'flex', gap: 8 }}><Btn small variant="danger" onClick={asking.run}>{asking.yes}</Btn><Btn small onClick={() => setAsking(null)}>Keep it as it is</Btn></span>
+        </Notice>
+      )}
+      {p.frozen && <Notice status="info" style={{ marginBottom: 16 }}>This is frozen. It can be read, and nothing on it can be changed until it is unfrozen.</Notice>}
+
+      <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap', marginBottom: 12 }}>
+        {(p.state === 'on_hold' || p.state === 'cancelled') && <Chip status={STATE[p.state].status}>{STATE[p.state].label}</Chip>}
+        {p.confidential && <Chip status="problem">Confidential</Chip>}
+        {p.frozen && <Chip>Frozen</Chip>}
+        {PRIORITY[p.priority] && p.priority !== 'medium' && <Chip status={PRIORITY[p.priority].status}>{PRIORITY[p.priority].label} priority</Chip>}
+      </div>
+      <StageBar project={p} onMove={move} busy={busy} />
+
+      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(300px, 1fr))', gap: 16, alignItems: 'start' }}>
+        <Panel>
+          <PanelTitle>Details</PanelTitle>
+          <Row label={w('client')}>{p.customer?.name}</Row>
+          <Row label={w('lead')}>{p.lead.name}</Row>
+          <Row label="Kind of work">{p.type.name}</Row>
+          <Row label="Branch">{p.branch?.name}</Row>
+          <Row label={w('reference')}>{p.reference}</Row>
+          <Row label={w('authority')}>{p.authority}</Row>
+          <Row label={w('place')}>{p.place}</Row>
+          <Row label="Start">{day(p.start_date)}</Row>
+          <Row label="Expected end">{day(p.due_date)}</Row>
+          <Row label={`${w('closing_period')} ends`}>{day(p.closing_period_ends)}</Row>
+          {p.description && <p style={{ margin: '12px 0 0', fontSize: 13.5, lineHeight: 1.6, whiteSpace: 'pre-wrap' }}>{p.description}</p>}
+        </Panel>
+
+        <Panel>
+          <PanelTitle hint="Everything this costs and earns is a voucher in the books that carries this cost centre. Nothing about money is kept here.">In the books</PanelTitle>
+          {p.cost_centre_path
+            ? <Row label="Cost centre">{p.cost_centre_path}</Row>
+            : <p style={{ margin: 0, fontSize: 13.5, color: 'var(--text-secondary)' }}>It has no cost centre: the books had none when it was started.</p>}
+        </Panel>
+      </div>
+    </AdminLayout>
+  );
+}

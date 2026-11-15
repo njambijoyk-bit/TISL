@@ -20,7 +20,10 @@ class ProjectNames
     /** @var array<string, array<string, array<string, mixed>>> */
     private array $cache = [];
 
-    public function __construct(private ProjectSettings $settings) {}
+    private function settings(): ProjectSettings
+    {
+        return app(ProjectSettings::class);   // asked for when needed, never kept (see ProjectService)
+    }
 
     /** @return array<int, array{key: string, name: string, group: string, is_active: bool}> */
     public function industries(bool $activeOnly = false): array
@@ -70,7 +73,7 @@ class ProjectNames
     /** The industry whose words this person sees on their screens. */
     public function industryFor(?User $user): string
     {
-        $default = $this->settings->defaultIndustry();
+        $default = $this->settings()->defaultIndustry();
         if (! $user || ! ProjectsSetup::ready() || ! $user->hasPermission('projects.naming.personal')) {
             return $default;
         }
@@ -94,7 +97,7 @@ class ProjectNames
     /** One word in the company's own industry: what exports, documents and messages to clients use. */
     public function companyTerm(string $key, bool $plural = false): string
     {
-        return $this->word($this->settings->defaultIndustry(), $key, $plural);
+        return $this->word($this->settings()->defaultIndustry(), $key, $plural);
     }
 
     /** One word in a given industry (a project that uses an industry other than the default is shown in its own words). */
@@ -154,7 +157,7 @@ class ProjectNames
         if (! $row) {
             throw new ProjectException('There is no such industry.', 404);
         }
-        if (! $active && $industry === $this->settings->defaultIndustry()) {
+        if (! $active && $industry === $this->settings()->defaultIndustry()) {
             throw new ProjectException('This is the company\'s default industry. Choose another default first.');
         }
         if ((bool) $row->is_active !== $active) {

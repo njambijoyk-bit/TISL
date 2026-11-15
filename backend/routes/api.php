@@ -1888,6 +1888,18 @@ Route::middleware('auth:sanctum')->group(function () {
             Route::put('/configuration/industries/{industry}', [$cfg, 'setIndustry'])->middleware('permission:projects.config.manage');
             Route::put('/configuration/names/{industry}/{term}', [$cfg, 'rename'])->middleware('permission:projects.config.names');
             Route::delete('/configuration/names/{industry}/{term}', [$cfg, 'resetName'])->middleware('permission:projects.config.names');
+
+            // the work itself. Whether a person may do it ON THIS project is asked inside (ProjectAccess); these are the permissions their role must hold at all.
+            $prj = \App\Http\Controllers\Api\Projects\ProjectController::class;
+            Route::get('/', [$prj, 'index']);
+            Route::get('/options', [$prj, 'options']);
+            Route::get('/options/customers', [$prj, 'customers'])->middleware('permission:projects.create,projects.edit');
+            Route::post('/', [$prj, 'store'])->middleware('permission:projects.create');
+            Route::get('/{project}', [$prj, 'show'])->whereNumber('project');
+            Route::put('/{project}', [$prj, 'update'])->whereNumber('project')->middleware('permission:projects.edit');
+            Route::put('/{project}/stage', [$prj, 'stage'])->whereNumber('project')->middleware('permission:projects.stage');
+            Route::put('/{project}/state', [$prj, 'state'])->whereNumber('project')->middleware('permission:projects.stage,projects.close');
+            Route::put('/{project}/freeze', [$prj, 'freeze'])->whereNumber('project')->middleware('permission:projects.freeze');
         });
 
         Route::prefix('events')->middleware('module:events')->group(function () {   // staff side of ticketed events

@@ -51,6 +51,13 @@ trait StandsInForAccess
             {
                 return $this->test->branchesFor($u->id);
             }
+
+            public function canAccessLocation(User $u, int $locationId, bool $forWriting = false): bool
+            {
+                $ids = $this->test->branchesFor($u->id);
+
+                return $ids === null || in_array($locationId, $ids, true);
+            }
         });
     }
 

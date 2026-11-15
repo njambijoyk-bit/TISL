@@ -67,8 +67,6 @@ class ProjectsConfigurationTest extends TestCase
         $this->putJson('/api/admin/projects/configuration/general', ['default_industry' => 'legal'])->assertOk()->assertJsonPath('value.default_industry', 'legal')->assertJsonPath('version', 2);
         $this->assertSame('Matter', $this->getJson('/api/admin/projects/names')->json('names.project.name'));
 
-        app()->forgetInstance(ProjectSettings::class);
-        app()->forgetInstance(ProjectNames::class);
         Sanctum::actingAs($this->staff('Wanjiru'), ['*']);
         $this->assertSame('Matters', $this->getJson('/api/admin/projects/names')->json('names.project.plural'));
     }
