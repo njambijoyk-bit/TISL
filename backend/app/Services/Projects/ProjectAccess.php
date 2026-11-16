@@ -52,6 +52,26 @@ class ProjectAccess
      */
     public function decide(User $user, string $ability, object $project, ?array $onIt = null): array
     {
+        $onIt ??= $this->roleAbilities($user, (int) $project->id);
+        $d = $this->base($user, $ability, $project, $onIt);
+        // the third question (stage 2): is it inside the hours? Asked only of someone the first two let in, and never of setting the hours themselves
+        if ($d['allowed'] && $ability !== 'access' && ProjectsSetup::controlRoom()) {
+            $closed = app(ProjectHours::class)->closed($project, $user, in_array($ability, self::READING, true), $this->base($user, 'access', $project, $onIt)['allowed']);
+            if ($closed) {
+                return ['allowed' => false, 'hidden' => false, 'reason' => 'Outside hours', 'closed' => $closed];
+            }
+        }
+
+        return $d;
+    }
+
+    /**
+     * The first two questions only: the permission, and the project role. (What stage 2 adds on top is asked by decide().)
+     *
+     * @return array{allowed: bool, hidden: bool, reason: ?string}
+     */
+    public function base(User $user, string $ability, object $project, ?array $onIt = null): array
+    {
         $permission = self::PERMISSION[$ability] ?? null;
         $needs = self::ROLE_ABILITY[$ability] ?? null;
         if (! $permission || ! $needs) {
@@ -89,6 +109,9 @@ class ProjectAccess
             return;
         }
         ProjectLog::refused((int) $project->id, $user, 'project.' . $ability, (string) $d['reason'], 'project', (int) $project->id);
+        if (isset($d['closed'])) {
+            throw new ProjectException($d['closed']['message'], 403, ['closed' => $d['closed']]);
+        }
         throw $d['hidden']
             ? new ProjectException('Not found.', 404)
             : new ProjectException($d['reason'] === 'It is frozen' ? 'This is frozen. Unfreeze it before changing anything.' : 'You may not do that here.', 403);

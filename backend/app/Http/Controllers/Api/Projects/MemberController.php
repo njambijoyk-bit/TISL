@@ -132,7 +132,7 @@ class MemberController extends Controller
         try {
             return $do();
         } catch (ProjectException $e) {
-            return response()->json(['message' => $e->getMessage()], $e->status);
+            return response()->json(['message' => $e->getMessage()] + $e->extra, $e->status);
         }
     }
 }

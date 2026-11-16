@@ -46,6 +46,10 @@ const projectsAPI = {
   // stage 2, the control room: who can get in and why; each call answers { people, others, project_hours, summary, can }
   access: async (id) => (await api.get(`/admin/projects/${id}/access`)).data,
   extendAccess: async (id, memberId, endsAt) => (await api.put(`/admin/projects/${id}/access/members/${memberId}`, { ends_at: endsAt })).data,
+  setHours: async (id, data) => (await api.put(`/admin/projects/${id}/access/hours`, data)).data,   // { days, member_id?, read_outside_hours? }
+  askPass: async (id, reason) => (await api.post(`/admin/projects/${id}/access/pass`, { reason })).data,
+  answerPass: async (id, passId, approve) => (await api.put(`/admin/projects/${id}/access/passes/${passId}`, { approve })).data,
+  saveAccessSettings: async (data) => (await api.put('/admin/projects/configuration/access', data)).data,
   transfer: async (id, userId, note) => (await api.post(`/admin/projects/${id}/transfer`, { user_id: userId, note })).data.project,
   invitations: async () => (await api.get('/admin/projects/invitations')).data.invitations,
   answerInvitation: async (id, accept) => (await api.put(`/admin/projects/${id}/invitation`, { accept })).data.invitations,

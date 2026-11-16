@@ -47,7 +47,7 @@ class ProjectAccessList
             $people[] = ['member_id' => (int) $m->id, 'user_id' => (int) $m->user_id, 'name' => $m->name, 'is_lead' => (int) $m->user_id === (int) $project->lead_user_id,
                 'reason' => $this->reason($m, $state), 'role' => $m->role_name, // what the role gives; nothing while the place has ended or their TISL role or project role no longer lets them in
                 'can' => in_array($state, ['ended', 'no_permission', 'role_off'], true) ? [] : array_map(fn ($a) => ProjectRoles::ABILITIES[$a], $can),
-                'hours' => $extra->wordsFor((int) $project->id, (int) $m->id), 'starts_at' => $m->starts_at, 'ends_at' => $m->ends_at, 'ends_in_days' => $days, 'ending_soon' => $endingSoon,
+                'hours' => $extra->wordsFor((int) $project->id, (int) $m->id), 'hour_days' => $this->days($extra->of((int) $project->id, (int) $m->id)), 'starts_at' => $m->starts_at, 'ends_at' => $m->ends_at, 'ends_in_days' => $days, 'ending_soon' => $endingSoon,
                 'state' => $state, 'state_words' => $words, 'status' => self::STATES[$state]];
         }
 
@@ -60,6 +60,10 @@ class ProjectAccessList
             'people' => $people,
             'others' => ['kind' => $project->confidential ? 'kept_out' : 'gets_in', 'people' => $others],
             'project_hours' => $extra->wordsFor((int) $project->id, 0),
+            'hours' => ['project' => $this->days($extra->of((int) $project->id)), 'read_outside_hours' => $extra->readOutside((int) $project->id), 'ready' => ProjectsSetup::controlRoom(),
+                // the people the hours never hold: they are the ones who can set them
+                'key_holders' => $extra->keyHolders($project)->pluck('name')->sort()->values()->all()],
+            'passes' => $extra->passes((int) $project->id),
             'summary' => ['ending_soon' => $soon, 'warn_days' => $warnDays],
             'can' => ['access' => $this->access->allows($viewer, 'access', $project)],
         ];
@@ -143,6 +147,12 @@ class ProjectAccessList
             ($held = $hours->heldWords($project, $m, $user)) !== null => $held,
             default => ['in', 'Can get in'],
         };
+    }
+
+    /** @param array<int, array{opens: string, closes: string}> $days @return array<int, array<string, mixed>> */
+    private function days(array $days): array
+    {
+        return array_map(fn ($day, $h) => ['day' => $day] + $h, array_keys($days), $days);
     }
 
     private function reason(object $m, string $state): string

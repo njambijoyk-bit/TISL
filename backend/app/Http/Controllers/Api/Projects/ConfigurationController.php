@@ -54,6 +54,7 @@ class ConfigurationController extends Controller
         return response()->json([
             'ready' => ProjectsSetup::ready(),
             'general' => $this->settings()->get('general'),
+            'access' => $this->settings()->get('access'),
             'version' => $this->settings()->version('general'),
             'industries' => $industries,
             'viewing' => $viewing,
@@ -79,6 +80,18 @@ class ConfigurationController extends Controller
             }
 
             return response()->json($this->settings()->save('general', $data, $request->user()));
+        });
+    }
+
+    /** Stage 2: end-date warnings, the hours a new project starts with, and passes outside hours. */
+    public function saveAccess(Request $request): JsonResponse
+    {
+        $data = $request->validate(['warn_days' => 'sometimes|integer', 'default_hours' => 'sometimes|array|max:7', 'read_outside_hours' => 'sometimes|boolean', 'passes' => 'sometimes|boolean', 'pass_minutes' => 'sometimes|integer']);
+
+        return $this->guard(function () use ($request, $data) {
+            $this->settings()->save('access', $data, $request->user());
+
+            return $this->show($request);
         });
     }
 
@@ -193,7 +206,7 @@ class ConfigurationController extends Controller
         try {
             return $do();
         } catch (ProjectException $e) {
-            return response()->json(['message' => $e->getMessage()], $e->status);
+            return response()->json(['message' => $e->getMessage()] + $e->extra, $e->status);
         }
     }
 }

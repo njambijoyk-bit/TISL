@@ -38,7 +38,7 @@ node e2e/projects-log-trash-ui.mjs              # Projects: the activity log on 
 node e2e/projects-links-ui.mjs                  # Projects: the Links tab (records of other modules attached to a piece of work, amounts read from the books, linking and unlinking, modules that are off) (needs only the website)
 node e2e/projects-shape-ui.mjs                  # Projects configuration: kinds of work with their number series, stages and what each asks for, extra fields; and those fields on the form and the open piece of work (needs only the website)
 node e2e/projects-keys-ui.mjs                   # Projects: the shortcut keys (G then a letter, Shift and a letter on an open piece of work), the key list, and the keys as settings for the company and each person (needs only the website)
-node e2e/projects-access-ui.mjs                 # Projects: the Access tab (who can get in and why, whether they can right now, who it is hidden from, moving an end date) (needs only the website)
+node e2e/projects-access-ui.mjs                 # Projects: the Access tab (who can get in and why, end dates, hours for the work and for one person, passes), the closed-for-now page, and the access settings in Configuration (needs only the website)
 ```
 
 Needs Playwright (`PLAYWRIGHT_MODULE_DIR` points at the folder holding it, default `/opt/node22/lib/node_modules/`) and a Chromium (`CHROME`).

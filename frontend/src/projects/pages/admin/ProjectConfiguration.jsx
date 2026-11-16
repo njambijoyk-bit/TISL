@@ -10,6 +10,7 @@ import { check, td, th } from '../../components/uiTokens';
 import ProjectRolesPanel from '../../components/ProjectRolesPanel';
 import ShapePanel from '../../components/ShapePanel';
 import ShortcutsPanel from '../../components/ShortcutsPanel';
+import AccessSettingsPanel from '../../components/AccessSettingsPanel';
 import ProjectKeys from '../../components/ProjectKeys';
 
 /**
@@ -183,7 +184,7 @@ export default function ProjectConfiguration() {
   };
 
   const industryName = (key) => data?.industries.find((i) => i.key === key)?.name || key;
-  const tabs = [{ key: 'names', label: 'Industry and names' }, { key: 'industries', label: 'Industries' }, { key: 'stages', label: 'Kinds of work and stages' }, { key: 'fields', label: 'Fields' }, { key: 'roles', label: 'Project roles' }, { key: 'shortcuts', label: 'Shortcuts' }, { key: 'history', label: 'History and roll back' }];
+  const tabs = [{ key: 'names', label: 'Industry and names' }, { key: 'industries', label: 'Industries' }, { key: 'stages', label: 'Kinds of work and stages' }, { key: 'fields', label: 'Fields' }, { key: 'roles', label: 'Project roles' }, { key: 'access', label: 'Access' }, { key: 'shortcuts', label: 'Shortcuts' }, { key: 'history', label: 'History and roll back' }];
 
   return (
     <AdminLayout><ProjectKeys />
@@ -293,6 +294,7 @@ export default function ProjectConfiguration() {
               wordsOf={() => ({ customer_id: t('client'), reference: t('reference'), authority: t('authority'), place: t('place'), start_date: 'Start date', due_date: 'Expected end', description: 'Description' })} />
           )}
           {tab === 'roles' && <ProjectRolesPanel canEdit={!!data.can.roles} />}
+          {tab === 'access' && data.access && <AccessSettingsPanel key={JSON.stringify(data.access)} value={data.access} canEdit={!!data.can.manage} onSaved={setData} thing={t('project', false, true)} />}
           {tab === 'shortcuts' && <ShortcutsPanel onChanged={reloadNames} />}
 
           {tab === 'history' && (

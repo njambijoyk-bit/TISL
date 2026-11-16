@@ -67,7 +67,7 @@ class ShapeController extends Controller
         try {
             $do();
         } catch (ProjectException $e) {
-            return response()->json(['message' => $e->getMessage()], $e->status);
+            return response()->json(['message' => $e->getMessage()] + $e->extra, $e->status);
         }
         $request->query->set('industry', $industry ?: (string) $request->input('viewing', $request->query('industry', app(ProjectSettings::class)->defaultIndustry())));
 

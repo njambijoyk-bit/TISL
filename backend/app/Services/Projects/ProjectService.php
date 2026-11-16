@@ -230,6 +230,7 @@ class ProjectService
             if ((int) $lead->id !== (int) $by->id) {
                 $member((int) $by->id, (int) ($roles['member'] ?? $roles['lead']));   // whoever started it stays on it
             }
+            app(ProjectHours::class)->applyDefault($id);   // the company's default hours, when it has set any
             // the extra fields an owner defined for this kind of work: a required one left empty undoes the whole start
             app(ProjectShape::class)->saveValues(DB::table('projects')->where('id', $id)->first(), (array) ($d['fields'] ?? []), $by, true);
 

@@ -3,7 +3,8 @@ import toast from 'react-hot-toast';
 import projectsAPI from '../../_shared/api/projects';
 import { day, message } from '../lib/format';
 import { Btn, Chip, DataTable, Field, Notice, Panel, PanelTitle, TextInput } from './ui';
-import { td, th } from './uiTokens';
+import { check, td, th } from './uiTokens';
+import HoursEditor from './HoursEditor';
 
 /**
  * Who can get into a piece of work, and why (docs/PROJECTS_STAGE2_SPEC.md, build 2.1): one row per person with a place on it, in the words the
@@ -17,6 +18,8 @@ export default function AccessPanel({ projectId, word }) {
   const [until, setUntil] = useState('');
   const [showOthers, setShowOthers] = useState(false);
   const [busy, setBusy] = useState(false);
+  const [hoursOf, setHoursOf] = useState(null);   // null | 'project' | the person whose hours are being set
+  const [readOutside, setReadOutside] = useState(false);
 
   const load = useCallback(async () => {
     try { setData(await projectsAPI.access(projectId)); setFailed(''); } catch (e) { setFailed(message(e, 'The list could not be loaded. Try again.')); }
@@ -30,6 +33,11 @@ export default function AccessPanel({ projectId, word }) {
     catch (err) { toast.error(message(err, 'That could not be done. Try again.')); } finally { setBusy(false); }
   };
 
+  const run = async (call, done) => {
+    setBusy(true);
+    try { setData(await call()); setHoursOf(null); toast.success(done); } catch (err) { toast.error(message(err, 'That could not be done. Try again.')); } finally { setBusy(false); }
+  };
+
   if (failed) return <Notice status="problem">{failed} <Btn small variant="quiet" onClick={load}>Try again</Btn></Notice>;
   if (!data) return <Panel><p style={{ margin: 0, color: 'var(--text-secondary)' }}>Loading who can get in…</p></Panel>;
   const { people, others, summary, can } = data;
@@ -38,12 +46,53 @@ export default function AccessPanel({ projectId, word }) {
 
   return (
     <Panel>
-      <PanelTitle hint={`Everyone with a place on this ${thing}, why they have it, and whether they can get in right now.`}>Who can get in</PanelTitle>
+      <PanelTitle
+        hint={`Everyone with a place on this ${thing}, why they have it, and whether they can get in right now.`}
+        right={can.access && data.hours.ready && !hoursOf && <Btn small onClick={() => { setReadOutside(data.hours.read_outside_hours); setMoving(null); setHoursOf('project'); }}>Set hours</Btn>}
+      >
+        Who can get in
+      </PanelTitle>
 
       <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap', marginBottom: 12 }}>
         <Chip status={data.project_hours ? 'info' : 'neutral'}>{data.project_hours ? `Hours: ${data.project_hours}` : 'Open at any time'}</Chip>
         {summary.ending_soon > 0 && <Chip status="warning">{summary.ending_soon === 1 ? '1 person ends' : `${summary.ending_soon} people end`} within {summary.warn_days} days</Chip>}
       </div>
+
+      {data.passes.length > 0 && (
+        <div style={{ display: 'grid', gap: 8, marginBottom: 12 }}>
+          {data.passes.map((s) => (
+            <Notice key={s.id} status={s.status === 'asked' ? 'warning' : 'info'}>
+              <div style={{ display: 'flex', justifyContent: 'space-between', gap: 10, alignItems: 'center', flexWrap: 'wrap' }} data-pass={s.name}>
+                <span>{s.status === 'asked' ? <><strong>{s.name}</strong> asks to get in outside the hours.{s.reason ? ` "${s.reason}"` : ''}</> : <><strong>{s.name}</strong> has a pass until {s.ends_at.slice(11, 16)}.</>}</span>
+                {s.status === 'asked' && can.access && (
+                  <span style={{ display: 'flex', gap: 8 }}>
+                    <Btn small variant="primary" busy={busy} onClick={() => run(() => projectsAPI.answerPass(projectId, s.id, true), `${s.name} is let in`)}>Let them in</Btn>
+                    <Btn small busy={busy} onClick={() => run(() => projectsAPI.answerPass(projectId, s.id, false), 'Declined')}>Decline</Btn>
+                  </span>
+                )}
+              </div>
+            </Notice>
+          ))}
+        </div>
+      )}
+
+      {hoursOf && (
+        <div style={{ padding: 12, borderRadius: 10, background: 'var(--surface-input)', marginBottom: 12 }}>
+          <p style={{ margin: '0 0 10px', fontWeight: 600, fontSize: 13.5 }}>{hoursOf === 'project' ? `When this ${thing} can be opened` : `When ${hoursOf.name} can open it`}</p>
+          <HoursEditor
+            key={hoursOf === 'project' ? 'project' : hoursOf.member_id} prefix="access-hours" busy={busy} onCancel={() => setHoursOf(null)}
+            value={hoursOf === 'project' ? data.hours.project : hoursOf.hour_days}
+            onSave={(days) => run(() => projectsAPI.setHours(projectId, hoursOf === 'project' ? { days, read_outside_hours: readOutside } : { days, member_id: hoursOf.member_id }), 'The hours are saved')}
+          >
+            {hoursOf === 'project' ? (
+              <>
+                <label style={{ display: 'flex', alignItems: 'center', gap: 8, fontSize: 13.5 }}><input type="checkbox" style={check} checked={readOutside} onChange={(e) => setReadOutside(e.target.checked)} />Outside these hours people can still read it, but not change it</label>
+                <p style={{ margin: 0, fontSize: 12.5, color: 'var(--text-secondary)' }}>The hours never hold the people who can set them{data.hours.key_holders.length ? ` (${data.hours.key_holders.join(', ')})` : ''}, so a mistake here cannot close it to everyone.</p>
+              </>
+            ) : <p style={{ margin: 0, fontSize: 12.5, color: 'var(--text-secondary)' }}>These narrow the hours above for this person only. They get in when both say yes.</p>}
+          </HoursEditor>
+        </div>
+      )}
 
       {moving && (
         <form onSubmit={(e) => save(e, until)} style={{ display: 'flex', gap: 10, alignItems: 'end', flexWrap: 'wrap', padding: 12, borderRadius: 10, background: 'var(--surface-input)', marginBottom: 12 }}>
@@ -68,8 +117,9 @@ export default function AccessPanel({ projectId, word }) {
                 {m.ending_soon && <Chip status="warning" style={{ marginLeft: 6 }}>{m.ends_in_days < 1 ? 'today' : m.ends_in_days === 1 ? '1 day' : `${m.ends_in_days} days`}</Chip>}
               </td>
               <td style={td}><Chip status={m.status}>{m.state_words}</Chip></td>
-              <td style={{ ...td, textAlign: 'right' }}>
-                {can.access && m.state !== 'invited' && <Btn small aria-label={`${m.ends_at ? 'Extend' : 'Set an end date for'} ${m.name}`} onClick={() => { setMoving(m); setUntil(m.ends_at && m.ends_at.slice(0, 10) >= today ? m.ends_at.slice(0, 10) : ''); }}>{m.ends_at ? 'Extend' : 'Set an end'}</Btn>}
+              <td style={{ ...td, textAlign: 'right', whiteSpace: 'nowrap' }}>
+                {can.access && data.hours.ready && <Btn small style={{ marginRight: 6 }} aria-label={`Set hours for ${m.name}`} onClick={() => { setMoving(null); setHoursOf(m); }}>Hours</Btn>}
+                {can.access && m.state !== 'invited' && <Btn small aria-label={`${m.ends_at ? 'Extend' : 'Set an end date for'} ${m.name}`} onClick={() => { setHoursOf(null); setMoving(m); setUntil(m.ends_at && m.ends_at.slice(0, 10) >= today ? m.ends_at.slice(0, 10) : ''); }}>{m.ends_at ? 'Extend' : 'Set an end'}</Btn>}
               </td>
             </tr>
           ))}

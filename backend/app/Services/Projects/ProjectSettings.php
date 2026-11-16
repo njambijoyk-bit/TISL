@@ -18,7 +18,8 @@ class ProjectSettings
         'shortcuts' => ['go_list' => 'P', 'go_new' => 'N', 'go_log' => 'L', 'go_trash' => 'T', 'go_config' => 'C', 'act_edit' => 'E', 'act_hold' => 'H', 'act_next' => 'F', 'act_delete' => 'D',
             'tab_overview' => 'O', 'tab_phases' => 'P', 'tab_people' => 'I', 'tab_links' => 'K', 'tab_activity' => 'Y'],
         // stage 2, the control room: how long before an end date the lead is told
-        'access' => ['warn_days' => 7],
+        // and the hours a new project starts with (a list of {day, opens, closes}; empty = any time), whether reading is allowed outside them, and short passes
+        'access' => ['warn_days' => 7, 'default_hours' => [], 'read_outside_hours' => false, 'passes' => true, 'pass_minutes' => 60],
     ];
 
     /** @var array<string, array<string, mixed>> */
@@ -143,7 +144,16 @@ class ProjectSettings
                 throw new ProjectException('Warn from 0 (never) to 90 days before an end date.');
             }
 
-            return array_merge($v, ['warn_days' => $days]);
+            $minutes = (int) $v['pass_minutes'];
+            if ($minutes < 5 || $minutes > 1440) {
+                throw new ProjectException('A pass lasts from 5 minutes to 24 hours.');
+            }
+            $hours = [];
+            foreach (ProjectHours::tidy($v['default_hours']) as $day => $h) {
+                $hours[] = ['day' => $day] + $h;
+            }
+
+            return ['warn_days' => $days, 'default_hours' => $hours, 'read_outside_hours' => (bool) $v['read_outside_hours'], 'passes' => (bool) $v['passes'], 'pass_minutes' => $minutes];
         }
 
         if ($part === 'shortcuts') {

@@ -86,4 +86,20 @@ Screen: `docs/screens/projects-access.png`.
 - **A link can open a tab:** `/admin/projects/{id}?tab=access`.
 - **Routes:** `GET /{project}/access`, `PUT /{project}/access/members/{member}`.
 - **Tests:** `tests/Feature/ProjectsAccessTabTest.php` (6); `frontend/e2e/projects-access-ui.mjs` (16 checks in a real browser).
-- **Not yet:** the Hours column and "outside hours" state fill in with build 2.2; "paused" with 2.5; a shortcut key for the Access tab.
+- **Not yet:** "paused" arrives with 2.5; a shortcut key for the Access tab.
+
+### 2.2 Hours and passes (done)
+
+Needs script 258. Until it has run, no hours exist and nothing asks about them. Screens: `docs/screens/projects-access-hours.png`, `projects-closed.png`, `projects-access-settings.png`.
+
+- **Service:** `ProjectHours`. The third question is asked inside `ProjectAccess::decide()`, after the permission and the project role, so every action on a project passes through it.
+- **Project hours:** days, each with a time it opens and closes, on the company's clock. A day with no hours is closed; a project with none at all is open at any time. Set on the Access tab with `projects.access.rules` and the project-role ability `access`.
+- **A person's own hours** on a project narrow the project's. They get in when both say yes.
+- **Closed means closed for reading too**, unless the project's switch "people can still read, but not change" is on.
+- **The refusal helps:** "P-0001 is closed for now. It can be opened Mon to Fri, 07:00 to 19:00. It opens again tomorrow at 07:00." The next opening is the next time every layer is open at once. The page shows who leads it. It stays on the list: it exists, it is only closed. Each refusal is logged with the reason "Outside hours".
+- **Changed from the design:** the people who can set a project's hours are never held by them. Otherwise one mistake (hours that are never open) would close a project to everyone for good, with nobody able to get in and fix it. The editor says so and names them.
+- **Passes:** someone outside the hours can ask to be let in. The people who can set the hours are told through the Core notifier; one of them, never the asker, lets them in or declines on the Access tab. A pass lasts 60 minutes (a setting) and ends by itself. One request at a time. Asked, approved and declined are logged.
+- **Company settings** (Configuration, new Access tab, needs `projects.config.manage`): warning days, the hours a new project starts with, whether reading is allowed outside them, whether passes can be asked for, and how long one lasts. A project that already exists is left as it is.
+- **Routes:** `PUT /{project}/access/hours`, `POST /{project}/access/pass`, `PUT /{project}/access/passes/{pass}`, `PUT /configuration/access`.
+- **Tests:** `tests/Feature/ProjectsHoursTest.php` (8); `frontend/e2e/projects-access-ui.mjs` (now 32 checks).
+- **Not yet:** hours that run past midnight (a night shift needs two days today); public holidays.

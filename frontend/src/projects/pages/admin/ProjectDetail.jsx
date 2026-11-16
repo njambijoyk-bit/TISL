@@ -59,6 +59,7 @@ export default function ProjectDetail() {
   const navigate = useNavigate();
   const [project, setProject] = useState(null);
   const [failed, setFailed] = useState(null);
+  const [closed, setClosed] = useState(null);   // outside its hours: { message, opens_words, can_ask, asked, lead }
   const [busy, setBusy] = useState(false);
   const [asking, setAsking] = useState(null);   // an action waiting for "are you sure": { label, run }
   const [tab, setTab] = useState(() => new URLSearchParams(window.location.search).get('tab') || 'overview');   // a message can link straight to a tab
@@ -70,6 +71,7 @@ export default function ProjectDetail() {
       setProject(await projectsAPI.get(id));
       setFailed(null);
     } catch (e) {
+      setClosed(e?.response?.data?.closed ? { ...e.response.data.closed, message: e.response.data.message } : null);
       setFailed(e?.response?.status === 404 ? 'notfound' : message(e, 'This could not be loaded. Check your connection and try again.'));
     }
   }, [id]);
@@ -89,6 +91,28 @@ export default function ProjectDetail() {
     }
   };
 
+  if (failed && closed) {
+    const ask = async () => {
+      setBusy(true);
+      try { await projectsAPI.askPass(id, null); toast.success('Asked. You will be told when it is answered.'); setClosed({ ...closed, can_ask: false, asked: true }); }
+      catch (e) { toast.error(message(e, 'That could not be done. Try again.')); } finally { setBusy(false); }
+    };
+    return (
+      <AdminLayout><ProjectKeys />
+        <PageHeader title="Closed for now" actions={<Btn onClick={() => navigate('/admin/projects')}>Close</Btn>} />
+        <Panel style={{ maxWidth: 560 }}>
+          <p style={{ margin: '0 0 8px', fontSize: 15, lineHeight: 1.5 }}>{closed.message}</p>
+          <p style={{ margin: '0 0 14px', fontSize: 13.5, color: 'var(--text-secondary)' }}>
+            {closed.asked ? 'You have asked to be let in. You will be told when it is answered.' : closed.lead ? `Need it now? ${closed.lead} leads it and can let you in.` : 'Need it now? Someone who sets its hours can let you in.'}
+          </p>
+          <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
+            {closed.can_ask && <Btn variant="primary" busy={busy} onClick={ask}>Ask to be let in</Btn>}
+            <Btn onClick={load}>Try again</Btn>
+          </div>
+        </Panel>
+      </AdminLayout>
+    );
+  }
   if (failed) {
     return (
       <AdminLayout><ProjectKeys />
