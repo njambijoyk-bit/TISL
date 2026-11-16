@@ -59,6 +59,17 @@ const projectsAPI = {
   setLock: async (id, area, data) => (await api.put(`/admin/projects/${id}/locks/${area}`, data)).data.locks,
   removeLock: async (id, area, password) => (await api.delete(`/admin/projects/${id}/locks/${area}`, { data: { password } })).data.locks,
   askLockReset: async (id, area, reason) => (await api.post(`/admin/projects/${id}/locks/${area}/reset`, { reason })).data.locks,
+  // stage 3, relationships. Leads: the list answers { data, total, page, per_page, counts, sees_all, ready, can }; one lead answers the lead
+  leads: async (params) => (await api.get('/admin/projects/leads', { params })).data,
+  leadOptions: async () => (await api.get('/admin/projects/leads/options')).data,
+  lead: async (id) => (await api.get(`/admin/projects/leads/${id}`)).data.lead,
+  addLead: async (data) => (await api.post('/admin/projects/leads', data)).data.lead,
+  changeLead: async (id, data) => (await api.put(`/admin/projects/leads/${id}`, data)).data.lead,
+  known: async (params) => (await api.get('/admin/projects/known', { params })).data.known,
+  // the lists an owner manages: each call answers { lists, rows, industries, ready, can }
+  lists: async () => (await api.get('/admin/projects/configuration/lists')).data,
+  addToList: async (list, data) => (await api.post(`/admin/projects/configuration/lists/${list}`, data)).data,
+  changeListRow: async (list, rowId, data) => (await api.put(`/admin/projects/configuration/lists/${list}/${rowId}`, data)).data,
   // security: each call answers { ready, events, summary, settings, signals, responses, watchers, can }
   security: async () => (await api.get('/admin/projects/security')).data,
   reviewSecurityEvent: async (eventId, note, release) => (await api.put(`/admin/projects/security/events/${eventId}`, { note, release: !!release })).data,

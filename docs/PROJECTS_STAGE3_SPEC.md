@@ -1,6 +1,6 @@
-# Projects Stage 3: Relationships (DESIGN, nothing built yet)
+# Projects Stage 3: Relationships (being built)
 
-Status: DESIGN, shared with the owner on 2026-11-16. Waiting for the owner's "build". Nothing in this document is built.
+Status: the owner said "build" on 2026-11-16, accepting the four choices at the end. What is built so far is listed under "As built"; everything else is still design.
 
 Stages 1 and 2 built the work and who may touch it. Stage 3 builds the people the work is for.
 
@@ -68,3 +68,27 @@ Three columns are added to `customers`: account manager, the lead it came from, 
 2. A lead stays out of the customers table until won.
 3. Client and public views of the directory wait for stage 9; visibility is recorded now.
 4. Health is three colours from four rules, each with a number that can be changed. No scores until stage 12.
+
+## As built
+
+### To run
+
+1. `backend/database/sql/259_projects_relationships.sql` (after 257 and 258). Twelve tables (one more than the design: `project_contact_links`, for a client's contact on a project), 70 starter list rows, 6 pipeline stages, and three columns on `customers`. It adds only.
+2. No permission seed: the permissions came with script 257.
+
+Until 259 has run, `ProjectsSetup::relationships()` is false and the Stage 3 screens say so; Stages 1 and 2 are untouched.
+
+### 3.1 Script 259, the lists, and leads (done)
+
+Screens: `docs/screens/projects-leads.png`, `projects-lead-new.png`, `projects-lists.png`.
+
+- **Script 259** makes every Stage 3 table at once, so there is one script for the whole stage.
+- **Services:** `ProjectLists`, `ProjectLeads`, `ProjectDuplicates`. **Controller:** `RelationshipController`.
+- **Lists** (Configuration, new Lists tab; changed with `projects.config.manage`): sources, lost reasons, contact roles, party roles (each for one industry or all), flags (each shown as one of the four named statuses, never a colour), trades. Add, rename, reorder, switch off. A row is never deleted: what already uses it keeps its name, and it is simply no longer offered.
+- **Leads** (`/admin/projects/leads`, in the Projects menu): name, who to talk to, email, phone, source, the client who referred them, industry, owner, notes. A lead is not a row of `customers`.
+- **Who sees a lead:** its owner, and anyone with `projects.leads.view`. Changing needs `projects.leads.manage` and being able to see it. A lead someone may not see answers "not found". An owner must be someone who can work leads; handing one over moves it out of the old owner's list.
+- **Status:** new, working, lost (with a reason from the list and a few words), and back to working. Won is not a button here: winning makes a client, which is build 3.2. The list starts on open leads; lost and won stay findable.
+- **"You may already know them":** while a lead is typed, leads, clients, contacts and other parties with the same name, email or phone are listed with what each is. It warns and never stops anyone. Phone numbers are stored as digits, so the same number matches with or without spaces or the country code.
+- **Routes:** `GET /leads`, `GET /leads/options`, `GET /leads/{lead}`, `POST /leads`, `PUT /leads/{lead}`, `GET /known`, `GET /configuration/lists`, `POST /configuration/lists/{list}`, `PUT /configuration/lists/{list}/{row}`.
+- **Tests:** `tests/Feature/ProjectsLeadsTest.php` (6); `frontend/e2e/projects-leads-ui.mjs` (22 checks in a real browser).
+- **Not yet:** deleting a lead and the trash for leads; the next action on a lead (3.4); its contacts (3.3) and history (3.4).

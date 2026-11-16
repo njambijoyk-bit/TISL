@@ -42,6 +42,7 @@ node e2e/projects-access-ui.mjs                 # Projects: the Access tab (who 
 node e2e/projects-locks-ui.mjs                  # Projects: locked areas (a tab behind a password, wrong tries, locking again, sensitive fields), managing locks and resets on the Access tab, and the Approvals page (needs only the website)
 node e2e/projects-serious-ui.mjs                # Projects: serious actions (the table in Configuration, and the question before an action is sent to a supervisor) (needs only the website)
 node e2e/projects-security-ui.mjs               # Projects: the security page (signals, reviewing, releasing a paused person, signal settings) and what a paused person sees (needs only the website)
+node e2e/projects-leads-ui.mjs                  # Projects: leads (the list, adding one with the already-known warning, a lead's page, lost with a reason) and the Lists tab in Configuration (needs only the website)
 ```
 
 Needs Playwright (`PLAYWRIGHT_MODULE_DIR` points at the folder holding it, default `/opt/node22/lib/node_modules/`) and a Chromium (`CHROME`).

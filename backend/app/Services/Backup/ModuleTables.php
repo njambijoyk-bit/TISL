@@ -143,6 +143,8 @@ final class ModuleTables
             'project_series', 'projects', 'project_phases', 'project_links', 'project_roles', 'project_role_permissions', 'project_members', 'project_log',
             'project_settings', 'project_setting_versions', 'project_setting_logs', 'project_user_prefs',
             'project_access', 'project_hours', 'project_passes', 'project_locks', 'project_unlocks', 'project_approvals', 'project_security_events',   // stage 2 (script 258)
+            'project_lists', 'project_leads', 'project_pipeline_stages', 'project_opportunities', 'project_contacts', 'project_contact_links', 'project_parties', 'project_party_links',
+            'project_interactions', 'project_follow_ups', 'project_client_flags', 'project_directory',   // stage 3 (script 259)
         ],
         'listings'       => [/* built later */],
         'campaigns'      => ['campaigns', 'campaign_sections', 'campaign_items', 'campaign_events',

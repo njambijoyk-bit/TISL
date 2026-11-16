@@ -1896,7 +1896,7 @@ Route::middleware('auth:sanctum')->group(function () {
             $prj = \App\Http\Controllers\Api\Projects\ProjectController::class;
             Route::get('/', [$prj, 'index']);
             Route::get('/options', [$prj, 'options']);
-            Route::get('/options/customers', [$prj, 'customers'])->middleware('permission:projects.create,projects.edit');
+            Route::get('/options/customers', [$prj, 'customers'])->middleware('permission:projects.create,projects.edit,projects.leads.manage,projects.pipeline,projects.clients.view');
             Route::post('/', [$prj, 'store'])->middleware('permission:projects.create');
             Route::get('/log', [$prj, 'logAll'])->middleware('permission:projects.log.view');
             Route::get('/trash', [$prj, 'trash'])->middleware('permission:projects.delete');
@@ -1918,6 +1918,19 @@ Route::middleware('auth:sanctum')->group(function () {
             Route::put('/{project}/members/{member}', [$mem, 'change'])->whereNumber(['project', 'member'])->middleware('permission:projects.members.manage');
             Route::delete('/{project}/members/{member}', [$mem, 'remove'])->whereNumber(['project', 'member'])->middleware('permission:projects.members.manage');
             Route::post('/{project}/transfer', [$mem, 'transfer'])->whereNumber('project')->middleware('permission:projects.transfer');
+            // stage 3, relationships
+            $rel = \App\Http\Controllers\Api\Projects\RelationshipController::class;
+            Route::middleware('permission:projects.leads.view,projects.leads.manage')->group(function () use ($rel) {
+                Route::get('/leads', [$rel, 'leads']);
+                Route::get('/leads/options', [$rel, 'leadOptions']);
+                Route::get('/leads/{lead}', [$rel, 'lead'])->whereNumber('lead');
+                Route::post('/leads', [$rel, 'addLead'])->middleware('permission:projects.leads.manage');
+                Route::put('/leads/{lead}', [$rel, 'changeLead'])->whereNumber('lead')->middleware('permission:projects.leads.manage');
+            });
+            Route::get('/known', [$rel, 'known'])->middleware('permission:projects.leads.manage,projects.clients.manage,projects.parties');
+            Route::get('/configuration/lists', [$rel, 'listsPage'])->middleware('permission:projects.config.view');
+            Route::post('/configuration/lists/{list}', [$rel, 'addToList'])->middleware('permission:projects.config.manage');
+            Route::put('/configuration/lists/{list}/{row}', [$rel, 'changeListRow'])->whereNumber('row')->middleware('permission:projects.config.manage');
             // stage 2, the control room
             $acc = \App\Http\Controllers\Api\Projects\AccessController::class;
             Route::get('/{project}/access', [$acc, 'index'])->whereNumber('project')->middleware('permission:projects.members.view');

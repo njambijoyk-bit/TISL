@@ -15,6 +15,8 @@ class ProjectsSetup
 
     private static ?bool $controlRoom = null;
 
+    private static ?bool $relationships = null;
+
     public static function ready(): bool
     {
         return self::$ready ??= Schema::hasTable('project_industries') && Schema::hasTable('project_log');
@@ -26,10 +28,17 @@ class ProjectsSetup
         return self::$controlRoom ??= self::ready() && Schema::hasTable('project_hours') && Schema::hasTable('project_security_events');
     }
 
+    /** Stage 3 (script 259): leads, pipeline, contacts, parties, history, follow-ups, flags and the directory. */
+    public static function relationships(): bool
+    {
+        return self::$relationships ??= self::ready() && Schema::hasTable('project_leads') && Schema::hasTable('project_directory');
+    }
+
     /** Look again at the next call (a test creates the tables). */
     public static function forget(): void
     {
         self::$ready = null;
         self::$controlRoom = null;
+        self::$relationships = null;
     }
 }

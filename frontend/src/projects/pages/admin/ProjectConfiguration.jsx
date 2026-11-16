@@ -12,6 +12,7 @@ import ShapePanel from '../../components/ShapePanel';
 import ShortcutsPanel from '../../components/ShortcutsPanel';
 import AccessSettingsPanel from '../../components/AccessSettingsPanel';
 import SeriousPanel from '../../components/SeriousPanel';
+import ListsPanel from '../../components/ListsPanel';
 import ProjectKeys from '../../components/ProjectKeys';
 
 /**
@@ -185,7 +186,7 @@ export default function ProjectConfiguration() {
   };
 
   const industryName = (key) => data?.industries.find((i) => i.key === key)?.name || key;
-  const tabs = [{ key: 'names', label: 'Industry and names' }, { key: 'industries', label: 'Industries' }, { key: 'stages', label: 'Kinds of work and stages' }, { key: 'fields', label: 'Fields' }, { key: 'roles', label: 'Project roles' }, { key: 'access', label: 'Access' }, { key: 'serious', label: 'Serious actions' }, { key: 'shortcuts', label: 'Shortcuts' }, { key: 'history', label: 'History and roll back' }];
+  const tabs = [{ key: 'names', label: 'Industry and names' }, { key: 'industries', label: 'Industries' }, { key: 'stages', label: 'Kinds of work and stages' }, { key: 'fields', label: 'Fields' }, { key: 'roles', label: 'Project roles' }, { key: 'access', label: 'Access' }, { key: 'serious', label: 'Serious actions' }, { key: 'lists', label: 'Lists' }, { key: 'shortcuts', label: 'Shortcuts' }, { key: 'history', label: 'History and roll back' }];
 
   return (
     <AdminLayout><ProjectKeys />
@@ -297,6 +298,7 @@ export default function ProjectConfiguration() {
           {tab === 'roles' && <ProjectRolesPanel canEdit={!!data.can.roles} />}
           {tab === 'access' && data.access && <AccessSettingsPanel key={JSON.stringify(data.access)} value={data.access} canEdit={!!data.can.manage} onSaved={setData} thing={t('project', false, true)} />}
           {tab === 'serious' && <SeriousPanel />}
+          {tab === 'lists' && <ListsPanel />}
           {tab === 'shortcuts' && <ShortcutsPanel onChanged={reloadNames} />}
 
           {tab === 'history' && (

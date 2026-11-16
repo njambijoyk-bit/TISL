@@ -39,3 +39,6 @@ export const extraValue = (f) => {
   if (f.kind === 'person') return f.display || 'Someone who has left';
   return String(v);
 };
+
+/** lead status => [how it reads, which named status it is shown as] */
+export const LEAD_STATUS = { new: ['New', 'neutral'], working: ['Working', 'info'], won: ['Won', 'good'], lost: ['Lost', 'problem'] };
