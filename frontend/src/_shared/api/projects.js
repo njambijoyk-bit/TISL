@@ -50,6 +50,16 @@ const projectsAPI = {
   askPass: async (id, reason) => (await api.post(`/admin/projects/${id}/access/pass`, { reason })).data,
   answerPass: async (id, passId, approve) => (await api.put(`/admin/projects/${id}/access/passes/${passId}`, { approve })).data,
   saveAccessSettings: async (data) => (await api.put('/admin/projects/configuration/access', data)).data,
+  // locked areas: unlock answers { until, locks: state by area }; the three below answer { locks: the list for the Access tab }
+  unlock: async (id, area, password) => (await api.post(`/admin/projects/${id}/locks/${area}/open`, { password })).data,
+  lockAgain: async (id, area) => (await api.post(`/admin/projects/${id}/locks/${area}/close`)).data,
+  setLock: async (id, area, data) => (await api.put(`/admin/projects/${id}/locks/${area}`, data)).data.locks,
+  removeLock: async (id, area, password) => (await api.delete(`/admin/projects/${id}/locks/${area}`, { data: { password } })).data.locks,
+  askLockReset: async (id, area, reason) => (await api.post(`/admin/projects/${id}/locks/${area}/reset`, { reason })).data.locks,
+  // approvals: each call answers { waiting, mine, can }
+  approvals: async () => (await api.get('/admin/projects/approvals')).data,
+  answerApproval: async (approvalId, approve, note) => (await api.put(`/admin/projects/approvals/${approvalId}`, { approve, note })).data,
+  withdrawApproval: async (approvalId) => (await api.delete(`/admin/projects/approvals/${approvalId}`)).data,
   transfer: async (id, userId, note) => (await api.post(`/admin/projects/${id}/transfer`, { user_id: userId, note })).data.project,
   invitations: async () => (await api.get('/admin/projects/invitations')).data.invitations,
   answerInvitation: async (id, accept) => (await api.put(`/admin/projects/${id}/invitation`, { accept })).data.invitations,

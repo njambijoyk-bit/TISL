@@ -231,7 +231,8 @@ class ProjectShape
     public function valuesFor(object $project, User $user): array
     {
         $values = DB::table('project_field_values')->where('project_id', $project->id)->pluck('value', 'field_id');
-        $maySee = $user->hasPermission('projects.fields.sensitive');
+        // sensitive fields can also sit behind a lock on this project: until it is opened they are absent, as for someone without the permission
+        $maySee = $user->hasPermission('projects.fields.sensitive') && app(ProjectLocks::class)->isOpen($project, 'sensitive_fields', $user);
         $out = [];
         foreach ($this->fields($project->industry_key, (int) $project->type_id) as $f) {
             if ($f['sensitive'] && ! $maySee) {
@@ -254,7 +255,7 @@ class ProjectShape
      */
     public function saveValues(object $project, array $sent, User $by, bool $isNew): array
     {
-        $maySee = $by->hasPermission('projects.fields.sensitive');
+        $maySee = $by->hasPermission('projects.fields.sensitive') && ($isNew || app(ProjectLocks::class)->isOpen($project, 'sensitive_fields', $by));
         $existing = DB::table('project_field_values')->where('project_id', $project->id)->pluck('value', 'field_id');
         $old = [];
         $new = [];

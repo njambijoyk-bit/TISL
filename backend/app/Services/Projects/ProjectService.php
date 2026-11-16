@@ -113,6 +113,7 @@ class ProjectService
         $out['words'] = array_map(fn ($n) => ['name' => $n['name'], 'plural' => $n['plural']], $this->names()->names($industry));
         $out['fields'] = app(ProjectShape::class)->valuesFor($project, $user);
         $out['can'] = $this->access->abilities($user, $project);
+        $out['locks'] = app(ProjectLocks::class)->stateFor($project, $user);   // which parts are behind a password here, and which this person has open
 
         return $out;
     }

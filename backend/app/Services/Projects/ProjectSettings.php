@@ -19,7 +19,9 @@ class ProjectSettings
             'tab_overview' => 'O', 'tab_phases' => 'P', 'tab_people' => 'I', 'tab_links' => 'K', 'tab_activity' => 'Y'],
         // stage 2, the control room: how long before an end date the lead is told
         // and the hours a new project starts with (a list of {day, opens, closes}; empty = any time), whether reading is allowed outside them, and short passes
-        'access' => ['warn_days' => 7, 'default_hours' => [], 'read_outside_hours' => false, 'passes' => true, 'pass_minutes' => 60],
+        'access' => ['warn_days' => 7, 'default_hours' => [], 'read_outside_hours' => false, 'passes' => true, 'pass_minutes' => 60,
+            // locked areas: minutes one stays open, wrong tries in a row before a wait, and the wait; hours a request for approval stays open
+            'unlock_minutes' => 15, 'lock_tries' => 5, 'lock_wait_minutes' => 15, 'approval_hours' => 24],
     ];
 
     /** @var array<string, array<string, mixed>> */
@@ -153,7 +155,15 @@ class ProjectSettings
                 $hours[] = ['day' => $day] + $h;
             }
 
-            return ['warn_days' => $days, 'default_hours' => $hours, 'read_outside_hours' => (bool) $v['read_outside_hours'], 'passes' => (bool) $v['passes'], 'pass_minutes' => $minutes];
+            foreach (['unlock_minutes' => [1, 480, 'A locked area stays open from 1 minute to 8 hours.'], 'lock_tries' => [2, 20, 'Allow from 2 to 20 wrong tries.'],
+                'lock_wait_minutes' => [1, 1440, 'The wait after too many wrong tries is from 1 minute to 24 hours.'], 'approval_hours' => [1, 168, 'A request for approval stays open from 1 hour to 7 days.']] as $k => [$min, $max, $why]) {
+                if ((int) $v[$k] < $min || (int) $v[$k] > $max) {
+                    throw new ProjectException($why);
+                }
+            }
+
+            return ['warn_days' => $days, 'default_hours' => $hours, 'read_outside_hours' => (bool) $v['read_outside_hours'], 'passes' => (bool) $v['passes'], 'pass_minutes' => $minutes,
+                'unlock_minutes' => (int) $v['unlock_minutes'], 'lock_tries' => (int) $v['lock_tries'], 'lock_wait_minutes' => (int) $v['lock_wait_minutes'], 'approval_hours' => (int) $v['approval_hours']];
         }
 
         if ($part === 'shortcuts') {

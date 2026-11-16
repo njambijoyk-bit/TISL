@@ -9,6 +9,7 @@ import { Btn, Chip, Notice, Panel, PanelTitle, Tabs } from '../../components/ui'
 import PhasesPanel from '../../components/PhasesPanel';
 import PeoplePanel from '../../components/PeoplePanel';
 import AccessPanel from '../../components/AccessPanel';
+import UnlockPanel from '../../components/UnlockPanel';
 import ActivityPanel from '../../components/ActivityPanel';
 import LinksPanel from '../../components/LinksPanel';
 import { hasPermission } from '../../../_shared/lib/roles';
@@ -59,6 +60,7 @@ export default function ProjectDetail() {
   const navigate = useNavigate();
   const [project, setProject] = useState(null);
   const [failed, setFailed] = useState(null);
+  const [unlockSensitive, setUnlockSensitive] = useState(false);
   const [closed, setClosed] = useState(null);   // outside its hours: { message, opens_words, can_ask, asked, lead }
   const [busy, setBusy] = useState(false);
   const [asking, setAsking] = useState(null);   // an action waiting for "are you sure": { label, run }
@@ -131,6 +133,10 @@ export default function ProjectDetail() {
   const word = (key, plural = false, lower = false) => { const n = p.words[key]; const text = n ? (plural ? n.plural : n.name) : key; return lower ? text.charAt(0).toLowerCase() + text.slice(1) : text; };
   const w = (key, lower = false) => word(key, false, lower);
   const can = p.can;
+  const locks = p.locks || {};
+  const areaOfTab = { phases: 'phases', people: 'people', links: 'links', activity: 'activity' }[tab];
+  const lockedTab = areaOfTab && locks[areaOfTab]?.locked && !locks[areaOfTab].open ? areaOfTab : null;   // behind a password this person has not entered
+  const openTab = areaOfTab && locks[areaOfTab]?.locked && locks[areaOfTab].open ? areaOfTab : null;
   const next = p.stages[p.stages.findIndex((s) => s.id === p.stage?.id) + 1];
   const mayMoveNext = next && can.stage && p.state === 'open' && (next.state !== 'closed' || can.close);
   const removeIt = async () => {
@@ -178,11 +184,18 @@ export default function ProjectDetail() {
       <StageBar project={p} onMove={move} busy={busy} />
       <Tabs tabs={[{ key: 'overview', label: 'Overview' }, { key: 'phases', label: word('phase', true) }, ...(can.members_view ? [{ key: 'people', label: 'People' }, { key: 'access', label: 'Access' }] : []), { key: 'links', label: 'Links' }, ...(can.log ? [{ key: 'activity', label: 'Activity' }] : [])]} value={tab} onChange={setTab} label="Parts of this page" mark="project-key" />
 
-      {tab === 'phases' && <PhasesPanel key={`${p.id}-${p.frozen}`} projectId={p.id} word={word} />}
-      {tab === 'links' && <LinksPanel key={`${p.id}-${p.frozen}`} projectId={p.id} />}
-      {tab === 'activity' && <ActivityPanel fetch={fetchLog} describe={(what) => what.replace(/^Project\b/, word('project')).replace(/^Phase\b/, word('phase'))} />}
-      {tab === 'access' && <AccessPanel key={`${p.id}-${p.frozen}`} projectId={p.id} word={word} />}
-      {tab === 'people' && <PeoplePanel key={`${p.id}-${p.frozen}`} projectId={p.id} word={word} onTransferred={setProject} />}
+      {lockedTab && <UnlockPanel key={lockedTab} projectId={p.id} area={lockedTab} label={locks[lockedTab].label} onOpened={load} />}
+      {openTab && (
+        <div style={{ display: 'flex', gap: 8, alignItems: 'center', marginBottom: 10, fontSize: 12.5, color: 'var(--text-secondary)' }} data-open-area={openTab}>
+          <Chip status="info">Unlocked for you until {locks[openTab].until.slice(11, 16)}</Chip>
+          <Btn small variant="quiet" onClick={async () => { await projectsAPI.lockAgain(p.id, openTab); load(); }}>Lock it again</Btn>
+        </div>
+      )}
+      {!lockedTab && tab === 'phases' && <PhasesPanel key={`${p.id}-${p.frozen}`} projectId={p.id} word={word} />}
+      {!lockedTab && tab === 'links' && <LinksPanel key={`${p.id}-${p.frozen}`} projectId={p.id} />}
+      {!lockedTab && tab === 'activity' && <ActivityPanel fetch={fetchLog} describe={(what) => what.replace(/^Project\b/, word('project')).replace(/^Phase\b/, word('phase'))} />}
+      {tab === 'access' && <AccessPanel key={`${p.id}-${p.frozen}`} projectId={p.id} word={word} onLocksChanged={load} />}
+      {!lockedTab && tab === 'people' && <PeoplePanel key={`${p.id}-${p.frozen}`} projectId={p.id} word={word} onTransferred={setProject} />}
       {tab === 'overview' && (
       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(300px, 1fr))', gap: 16, alignItems: 'start' }}>
         <Panel>
@@ -198,6 +211,11 @@ export default function ProjectDetail() {
           <Row label="Expected end">{day(p.due_date)}</Row>
           <Row label={`${w('closing_period')} ends`}>{day(p.closing_period_ends)}</Row>
           {(p.fields || []).map((f) => <Row key={f.key} label={<>{f.label}{f.sensitive && <Chip status="problem" style={{ marginLeft: 6 }}>Sensitive</Chip>}</>}>{extraValue(f)}</Row>)}
+          {locks.sensitive_fields?.locked && !locks.sensitive_fields.open && hasPermission(user, 'projects.fields.sensitive') && (
+            unlockSensitive
+              ? <UnlockPanel compact projectId={p.id} area="sensitive_fields" label="Sensitive fields" onOpened={() => { setUnlockSensitive(false); load(); }} />
+              : <Row label="Sensitive fields"><Btn small onClick={() => setUnlockSensitive(true)}>Locked. Unlock to see them</Btn></Row>
+          )}
           {p.description && <p style={{ margin: '12px 0 0', fontSize: 13.5, lineHeight: 1.6, whiteSpace: 'pre-wrap' }}>{p.description}</p>}
         </Panel>
 

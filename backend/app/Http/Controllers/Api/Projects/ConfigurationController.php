@@ -86,7 +86,8 @@ class ConfigurationController extends Controller
     /** Stage 2: end-date warnings, the hours a new project starts with, and passes outside hours. */
     public function saveAccess(Request $request): JsonResponse
     {
-        $data = $request->validate(['warn_days' => 'sometimes|integer', 'default_hours' => 'sometimes|array|max:7', 'read_outside_hours' => 'sometimes|boolean', 'passes' => 'sometimes|boolean', 'pass_minutes' => 'sometimes|integer']);
+        $data = $request->validate(['warn_days' => 'sometimes|integer', 'default_hours' => 'sometimes|array|max:7', 'read_outside_hours' => 'sometimes|boolean', 'passes' => 'sometimes|boolean', 'pass_minutes' => 'sometimes|integer',
+            'unlock_minutes' => 'sometimes|integer', 'lock_tries' => 'sometimes|integer', 'lock_wait_minutes' => 'sometimes|integer', 'approval_hours' => 'sometimes|integer']);
 
         return $this->guard(function () use ($request, $data) {
             $this->settings()->save('access', $data, $request->user());

@@ -102,10 +102,15 @@ class ProjectAccess
     }
 
     /** Stop here unless allowed. A project they may not see answers "not found", so its existence is not given away. */
-    public function authorize(User $user, string $ability, object $project): void
+    public function authorize(User $user, string $ability, object $project, bool $locks = true): void
     {
         $d = $this->decide($user, $ability, $project);
         if ($d['allowed']) {
+            // the fourth question (stage 2): is this part of the project behind a lock this person has not opened?
+            if ($locks && ($area = ProjectLocks::areaOf($ability))) {
+                app(ProjectLocks::class)->need($project, $area, $user);
+            }
+
             return;
         }
         ProjectLog::refused((int) $project->id, $user, 'project.' . $ability, (string) $d['reason'], 'project', (int) $project->id);

@@ -5,13 +5,15 @@ import { day, message } from '../lib/format';
 import { Btn, Chip, DataTable, Field, Notice, Panel, PanelTitle, TextInput } from './ui';
 import { check, td, th } from './uiTokens';
 import HoursEditor from './HoursEditor';
+import LocksSection from './LocksSection';
+import UnlockPanel from './UnlockPanel';
 
 /**
  * Who can get into a piece of work, and why (docs/PROJECTS_STAGE2_SPEC.md, build 2.1): one row per person with a place on it, in the words the
  * access check itself uses, and whether they can get in this minute; then the people who are not on it but read it anyway, or, for a
  * confidential one, the people it is hidden from. Someone who may set access can move an end date.
  */
-export default function AccessPanel({ projectId, word }) {
+export default function AccessPanel({ projectId, word, onLocksChanged }) {
   const [data, setData] = useState(null);
   const [failed, setFailed] = useState('');
   const [moving, setMoving] = useState(null);   // the person whose end date is being moved
@@ -103,6 +105,8 @@ export default function AccessPanel({ projectId, word }) {
         </form>
       )}
 
+      {data.people_locked && <UnlockPanel compact projectId={projectId} area="people" label="People and access" onOpened={load} />}
+      {!data.people_locked && (<>
       <DataTable minWidth={760}>
         <thead><tr><th style={th}>Person</th><th style={th}>Gets in because</th><th style={th}>Can</th><th style={th}>Hours</th><th style={th}>Until</th><th style={th}>Now</th><th style={th}><span className="sr-only">Actions</span></th></tr></thead>
         <tbody>
@@ -137,6 +141,9 @@ export default function AccessPanel({ projectId, word }) {
         </div>
         {showOthers && <p style={{ margin: '8px 0 0', fontSize: 13, color: 'var(--text-secondary)' }}>{others.people.map((u) => u.name).join(', ')}</p>}
       </div>
+      </>)}
+
+      {data.hours.ready && <LocksSection projectId={projectId} locks={data.locks || []} canSet={can.access} onChanged={(locks) => { setData({ ...data, locks }); onLocksChanged?.(); }} />}
     </Panel>
   );
 }

@@ -56,15 +56,19 @@ class ProjectAccessList
         $others = app(Staff::class)->holding('projects.view_all')->filter(fn ($u) => ! in_array((int) $u->id, $onIt, true) && $u->hasPermission('projects.use'))
             ->map(fn ($u) => ['user_id' => (int) $u->id, 'name' => $u->name])->sortBy('name')->values()->all();
 
+        $locked = ! app(ProjectLocks::class)->isOpen($project, 'people', $viewer);
+
         return [
-            'people' => $people,
-            'others' => ['kind' => $project->confidential ? 'kept_out' : 'gets_in', 'people' => $others],
+            'people_locked' => $locked,
+            'people' => $locked ? [] : $people,
+            'others' => ['kind' => $project->confidential ? 'kept_out' : 'gets_in', 'people' => $locked ? [] : $others],
             'project_hours' => $extra->wordsFor((int) $project->id, 0),
             'hours' => ['project' => $this->days($extra->of((int) $project->id)), 'read_outside_hours' => $extra->readOutside((int) $project->id), 'ready' => ProjectsSetup::controlRoom(),
                 // the people the hours never hold: they are the ones who can set them
                 'key_holders' => $extra->keyHolders($project)->pluck('name')->sort()->values()->all()],
-            'passes' => $extra->passes((int) $project->id),
-            'summary' => ['ending_soon' => $soon, 'warn_days' => $warnDays],
+            'passes' => $locked ? [] : $extra->passes((int) $project->id),
+            'locks' => app(ProjectLocks::class)->listFor($project, $viewer),
+            'summary' => ['ending_soon' => $locked ? 0 : $soon, 'warn_days' => $warnDays],
             'can' => ['access' => $this->access->allows($viewer, 'access', $project)],
         ];
     }

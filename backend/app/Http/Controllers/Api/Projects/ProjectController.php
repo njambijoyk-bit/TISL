@@ -140,7 +140,12 @@ class ProjectController extends Controller
 
     public function links(Request $request, int $project): JsonResponse
     {
-        return $this->guard(fn () => $this->linkList($request, $this->projects->findFor($request->user(), $project)));
+        return $this->guard(function () use ($request, $project) {
+            $p = $this->projects->findFor($request->user(), $project);
+            app(\App\Services\Projects\ProjectLocks::class)->need($p, 'links', $request->user());
+
+            return $this->linkList($request, $p);
+        });
     }
 
     public function findLinkable(Request $request, int $project): JsonResponse
@@ -194,7 +199,12 @@ class ProjectController extends Controller
 
     public function phases(Request $request, int $project): JsonResponse
     {
-        return $this->guard(fn () => $this->phaseList($request, $this->projects->findFor($request->user(), $project)));
+        return $this->guard(function () use ($request, $project) {
+            $p = $this->projects->findFor($request->user(), $project);
+            app(\App\Services\Projects\ProjectLocks::class)->need($p, 'phases', $request->user());
+
+            return $this->phaseList($request, $p);
+        });
     }
 
     public function addPhase(Request $request, int $project): JsonResponse

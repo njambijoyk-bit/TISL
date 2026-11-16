@@ -1921,6 +1921,14 @@ Route::middleware('auth:sanctum')->group(function () {
             // stage 2, the control room
             $acc = \App\Http\Controllers\Api\Projects\AccessController::class;
             Route::get('/{project}/access', [$acc, 'index'])->whereNumber('project')->middleware('permission:projects.members.view');
+            Route::post('/{project}/locks/{area}/open', [$acc, 'unlock'])->whereNumber('project')->middleware('throttle:60,1');
+            Route::post('/{project}/locks/{area}/close', [$acc, 'lockAgain'])->whereNumber('project');
+            Route::put('/{project}/locks/{area}', [$acc, 'setLock'])->whereNumber('project')->middleware('permission:projects.access.rules');
+            Route::delete('/{project}/locks/{area}', [$acc, 'removeLock'])->whereNumber('project')->middleware('permission:projects.access.rules');
+            Route::post('/{project}/locks/{area}/reset', [$acc, 'askReset'])->whereNumber('project')->middleware('permission:projects.access.rules');
+            Route::get('/approvals', [$acc, 'approvals']);
+            Route::put('/approvals/{approval}', [$acc, 'answerApproval'])->whereNumber('approval')->middleware('permission:projects.approve,projects.locks.reset');
+            Route::delete('/approvals/{approval}', [$acc, 'withdrawApproval'])->whereNumber('approval');
             Route::put('/{project}/access/hours', [$acc, 'setHours'])->whereNumber('project')->middleware('permission:projects.access.rules');
             Route::post('/{project}/access/pass', [$acc, 'askPass'])->whereNumber('project');
             Route::put('/{project}/access/passes/{pass}', [$acc, 'answerPass'])->whereNumber(['project', 'pass'])->middleware('permission:projects.access.rules');

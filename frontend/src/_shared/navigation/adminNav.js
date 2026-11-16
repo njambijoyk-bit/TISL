@@ -315,6 +315,7 @@ export const ADMIN_NAV = [
         tabs: [
           { title: 'All work', path: '/admin/projects', exact: true },
           { title: 'New', path: '/admin/projects/new', perm: 'projects.create' },
+          { title: 'Approvals', path: '/admin/projects/approvals' },
           { title: 'Activity log', path: '/admin/projects/log', perm: 'projects.log.view' },
           { title: 'Trash', path: '/admin/projects/trash', perm: 'projects.delete' },
           { title: 'Configuration', path: '/admin/projects/configuration', perm: 'projects.config.view' },

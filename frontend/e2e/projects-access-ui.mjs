@@ -31,7 +31,7 @@ let others = { kind: 'kept_out', people: [{ user_id: 8, name: 'Baraka' }, { user
 let canAccess = true;
 let projectDays = []; let readOutside = false; let passes = [];
 const WORDS = (days) => (days.length === 5 ? 'Mon to Fri, 07:00 to 19:00' : days.length ? 'Sat, 09:00 to 13:00' : null);
-const answer = () => ({ people, others, project_hours: WORDS(projectDays), hours: { project: projectDays, read_outside_hours: readOutside, ready: true, key_holders: ['Kamau'] }, passes, summary: { ending_soon: people.filter((p) => p.ending_soon).length, warn_days: 7 }, can: { access: canAccess } });
+const answer = () => ({ people, others, project_hours: WORDS(projectDays), hours: { project: projectDays, read_outside_hours: readOutside, ready: true, key_holders: ['Kamau'] }, passes, people_locked: false, locks: [{ area: 'people', label: 'People and access', locked: false, set_by: null, set_at: null, reset: null }], summary: { ending_soon: people.filter((p) => p.ending_soon).length, warn_days: 7 }, can: { access: canAccess } });
 
 await page.route('**/api/admin/projects/names', (route) => json(route, { ready: true, industry: 'legal', company_industry: 'legal', names: words, keys: {} }));
 await page.route('**/api/admin/projects/invitations', (route) => json(route, { invitations: [] }));

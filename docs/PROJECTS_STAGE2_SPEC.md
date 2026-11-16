@@ -103,3 +103,22 @@ Needs script 258. Until it has run, no hours exist and nothing asks about them. 
 - **Routes:** `PUT /{project}/access/hours`, `POST /{project}/access/pass`, `PUT /{project}/access/passes/{pass}`, `PUT /configuration/access`.
 - **Tests:** `tests/Feature/ProjectsHoursTest.php` (8); `frontend/e2e/projects-access-ui.mjs` (now 32 checks).
 - **Not yet:** hours that run past midnight (a night shift needs two days today); public holidays.
+
+### 2.3 Locked areas and approvals (done)
+
+Needs script 258. Screens: `docs/screens/projects-locked.png`, `projects-locks.png`, `projects-approvals.png`.
+
+- **Services:** `ProjectLocks`, `ProjectApprovals`. The lock is the fourth question, asked in `ProjectAccess::authorize()` and on the two lists that are read with plain "open" (phases, links).
+- **Areas today:** People and access, Phases, Links, Activity, Sensitive fields. The list is in code (`ProjectLocks::AREAS`); later stages add Money, Files, Notes and Messages to it.
+- **A lock** is one password per area per project, at least 8 characters, stored hashed, never shown and never logged. Nobody is exempt, the lead included.
+- **Unlocking** opens the area for that person only, for 15 minutes; it closes by itself, or at once with "Lock it again". The server answers 423 for a locked area, so nothing behind a lock is sent to the screen.
+- **Sensitive fields behind a lock** are absent from the project, as for someone without the permission, and what is sent for them while locked is ignored.
+- **Wrong tries** are counted per person. Five in a row means a 15 minute wait, during which even the right password is refused; the people who set the project's access are told through the Core notifier (type "Projects: security alerts"). Each wrong try and the block are logged as refusals.
+- **Changing or removing a lock** needs its current password and the right to set access.
+- **A lost password** is reset in three steps: the person asks and says why; someone else who holds `projects.locks.reset` approves on the Approvals page; the person who asked sets the new password. Approval alone changes nothing. A new password closes the area for everyone who had it open. The log names who approved.
+- **The Access tab stays reachable when People is locked**, since that is where a lock is managed; it names nobody until People is opened.
+- **Approvals page** (`/admin/projects/approvals`, in the Projects menu): what waits for me, with who asked, what, why and the hours left; and what I asked for in the last two weeks, with the answer. Declining needs a reason. Nobody answers their own request. A request lapses after 24 hours; an approval is used once. Both people are told through the Core notifier.
+- **Settings** (in the `access` part): minutes an area stays open, wrong tries before a wait, the wait, and hours a request stays open. They are saved through `PUT /configuration/access`; the Configuration screen for these four arrives with build 2.4.
+- **Routes:** `POST /{project}/locks/{area}/open`, `POST .../close`, `PUT /{project}/locks/{area}`, `DELETE /{project}/locks/{area}`, `POST /{project}/locks/{area}/reset`; `GET /approvals`, `PUT /approvals/{approval}`, `DELETE /approvals/{approval}`.
+- **Tests:** `tests/Feature/ProjectsLocksTest.php` (7); `frontend/e2e/projects-locks-ui.mjs` (22 checks in a real browser).
+- **Not built, and why:** an area locked by default for an industry or kind of work. A lock needs a password that people on that project know, so it cannot be set ahead of time by a setting. It will come back as a reminder on new projects ("this kind of work should have Notes locked") with the clinical-notes area in stage 9.
