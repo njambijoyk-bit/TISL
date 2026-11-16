@@ -318,9 +318,27 @@ Nothing new to run. Screens: `docs/screens/projects-stages.png`, `projects-field
 - **Tests:** `tests/Feature/ProjectsShapeTest.php` (11); `frontend/e2e/projects-shape-ui.mjs` (22 checks in a real browser).
 - **Not yet:** reordering fields and kinds of work; deleting a kind of work (it can be switched off).
 
+### 1.9 Shortcut keys (done)
+
+Nothing new to run. Screens: `docs/screens/projects-keys-settings.png`, `projects-keys-list.png`.
+
+- **Service:** `ProjectKeys`. Fourteen keys in two groups. The letters are settings, never written in a screen.
+- **Go to (press G, then the letter):** the list P, start a new one N, the activity log L, the trash T, Configuration C. G leads only to a part the person may open.
+- **On an open piece of work (Shift and the letter):** edit E, put on hold or resume H, next stage F, delete D (asks first, as the button does), and its tabs: Overview O, phases P, People I, Links K, Activity Y.
+- **A key presses what is on the screen.** It clicks the button or tab that carries its mark; where the person has no such button, the key does nothing. A key can never do what the mouse could not.
+- **Quiet while typing.** Nothing fires with the cursor in a field, with a dialog open, or with Ctrl, Alt or Cmd held.
+- **The company's keys** are a part of Configuration (`shortcuts`), versioned and rolled back like the rest, changed with `projects.shortcuts`.
+- **Each person's own keys** sit on top, saved against the person, changing only their screens. Only the differences are stored, so a later change to the company's keys still reaches them for every key they left alone. "Use the company's keys" clears them.
+- **What a set of keys must be:** one letter each; no letter twice in the same group; with Shift, not A, U, M, N, R, T or V, which TISL uses everywhere. A refusal names the key and the reason. A person's set that a company change has made invalid falls back to the company's.
+- **The key list (Shift+A)** shows the Projects keys for the page being looked at, in the industry's words, and only those the person can use.
+- **The shared TISL keys** (F2, F7, F8, F9, F12, /) keep working because the buttons are named the standard way; they are not settings here.
+- **Routes:** `GET /shortcuts`, `PUT /my/shortcuts`, `PUT /configuration/shortcuts`; `GET /names` also answers the person's keys.
+- **Tests:** `tests/Feature/ProjectsShortcutsTest.php` (5); `frontend/e2e/projects-keys-ui.mjs` (33 checks in a real browser).
+- **Moved to later stages:** pins, recents and saved views (Stage 5, with My Work); the Alt+T timer (Stage 5); typing shortcuts in messages (Stage 6).
+
 ### The whole test suite
 
-Run after build 1.7: **3,064 backend tests, 1 failure**, and that one is Laravel's stock `ExampleTest` asking for a home page the API does not serve (not part of Projects, and failing before this work). An earlier run in this build environment showed several hundred failures; they came from the environment's own autoloader shadowing the app's service provider with a development tool's file of the same name, not from the code, and went once that was corrected.
+Run after build 1.9: **3,080 backend tests, 1 failure**, and that one is Laravel's stock `ExampleTest` asking for a home page the API does not serve (not part of Projects, and failing before this work). An earlier run in this build environment showed several hundred failures; they came from the environment's own autoloader shadowing the app's service provider with a development tool's file of the same name, not from the code, and went once that was corrected.
 
 ## To confirm before building
 

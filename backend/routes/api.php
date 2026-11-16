@@ -1881,6 +1881,9 @@ Route::middleware('auth:sanctum')->group(function () {
             $cfg = \App\Http\Controllers\Api\Projects\ConfigurationController::class;
             Route::get('/names', [$cfg, 'names']);                                        // the words this person sees
             Route::put('/my/naming', [$cfg, 'myNaming'])->middleware('permission:projects.naming.personal');
+            Route::get('/shortcuts', [$cfg, 'shortcuts']);                                // the keys, the company's and this person's own
+            Route::put('/my/shortcuts', [$cfg, 'myShortcuts']);                           // anyone in Projects sets their own keys
+            Route::put('/configuration/shortcuts', [$cfg, 'saveShortcuts'])->middleware('permission:projects.shortcuts');
             Route::get('/configuration', [$cfg, 'show'])->middleware('permission:projects.config.view');
             Route::get('/configuration/history', [$cfg, 'history'])->middleware('permission:projects.config.view');
             Route::put('/configuration/general', [$cfg, 'saveGeneral'])->middleware('permission:projects.config.manage');

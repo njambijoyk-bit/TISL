@@ -9,6 +9,7 @@ import { message, PRIORITY } from '../../lib/format';
 import { Btn, Field, Notice, Panel, PanelTitle, SelectInput, TextInput } from '../../components/ui';
 import { ExtraFieldInputs } from '../../components/ExtraFields';
 import { check } from '../../components/uiTokens';
+import ProjectKeys from '../../components/ProjectKeys';
 
 /**
  * Start a piece of work, or change one (docs/PROJECTS_STAGE1_SPEC.md, build 1.3). One form for every industry: the labels come from the names
@@ -133,7 +134,7 @@ export default function ProjectForm() {
   const heading = editing ? (project ? `Change ${project.number}` : 'Change') : `New ${w('project', false, true)}`;
 
   return (
-    <AdminLayout>
+    <AdminLayout><ProjectKeys />
       <PageHeader title={heading} subtitle={editing ? project?.title : 'Its number and its cost centre in the books are made when you save'} actions={<Btn onClick={back}>Cancel</Btn>} />
       {failed && <Notice status="problem">{failed}</Notice>}
       {!failed && !options && <Panel><p style={{ margin: 0, color: 'var(--text-secondary)' }}>Loading…</p></Panel>}

@@ -89,14 +89,14 @@ export function SelectInput({ children, style, ...rest }) {
 }
 
 /** Tabs inside a page. `tabs` = [{ key, label }]. */
-export function Tabs({ tabs, value, onChange, label }) {
+export function Tabs({ tabs, value, onChange, label, mark }) {
   return (
     <div role="tablist" aria-label={label} style={{ display: 'flex', gap: 2, flexWrap: 'wrap', borderBottom: '1px solid var(--line)', marginBottom: 16 }}>
       {tabs.map((tab) => {
         const on = tab.key === value;
         return (
           <button
-            key={tab.key} type="button" role="tab" aria-selected={on} onClick={() => onChange(tab.key)}
+            key={tab.key} type="button" role="tab" aria-selected={on} onClick={() => onChange(tab.key)} {...(mark ? { [`data-${mark}`]: `tab-${tab.key}` } : {})}
             style={{
               padding: '8px 12px', background: 'transparent', border: 'none', borderBottom: `2px solid ${on ? 'var(--color-primary-500)' : 'transparent'}`, marginBottom: -1,
               color: on ? 'var(--color-primary-500)' : 'var(--text-secondary)', fontWeight: 600, fontSize: 13.5, fontFamily: 'var(--font-body)', cursor: 'pointer',

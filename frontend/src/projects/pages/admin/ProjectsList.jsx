@@ -9,6 +9,7 @@ import { useProjectNames } from '../../lib/names';
 import { day, message, where } from '../../lib/format';
 import { Btn, Chip, DataTable, Notice, Panel, SelectInput, TextInput } from '../../components/ui';
 import { td, th } from '../../components/uiTokens';
+import ProjectKeys from '../../components/ProjectKeys';
 
 /**
  * The list of work (docs/PROJECTS_STAGE1_SPEC.md, build 1.3). A person sees the work they are on; with "see every project" they can switch to
@@ -65,7 +66,7 @@ export default function ProjectsList() {
   const many = t('project', true, true);
 
   return (
-    <AdminLayout>
+    <AdminLayout><ProjectKeys />
       <PageHeader
         title={t('project', true)}
         subtitle={filters.scope === 'mine' ? `The ${many} you are on` : `Every ${one} you may see`}

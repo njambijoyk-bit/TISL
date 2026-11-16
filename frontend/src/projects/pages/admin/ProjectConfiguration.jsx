@@ -9,6 +9,8 @@ import { Btn, Chip, DataTable, Field, Notice, Panel, PanelTitle, SelectInput, Ta
 import { check, td, th } from '../../components/uiTokens';
 import ProjectRolesPanel from '../../components/ProjectRolesPanel';
 import ShapePanel from '../../components/ShapePanel';
+import ShortcutsPanel from '../../components/ShortcutsPanel';
+import ProjectKeys from '../../components/ProjectKeys';
 
 /**
  * Projects configuration (docs/PROJECTS_STAGE1_SPEC.md, build 1.2): the company's default industry, what things are called, each person's own
@@ -181,10 +183,10 @@ export default function ProjectConfiguration() {
   };
 
   const industryName = (key) => data?.industries.find((i) => i.key === key)?.name || key;
-  const tabs = [{ key: 'names', label: 'Industry and names' }, { key: 'industries', label: 'Industries' }, { key: 'stages', label: 'Kinds of work and stages' }, { key: 'fields', label: 'Fields' }, { key: 'roles', label: 'Project roles' }, { key: 'history', label: 'History and roll back' }];
+  const tabs = [{ key: 'names', label: 'Industry and names' }, { key: 'industries', label: 'Industries' }, { key: 'stages', label: 'Kinds of work and stages' }, { key: 'fields', label: 'Fields' }, { key: 'roles', label: 'Project roles' }, { key: 'shortcuts', label: 'Shortcuts' }, { key: 'history', label: 'History and roll back' }];
 
   return (
-    <AdminLayout>
+    <AdminLayout><ProjectKeys />
       <PageHeader
         title={`${t('project', true)} configuration`}
         subtitle="The industry you work in and what things are called"
@@ -291,6 +293,7 @@ export default function ProjectConfiguration() {
               wordsOf={() => ({ customer_id: t('client'), reference: t('reference'), authority: t('authority'), place: t('place'), start_date: 'Start date', due_date: 'Expected end', description: 'Description' })} />
           )}
           {tab === 'roles' && <ProjectRolesPanel canEdit={!!data.can.roles} />}
+          {tab === 'shortcuts' && <ShortcutsPanel onChanged={reloadNames} />}
 
           {tab === 'history' && (
             <Panel>

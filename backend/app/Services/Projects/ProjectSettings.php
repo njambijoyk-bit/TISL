@@ -14,6 +14,9 @@ class ProjectSettings
     /** part => the values it holds when nothing is saved */
     public const DEFAULTS = [
         'general' => ['default_industry' => 'general', 'project_may_use_other_industry' => true, 'trash_days' => 30],
+        // the company's shortcut keys (ProjectKeys says what each is for)
+        'shortcuts' => ['go_list' => 'P', 'go_new' => 'N', 'go_log' => 'L', 'go_trash' => 'T', 'go_config' => 'C', 'act_edit' => 'E', 'act_hold' => 'H', 'act_next' => 'F', 'act_delete' => 'D',
+            'tab_overview' => 'O', 'tab_phases' => 'P', 'tab_people' => 'I', 'tab_links' => 'K', 'tab_activity' => 'Y'],
     ];
 
     /** @var array<string, array<string, mixed>> */
@@ -130,6 +133,15 @@ class ProjectSettings
             }
 
             return ['default_industry' => $industry, 'project_may_use_other_industry' => (bool) $v['project_may_use_other_industry'], 'trash_days' => $days];
+        }
+
+        if ($part === 'shortcuts') {
+            $keys = ProjectKeys::tidy($v);
+            if ($why = ProjectKeys::problem($keys)) {
+                throw new ProjectException($why);
+            }
+
+            return $keys;
         }
 
         return $v;

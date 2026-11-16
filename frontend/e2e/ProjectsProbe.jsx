@@ -5,11 +5,14 @@ import ProjectDetail from '/src/projects/pages/admin/ProjectDetail.jsx';
 import ProjectConfiguration from '/src/projects/pages/admin/ProjectConfiguration.jsx';
 import ProjectsLog from '/src/projects/pages/admin/ProjectsLog.jsx';
 import ProjectsTrash from '/src/projects/pages/admin/ProjectsTrash.jsx';
+import KeyboardShortcuts from '/src/_shared/components/common/KeyboardShortcuts.jsx';
 
 /** The Projects screens with their own addresses, so moving between them works as in the app. Starts at ?at=/admin/projects/... */
 export default function ProjectsProbe() {
   const at = new URLSearchParams(window.location.search).get('at') || '/admin/projects';
   return (
+    <>
+    <KeyboardShortcuts />
     <Routes>
       <Route path="/e2e/*" element={<Navigate to={at} replace />} />
       <Route path="/admin/projects" element={<ProjectsList />} />
@@ -20,5 +23,6 @@ export default function ProjectsProbe() {
       <Route path="/admin/projects/:id" element={<ProjectDetail />} />
       <Route path="/admin/projects/:id/edit" element={<ProjectForm />} />
     </Routes>
+    </>
   );
 }

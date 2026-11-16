@@ -8,6 +8,7 @@ import { useProjectNames } from '../../lib/names';
 import { message } from '../../lib/format';
 import { Btn, Chip, DataTable, Notice, Panel, PanelTitle } from '../../components/ui';
 import { td, th } from '../../components/uiTokens';
+import ProjectKeys from '../../components/ProjectKeys';
 
 /**
  * The trash (build 1.6): what was deleted, by whom, and how long it stays. Anything here can be taken back out. Deleting for good is offered only
@@ -34,7 +35,7 @@ export default function ProjectsTrash() {
   const kind = (i) => (i.type === 'project' ? t('project') : t('phase'));
 
   return (
-    <AdminLayout>
+    <AdminLayout><ProjectKeys />
       <PageHeader title="Trash" subtitle={data ? `Kept for ${data.days} days, then removed` : ''} actions={<Btn onClick={() => navigate('/admin/projects')}>Close</Btn>} />
       {failed && <Notice status="problem" style={{ marginBottom: 16 }}>{failed} <Btn small variant="quiet" onClick={load}>Try again</Btn></Notice>}
       {asking && (

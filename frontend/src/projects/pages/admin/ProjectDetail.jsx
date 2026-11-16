@@ -13,6 +13,7 @@ import LinksPanel from '../../components/LinksPanel';
 import { hasPermission } from '../../../_shared/lib/roles';
 import { useAuthStore } from '../../../_shared/store/index';
 import { STATUS_TOKEN, tint } from '../../components/uiTokens';
+import ProjectKeys from '../../components/ProjectKeys';
 
 /**
  * One piece of work, open (docs/PROJECTS_STAGE1_SPEC.md, builds 1.3 and 1.4): where it is in its stages, its details, its cost centre in the books, and its
@@ -89,7 +90,7 @@ export default function ProjectDetail() {
 
   if (failed) {
     return (
-      <AdminLayout>
+      <AdminLayout><ProjectKeys />
         <PageHeader title="Not found" actions={<Btn onClick={() => navigate('/admin/projects')}>Close</Btn>} />
         <Notice status={failed === 'notfound' ? 'info' : 'problem'}>
           {failed === 'notfound' ? 'There is nothing here that you can open. It may have been removed, or you may not be on it.' : failed}
@@ -98,7 +99,7 @@ export default function ProjectDetail() {
     );
   }
   if (!project) {
-    return <AdminLayout><PageHeader title="Loading…" /><Panel><p style={{ margin: 0, color: 'var(--text-secondary)' }}>Loading…</p></Panel></AdminLayout>;
+    return <AdminLayout><ProjectKeys /><PageHeader title="Loading…" /><Panel><p style={{ margin: 0, color: 'var(--text-secondary)' }}>Loading…</p></Panel></AdminLayout>;
   }
 
   const p = project;
@@ -115,21 +116,21 @@ export default function ProjectDetail() {
   const move = (s) => act(() => projectsAPI.moveStage(p.id, s.id), s.state === 'closed' ? 'Closed' : `Moved to ${s.name}`);
 
   return (
-    <AdminLayout>
+    <AdminLayout><ProjectKeys />
       <PageHeader
         title={`${p.number} · ${p.title}`}
         subtitle={`${p.type.name}${p.industry.name ? ` · ${p.industry.name}` : ''}`}
         actions={(
           <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
-            {can.edit && <Btn onClick={() => navigate(`/admin/projects/${p.id}/edit`)}>Edit</Btn>}
-            {can.stage && p.state === 'open' && <Btn busy={busy} onClick={() => act(() => projectsAPI.setState(p.id, 'hold'), 'Put on hold')}>Put on hold</Btn>}
-            {can.stage && p.state === 'on_hold' && <Btn busy={busy} onClick={() => act(() => projectsAPI.setState(p.id, 'resume'), 'Resumed')}>Resume</Btn>}
+            {can.edit && <Btn data-project-key="edit" onClick={() => navigate(`/admin/projects/${p.id}/edit`)}>Edit</Btn>}
+            {can.stage && p.state === 'open' && <Btn data-project-key="hold" busy={busy} onClick={() => act(() => projectsAPI.setState(p.id, 'hold'), 'Put on hold')}>Put on hold</Btn>}
+            {can.stage && p.state === 'on_hold' && <Btn data-project-key="hold" busy={busy} onClick={() => act(() => projectsAPI.setState(p.id, 'resume'), 'Resumed')}>Resume</Btn>}
             {can.close && (p.state === 'open' || p.state === 'on_hold') && <Btn variant="danger" busy={busy} onClick={() => setAsking({ label: `Cancel this ${w('project', true)}? It can be reopened later.`, yes: 'Yes, cancel it', run: () => act(() => projectsAPI.setState(p.id, 'cancel'), 'Cancelled') })}>Cancel it</Btn>}
             {can.close && p.state === 'cancelled' && <Btn busy={busy} onClick={() => act(() => projectsAPI.setState(p.id, 'reopen'), 'Reopened')}>Reopen</Btn>}
             {can.freeze && !p.frozen && (p.state === 'closed' || p.state === 'cancelled') && <Btn busy={busy} onClick={() => setAsking({ label: 'Freeze it? Nothing on it can be changed until it is unfrozen.', yes: 'Yes, freeze it', run: () => act(() => projectsAPI.freeze(p.id, true), 'Frozen') })}>Freeze</Btn>}
             {can.freeze && p.frozen && <Btn busy={busy} onClick={() => act(() => projectsAPI.freeze(p.id, false), 'Unfrozen')}>Unfreeze</Btn>}
-            {can.edit && hasPermission(user, 'projects.delete') && <Btn variant="danger" busy={busy} onClick={() => setAsking({ label: 'Put it in the trash? It can be taken back out.', yes: 'Yes, put it in the trash', run: removeIt })}>Delete</Btn>}
-            {mayMoveNext && <Btn variant="primary" busy={busy} onClick={() => move(next)}>{next.state === 'closed' ? 'Close it' : `Move to ${next.name}`}</Btn>}
+            {can.edit && hasPermission(user, 'projects.delete') && <Btn data-project-key="delete" variant="danger" busy={busy} onClick={() => setAsking({ label: 'Put it in the trash? It can be taken back out.', yes: 'Yes, put it in the trash', run: removeIt })}>Delete</Btn>}
+            {mayMoveNext && <Btn data-project-key="next" variant="primary" busy={busy} onClick={() => move(next)}>{next.state === 'closed' ? 'Close it' : `Move to ${next.name}`}</Btn>}
             <Btn onClick={() => navigate('/admin/projects')}>Close</Btn>
           </div>
         )}
@@ -150,7 +151,7 @@ export default function ProjectDetail() {
         {PRIORITY[p.priority] && p.priority !== 'medium' && <Chip status={PRIORITY[p.priority].status}>{PRIORITY[p.priority].label} priority</Chip>}
       </div>
       <StageBar project={p} onMove={move} busy={busy} />
-      <Tabs tabs={[{ key: 'overview', label: 'Overview' }, { key: 'phases', label: word('phase', true) }, ...(can.members_view ? [{ key: 'people', label: 'People' }] : []), { key: 'links', label: 'Links' }, ...(can.log ? [{ key: 'activity', label: 'Activity' }] : [])]} value={tab} onChange={setTab} label="Parts of this page" />
+      <Tabs tabs={[{ key: 'overview', label: 'Overview' }, { key: 'phases', label: word('phase', true) }, ...(can.members_view ? [{ key: 'people', label: 'People' }] : []), { key: 'links', label: 'Links' }, ...(can.log ? [{ key: 'activity', label: 'Activity' }] : [])]} value={tab} onChange={setTab} label="Parts of this page" mark="project-key" />
 
       {tab === 'phases' && <PhasesPanel key={`${p.id}-${p.frozen}`} projectId={p.id} word={word} />}
       {tab === 'links' && <LinksPanel key={`${p.id}-${p.frozen}`} projectId={p.id} />}

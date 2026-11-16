@@ -14,8 +14,9 @@ const useNamesStore = create((set, get) => ({
   industry: null,     // the industry whose words this person sees
   companyIndustry: null,
   names: {},
+  keys: {},           // this person's shortcut keys: { go_list: 'P', act_edit: 'E', ... }
 
-  apply: (data) => set({ ready: !!data.ready, industry: data.industry, companyIndustry: data.company_industry, names: data.names || {}, loaded: true, loading: false, failed: false }),
+  apply: (data) => set({ ready: !!data.ready, industry: data.industry, companyIndustry: data.company_industry, names: data.names || {}, keys: data.keys || {}, loaded: true, loading: false, failed: false }),
 
   load: async (force = false) => {
     if (get().loading || (get().loaded && !force)) return;

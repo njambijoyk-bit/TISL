@@ -60,6 +60,11 @@ const projectsAPI = {
   addField: async (industry, data) => (await api.post('/admin/projects/configuration/fields', data, { params: { industry } })).data,
   changeField: async (industry, fieldId, data) => (await api.put(`/admin/projects/configuration/fields/${fieldId}`, data, { params: { industry } })).data,
 
+  // shortcut keys: each call answers { keys, company, mine, in_use, taken_with_shift, can }
+  shortcuts: async () => (await api.get('/admin/projects/shortcuts')).data,
+  saveShortcuts: async (keys) => (await api.put('/admin/projects/configuration/shortcuts', { keys })).data,
+  saveMyShortcuts: async (keys) => (await api.put('/admin/projects/my/shortcuts', { keys })).data,
+
   configuration: async (industry) => (await api.get('/admin/projects/configuration', { params: industry ? { industry } : {} })).data,
   saveGeneral: async (data) => (await api.put('/admin/projects/configuration/general', data)).data,
   setIndustryActive: async (industry, isActive) => (await api.put(`/admin/projects/configuration/industries/${industry}`, { is_active: isActive })).data,

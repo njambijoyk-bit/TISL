@@ -4,6 +4,7 @@ namespace App\Http\Controllers\Api\Projects;
 
 use App\Http\Controllers\Controller;
 use App\Services\Projects\ProjectException;
+use App\Services\Projects\ProjectKeys;
 use App\Services\Projects\ProjectLog;
 use App\Services\Projects\ProjectNames;
 use App\Services\Projects\ProjectSettings;
@@ -34,6 +35,7 @@ class ConfigurationController extends Controller
         $industry = $this->naming()->industryFor($request->user());
 
         return response()->json(['ready' => ProjectsSetup::ready(), 'industry' => $industry, 'company_industry' => $this->settings()->defaultIndustry(),
+            'keys' => app(ProjectKeys::class)->for($request->user()),
             'names' => array_map(fn ($n) => ['name' => $n['name'], 'plural' => $n['plural']], $this->naming()->names($industry))]);
     }
 
@@ -127,6 +129,42 @@ class ConfigurationController extends Controller
             }
 
             return response()->json($this->settings()->rollback('general', (int) $data['version'], $request->user()));
+        });
+    }
+
+    /** The shortcut keys: the company's, this person's own, and what each is for. */
+    public function shortcuts(Request $request): JsonResponse
+    {
+        $keys = app(ProjectKeys::class);
+        $user = $request->user();
+
+        return response()->json([
+            'keys' => array_map(fn ($k) => ['group' => $k[0], 'what' => $k[1], 'shipped' => $k[2]], ProjectKeys::KEYS),
+            'company' => $keys->company(), 'mine' => $keys->personal($user), 'in_use' => $keys->for($user), 'taken_with_shift' => ProjectKeys::TAKEN_WITH_SHIFT,
+            'can' => ['company' => $user->hasPermission('projects.shortcuts')],
+        ]);
+    }
+
+    public function saveShortcuts(Request $request): JsonResponse
+    {
+        $data = $request->validate(['keys' => 'required|array']);
+
+        return $this->guard(function () use ($request, $data) {
+            $this->settings()->save('shortcuts', $data['keys'], $request->user());
+
+            return $this->shortcuts($request);
+        });
+    }
+
+    /** A person's own keys. `keys` null = go back to the company's. */
+    public function myShortcuts(Request $request): JsonResponse
+    {
+        $data = $request->validate(['keys' => 'present|nullable|array']);
+
+        return $this->guard(function () use ($request, $data) {
+            app(ProjectKeys::class)->setPersonal($request->user(), $data['keys']);
+
+            return $this->shortcuts($request);
         });
     }
 

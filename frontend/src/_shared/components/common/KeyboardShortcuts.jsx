@@ -12,6 +12,7 @@ import useThemeStore from '../../store/themeStore';
 import { useTheme } from '../../theme';
 import { MENUS_TABS, openTabs } from '../../navigation/adminNav';
 import { closeTarget, dialogOpen, pageHotkeyTarget, saveTarget, searchBox, topDialog } from '../../lib/pageHotkeys';
+import { projectKeyRows } from '../../../projects/lib/keys';
 
 /** Where a key press must be left alone: typing in a box, or a screen that is full of scanner input. */
 const typing = (e) => {
@@ -190,6 +191,7 @@ export default function KeyboardShortcuts() {
     ['Shift', 'Esc', 'Sign out'],
     ...(inAdmin ? [['', 'F2', 'New: add what this page lists'], ['', 'F12', 'Open the Configuration of this page or section'], ['', 'F7', 'Open the Recycle bin or Trash of this page'],
       ['Ctrl', 'K', 'Jump to any page'], ['Alt', 'C', 'Open the calculator'], ...(aiHere ? [['Alt', 'I', 'Open the AI panel (Esc closes it)']] : []), ['Ctrl', 'B', 'Show or hide the menu']] : []),
+    ...projectKeyRows(pathname, (permission) => hasPermission(user, permission)),   // Projects: its keys are settings (the company's, then each person's own)
     ...(inMenus ? openTabs(MENUS_TABS, user).filter((t) => t.key).map((t) => ['G', t.key, `Go to Menus, ${t.title} (press G, then ${t.key})`]) : []),
     ...(inBooks && new URLSearchParams(search).get('tab') === 'reports' ? [['G', 'letter', 'Go to a report: every report has its own letter, shown in the list (G P is Profit & loss, G O the cost-centre version)'], ['', '1 – 9', 'Open your favourite reports, in the order you starred them'],
       ['', '[  ]', 'Previous or next report in the list'], ['', 'R', 'Run the report (Ctrl+Enter also works from a date box)'], ['', 'E', 'Open the export menu'], ['', 'F', 'Star or unstar this report']] : []),
