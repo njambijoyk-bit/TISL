@@ -185,7 +185,7 @@ class ProjectsPeopleTest extends TestCase
         $this->grant($this->kamau, array_merge(['admin.access', 'projects.config.view', 'projects.config.roles', 'projects.phases'], self::LEAD));
         $page = $this->getJson('/api/admin/projects/configuration/roles')->assertOk()->json();
         $this->assertSame(['Lead', 'Member', 'Finance', 'Reviewer', 'Client', 'Guest'], array_column($page['roles'], 'name'));
-        $this->assertSame(['open', 'edit', 'stage', 'phases', 'members', 'links', 'log'], $page['roles'][0]['abilities']);
+        $this->assertSame(['open', 'edit', 'stage', 'phases', 'members', 'links', 'log', 'access'], $page['roles'][0]['abilities']);
         $this->assertSame(1, $page['roles'][0]['people']);
         $this->assertArrayHasKey('open_shared', $page['abilities']);
 

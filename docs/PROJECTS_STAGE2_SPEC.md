@@ -1,6 +1,6 @@
-# Projects Stage 2: Control room (DESIGN, nothing built yet)
+# Projects Stage 2: Control room (being built)
 
-Status: DESIGN, shared with the owner on 2026-11-16. Waiting for the owner's "go". Nothing in this document is built.
+Status: the owner said "build" on 2026-11-16. What is built so far is listed under "As built" at the end; everything else is still design.
 
 Stage 1 decided whether a person may act on a project (permission, then project role). Stage 2 adds three more questions, asked in this order after those two: time, lock, seriousness. A refusal at any step stops there, is written to `project_log`, and tells the person what to do next.
 
@@ -36,6 +36,7 @@ New project-role ability: `access` (hours and locks on that project). Lead has i
 
 | Table | Holds |
 |---|---|
+| `project_access` | Per project: whether reading is allowed outside its hours |
 | `project_hours` | Days and times for a project, or for one person's place on it |
 | `project_passes` | Short passes outside hours: who, until when, who approved |
 | `project_locks` | A locked area on a project and its hashed password |
@@ -61,3 +62,28 @@ Serious actions and signal settings are two new parts of `project_settings`.
 2. Outside hours nothing opens, not even for reading, unless the project's switch allows reading.
 3. A supervisor is never the person who asked, and owners are not exempt from serious-action rules. Owners can change the table, which is logged.
 4. Out of the box every serious action is "Nothing" and every signal is "Alert only", so day one behaves like Stage 1. A suggested set can be applied in one click.
+
+## As built
+
+### To run
+
+1. `backend/database/sql/258_projects_control_room.sql` (after 257). Seven tables, and the Lead project role gains the ability "Set its hours, end dates and locked areas". It adds only.
+2. No permission seed: the permissions came with script 257.
+
+Until 258 has run, Stage 1 keeps working as it is; the Access tab works too, since it reads Stage 1's tables.
+
+### 2.1 Script 258 and the Access tab (done)
+
+Screen: `docs/screens/projects-access.png`.
+
+- **Script 258** makes all seven Stage 2 tables at once, so there is one script for the whole stage.
+- **Service:** `ProjectAccessList`. **Controller:** `AccessController`.
+- **Access tab** on an open project, for anyone who may see its people. One row per person with a place on it: the reason ("On it as Lead", "Invited as Reviewer", "Was on it as Member", "Will be on it as..."), what their project role lets them do, their end date, and whether they can get in this minute (can get in, invited, not started, ended, their TISL role no longer opens Projects, their project role is switched off).
+- **The people not on it:** for an open project, who reads it because they see every project; for a confidential one, who it is hidden from. A count first, names when asked.
+- **Extend:** move or remove an end date. Asks both questions: the permission `projects.access.rules` and the new project-role ability `access` (Lead has it). Someone whose place had ended is back on it at once. Logged as `member.extended` with the old and new date.
+- **Ending soon:** a place ending within the warning days (7, a setting in the new `access` part of the settings) is flagged on the row and counted above the list.
+- **The lead is told once** per end date through the Core notifier (new notification type "Projects: access to a project"), by the daily command `projects:access-warnings` (07:10). Moving the date makes it a new warning; 0 days switches warnings off.
+- **A link can open a tab:** `/admin/projects/{id}?tab=access`.
+- **Routes:** `GET /{project}/access`, `PUT /{project}/access/members/{member}`.
+- **Tests:** `tests/Feature/ProjectsAccessTabTest.php` (6); `frontend/e2e/projects-access-ui.mjs` (16 checks in a real browser).
+- **Not yet:** the Hours column and "outside hours" state fill in with build 2.2; "paused" with 2.5; a shortcut key for the Access tab.

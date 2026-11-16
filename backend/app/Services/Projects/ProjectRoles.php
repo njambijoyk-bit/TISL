@@ -21,6 +21,7 @@ class ProjectRoles
         'members' => 'Invite and remove people',
         'links' => 'Add and remove links',
         'log' => 'Read its activity log',
+        'access' => 'Set its hours, end dates and locked areas',
         'open_shared' => 'See only what is shared with them (for clients and guests)',
     ];
 

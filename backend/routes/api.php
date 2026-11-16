@@ -1918,6 +1918,10 @@ Route::middleware('auth:sanctum')->group(function () {
             Route::put('/{project}/members/{member}', [$mem, 'change'])->whereNumber(['project', 'member'])->middleware('permission:projects.members.manage');
             Route::delete('/{project}/members/{member}', [$mem, 'remove'])->whereNumber(['project', 'member'])->middleware('permission:projects.members.manage');
             Route::post('/{project}/transfer', [$mem, 'transfer'])->whereNumber('project')->middleware('permission:projects.transfer');
+            // stage 2, the control room
+            $acc = \App\Http\Controllers\Api\Projects\AccessController::class;
+            Route::get('/{project}/access', [$acc, 'index'])->whereNumber('project')->middleware('permission:projects.members.view');
+            Route::put('/{project}/access/members/{member}', [$acc, 'extend'])->whereNumber(['project', 'member'])->middleware('permission:projects.access.rules');
             // the shape of the work: kinds of work, stages, extra fields
             $shp = \App\Http\Controllers\Api\Projects\ShapeController::class;
             Route::get('/configuration/shape', [$shp, 'show'])->middleware('permission:projects.config.view');

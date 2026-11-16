@@ -13,14 +13,23 @@ class ProjectsSetup
 {
     private static ?bool $ready = null;
 
+    private static ?bool $controlRoom = null;
+
     public static function ready(): bool
     {
         return self::$ready ??= Schema::hasTable('project_industries') && Schema::hasTable('project_log');
+    }
+
+    /** Stage 2 (script 258): hours, locks, approvals and security signals. Until it has run, none of those rules exist and nothing asks for them. */
+    public static function controlRoom(): bool
+    {
+        return self::$controlRoom ??= self::ready() && Schema::hasTable('project_hours') && Schema::hasTable('project_security_events');
     }
 
     /** Look again at the next call (a test creates the tables). */
     public static function forget(): void
     {
         self::$ready = null;
+        self::$controlRoom = null;
     }
 }

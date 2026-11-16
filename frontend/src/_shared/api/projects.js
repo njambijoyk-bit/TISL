@@ -43,6 +43,9 @@ const projectsAPI = {
   invite: async (id, data) => (await api.post(`/admin/projects/${id}/members`, data)).data,
   changeMember: async (id, memberId, data) => (await api.put(`/admin/projects/${id}/members/${memberId}`, data)).data,
   removeMember: async (id, memberId) => (await api.delete(`/admin/projects/${id}/members/${memberId}`)).data,
+  // stage 2, the control room: who can get in and why; each call answers { people, others, project_hours, summary, can }
+  access: async (id) => (await api.get(`/admin/projects/${id}/access`)).data,
+  extendAccess: async (id, memberId, endsAt) => (await api.put(`/admin/projects/${id}/access/members/${memberId}`, { ends_at: endsAt })).data,
   transfer: async (id, userId, note) => (await api.post(`/admin/projects/${id}/transfer`, { user_id: userId, note })).data.project,
   invitations: async () => (await api.get('/admin/projects/invitations')).data.invitations,
   answerInvitation: async (id, accept) => (await api.put(`/admin/projects/${id}/invitation`, { accept })).data.invitations,

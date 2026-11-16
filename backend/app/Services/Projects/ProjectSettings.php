@@ -17,6 +17,8 @@ class ProjectSettings
         // the company's shortcut keys (ProjectKeys says what each is for)
         'shortcuts' => ['go_list' => 'P', 'go_new' => 'N', 'go_log' => 'L', 'go_trash' => 'T', 'go_config' => 'C', 'act_edit' => 'E', 'act_hold' => 'H', 'act_next' => 'F', 'act_delete' => 'D',
             'tab_overview' => 'O', 'tab_phases' => 'P', 'tab_people' => 'I', 'tab_links' => 'K', 'tab_activity' => 'Y'],
+        // stage 2, the control room: how long before an end date the lead is told
+        'access' => ['warn_days' => 7],
     ];
 
     /** @var array<string, array<string, mixed>> */
@@ -133,6 +135,15 @@ class ProjectSettings
             }
 
             return ['default_industry' => $industry, 'project_may_use_other_industry' => (bool) $v['project_may_use_other_industry'], 'trash_days' => $days];
+        }
+
+        if ($part === 'access') {
+            $days = (int) $v['warn_days'];
+            if ($days < 0 || $days > 90) {
+                throw new ProjectException('Warn from 0 (never) to 90 days before an end date.');
+            }
+
+            return array_merge($v, ['warn_days' => $days]);
         }
 
         if ($part === 'shortcuts') {

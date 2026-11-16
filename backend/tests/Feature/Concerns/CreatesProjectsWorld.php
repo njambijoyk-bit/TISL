@@ -48,16 +48,17 @@ trait CreatesProjectsWorld
                 return User::all()->filter(fn ($u) => in_array($permission, $this->test->permsOf($u->id), true))->values();
             }
         });
-        $this->runSqlScripts('257_projects_foundation.sql');
-        $this->runProjectStarterRows();
+        $this->runSqlScripts('257_projects_foundation.sql', '258_projects_control_room.sql');
+        $this->runProjectStarterRows('257_projects_foundation.sql');
+        $this->runProjectStarterRows('258_projects_control_room.sql');
         ProjectsSetup::forget();
         $this->standInAccess();
     }
 
     /** The INSERT IGNORE statements of script 257, said the way SQLite says them. */
-    private function runProjectStarterRows(): void
+    private function runProjectStarterRows(string $file): void
     {
-        $sql = (string) file_get_contents(base_path('database/sql/257_projects_foundation.sql'));
+        $sql = (string) file_get_contents(base_path('database/sql/' . $file));
         $sql = (string) preg_replace('/--[^\n]*/', '', $sql);
         preg_match_all('/INSERT IGNORE INTO\s[^;]*;/s', $sql, $m);
         foreach ($m[0] as $statement) {

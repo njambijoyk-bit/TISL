@@ -8,6 +8,7 @@ import { day, extraValue, message, PRIORITY, STATE } from '../../lib/format';
 import { Btn, Chip, Notice, Panel, PanelTitle, Tabs } from '../../components/ui';
 import PhasesPanel from '../../components/PhasesPanel';
 import PeoplePanel from '../../components/PeoplePanel';
+import AccessPanel from '../../components/AccessPanel';
 import ActivityPanel from '../../components/ActivityPanel';
 import LinksPanel from '../../components/LinksPanel';
 import { hasPermission } from '../../../_shared/lib/roles';
@@ -60,7 +61,7 @@ export default function ProjectDetail() {
   const [failed, setFailed] = useState(null);
   const [busy, setBusy] = useState(false);
   const [asking, setAsking] = useState(null);   // an action waiting for "are you sure": { label, run }
-  const [tab, setTab] = useState('overview');
+  const [tab, setTab] = useState(() => new URLSearchParams(window.location.search).get('tab') || 'overview');   // a message can link straight to a tab
   const user = useAuthStore((s) => s.user);
   const fetchLog = useCallback((params) => projectsAPI.log(id, params), [id]);
 
@@ -151,11 +152,12 @@ export default function ProjectDetail() {
         {PRIORITY[p.priority] && p.priority !== 'medium' && <Chip status={PRIORITY[p.priority].status}>{PRIORITY[p.priority].label} priority</Chip>}
       </div>
       <StageBar project={p} onMove={move} busy={busy} />
-      <Tabs tabs={[{ key: 'overview', label: 'Overview' }, { key: 'phases', label: word('phase', true) }, ...(can.members_view ? [{ key: 'people', label: 'People' }] : []), { key: 'links', label: 'Links' }, ...(can.log ? [{ key: 'activity', label: 'Activity' }] : [])]} value={tab} onChange={setTab} label="Parts of this page" mark="project-key" />
+      <Tabs tabs={[{ key: 'overview', label: 'Overview' }, { key: 'phases', label: word('phase', true) }, ...(can.members_view ? [{ key: 'people', label: 'People' }, { key: 'access', label: 'Access' }] : []), { key: 'links', label: 'Links' }, ...(can.log ? [{ key: 'activity', label: 'Activity' }] : [])]} value={tab} onChange={setTab} label="Parts of this page" mark="project-key" />
 
       {tab === 'phases' && <PhasesPanel key={`${p.id}-${p.frozen}`} projectId={p.id} word={word} />}
       {tab === 'links' && <LinksPanel key={`${p.id}-${p.frozen}`} projectId={p.id} />}
       {tab === 'activity' && <ActivityPanel fetch={fetchLog} describe={(what) => what.replace(/^Project\b/, word('project')).replace(/^Phase\b/, word('phase'))} />}
+      {tab === 'access' && <AccessPanel key={`${p.id}-${p.frozen}`} projectId={p.id} word={word} />}
       {tab === 'people' && <PeoplePanel key={`${p.id}-${p.frozen}`} projectId={p.id} word={word} onTransferred={setProject} />}
       {tab === 'overview' && (
       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(300px, 1fr))', gap: 16, alignItems: 'start' }}>
