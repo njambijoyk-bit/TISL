@@ -22,6 +22,17 @@ class ProjectSettings
         'access' => ['warn_days' => 7, 'default_hours' => [], 'read_outside_hours' => false, 'passes' => true, 'pass_minutes' => 60,
             // locked areas: minutes one stays open, wrong tries in a row before a wait, and the wait; hours a request for approval stays open
             'unlock_minutes' => 15, 'lock_tries' => 5, 'lock_wait_minutes' => 15, 'approval_hours' => 24],
+        // what each serious action needs before it happens (ProjectSerious lists the actions): out of the box, nothing
+        'serious' => [
+            'project.purge' => ['needs' => 'none', 'on_project' => false, 'reason' => false],
+            'project.open_up' => ['needs' => 'none', 'on_project' => false, 'reason' => false],
+            'project.unfreeze' => ['needs' => 'none', 'on_project' => false, 'reason' => false],
+            'project.transfer' => ['needs' => 'none', 'on_project' => false, 'reason' => false],
+            'project.reopen' => ['needs' => 'none', 'on_project' => false, 'reason' => false],
+            'project.delete' => ['needs' => 'none', 'on_project' => false, 'reason' => false],
+            'member.remove' => ['needs' => 'none', 'on_project' => false, 'reason' => false],
+            'role.change' => ['needs' => 'none', 'on_project' => false, 'reason' => false],
+        ],
     ];
 
     /** @var array<string, array<string, mixed>> */
@@ -164,6 +175,10 @@ class ProjectSettings
 
             return ['warn_days' => $days, 'default_hours' => $hours, 'read_outside_hours' => (bool) $v['read_outside_hours'], 'passes' => (bool) $v['passes'], 'pass_minutes' => $minutes,
                 'unlock_minutes' => (int) $v['unlock_minutes'], 'lock_tries' => (int) $v['lock_tries'], 'lock_wait_minutes' => (int) $v['lock_wait_minutes'], 'approval_hours' => (int) $v['approval_hours']];
+        }
+
+        if ($part === 'serious') {
+            return ProjectSerious::tidy($v);
         }
 
         if ($part === 'shortcuts') {

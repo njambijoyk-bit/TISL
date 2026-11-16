@@ -32,6 +32,16 @@ final class Catalogue
         'bank_details' => ['label' => 'Change bank or payee details', 'class' => 'elevated', 'strength' => 1, 'fresh' => 10, 'reason' => false, 'window' => true, 'two' => false, 'approver' => null, 'ignore' => []],
     ];
 
+    /**
+     * Questions a module asks under its own rules. The module decides when to ask (Projects: per action, in its configuration, Serious actions),
+     * so these have no switch on the Sensitive actions page and are not counted there; this only says HOW the question is asked.
+     *
+     * @var array<string, array{label: string, class: string, strength: int, fresh: int, reason: bool, window: bool, two: bool, approver: ?string, ignore: string[]}>
+     */
+    public const MODULE_RULES = [
+        'projects_serious' => ['label' => 'Projects: an action marked serious (set per action in Projects configuration)', 'class' => 'elevated', 'strength' => 1, 'fresh' => 5, 'reason' => false, 'window' => false, 'two' => false, 'approver' => null, 'ignore' => []],
+    ];
+
     /** @return string[] */
     public static function keys(): array
     {
@@ -40,12 +50,12 @@ final class Catalogue
 
     public static function has(string $key): bool
     {
-        return isset(self::RULES[$key]);
+        return isset(self::RULES[$key]) || isset(self::MODULE_RULES[$key]);
     }
 
     /** @return array{label: string, class: string, strength: int, fresh: int, reason: bool, window: bool, two: bool, approver: ?string, ignore: string[]} */
     public static function rule(string $key): array
     {
-        return self::RULES[$key] ?? throw new \InvalidArgumentException("No step-up rule called {$key}.");
+        return self::RULES[$key] ?? self::MODULE_RULES[$key] ?? throw new \InvalidArgumentException("No step-up rule called {$key}.");
     }
 }

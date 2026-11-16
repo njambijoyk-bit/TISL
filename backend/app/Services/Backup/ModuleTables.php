@@ -142,6 +142,7 @@ final class ModuleTables
             'project_industries', 'project_terms', 'project_term_names', 'project_term_overrides', 'project_types', 'project_stages', 'project_fields', 'project_field_values',
             'project_series', 'projects', 'project_phases', 'project_links', 'project_roles', 'project_role_permissions', 'project_members', 'project_log',
             'project_settings', 'project_setting_versions', 'project_setting_logs', 'project_user_prefs',
+            'project_access', 'project_hours', 'project_passes', 'project_locks', 'project_unlocks', 'project_approvals', 'project_security_events',   // stage 2 (script 258)
         ],
         'listings'       => [/* built later */],
         'campaigns'      => ['campaigns', 'campaign_sections', 'campaign_items', 'campaign_events',

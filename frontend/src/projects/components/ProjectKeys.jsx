@@ -5,13 +5,14 @@ import { useAuthStore } from '../../_shared/store/index';
 import { useProjectNames } from '../lib/names';
 import useNamesStore from '../lib/names';
 import { GO, ON, onOpenProject } from '../lib/keys';
+import SeriousDialog from './SeriousDialog';
 
 /**
  * Listens for the Projects shortcut keys while a Projects page is open (build 1.9):
  *   G, then a letter           jump to a part of Projects the person may open
  *   Shift + a letter           on an open piece of work: press the control that carries that key's mark
  * A key presses what is on the screen and nothing else, so it can never do what the person could not do with the mouse. Nothing fires while
- * typing, with a dialog open, or with Ctrl, Alt or Cmd held. It draws nothing.
+ * typing, with a dialog open, or with Ctrl, Alt or Cmd held. It draws nothing itself.
  */
 const typing = (e) => { const t = e.target; return !!t && (t.isContentEditable || ['INPUT', 'TEXTAREA', 'SELECT'].includes(t.tagName)); };
 const dialogOpen = () => !!document.querySelector('[role="dialog"], dialog[open], [aria-modal="true"]');
@@ -48,5 +49,5 @@ export default function ProjectKeys() {
     return () => window.removeEventListener('keydown', onKey, true);
   }, [pathname, navigate, user]);
 
-  return null;
+  return <SeriousDialog />;   // the one thing every Projects page shares besides its keys: the question before a serious action is sent for approval
 }

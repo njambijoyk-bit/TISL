@@ -49,6 +49,9 @@ const projectsAPI = {
   setHours: async (id, data) => (await api.put(`/admin/projects/${id}/access/hours`, data)).data,   // { days, member_id?, read_outside_hours? }
   askPass: async (id, reason) => (await api.post(`/admin/projects/${id}/access/pass`, { reason })).data,
   answerPass: async (id, passId, approve) => (await api.put(`/admin/projects/${id}/access/passes/${passId}`, { approve })).data,
+  // serious actions: each call answers { actions, needs, rules, suggested, identity_ready, approvers, can }
+  serious: async () => (await api.get('/admin/projects/configuration/serious')).data,
+  saveSerious: async (rules) => (await api.put('/admin/projects/configuration/serious', { rules })).data,
   saveAccessSettings: async (data) => (await api.put('/admin/projects/configuration/access', data)).data,
   // locked areas: unlock answers { until, locks: state by area }; the three below answer { locks: the list for the Access tab }
   unlock: async (id, area, password) => (await api.post(`/admin/projects/${id}/locks/${area}/open`, { password })).data,

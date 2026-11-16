@@ -7,6 +7,7 @@ use App\Services\Projects\ProjectAccess;
 use App\Services\Projects\ProjectException;
 use App\Services\Projects\ProjectMembers;
 use App\Services\Projects\ProjectRoles;
+use App\Services\Projects\ProjectSerious;
 use App\Services\Projects\ProjectService;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
@@ -49,8 +50,11 @@ class MemberController extends Controller
     public function remove(Request $request, int $project, int $member): JsonResponse
     {
         return $this->guard(function () use ($request, $project, $member) {
-            $p = $this->projects->findFor($request->user(), $project);
+            $p = $this->projects->findFor($request->user(), $project, 'members');
+            $who = \Illuminate\Support\Facades\DB::table('project_members as m')->join('users as u', 'u.id', '=', 'm.user_id')->where('m.project_id', $p->id)->where('m.id', $member)->value('u.name');
+            $done = $who === null ? fn () => null : app(ProjectSerious::class)->gate($request, 'member.remove', $p, ['project' => (int) $p->id, 'member' => $member], "Remove {$who} from {$p->number} ({$p->title})");
             $this->members->remove($p, $member, $request->user());
+            $done();
 
             return $this->listOf($request, $p);
         });
@@ -62,7 +66,15 @@ class MemberController extends Controller
 
         return $this->guard(function () use ($request, $project, $data) {
             $p = $this->projects->findFor($request->user(), $project);
+            $user = $request->user();
+            $done = fn () => null;
+            // asked only of someone who may hand it over (the same rule the transfer itself applies)
+            if ($this->access->allows($user, 'members', $p) || (! $p->confidential && $p->frozen_at === null && $user->hasPermission('projects.view_all'))) {
+                $to = \Illuminate\Support\Facades\DB::table('users')->where('id', $data['user_id'])->value('name') ?? 'someone';
+                $done = app(ProjectSerious::class)->gate($request, 'project.transfer', $p, ['project' => (int) $p->id, 'to' => (int) $data['user_id']], "Hand {$p->number} ({$p->title}) to {$to}");
+            }
             $this->members->transfer($p, (int) $data['user_id'], $data['note'] ?? null, $request->user());
+            $done();
 
             return response()->json(['project' => $this->projects->show($request->user(), $this->projects->find($project))]);
         });
@@ -105,7 +117,15 @@ class MemberController extends Controller
     public function changeRole(Request $request, int $role): JsonResponse
     {
         return $this->guard(function () use ($request, $role) {
+            $done = fn () => null;
+            if ($request->has('abilities') || $request->has('is_active')) {   // renaming a role is not serious; changing what it can do can be
+                $abilities = array_values((array) $request->input('abilities', []));
+                sort($abilities);
+                $name = \Illuminate\Support\Facades\DB::table('project_roles')->where('id', $role)->value('name') ?? 'a project role';
+                $done = app(ProjectSerious::class)->gate($request, 'role.change', null, ['role' => $role, 'abilities' => $abilities, 'is_active' => $request->input('is_active')], "Change what the project role {$name} can do");
+            }
             $this->roles->update($role, $request->only(['name', 'description', 'abilities', 'is_active']), $request->user());
+            $done();
 
             return response()->json(['roles' => $this->roles->all(), 'abilities' => ProjectRoles::ABILITIES]);
         });

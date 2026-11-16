@@ -96,6 +96,33 @@ class ConfigurationController extends Controller
         });
     }
 
+    /** Stage 2: which actions are serious and what each needs. */
+    public function serious(Request $request): JsonResponse
+    {
+        $labels = \App\Services\Projects\ProjectSerious::ACTIONS;
+
+        return response()->json([
+            'actions' => array_map(fn ($k) => ['key' => $k, 'label' => $labels[$k], 'can_be_on_project' => ! in_array($k, ['role.change', 'project.purge'], true)], array_keys($labels)),
+            'needs' => \App\Services\Projects\ProjectSerious::NEEDS,
+            'rules' => $this->settings()->get('serious'),
+            'suggested' => \App\Services\Projects\ProjectSerious::suggested(),
+            'identity_ready' => \App\Services\Projects\ProjectSerious::identityReady(),
+            'approvers' => app(\App\Services\Notify\Staff::class)->holding('projects.approve')->count(),
+            'can' => ['change' => $request->user()->hasPermission('projects.config.actions')],
+        ]);
+    }
+
+    public function saveSerious(Request $request): JsonResponse
+    {
+        $data = $request->validate(['rules' => 'required|array']);
+
+        return $this->guard(function () use ($request, $data) {
+            $this->settings()->save('serious', $data['rules'], $request->user());
+
+            return $this->serious($request);
+        });
+    }
+
     public function setIndustry(Request $request, string $industry): JsonResponse
     {
         $data = $request->validate(['is_active' => 'required|boolean']);

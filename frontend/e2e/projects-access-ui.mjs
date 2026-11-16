@@ -148,7 +148,7 @@ await page.getByRole('heading', { name: /Imara Sacco/ }).waitFor({ timeout: 1500
 ok('once let in, trying again opens it', true);
 
 // ---------------------------------------------------------------- the company's settings
-let access = { warn_days: 7, default_hours: [], read_outside_hours: false, passes: true, pass_minutes: 60 };
+let access = { warn_days: 7, default_hours: [], read_outside_hours: false, passes: true, pass_minutes: 60, unlock_minutes: 15, lock_tries: 5, lock_wait_minutes: 15, approval_hours: 24 };
 let canManage = true;
 const configPage = () => ({ ready: true, general: { default_industry: 'legal', project_may_use_other_industry: true, trash_days: 30 }, access, version: 1, industries: [{ key: 'legal', name: 'Legal', group: 'common', is_active: true }], viewing: 'legal', terms: [], personal: null, can: { manage: canManage, industry: true, names: true, roles: true } });
 await page.route('**/api/admin/projects/configuration**', (route) => {

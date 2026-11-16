@@ -10,15 +10,24 @@ import HoursEditor from './HoursEditor';
  * The company's access settings (docs/PROJECTS_STAGE2_SPEC.md, build 2.2): how early a lead is warned of an end date, the hours a new piece
  * of work starts with, and short passes outside hours. `value` is the saved settings; `onSaved(page)` gets the configuration page back.
  */
+/** the numbers for locked areas and approvals: [setting, what it is, least, most] */
+const NUMBERS = [
+  ['unlock_minutes', 'A locked area stays open for this many minutes', 1, 480],
+  ['lock_tries', 'Wrong passwords in a row before a wait', 2, 20],
+  ['lock_wait_minutes', 'The wait after too many wrong passwords, in minutes', 1, 1440],
+  ['approval_hours', 'A request for approval stays open for this many hours', 1, 168],
+];
+
 export default function AccessSettingsPanel({ value, canEdit, onSaved, thing }) {
-  const [form, setForm] = useState({ warn_days: value.warn_days, read_outside_hours: value.read_outside_hours, passes: value.passes, pass_minutes: value.pass_minutes });
+  const [form, setForm] = useState({ warn_days: value.warn_days, read_outside_hours: value.read_outside_hours, passes: value.passes, pass_minutes: value.pass_minutes,
+    unlock_minutes: value.unlock_minutes, lock_tries: value.lock_tries, lock_wait_minutes: value.lock_wait_minutes, approval_hours: value.approval_hours });
   const [busy, setBusy] = useState(false);
   const [problem, setProblem] = useState('');
   const set = (patch) => { setForm({ ...form, ...patch }); setProblem(''); };
 
   const save = async (days) => {
     setBusy(true);
-    try { onSaved(await projectsAPI.saveAccessSettings({ ...form, warn_days: Number(form.warn_days), pass_minutes: Number(form.pass_minutes), default_hours: days })); toast.success('Saved'); setProblem(''); }
+    try { onSaved(await projectsAPI.saveAccessSettings({ ...form, ...Object.fromEntries(NUMBERS.map(([k]) => [k, Number(form[k])])), warn_days: Number(form.warn_days), pass_minutes: Number(form.pass_minutes), default_hours: days })); toast.success('Saved'); setProblem(''); }
     catch (e) { setProblem(message(e, 'That could not be saved. Try again.')); } finally { setBusy(false); }
   };
 
@@ -34,6 +43,11 @@ export default function AccessSettingsPanel({ value, canEdit, onSaved, thing }) 
           <Field label="A pass outside hours lasts this many minutes" htmlFor="access-pass" hint="It ends by itself.">
             <TextInput id="access-pass" type="number" min={5} max={1440} value={form.pass_minutes} onChange={(e) => set({ pass_minutes: e.target.value })} required disabled={!form.passes} />
           </Field>
+        </div>
+        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))', gap: 12 }}>
+          {NUMBERS.map(([k, label, min, max]) => (
+            <Field key={k} label={label} htmlFor={`access-${k}`}><TextInput id={`access-${k}`} type="number" min={min} max={max} value={form[k] ?? ''} onChange={(e) => set({ [k]: e.target.value })} required /></Field>
+          ))}
         </div>
         <label style={{ display: 'flex', alignItems: 'center', gap: 8, fontSize: 13.5 }}><input type="checkbox" style={check} checked={form.passes} onChange={(e) => set({ passes: e.target.checked })} />Someone outside the hours can ask to be let in for a short while</label>
         <div>

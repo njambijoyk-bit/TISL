@@ -58,28 +58,69 @@ class ProjectController extends Controller
 
     public function update(Request $request, int $project): JsonResponse
     {
-        return $this->change($request, $project, fn ($p) => $this->projects->update($p, $request->all(), $request->user()));
+        return $this->change($request, $project, function ($p) use ($request) {
+            $done = fn () => null;
+            if ($p->confidential && $request->has('confidential') && ! $request->boolean('confidential')) {   // opening up a confidential project can be marked serious
+                $this->access()->authorize($request->user(), 'confidential', $p);
+                $done = $this->serious()->gate($request, 'project.open_up', $p, ['project' => (int) $p->id], "Make {$p->number} ({$p->title}) open to everyone who sees all projects");
+            }
+            $out = $this->projects->update($p, $request->all(), $request->user());
+            $done();
+
+            return $out;
+        });
     }
 
     public function stage(Request $request, int $project): JsonResponse
     {
         $data = $request->validate(['stage_id' => 'required|integer']);
 
-        return $this->change($request, $project, fn ($p) => $this->projects->moveStage($p, (int) $data['stage_id'], $request->user()));
+        return $this->change($request, $project, function ($p) use ($request, $data) {
+            $done = fn () => null;
+            // a closed project moved back to an open stage is being reopened
+            if ($p->state === 'closed' && \Illuminate\Support\Facades\DB::table('project_stages')->where('id', $data['stage_id'])->where('type_id', $p->type_id)->where('state', '!=', 'closed')->exists()) {
+                $this->access()->authorize($request->user(), 'close', $p);
+                $done = $this->serious()->gate($request, 'project.reopen', $p, ['project' => (int) $p->id], "Reopen {$p->number} ({$p->title})");
+            }
+            $out = $this->projects->moveStage($p, (int) $data['stage_id'], $request->user());
+            $done();
+
+            return $out;
+        });
     }
 
     public function state(Request $request, int $project): JsonResponse
     {
         $data = $request->validate(['action' => 'required|string|in:hold,resume,cancel,reopen', 'reason' => 'nullable|string|max:200']);
 
-        return $this->change($request, $project, fn ($p) => $this->projects->setState($p, $data['action'], $request->user(), $data['reason'] ?? null));
+        return $this->change($request, $project, function ($p) use ($request, $data) {
+            $done = fn () => null;
+            if ($data['action'] === 'reopen') {
+                $this->access()->authorize($request->user(), 'close', $p);
+                $done = $this->serious()->gate($request, 'project.reopen', $p, ['project' => (int) $p->id], "Reopen {$p->number} ({$p->title})");
+            }
+            $out = $this->projects->setState($p, $data['action'], $request->user(), $data['reason'] ?? null);
+            $done();
+
+            return $out;
+        });
     }
 
     public function freeze(Request $request, int $project): JsonResponse
     {
         $data = $request->validate(['frozen' => 'required|boolean']);
 
-        return $this->change($request, $project, fn ($p) => $this->projects->freeze($p, (bool) $data['frozen'], $request->user()));
+        return $this->change($request, $project, function ($p) use ($request, $data) {
+            $done = fn () => null;
+            if (! $data['frozen'] && $p->frozen_at !== null) {
+                $this->access()->authorize($request->user(), 'freeze', $p);
+                $done = $this->serious()->gate($request, 'project.unfreeze', $p, ['project' => (int) $p->id], "Unfreeze {$p->number} ({$p->title}) so it can be changed again");
+            }
+            $out = $this->projects->freeze($p, (bool) $data['frozen'], $request->user());
+            $done();
+
+            return $out;
+        });
     }
 
     // ------------------------------------------------------------------ the log and the trash
@@ -101,7 +142,10 @@ class ProjectController extends Controller
     public function destroy(Request $request, int $project): JsonResponse
     {
         return $this->guard(function () use ($request, $project) {
-            app(ProjectTrash::class)->deleteProject($this->projects->findFor($request->user(), $project), $request->user());
+            $p = $this->projects->findFor($request->user(), $project, 'edit');
+            $done = $this->serious()->gate($request, 'project.delete', $p, ['project' => (int) $p->id], "Put {$p->number} ({$p->title}) in the trash");
+            app(ProjectTrash::class)->deleteProject($p, $request->user());
+            $done();
 
             return response()->json(['message' => 'In the trash.']);
         });
@@ -111,7 +155,7 @@ class ProjectController extends Controller
     {
         $user = $request->user();
 
-        return response()->json(['items' => app(ProjectTrash::class)->list($user), 'days' => (int) app(\App\Services\Projects\ProjectSettings::class)->get('general')['trash_days'], 'can' => ['purge' => $user->hasPermission('projects.purge')]]);
+        return response()->json(['items' => app(ProjectTrash::class)->list($user), 'days' => (int) app(\App\Services\Projects\ProjectSettings::class)->get('general')['trash_days'], 'can' => ['purge' => $user->hasPermission('projects.purge')]]);   // (what a purge needs is asked when it is tried)
     }
 
     public function restore(Request $request): JsonResponse
@@ -130,7 +174,12 @@ class ProjectController extends Controller
         $data = $request->validate(['type' => 'required|string|in:project,phase', 'id' => 'required|integer']);
 
         return $this->guard(function () use ($request, $data) {
+            $done = fn () => null;
+            if ($data['type'] === 'project' && ($p = \Illuminate\Support\Facades\DB::table('projects')->where('id', $data['id'])->whereNotNull('deleted_at')->first())) {
+                $done = $this->serious()->gate($request, 'project.purge', $p, ['project' => (int) $p->id], "Delete {$p->number} ({$p->title}) for good");
+            }
             app(ProjectTrash::class)->purge($data['type'], (int) $data['id'], $request->user());
+            $done();
 
             return $this->trash($request);
         });
@@ -247,6 +296,16 @@ class ProjectController extends Controller
         }
 
         return response()->json(['phases' => $phases, 'can' => ['phases' => app(\App\Services\Projects\ProjectAccess::class)->allows($request->user(), 'phases', $p), 'delete' => $request->user()->hasPermission('projects.delete')]], $status);
+    }
+
+    private function serious(): \App\Services\Projects\ProjectSerious
+    {
+        return app(\App\Services\Projects\ProjectSerious::class);
+    }
+
+    private function access(): \App\Services\Projects\ProjectAccess
+    {
+        return app(\App\Services\Projects\ProjectAccess::class);
     }
 
     private function change(Request $request, int $project, callable $do): JsonResponse

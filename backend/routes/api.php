@@ -1932,6 +1932,8 @@ Route::middleware('auth:sanctum')->group(function () {
             Route::put('/{project}/access/hours', [$acc, 'setHours'])->whereNumber('project')->middleware('permission:projects.access.rules');
             Route::post('/{project}/access/pass', [$acc, 'askPass'])->whereNumber('project');
             Route::put('/{project}/access/passes/{pass}', [$acc, 'answerPass'])->whereNumber(['project', 'pass'])->middleware('permission:projects.access.rules');
+            Route::get('/configuration/serious', [$cfg, 'serious'])->middleware('permission:projects.config.view');
+            Route::put('/configuration/serious', [$cfg, 'saveSerious'])->middleware('permission:projects.config.actions');
             Route::put('/configuration/access', [$cfg, 'saveAccess'])->middleware('permission:projects.config.manage');
             Route::put('/{project}/access/members/{member}', [$acc, 'extend'])->whereNumber(['project', 'member'])->middleware('permission:projects.access.rules');
             // the shape of the work: kinds of work, stages, extra fields
