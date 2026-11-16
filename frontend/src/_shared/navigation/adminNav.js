@@ -316,6 +316,7 @@ export const ADMIN_NAV = [
           { title: 'All work', path: '/admin/projects', exact: true },
           { title: 'New', path: '/admin/projects/new', perm: 'projects.create' },
           { title: 'Leads', path: '/admin/projects/leads', perm: ['projects.leads.view', 'projects.leads.manage'] },
+          { title: 'Pipeline', path: '/admin/projects/pipeline', perm: ['projects.pipeline', 'projects.leads.view'] },
           { title: 'Approvals', path: '/admin/projects/approvals' },
           { title: 'Activity log', path: '/admin/projects/log', perm: 'projects.log.view' },
           { title: 'Security', path: '/admin/projects/security', perm: 'projects.security.view' },

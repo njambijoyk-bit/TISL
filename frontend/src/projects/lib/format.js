@@ -42,3 +42,6 @@ export const extraValue = (f) => {
 
 /** lead status => [how it reads, which named status it is shown as] */
 export const LEAD_STATUS = { new: ['New', 'neutral'], working: ['Working', 'info'], won: ['Won', 'good'], lost: ['Lost', 'problem'] };
+
+/** An amount with its currency, as it reads in the books. */
+export const money = (amount, currency) => `${currency ? `${currency} ` : ''}${new Intl.NumberFormat('en-KE', { maximumFractionDigits: 2 }).format(amount)}`;

@@ -1927,6 +1927,22 @@ Route::middleware('auth:sanctum')->group(function () {
                 Route::post('/leads', [$rel, 'addLead'])->middleware('permission:projects.leads.manage');
                 Route::put('/leads/{lead}', [$rel, 'changeLead'])->whereNumber('lead')->middleware('permission:projects.leads.manage');
             });
+            $pip = \App\Http\Controllers\Api\Projects\PipelineController::class;
+            Route::middleware('permission:projects.pipeline,projects.leads.view')->group(function () use ($pip) {
+                Route::get('/pipeline', [$pip, 'board']);
+                Route::get('/pipeline/options', [$pip, 'options']);
+                Route::get('/pipeline/quotations', [$pip, 'quotations'])->middleware('permission:books.view');
+                Route::get('/pipeline/of/{type}/{id}', [$pip, 'of'])->whereIn('type', ['lead', 'client'])->whereNumber('id');
+                Route::get('/opportunities/{opportunity}', [$pip, 'show'])->whereNumber('opportunity');
+                Route::post('/opportunities', [$pip, 'store'])->middleware('permission:projects.pipeline');
+                Route::put('/opportunities/{opportunity}', [$pip, 'update'])->whereNumber('opportunity')->middleware('permission:projects.pipeline');
+                Route::post('/opportunities/{opportunity}/win', [$pip, 'win'])->whereNumber('opportunity')->middleware('permission:projects.pipeline');
+                Route::post('/opportunities/{opportunity}/project', [$pip, 'start'])->whereNumber('opportunity')->middleware('permission:projects.pipeline')->middleware('permission:projects.create');
+            });
+            Route::post('/leads/{lead}/client', [$pip, 'makeClient'])->whereNumber('lead')->middleware('permission:projects.leads.manage')->middleware('permission:projects.clients.manage');
+            Route::get('/configuration/pipeline', [$pip, 'stages'])->middleware('permission:projects.config.view');
+            Route::post('/configuration/pipeline', [$pip, 'addStage'])->middleware('permission:projects.config.manage');
+            Route::put('/configuration/pipeline/{stage}', [$pip, 'changeStage'])->whereNumber('stage')->middleware('permission:projects.config.manage');
             Route::get('/known', [$rel, 'known'])->middleware('permission:projects.leads.manage,projects.clients.manage,projects.parties');
             Route::get('/configuration/lists', [$rel, 'listsPage'])->middleware('permission:projects.config.view');
             Route::post('/configuration/lists/{list}', [$rel, 'addToList'])->middleware('permission:projects.config.manage');

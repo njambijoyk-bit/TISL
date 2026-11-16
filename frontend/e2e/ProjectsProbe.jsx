@@ -9,6 +9,7 @@ import ProjectsApprovals from '/src/projects/pages/admin/ProjectsApprovals.jsx';
 import ProjectsSecurity from '/src/projects/pages/admin/ProjectsSecurity.jsx';
 import ProjectsLeads from '/src/projects/pages/admin/ProjectsLeads.jsx';
 import LeadDetail from '/src/projects/pages/admin/LeadDetail.jsx';
+import ProjectsPipeline from '/src/projects/pages/admin/ProjectsPipeline.jsx';
 import KeyboardShortcuts from '/src/_shared/components/common/KeyboardShortcuts.jsx';
 
 /** The Projects screens with their own addresses, so moving between them works as in the app. Starts at ?at=/admin/projects/... */
@@ -26,6 +27,7 @@ export default function ProjectsProbe() {
       <Route path="/admin/projects/approvals" element={<ProjectsApprovals />} />
       <Route path="/admin/projects/security" element={<ProjectsSecurity />} />
       <Route path="/admin/projects/leads" element={<ProjectsLeads />} />
+      <Route path="/admin/projects/pipeline" element={<ProjectsPipeline />} />
       <Route path="/admin/projects/leads/:id" element={<LeadDetail />} />
       <Route path="/admin/projects/new" element={<ProjectForm />} />
       <Route path="/admin/projects/:id" element={<ProjectDetail />} />

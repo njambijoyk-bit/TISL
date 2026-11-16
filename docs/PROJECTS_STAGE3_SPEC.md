@@ -92,3 +92,21 @@ Screens: `docs/screens/projects-leads.png`, `projects-lead-new.png`, `projects-l
 - **Routes:** `GET /leads`, `GET /leads/options`, `GET /leads/{lead}`, `POST /leads`, `PUT /leads/{lead}`, `GET /known`, `GET /configuration/lists`, `POST /configuration/lists/{list}`, `PUT /configuration/lists/{list}/{row}`.
 - **Tests:** `tests/Feature/ProjectsLeadsTest.php` (6); `frontend/e2e/projects-leads-ui.mjs` (22 checks in a real browser).
 - **Not yet:** deleting a lead and the trash for leads; the next action on a lead (3.4); its contacts (3.3) and history (3.4).
+
+### 3.2 Pipeline and winning (done)
+
+Screens: `docs/screens/projects-pipeline.png`, `projects-pipeline-win.png`.
+
+- **Services:** `ProjectPipeline`, `ProjectWins`, `ClientMaker`. **Controller:** `PipelineController`.
+- **Opportunity:** what the work is, who it is for (a lead or a client, never both, and it does not change), kind of work, owner, expected date, notes. Seen by its owner and by anyone with `projects.leads.view`; changed with `projects.pipeline`. Adding one to a new lead marks the lead as being worked.
+- **What it is worth:** the total of the Books quotation linked to it, read from the books every time it is shown (a changed quotation changes the card). Before there is a quotation it can carry an estimate with a currency; the form says it is a guess that is never posted. Someone who may not see the books is told a quotation is linked, not what it says.
+- **The board** (`/admin/projects/pipeline`, in the Projects menu): a column per stage, cards with who it is for, value, next action or expected date. A column's total is per currency and says when it includes estimates. Won and Lost show the last 30 days.
+- **Moving:** to any open stage from the opportunity's panel. Lost needs a reason from the list, and a lost one can be brought back. Won is not a stage one moves to.
+- **Winning:** if it is for a lead, the lead becomes a customer through `ClientMaker`, which creates it with the Customer model exactly as the rest of TISL does (number, account currency, and so the account and Books ledger). A company with a named person becomes that company with that person's name; a lead that is a person becomes a person. The lead's contacts, history, next actions and other opportunities move to the client; the account manager is the lead's owner. Needs `projects.clients.manage`. A second win for the same client makes no second customer.
+- **Starting the work:** at the win or later, with `projects.create`. The project is created through the normal Stage 1 path (number, cost centre, people), tied to the client, with the opportunity's notes as its description; the linked quotation is attached to it so the project shows the agreed figure from the books. All of a win happens or none of it.
+- **A lead can be made a client with no opportunity** from its page.
+- **Stages** (Configuration, new Pipeline tab, `projects.config.manage`): add (lands just before Won), rename, reorder, switch off. Won and Lost stay the ends. A stage with opportunities at it cannot be switched off.
+- **Routes:** `GET /pipeline`, `/pipeline/options`, `/pipeline/quotations`, `/pipeline/of/{lead|client}/{id}`; `GET`, `POST`, `PUT /opportunities`; `POST /opportunities/{id}/win`, `/opportunities/{id}/project`; `POST /leads/{lead}/client`; `GET`, `POST`, `PUT /configuration/pipeline`.
+- **Tests:** `tests/Feature/ProjectsPipelineTest.php` (7); `frontend/e2e/projects-pipeline-ui.mjs` (24 checks in a real browser).
+- **Not tested here:** the real customer creation. The tests stand in for `ClientMaker` with a plain row, because the test database has no currency tables; the real path calls `Customer::create()`. Win one lead by hand after running the script and check the new customer in Books.
+- **Not yet:** dragging cards between columns (moving is by the stage list on the card's panel); deleting an opportunity; a list view of the pipeline.
