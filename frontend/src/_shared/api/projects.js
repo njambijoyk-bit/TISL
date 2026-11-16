@@ -59,6 +59,10 @@ const projectsAPI = {
   setLock: async (id, area, data) => (await api.put(`/admin/projects/${id}/locks/${area}`, data)).data.locks,
   removeLock: async (id, area, password) => (await api.delete(`/admin/projects/${id}/locks/${area}`, { data: { password } })).data.locks,
   askLockReset: async (id, area, reason) => (await api.post(`/admin/projects/${id}/locks/${area}/reset`, { reason })).data.locks,
+  // security: each call answers { ready, events, summary, settings, signals, responses, watchers, can }
+  security: async () => (await api.get('/admin/projects/security')).data,
+  reviewSecurityEvent: async (eventId, note, release) => (await api.put(`/admin/projects/security/events/${eventId}`, { note, release: !!release })).data,
+  saveSecuritySettings: async (settings) => (await api.put('/admin/projects/configuration/security', { settings })).data,
   // approvals: each call answers { waiting, mine, can }
   approvals: async () => (await api.get('/admin/projects/approvals')).data,
   answerApproval: async (approvalId, approve, note) => (await api.put(`/admin/projects/approvals/${approvalId}`, { approve, note })).data,

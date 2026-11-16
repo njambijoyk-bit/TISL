@@ -38,5 +38,10 @@ class ProjectLog
     public static function refused(?int $projectId, ?User $by, string $action, string $reason, ?string $subjectType = null, ?int $subjectId = null): void
     {
         self::record($projectId, $by, $action, $subjectType, $subjectId, null, null, self::REFUSED, $reason);
+        try {
+            app(ProjectSecurity::class)->afterRefusal($by);   // stage 2: is this one refusal too many?
+        } catch (\Throwable $e) {
+            report($e);
+        }
     }
 }

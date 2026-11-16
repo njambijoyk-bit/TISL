@@ -1877,7 +1877,7 @@ Route::middleware('auth:sanctum')->group(function () {
             Route::post('/connections/{id}/fetch',     [$c, 'fetch'])->whereNumber('id')->middleware('permission:imports.view');
         });
         // Projects, rebuilt (docs/PROJECTS_STAGE1_SPEC.md). Every route asks for a Projects permission of its own on top of opening the module.
-        Route::prefix('projects')->middleware(['module:projects', 'permission:projects.use'])->group(function () {
+        Route::prefix('projects')->middleware(['module:projects', 'permission:projects.use', \App\Http\Middleware\ProjectsHold::class])->group(function () {
             $cfg = \App\Http\Controllers\Api\Projects\ConfigurationController::class;
             Route::get('/names', [$cfg, 'names']);                                        // the words this person sees
             Route::put('/my/naming', [$cfg, 'myNaming'])->middleware('permission:projects.naming.personal');
@@ -1926,6 +1926,9 @@ Route::middleware('auth:sanctum')->group(function () {
             Route::put('/{project}/locks/{area}', [$acc, 'setLock'])->whereNumber('project')->middleware('permission:projects.access.rules');
             Route::delete('/{project}/locks/{area}', [$acc, 'removeLock'])->whereNumber('project')->middleware('permission:projects.access.rules');
             Route::post('/{project}/locks/{area}/reset', [$acc, 'askReset'])->whereNumber('project')->middleware('permission:projects.access.rules');
+            Route::get('/security', [$acc, 'security'])->middleware('permission:projects.security.view');
+            Route::put('/security/events/{event}', [$acc, 'reviewEvent'])->whereNumber('event')->middleware('permission:projects.security.view');
+            Route::put('/configuration/security', [$acc, 'saveSecurity'])->middleware('permission:projects.security.view')->middleware('permission:projects.config.actions');
             Route::get('/approvals', [$acc, 'approvals']);
             Route::put('/approvals/{approval}', [$acc, 'answerApproval'])->whereNumber('approval')->middleware('permission:projects.approve,projects.locks.reset');
             Route::delete('/approvals/{approval}', [$acc, 'withdrawApproval'])->whereNumber('approval');

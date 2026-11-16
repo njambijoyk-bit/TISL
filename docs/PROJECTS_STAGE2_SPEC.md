@@ -1,6 +1,6 @@
-# Projects Stage 2: Control room (being built)
+# Projects Stage 2: Control room (built)
 
-Status: the owner said "build" on 2026-11-16. What is built so far is listed under "As built" at the end; everything else is still design.
+Status: built on 2026-11-16 in five builds (2.1 to 2.5), each listed under "As built" at the end with what changed from this design. It needs database script 258.
 
 Stage 1 decided whether a person may act on a project (permission, then project role). Stage 2 adds three more questions, asked in this order after those two: time, lock, seriousness. A refusal at any step stops there, is written to `project_log`, and tells the person what to do next.
 
@@ -137,3 +137,27 @@ Needs script 258. Screens: `docs/screens/projects-serious.png`, `projects-seriou
 - **Routes:** `GET /configuration/serious`, `PUT /configuration/serious`. Requests carry the answer in the headers `X-Projects-Ask` and `X-Projects-Reason`.
 - **Tests:** `tests/Feature/ProjectsSeriousTest.php` (6); `frontend/e2e/projects-serious-ui.mjs` (15 checks in a real browser).
 - **Not yet:** rolling the Access and Serious actions settings back from the History tab (it shows the general settings only; the versions are kept). Export as a serious action (there is no export yet). The identity step is exercised by Core's own tests, not here: this test world has no step-up tables, so only the "not set up, so refused" path is tested in Projects.
+
+### 2.5 Security (done)
+
+Needs script 258. Screens: `docs/screens/projects-security.png`, `projects-paused.png`.
+
+- **Service:** `ProjectSecurity`. **Middleware:** `ProjectsHold`, on every Projects route.
+- **Four signals**, each read from what is already recorded: many refusals (things the person may not do, counted across projects); wrong lock passwords; tries to open a project outside its hours; and an unusual number of different projects opened in a short time (opening the same few again and again does not count). Each has a count, a number of minutes, an on/off switch and a response. A signal fires once per window for a person.
+- **Three responses:** alert only; cool off (the person can read but not change anything in Projects for 15 minutes, a setting); pause (nothing in Projects answers for them until someone releases it; it does not run out by itself). Out of the box every signal only alerts.
+- **Alerts** go through the Core notifier (type "Projects: security alerts") to everyone who holds `projects.security.view`, except the person concerned. The signal is also written to the log.
+- **The Security page** (`/admin/projects/security`, in the Projects menu, `projects.security.view`): each signal with who, what happened, the project when it was about one, what was done, and the review. Review needs a note; release needs a note, ends every hold on that person, tells them, and is logged. Nobody reviews or releases themselves.
+- **Changed from the design:** "slow down" is "cool off: read only for a while", not a wait between actions. A wait between actions would break page loads, which make several requests at once.
+- **Changed from the design:** the rule that protects against locking the company out is "the people who can see the Security page are never paused or cooled off, only reported", not "an owner cannot be paused". TISL has no single owner flag to test, and this rule guarantees that someone who can release is always able to get in. The page warns when only one person holds the permission.
+- **A pause covers Projects only.** The rest of TISL keeps working. A paused person's Projects pages say why, in words.
+- **The Access tab** shows "Paused by Projects security" as a person's state.
+- **Signal settings** are a part of the settings (`security`), changed on the Security page with `projects.config.actions`, checked (count 2 to 1,000, 1 minute to 24 hours), versioned and logged.
+- **Routes:** `GET /security`, `PUT /security/events/{event}`, `PUT /configuration/security`.
+- **Tests:** `tests/Feature/ProjectsSecurityTest.php` (6); `frontend/e2e/projects-security-ui.mjs` (15 checks in a real browser).
+- **Not yet:** the "repeated exports" signal (there is no export yet; it arrives with export). Refusals made by a route's own permission check (before Projects is reached) are Core's to log and are not counted here. The opening-spree count is kept in the cache, so a cache flush restarts it.
+
+### Stage 2 as a whole
+
+- **Five questions, in order:** permission; project role; hours; lock; seriousness. The first three are in `ProjectAccess::decide()`, the fourth in `ProjectAccess::authorize()`, the fifth in the controllers after the others have passed. Security watches the refusals of all five.
+- **Until script 258 has run**, `ProjectsSetup::controlRoom()` is false: no hours, locks, serious actions or signals exist and nothing asks about them, so Stage 1 keeps working exactly as before.
+- **Whole test suite after 2.5:** 3,113 backend tests, 1 failure, which is Laravel's stock `ExampleTest` (not part of Projects, failing before this work). 276 checks across eleven Projects browser checks, all passing. The browser checks use a stand-in API, not a real database. Script 258 was not run against MySQL or MariaDB in this session: its tables are created in the tests through the same SQL, translated for SQLite.

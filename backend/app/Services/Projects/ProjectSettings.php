@@ -22,6 +22,9 @@ class ProjectSettings
         'access' => ['warn_days' => 7, 'default_hours' => [], 'read_outside_hours' => false, 'passes' => true, 'pass_minutes' => 60,
             // locked areas: minutes one stays open, wrong tries in a row before a wait, and the wait; hours a request for approval stays open
             'unlock_minutes' => 15, 'lock_tries' => 5, 'lock_wait_minutes' => 15, 'approval_hours' => 24],
+        // security signals: how many of what, in how many minutes, and what happens then. Out of the box each only alerts.
+        'security' => ['refusals' => ['on' => true, 'count' => 10, 'minutes' => 10, 'response' => 'alert'], 'lock_tries' => ['on' => true, 'count' => 5, 'minutes' => 15, 'response' => 'alert'],
+            'outside_hours' => ['on' => true, 'count' => 4, 'minutes' => 30, 'response' => 'alert'], 'opening_spree' => ['on' => true, 'count' => 50, 'minutes' => 15, 'response' => 'alert'], 'cool_off_minutes' => 15],
         // what each serious action needs before it happens (ProjectSerious lists the actions): out of the box, nothing
         'serious' => [
             'project.purge' => ['needs' => 'none', 'on_project' => false, 'reason' => false],
@@ -175,6 +178,10 @@ class ProjectSettings
 
             return ['warn_days' => $days, 'default_hours' => $hours, 'read_outside_hours' => (bool) $v['read_outside_hours'], 'passes' => (bool) $v['passes'], 'pass_minutes' => $minutes,
                 'unlock_minutes' => (int) $v['unlock_minutes'], 'lock_tries' => (int) $v['lock_tries'], 'lock_wait_minutes' => (int) $v['lock_wait_minutes'], 'approval_hours' => (int) $v['approval_hours']];
+        }
+
+        if ($part === 'security') {
+            return ProjectSecurity::tidy($v);
         }
 
         if ($part === 'serious') {

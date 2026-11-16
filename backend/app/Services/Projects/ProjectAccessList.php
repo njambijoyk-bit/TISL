@@ -148,6 +148,7 @@ class ProjectAccessList
             $m->starts_at !== null && $m->starts_at > $now->format('Y-m-d H:i:s') => ['not_started', 'Starts ' . $day($m->starts_at)],
             ! $user->hasPermission('projects.use') => ['no_permission', 'Their TISL role no longer opens Projects'],
             ! $m->role_on => ['role_off', 'Their project role is switched off'],
+            (app(ProjectSecurity::class)->holdOn((int) $user->id)['kind'] ?? null) === 'pause' => ['paused', 'Paused by Projects security'],
             ($held = $hours->heldWords($project, $m, $user)) !== null => $held,
             default => ['in', 'Can get in'],
         };

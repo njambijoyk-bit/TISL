@@ -9,6 +9,7 @@ use App\Services\Projects\ProjectApprovals;
 use App\Services\Projects\ProjectException;
 use App\Services\Projects\ProjectHours;
 use App\Services\Projects\ProjectLocks;
+use App\Services\Projects\ProjectSecurity;
 use App\Services\Projects\ProjectService;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
@@ -173,6 +174,36 @@ class AccessController extends Controller
             app(ProjectApprovals::class)->withdraw($approval, $request->user());
 
             return $this->approvals($request);
+        });
+    }
+
+    // ------------------------------------------------------------------ security
+
+    public function security(Request $request): JsonResponse
+    {
+        return response()->json(app(ProjectSecurity::class)->page($request->user()));
+    }
+
+    public function reviewEvent(Request $request, int $event): JsonResponse
+    {
+        $data = $request->validate(['note' => 'required|string|max:300', 'release' => 'sometimes|boolean']);
+
+        return $this->guard(function () use ($request, $event, $data) {
+            $security = app(ProjectSecurity::class);
+            empty($data['release']) ? $security->review($event, $data['note'], $request->user()) : $security->release($event, $data['note'], $request->user());
+
+            return $this->security($request);
+        });
+    }
+
+    public function saveSecurity(Request $request): JsonResponse
+    {
+        $data = $request->validate(['settings' => 'required|array']);
+
+        return $this->guard(function () use ($request, $data) {
+            app(\App\Services\Projects\ProjectSettings::class)->save('security', $data['settings'], $request->user());
+
+            return $this->security($request);
         });
     }
 

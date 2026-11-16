@@ -91,7 +91,6 @@ class ProjectLocks
                     "{$user->name} entered a wrong password {$s['lock_tries']} times on {$project->number}",
                     "{$user->name} tried {$s['lock_tries']} wrong passwords in a row for " . self::AREAS[$area][0] . " on {$project->number} ({$project->title}). They must wait {$s['lock_wait_minutes']} minutes before trying again.",
                     "/admin/projects/{$project->id}?tab=access", 'Open its Access tab');
-                app(ProjectSecurity::class)->noteLockBlocked($project, $user, $area);
                 throw new ProjectException("That is not the password. That was {$s['lock_tries']} wrong tries: wait {$s['lock_wait_minutes']} minutes before trying again.", 429, ['locked' => ['area' => $area]]);
             }
             $left = (int) $s['lock_tries'] - $tries;

@@ -52,6 +52,8 @@ class ProjectController extends Controller
                 ProjectLog::record((int) $p->id, $request->user(), 'project.opened', 'project', (int) $p->id);   // who looked at a confidential project is always recorded
             }
 
+            app(\App\Services\Projects\ProjectSecurity::class)->noteOpened($request->user(), (int) $p->id);
+
             return response()->json(['project' => $this->projects->show($request->user(), $p)]);
         });
     }

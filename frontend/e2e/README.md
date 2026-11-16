@@ -41,6 +41,7 @@ node e2e/projects-keys-ui.mjs                   # Projects: the shortcut keys (G
 node e2e/projects-access-ui.mjs                 # Projects: the Access tab (who can get in and why, end dates, hours for the work and for one person, passes), the closed-for-now page, and the access settings in Configuration (needs only the website)
 node e2e/projects-locks-ui.mjs                  # Projects: locked areas (a tab behind a password, wrong tries, locking again, sensitive fields), managing locks and resets on the Access tab, and the Approvals page (needs only the website)
 node e2e/projects-serious-ui.mjs                # Projects: serious actions (the table in Configuration, and the question before an action is sent to a supervisor) (needs only the website)
+node e2e/projects-security-ui.mjs               # Projects: the security page (signals, reviewing, releasing a paused person, signal settings) and what a paused person sees (needs only the website)
 ```
 
 Needs Playwright (`PLAYWRIGHT_MODULE_DIR` points at the folder holding it, default `/opt/node22/lib/node_modules/`) and a Chromium (`CHROME`).
