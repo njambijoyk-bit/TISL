@@ -43,6 +43,7 @@ class NotificationTypes
         'project_access' => ['Projects: access to a project (end dates, passes, approvals)', false, 'staff'],
         'project_security' => ['Projects: security alerts', true, 'staff'],
         'project_follow_up' => ['Projects: next actions due and given to you', false, 'staff'],
+        'project_task' => ['Projects: tasks given to you, due, late, and what they wait for done', false, 'staff'],
         'menu_bill_asked' => ['A table asked for the bill', true, 'staff'],
         'menu_cert_expiring' => ['A chef\'s certificate is running out', true, 'staff'],
         // security messages (Services/Security/SecurityAlerts). Essential: a security message is never silent.

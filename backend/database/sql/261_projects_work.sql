@@ -13,6 +13,7 @@
 --   project_timers                 the running timer, one per person
 --   project_rates                  the rate card: who, where, the Books service package their time is billed at
 --   project_disbursements          Books cost lines marked to bill back to the client, and the invoice they went on
+--   project_saved_views            a person's saved filters on the Work tab and their timesheets, by name
 -- No table here holds an amount of money: minutes, quantities and shares only. Prices are Books service packages.
 -- Safe to re-run: every table is CREATE IF NOT EXISTS and every row INSERT IGNORE.
 -- No permission seed is needed: the permissions came with script 257.
@@ -21,7 +22,7 @@
 
 -- PART A - READ-ONLY CHECK. Expect 1 (the foundation is there), then what exists now (nothing on a first run).
 SELECT COUNT(*) AS foundation_is_there FROM information_schema.tables WHERE table_schema = DATABASE() AND table_name = 'project_members';
-SELECT table_name FROM information_schema.tables WHERE table_schema = DATABASE() AND table_name IN ('project_work_tasks', 'project_task_people', 'project_task_waits', 'project_task_checks', 'project_scope_lines', 'project_key_dates', 'project_changes', 'project_change_effects', 'project_time', 'project_timers', 'project_rates', 'project_disbursements');
+SELECT table_name FROM information_schema.tables WHERE table_schema = DATABASE() AND table_name IN ('project_work_tasks', 'project_task_people', 'project_task_waits', 'project_task_checks', 'project_scope_lines', 'project_key_dates', 'project_changes', 'project_change_effects', 'project_time', 'project_timers', 'project_rates', 'project_disbursements', 'project_saved_views');
 
 -- PART B - CREATE
 DROP PROCEDURE IF EXISTS projects_work_guard;
@@ -233,6 +234,17 @@ CREATE TABLE IF NOT EXISTS project_disbursements (
     KEY idx_project_disbursements_project (project_id)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE utf8mb4_unicode_ci;
 
+CREATE TABLE IF NOT EXISTS project_saved_views (
+    id         BIGINT UNSIGNED NOT NULL AUTO_INCREMENT PRIMARY KEY,
+    user_id    BIGINT UNSIGNED NOT NULL,
+    place      VARCHAR(20) NOT NULL DEFAULT 'work',                      -- which screen it is for
+    name       VARCHAR(60) NOT NULL,
+    settings   TEXT NOT NULL,                                            -- the filters, grouping and view, as JSON
+    created_at TIMESTAMP NULL,
+    updated_at TIMESTAMP NULL,
+    UNIQUE KEY uq_project_saved_views (user_id, place, name)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE utf8mb4_unicode_ci;
+
 -- project roles: the Lead works on tasks, logs time and approves time on the work; a Member works on tasks and logs time
 INSERT IGNORE INTO project_role_permissions (project_role_id, ability) SELECT id, a.ability FROM project_roles JOIN (SELECT 'tasks' AS ability UNION ALL SELECT 'time' AS ability UNION ALL SELECT 'approve_time' AS ability) a WHERE `key` = 'lead';
 INSERT IGNORE INTO project_role_permissions (project_role_id, ability) SELECT id, a.ability FROM project_roles JOIN (SELECT 'tasks' AS ability UNION ALL SELECT 'time' AS ability) a WHERE `key` = 'member';
@@ -252,5 +264,5 @@ INSERT IGNORE INTO project_term_names (industry_key, term_key, name, name_plural
 INSERT IGNORE INTO project_term_names (industry_key, term_key, name, name_plural) SELECT `key`, 'task_done', 'Done', 'Done' FROM project_industries;
 INSERT IGNORE INTO project_term_names (industry_key, term_key, name, name_plural) SELECT `key`, 'task_cancelled', 'Cancelled', 'Cancelled' FROM project_industries;
 
--- PART C - CHECK (expect 12 tables)
-SELECT COUNT(*) AS tables_made FROM information_schema.tables WHERE table_schema = DATABASE() AND table_name IN ('project_work_tasks', 'project_task_people', 'project_task_waits', 'project_task_checks', 'project_scope_lines', 'project_key_dates', 'project_changes', 'project_change_effects', 'project_time', 'project_timers', 'project_rates', 'project_disbursements');
+-- PART C - CHECK (expect 13 tables)
+SELECT COUNT(*) AS tables_made FROM information_schema.tables WHERE table_schema = DATABASE() AND table_name IN ('project_work_tasks', 'project_task_people', 'project_task_waits', 'project_task_checks', 'project_scope_lines', 'project_key_dates', 'project_changes', 'project_change_effects', 'project_time', 'project_timers', 'project_rates', 'project_disbursements', 'project_saved_views');

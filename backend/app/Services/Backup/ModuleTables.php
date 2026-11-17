@@ -147,7 +147,7 @@ final class ModuleTables
             'project_interactions', 'project_follow_ups', 'project_client_flags', 'project_directory',   // stage 3 (script 259)
             'project_client_accounts', 'project_client_holdings', 'project_client_holding_owners', 'project_billing_stages', 'project_money_terms', 'project_ledgers',   // stage 4 (script 260)
             'project_work_tasks', 'project_task_people', 'project_task_waits', 'project_task_checks', 'project_scope_lines', 'project_key_dates', 'project_changes', 'project_change_effects',
-            'project_time', 'project_timers', 'project_rates', 'project_disbursements',   // stage 5 (script 261)
+            'project_time', 'project_timers', 'project_rates', 'project_disbursements', 'project_saved_views',   // stage 5 (script 261)
         ],
         'listings'       => [/* built later */],
         'campaigns'      => ['campaigns', 'campaign_sections', 'campaign_items', 'campaign_events',

@@ -95,6 +95,31 @@ class WorkController extends Controller
         });
     }
 
+    public function views(Request $request, string $place): JsonResponse
+    {
+        return $this->guard(fn () => response()->json(['views' => app(\App\Services\Projects\ProjectSavedViews::class)->of($request->user(), $place)]));
+    }
+
+    public function saveView(Request $request, string $place): JsonResponse
+    {
+        return $this->guard(function () use ($request, $place) {
+            $v = app(\App\Services\Projects\ProjectSavedViews::class);
+            $id = $v->save($request->user(), $place, (string) $request->input('name'), (array) $request->input('settings', []));
+
+            return response()->json(['id' => $id, 'views' => $v->of($request->user(), $place)], 201);
+        });
+    }
+
+    public function deleteView(Request $request, string $place, int $view): JsonResponse
+    {
+        return $this->guard(function () use ($request, $place, $view) {
+            $v = app(\App\Services\Projects\ProjectSavedViews::class);
+            $v->delete($request->user(), $view);
+
+            return response()->json(['views' => $v->of($request->user(), $place)]);
+        });
+    }
+
     public function settings(Request $request): JsonResponse
     {
         return response()->json(['work' => app(ProjectSettings::class)->get('work'), 'ready' => ProjectsSetup::work(), 'can' => ['change' => $request->user()->hasPermission('projects.config.manage')]]);

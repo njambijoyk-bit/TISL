@@ -4,7 +4,7 @@ Status: the owner said "build" on 2026-11-17, accepting the four choices at the 
 
 Stages 1 to 4 built the work, who may touch it, who it is for, and its money. Stage 5 builds the doing of it: tasks, scope, key dates, changes, time, and billing that time. It also brings the three things Stage 4 left waiting: hourly billing, disbursements and write-offs.
 
-Size: large, about the size of Stage 3 and larger than Stage 4. Ten builds, one script (`261_projects_work.sql`, twelve tables), no new permissions (all twelve it uses are in the catalogue since Stage 1).
+Size: large, about the size of Stage 3 and larger than Stage 4. Ten builds, one script (`261_projects_work.sql`, thirteen tables), no new permissions (all twelve it uses are in the catalogue since Stage 1).
 
 ## The rule this stage keeps
 
@@ -150,7 +150,7 @@ Every build runs the Projects, Books and Payroll tests and the Projects browser 
 
 ### To run
 
-1. `backend/database/sql/261_projects_work.sql` (after 257 to 260). Twelve tables, the new project-role abilities, and the five task-status words in the names table. It adds only.
+1. `backend/database/sql/261_projects_work.sql` (after 257 to 260). Thirteen tables, the new project-role abilities, and the five task-status words in the names table. It adds only.
 2. No permission seed.
 
 ### 5.1 Tasks and the Work tab (done)
@@ -171,3 +171,15 @@ Screens: `docs/screens/projects-work.png`, `docs/screens/projects-work-task.png`
 - **Work settings** (Configuration, "Work and time"): rounding (default 6 minutes), forgotten timer cap (10 hours), the Attendance check (warn), who approves time (the work's leads), billable by default, key date warning days (14,7,1), the weekly reminder, and split pay by timesheets (off). Only "billable by default" is used yet; the rest arrive with their builds.
 - **Routes:** `GET`, `POST /projects/{project}/tasks`; `GET`, `PUT`, `DELETE /projects/{project}/tasks/{task}`; `POST .../status`; `POST .../checks`; `PUT`, `DELETE .../checks/{check}`; `GET`, `PUT /projects/configuration/work`.
 - **Tests:** `tests/Feature/ProjectsTasksTest.php` (6). Three earlier tests now expect the new abilities and the five new words. All Projects tests pass. Browser check `e2e/projects-work-ui.mjs` (13 checks); the configuration, record, money and serious checks still pass.
+
+### 5.2 Board, timeline, saved views, the calendar and task notices (done)
+
+Screens: `docs/screens/projects-work-board.png`, `docs/screens/projects-work-timeline.png`.
+
+- **Board:** a column per status (in the work's industry words). Drag a card, or use its "Move to" list (for the keyboard), to change the status; the server makes the same checks as the task panel. A move that needs a reason opens the task with the question. Cards move for people who manage tasks or are on that task.
+- **Timeline:** a bar per task from start to due (one day when only one date is given), on one scale with marks (Mondays over a short range, months over a long one) and today. Done is green, late red. Read only. Tasks without dates are listed under it.
+- **Saved views:** a person saves the filters and the view by name (new table `project_saved_views`, added to script 261; 261 is not run yet). Each person's own; up to 30; the same name replaces it; only known settings are kept.
+- **Calendar:** a task with a due date is an all-day entry on that day for each person on it (source `project_task`, kind `task`), written through Core's CalendarService. It follows the date and the people; a done task stays on its day marked done; a cancelled or deleted task, or one with no due date, comes off. Core's calendar refresh now also brings tasks in and sweeps the ones that no longer apply (one small change in `CalendarService::refreshFromSources`); the old module's `task` entries are still swept away as before.
+- **Notices** (new type "Projects: tasks given to you, due, late, and what they wait for done", not essential, staff): when someone gives you a task (not when you give one to yourself, not again when you are already on it); when a task that yours waits for is done; and each morning at 07:30 (`projects:task-reminders`), one message per person listing tasks due tomorrow and tasks that became late yesterday. Frozen work and work in the trash are left out.
+- **Routes:** `GET`, `POST /projects/saved-views/{place}`, `DELETE /projects/saved-views/{place}/{view}`.
+- **Tests:** `tests/Feature/ProjectsTaskViewsTest.php` (3); all Projects and Calendar tests pass. The Work browser check now has 22 checks (board, timeline, saved views).

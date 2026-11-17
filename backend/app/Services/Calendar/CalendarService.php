@@ -96,6 +96,10 @@ class CalendarService
                     'starts_at' => Carbon::parse($p->due_date)->startOfDay(), 'all_day' => true, 'status' => $p->state, 'visibility' => 'team', 'url' => "/admin/projects/{$p->id}"]);
             }
         }
+        // tasks on the work they are given (Projects stage 5): kept here, the sweep below takes off the ones that no longer apply
+        if (\App\Services\Projects\ProjectTaskCalendar::ready()) {
+            $keep[\App\Services\Projects\ProjectTaskCalendar::SOURCE] = app(\App\Services\Projects\ProjectTaskCalendar::class)->refreshFor($user, $from, $to);
+        }
         // bookings on the resources they run, in any state: pending, done, cancelled and no-show ones stay on the calendar, marked as such.
         // This also brings back ones that were taken off before the calendar kept them.
         $resourceIds = BookableResource::where('user_id', $uid)->pluck('id');
@@ -117,7 +121,7 @@ class CalendarService
         CalendarEntry::where('user_id', $uid)->where('source_type', 'ticket')->whereNotIn('source_id', Ticket::where('assigned_to', $uid)->pluck('id'))->delete();
 
         // entries in the window whose source is done, moved or gone
-        foreach (['task', 'milestone', 'project'] as $type) {
+        foreach (['task', 'milestone', 'project', \App\Services\Projects\ProjectTaskCalendar::SOURCE] as $type) {
             CalendarEntry::where('user_id', $uid)->where('source_type', $type)->whereBetween('starts_at', [$from, $to])
                 ->when(! empty($keep[$type]), fn ($q) => $q->whereNotIn('source_id', $keep[$type]))->delete();
         }

@@ -1,6 +1,6 @@
-// Browser check: the Work tab (build 5.1). Tasks grouped by phase with subtasks under their task, filters, adding a task with people, the task
+// Browser check: the Work tab (builds 5.1 and 5.2). Tasks grouped by phase with subtasks under their task, filters, adding a task with people, the task
 // panel: moving the status (asking why when it waits for something open), the checklist, changing and deleting it; and someone on a task who
-// may not manage tasks. The API is answered by the check itself; the rules are proved by the backend tests.
+// may not manage tasks; the board (moving by its list, a move that needs a reason opening the panel), the timeline, and saved views. The API is answered by the check itself; the rules are proved by the backend tests.
 // It needs only the website (npx vite --port 5177): who is signed in is stood in for too, so no server and no database are used.
 import { D, SITE, ok, finish, open } from './lib.mjs';
 
@@ -52,11 +52,18 @@ await page.route(/\/api\/admin\/projects\/413\/tasks(\?.*)?$/, (route) => {
   return json(route, list(q));
 });
 let askedWhy = false;
+let views = [{ id: 3, name: 'My overdue', settings: { mine: true, overdue: true, view: 'board' } }];
+await page.route(/\/api\/admin\/projects\/saved-views\/work(\/\d+)?$/, (route) => {
+  const m = route.request().method();
+  if (m === 'POST') { const b = route.request().postDataJSON(); sent.push(['view', b]); views = [...views, { id: 4, name: b.name, settings: b.settings }]; return json(route, { id: 4, views }, 201); }
+  if (m === 'DELETE') { sent.push(['unview', Number(route.request().url().split('/').pop())]); views = views.filter((v) => v.id !== Number(route.request().url().split('/').pop())); return json(route, { views }); }
+  return json(route, { views });
+});
 await page.route(/\/api\/admin\/projects\/413\/tasks\/\d+(\/.*)?$/, (route) => {
   const url = route.request().url(); const m = route.request().method(); const id = Number(url.match(/tasks\/(\d+)/)[1]); const b = route.request().postDataJSON?.() ?? null;
   if (/\/status$/.test(url)) {
     sent.push(['move', id, b]);
-    if (id === 14 && b.status === 'doing' && !b.reason) { askedWhy = true; return json(route, { message: 'This waits for M-0413-T12, which is not done yet. Say why it goes ahead anyway.', needs_reason: true, waits_for: [12] }, 422); }
+    if ((id === 14 || id === 16) && b.status === 'doing' && !b.reason) { askedWhy = true; return json(route, { message: 'This waits for M-0413-T12, which is not done yet. Say why it goes ahead anyway.', needs_reason: true, waits_for: [12] }, 422); }
     tasks = tasks.map((t) => (t.id === id ? { ...t, status: b.status } : t)); return json(route, { task: one(id) });
   }
   if (/\/checks$/.test(url)) { sent.push(['check', id, b]); checks[id] = [...(checks[id] ?? []), { id: 9, text: b.text, done: false }]; tasks = tasks.map((t) => (t.id === id ? { ...t, checks: { total: checks[id].length, done: checks[id].filter((x) => x.done).length } } : t)); return json(route, { task: one(id) }, 201); }
@@ -123,6 +130,40 @@ await page.locator('[data-task="M-0413-T14"]').getByRole('button', { name: 'Dele
 await page.getByRole('button', { name: 'Yes, delete it' }).click();
 await page.waitForTimeout(500);
 ok('deleting asks first, then the task goes', JSON.stringify(last('delete')) === JSON.stringify(['delete', 14]) && (await page.locator('[data-task-row="M-0413-T14"]').count()) === 0 && (await page.locator('[data-task]').count()) === 0);
+
+// ---------------------------------------------------------------- board, timeline, saved views (5.2)
+await page.getByRole('button', { name: 'Board', exact: true }).click();
+await page.locator('[data-board]').waitFor({ timeout: 5000 });
+ok('the board has a column per status, in the industry\'s words, with the cards in them', /Awaiting client\s*1/.test(await text(page.locator('[data-column="waiting"]'))) && (await page.locator('[data-column="doing"] [data-card="M-0413-T12"]').count()) === 1 && (await page.locator('[data-column="todo"] [data-card="M-0413-T16"]').count()) === 1);
+await page.screenshot({ path: D + 'projects-work-board.png', fullPage: true });
+await page.getByLabel('Move M-0413-T13 to').selectOption('doing');
+await page.waitForTimeout(500);
+ok('moving a card by its list sends the move and the card changes column', JSON.stringify(last('move').slice(0, 2)) === '["move",13]' && last('move')[2].status === 'doing' && (await page.locator('[data-column="doing"] [data-card="M-0413-T13"]').count()) === 1);
+await page.getByLabel('Move M-0413-T16 to').selectOption('doing');
+await page.locator('[data-task="M-0413-T16"] [data-why]').waitFor({ timeout: 5000 });
+ok('a move that needs a reason opens the task, asking why', /This waits for M-0413-T12/.test(await text(page.locator('[data-why]'))));
+await page.getByLabel('Why it goes ahead').fill('Agreed with the client');
+await page.getByRole('button', { name: /Go ahead/ }).click();
+await page.waitForTimeout(500);
+ok('the reason goes with the move', last('move')[1] === 16 && last('move')[2].reason === 'Agreed with the client' && last('move')[2].status === 'doing');
+await page.locator('[data-task="M-0413-T16"]').getByRole('button', { name: 'Close' }).click();
+
+await page.getByRole('button', { name: 'Timeline', exact: true }).click();
+await page.locator('[data-timeline]').waitFor({ timeout: 5000 });
+ok('the timeline draws a bar for each task with a date, and lists the rest', (await page.locator('[data-bar]').count()) === 3 && /Without dates:\s*T15 List of documents/.test(await text(page.locator('[data-timeline]'))));
+await page.screenshot({ path: D + 'projects-work-timeline.png', fullPage: true });
+
+await page.getByLabel('Saved views').selectOption('3');
+await page.waitForTimeout(500);
+ok('a saved view puts back its filters and its view', last('list')[1].mine === '1' && last('list')[1].overdue === '1' && (await page.locator('[data-board]').count()) === 1);
+await page.getByRole('button', { name: 'Save this view' }).click();
+await page.getByLabel('Name of the view').fill('Board, mine');
+await page.locator('[data-views]').getByRole('button', { name: 'Save', exact: true }).click();
+await page.waitForTimeout(400);
+ok('saving a view sends the filters and the view with its name', last('view')[1].name === 'Board, mine' && last('view')[1].settings.view === 'board' && last('view')[1].settings.mine === true);
+await page.getByLabel('Delete a saved view').selectOption('3');
+await page.waitForTimeout(400);
+ok('a saved view can be deleted', JSON.stringify(last('unview')) === '["unview",3]' && (await page.getByLabel('Saved views').locator('option').allInnerTexts()).join('|') === 'Saved views…|Board, mine');
 
 // ---------------------------------------------------------------- someone on a task, without managing tasks
 manage = false;

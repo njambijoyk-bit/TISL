@@ -41,6 +41,7 @@ Schedule::command('menus:rota-watch')->everyTenMinutes()->withoutOverlapping(); 
 Schedule::command('menus:rota-overtime')->dailyAt('05:40')->withoutOverlapping();   // chefs' overtime of the last weeks becomes entries for a manager to approve (only when the settings ask for approval)
 Schedule::command('menus:rota-plan')->dailyAt('06:10')->withoutOverlapping();   // weekly patterns plan the coming weeks of the chef rota as drafts
 Schedule::command('projects:follow-up-reminders')->dailyAt('07:20')->withoutOverlapping();   // next actions on leads, clients and opportunities that are due or late
+Schedule::command('projects:task-reminders')->dailyAt('07:30')->withoutOverlapping();   // tasks due tomorrow, and tasks that became late yesterday
 Schedule::command('projects:access-warnings')->dailyAt('07:10')->withoutOverlapping();   // tell leads whose people's access to a project ends soon
 Schedule::command('projects:empty-trash')->dailyAt('01:20')->withoutOverlapping();   // what has been in the Projects trash longer than the company keeps it
 Schedule::command('stock:expire')->dailyAt('00:10')->withoutOverlapping();   // expired batches, auto write-offs, expiry warnings

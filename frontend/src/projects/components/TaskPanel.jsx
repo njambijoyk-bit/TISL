@@ -12,7 +12,7 @@ const grid = { display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(18
  * One task (build 5.1): its details, status, checklist, subtasks and what it waits for. Someone who manages tasks changes everything; someone the
  * task is given to moves its status and ticks its checklist. Starting it before what it waits for is done asks why.
  */
-export default function TaskPanel({ projectId, taskId, list, onChanged, onClose, onOpen }) {
+export default function TaskPanel({ projectId, taskId, list, onChanged, onClose, onOpen, pending = null }) {
   const [t, setT] = useState(null);
   const [edit, setEdit] = useState(null);
   const [why, setWhy] = useState(null);   // { status, text } when a reason is needed
@@ -24,7 +24,7 @@ export default function TaskPanel({ projectId, taskId, list, onChanged, onClose,
   const load = useCallback(async () => {
     try { setT((await projectsAPI.task(projectId, taskId)).task); setProblem(''); } catch (e) { setProblem(message(e, 'This task could not be opened.')); }
   }, [projectId, taskId]);
-  useEffect(() => { setEdit(null); setWhy(null); setSure(false); load(); }, [load]);
+  useEffect(() => { setEdit(null); setWhy(pending); setSure(false); load(); }, [load]); // eslint-disable-line react-hooks/exhaustive-deps -- a move refused on the board arrives once, with the panel
 
   const run = async (call, done) => {
     setBusy(true);

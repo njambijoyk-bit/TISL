@@ -42,7 +42,7 @@ class ProjectTasks
         $phases = DB::table('project_phases')->where('project_id', $project->id)->whereNull('deleted_at')->orderBy('sort_order')->orderBy('id')->get(['id', 'name']);
         $today = now()->toDateString();
 
-        $shape = function ($t) use ($people, $checks, $waits, $logged, $byId, $project, $today) {
+        $shape = function ($t) use ($people, $checks, $waits, $logged, $byId, $project, $today, $user) {
             $w = ($waits[$t->id] ?? collect())->map(fn ($x) => $byId[$x->waits_for_id] ?? null)->filter();
 
             return [
@@ -53,6 +53,7 @@ class ProjectTasks
                 'estimate_minutes' => $t->estimate_minutes !== null ? (int) $t->estimate_minutes : null, 'logged_minutes' => (int) ($logged[$t->id] ?? 0),
                 'billable' => $t->billable === null ? null : (bool) $t->billable,
                 'people' => $people[$t->id] ?? [],
+                'mine' => in_array((int) $user->id, array_column($people[$t->id] ?? [], 'id'), true),
                 'checks' => ['total' => (int) ($checks[$t->id]->n ?? 0), 'done' => (int) ($checks[$t->id]->d ?? 0)],
                 'waits_for' => $w->map(fn ($x) => ['id' => (int) $x->id, 'ref' => "{$project->number}-T{$x->number}", 'title' => $x->title, 'open' => ! in_array($x->status, self::CLOSED, true)])->values()->all(),
                 'completed_at' => $t->completed_at,
@@ -114,19 +115,23 @@ class ProjectTasks
         $row = $this->fields($project, $d, null);
         $people = $this->checkPeople($project, (array) ($d['people'] ?? []));
 
-        return DB::transaction(function () use ($project, $row, $people, $d, $by) {
+        $id = DB::transaction(function () use ($project, $row, $people, $d, $by) {
             $number = (int) DB::table('project_work_tasks')->where('project_id', $project->id)->lockForUpdate()->max('number') + 1;
             $order = (int) DB::table('project_work_tasks')->where('project_id', $project->id)->where('parent_id', $row['parent_id'] ?? null)->max('sort_order') + 1;
             $id = DB::table('project_work_tasks')->insertGetId($row + ['project_id' => $project->id, 'number' => $number, 'status' => $row['status'] ?? 'todo', 'sort_order' => $order,
                 'created_by' => $by->id, 'created_at' => now(), 'updated_at' => now()]);
-            $this->setPeople($id, $people, $by);
+            $added = $this->setPeople($id, $people, $by);
             if (array_key_exists('waits_for', $d)) {
                 $this->setWaits($project, $id, (array) $d['waits_for']);
             }
             ProjectLog::record((int) $project->id, $by, 'task.created', 'task', $id, null, ['ref' => "T{$number}", 'title' => $row['title']]);
 
-            return $id;
+            return [$id, $added];
         });
+        [$id, $added] = $id;
+        $this->afterChange($project, $id, $added, $by);
+
+        return $id;
     }
 
     /** Change a task's details, people or what it waits for. The status has its own door (move()). */
@@ -137,19 +142,23 @@ class ProjectTasks
         unset($d['status']);
         $row = $this->fields($project, $d, $t);
         $people = array_key_exists('people', $d) ? $this->checkPeople($project, (array) $d['people']) : null;
-        DB::transaction(function () use ($project, $t, $row, $people, $d, $by) {
+        $added = DB::transaction(function () use ($project, $t, $row, $people, $d, $by) {
+            $added = [];
             if ($row) {
                 DB::table('project_work_tasks')->where('id', $t->id)->update($row + ['updated_at' => now()]);
             }
             if ($people !== null) {
-                $this->setPeople((int) $t->id, $people, $by);
+                $added = $this->setPeople((int) $t->id, $people, $by);
             }
             if (array_key_exists('waits_for', $d)) {
                 $this->setWaits($project, (int) $t->id, (array) $d['waits_for']);
             }
             $old = array_intersect_key((array) $t, $row);
             ProjectLog::record((int) $project->id, $by, 'task.changed', 'task', (int) $t->id, $old ?: null, $row + ($people !== null ? ['people' => $people] : []));
+
+            return $added;
         });
+        $this->afterChange($project, (int) $t->id, $added, $by);
     }
 
     /**
@@ -178,9 +187,12 @@ class ProjectTasks
         if ($status === 'done' && DB::table('project_work_tasks')->where('parent_id', $t->id)->whereNull('deleted_at')->whereNotIn('status', self::CLOSED)->exists()) {
             throw new ProjectException('Finish or cancel its subtasks first.');
         }
-        $closing = in_array($status, self::CLOSED, true);
         DB::table('project_work_tasks')->where('id', $t->id)->update(['status' => $status, 'completed_at' => $status === 'done' ? now() : null, 'completed_by' => $status === 'done' ? $by->id : null, 'updated_at' => now()]);
-        ProjectLog::record((int) $project->id, $by, 'task.moved', 'task', (int) $t->id, ['status' => $t->status], ['status' => $status] + ($closing ? [] : []), ProjectLog::DONE, $reason);
+        ProjectLog::record((int) $project->id, $by, 'task.moved', 'task', (int) $t->id, ['status' => $t->status], ['status' => $status], ProjectLog::DONE, $reason);
+        app(ProjectTaskCalendar::class)->sync((int) $t->id);
+        if ($status === 'done') {
+            $this->tellWaiting($project, $t, $by);
+        }
     }
 
     public function delete(object $project, int $taskId, User $by): int
@@ -196,8 +208,43 @@ class ProjectTasks
             DB::table('project_task_waits')->whereIn('waits_for_id', $ids)->delete();
             ProjectLog::record((int) $project->id, $by, 'task.deleted', 'task', (int) $t->id, ['ref' => "T{$t->number}", 'title' => $t->title], ['with_subtasks' => count($ids) - 1]);
         });
+        foreach ($ids as $id) {
+            app(ProjectTaskCalendar::class)->sync($id);
+        }
 
         return count($ids);
+    }
+
+    /**
+     * The daily reminder (07:30): each person hears, in one message, which of their open tasks are due tomorrow and which became late yesterday.
+     * Run once a day, so each task is mentioned on those two days only. Work in the trash or frozen is left out. @return int people told
+     */
+    public function remind(?\Carbon\Carbon $today = null): int
+    {
+        if (! ProjectsSetup::work()) {
+            return 0;
+        }
+        $today ??= now();
+        $rows = DB::table('project_work_tasks as t')->join('project_task_people as tp', 'tp.task_id', '=', 't.id')->join('projects as p', 'p.id', '=', 't.project_id')
+            ->whereNull('t.deleted_at')->whereNull('p.deleted_at')->whereNull('p.frozen_at')->whereNotIn('t.status', self::CLOSED)
+            ->whereIn('t.due_date', [$today->copy()->addDay()->toDateString(), $today->copy()->subDay()->toDateString()])
+            ->orderBy('t.due_date')->get(['tp.user_id', 't.id', 't.number', 't.title', 't.due_date', 'p.id as project_id', 'p.number as project_number']);
+        $told = 0;
+        foreach ($rows->groupBy('user_id') as $userId => $mine) {
+            $user = User::find($userId);
+            if (! $user) {
+                continue;
+            }
+            $line = fn ($t) => "{$t->project_number}-T{$t->number} {$t->title}";
+            $soon = $mine->where('due_date', $today->copy()->addDay()->toDateString());
+            $late = $mine->where('due_date', $today->copy()->subDay()->toDateString());
+            $parts = array_filter([$soon->isNotEmpty() ? "Due tomorrow:\n" . $soon->map($line)->implode("\n") : null, $late->isNotEmpty() ? "Late since yesterday:\n" . $late->map($line)->implode("\n") : null]);
+            $title = $late->isNotEmpty() ? ($late->count() === 1 ? 'A task of yours is late' : "{$late->count()} tasks of yours are late") : ($soon->count() === 1 ? 'A task of yours is due tomorrow' : "{$soon->count()} tasks of yours are due tomorrow");
+            ProjectNotices::tell($user, ProjectNotices::TASK, $title, implode("\n\n", $parts), '/admin/projects/my-work', 'Open My Work');
+            $told++;
+        }
+
+        return $told;
     }
 
     // ------------------------------------------------------------------ checklist
@@ -392,12 +439,42 @@ class ProjectTasks
             ->orderBy('u.name')->distinct()->get(['u.id', 'u.name'])->map(fn ($u) => ['id' => (int) $u->id, 'name' => $u->name])->all();
     }
 
-    private function setPeople(int $taskId, array $ids, User $by): void
+    /** @return int[] the people newly given the task */
+    private function setPeople(int $taskId, array $ids, User $by): array
     {
         $now = DB::table('project_task_people')->where('task_id', $taskId)->pluck('user_id')->map(fn ($v) => (int) $v)->all();
         DB::table('project_task_people')->where('task_id', $taskId)->whereNotIn('user_id', $ids ?: [0])->delete();
-        foreach (array_diff($ids, $now) as $u) {
+        $added = array_values(array_diff($ids, $now));
+        foreach ($added as $u) {
             DB::table('project_task_people')->insert(['task_id' => $taskId, 'user_id' => $u, 'added_by' => $by->id, 'added_at' => now()]);
+        }
+
+        return $added;
+    }
+
+    /** After a task is added or changed: its calendar entries, and a notice to the people newly given it (not to whoever gave it). */
+    private function afterChange(object $project, int $taskId, array $added, User $by): void
+    {
+        app(ProjectTaskCalendar::class)->sync($taskId);
+        $added = array_values(array_diff($added, [(int) $by->id]));
+        if (! $added) {
+            return;
+        }
+        $t = DB::table('project_work_tasks')->where('id', $taskId)->first();
+        $due = $t->due_date ? ', due ' . \Carbon\Carbon::parse($t->due_date)->format('j M Y') : '';
+        ProjectNotices::tell(User::whereIn('id', $added)->get(), ProjectNotices::TASK, "{$by->name} gave you a task on {$project->number}",
+            "{$project->number}-T{$t->number} {$t->title}{$due}.", "/admin/projects/{$project->id}?tab=work&task={$t->id}", 'Open the task');
+    }
+
+    /** A task is done: the people on tasks that wait for it are told. */
+    private function tellWaiting(object $project, object $done, User $by): void
+    {
+        $waiting = DB::table('project_task_waits as w')->join('project_work_tasks as t', 't.id', '=', 'w.task_id')->where('w.waits_for_id', $done->id)->whereNull('t.deleted_at')
+            ->whereNotIn('t.status', self::CLOSED)->get(['t.id', 't.number', 't.title']);
+        foreach ($waiting as $w) {
+            $people = DB::table('project_task_people')->where('task_id', $w->id)->where('user_id', '!=', $by->id)->pluck('user_id');
+            ProjectNotices::tell(User::whereIn('id', $people)->get(), ProjectNotices::TASK, "{$project->number}-T{$done->number} is done",
+                "{$project->number}-T{$w->number} {$w->title} was waiting for it.", "/admin/projects/{$project->id}?tab=work&task={$w->id}", 'Open the task');
         }
     }
 
