@@ -42,6 +42,8 @@ class ProjectSettings
             'project.delete' => ['needs' => 'none', 'on_project' => false, 'reason' => false],
             'member.remove' => ['needs' => 'none', 'on_project' => false, 'reason' => false],
             'role.change' => ['needs' => 'none', 'on_project' => false, 'reason' => false],
+            'held.pay_out' => ['needs' => 'none', 'on_project' => false, 'reason' => false],
+            'held.guard_off' => ['needs' => 'none', 'on_project' => false, 'reason' => false],
         ],
     ];
 

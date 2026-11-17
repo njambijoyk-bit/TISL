@@ -54,6 +54,7 @@ trait CreatesProjectsWorld
         $this->runProjectStarterRows('260_projects_money.sql');
         $this->runProjectStarterRows('258_projects_control_room.sql');
         ProjectsSetup::forget();
+        \App\Services\Books\ClientMoneyGuard::forget();
         $this->standInAccess();
     }
 

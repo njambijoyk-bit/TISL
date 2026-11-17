@@ -10,15 +10,16 @@ import { td, th } from '../../components/uiTokens';
 import ProjectKeys from '../../components/ProjectKeys';
 
 /**
- * Client money (docs/PROJECTS_STAGE4_SPEC.md, build 4.4): money held for clients, never the firm's own. An account is a Books bank ledger with a
+ * Client money (docs/PROJECTS_STAGE4_SPEC.md, builds 4.4 and 4.5): money held for clients, never the firm's own. An account is a Books bank ledger with a
  * liability ledger; pooled (a balance per client) or dedicated (one balance). A balance belongs to one client or several jointly. What each holds
- * is worked out from the books. Receiving posts a journal in the books.
+ * is worked out from the books. Receiving and paying out post a journal in the books; paying out never takes more than the balance holds
+ * and is a serious action. Each account's guard makes the books themselves refuse anything that would take a balance below zero.
  */
 export default function ProjectsClientMoney() {
   const navigate = useNavigate();
   const [data, setData] = useState(null);
   const [failed, setFailed] = useState('');
-  const [mode, setMode] = useState(null);   // null | 'account' | { balance: account } | { receive: balance }
+  const [mode, setMode] = useState(null);   // null | 'account' | { balance: account } | { receive: balance } | { payOut: balance }
   const [form, setForm] = useState({});
   const [q, setQ] = useState('');
   const [found, setFound] = useState([]);
@@ -101,7 +102,7 @@ export default function ProjectsClientMoney() {
           <Panel key={a.id} data-account={a.name}>
             <PanelTitle
               hint={<>{a.kind === 'pooled' ? 'Pooled' : 'Dedicated'} · bank ledger {a.bank_ledger.name}{a.liability_ledger ? ` · owed through ${a.liability_ledger.name}` : ''}</>}
-              right={<span style={{ display: 'inline-flex', gap: 8, alignItems: 'center' }}><strong style={{ fontVariantNumeric: 'tabular-nums' }}>{money(a.held, cur)} held</strong><Chip status={a.guard_on ? 'good' : 'neutral'}>{a.guard_on ? 'Guard on' : 'Guard off'}</Chip></span>}
+              right={<span style={{ display: 'inline-flex', gap: 8, alignItems: 'center' }}><strong style={{ fontVariantNumeric: 'tabular-nums' }}>{money(a.held, cur)} held</strong><Chip status={a.guard_on ? 'good' : 'neutral'}>{a.guard_on ? 'Guard on' : 'Guard off'}</Chip>{can.manage && !mode && <Btn small aria-label={`${a.guard_on ? 'Switch off' : 'Switch on'} the guard on ${a.name}`} busy={busy} onClick={() => run(() => projectsAPI.setClientMoneyGuard(a.id, !a.guard_on), a.guard_on ? 'The guard is off' : 'The guard is on: the books now refuse anything that takes a balance below zero')}>{a.guard_on ? 'Switch off' : 'Switch on'}</Btn>}</span>}
             >
               {a.name}
             </PanelTitle>
@@ -128,7 +129,7 @@ export default function ProjectsClientMoney() {
                       <td style={td}><strong>{b.label}</strong>{b.joint && <Chip status="info" style={{ marginLeft: 6 }}>Joint</Chip>}{b.joint && <span style={{ display: 'block', fontSize: 12.5, color: 'var(--text-secondary)' }}>{b.owners.map((x) => x.name).join(', ')}</span>}</td>
                       <td style={td}>{b.project ? (b.project.id ? <Link to={`/admin/projects/${b.project.id}?tab=money`} style={{ color: 'var(--color-primary-500)' }}>{b.project.number}</Link> : b.project.number) : <span style={{ color: 'var(--text-secondary)' }}>·</span>}</td>
                       <td style={{ ...td, textAlign: 'right', fontVariantNumeric: 'tabular-nums', fontWeight: 600 }}>{money(b.held, cur)}</td>
-                      <td style={{ ...td, textAlign: 'right' }}>{can.manage && !b.is_closed && !mode && <Btn small aria-label={`Receive money for ${b.label}`} onClick={() => open({ receive: b }, { amount: '', from: '', reference: '', date: new Date().toISOString().slice(0, 10) })}>Receive</Btn>}</td>
+                      <td style={{ ...td, textAlign: 'right' }}>{can.manage && !b.is_closed && !mode && <span style={{ display: 'inline-flex', gap: 6 }}><Btn small aria-label={`Receive money for ${b.label}`} onClick={() => open({ receive: b }, { amount: '', from: '', reference: '', date: new Date().toISOString().slice(0, 10) })}>Receive</Btn>{b.held > 0 && <Btn small aria-label={`Pay out of ${b.label}`} onClick={() => open({ payOut: b }, { amount: '', to: '', reference: '', note: '', date: new Date().toISOString().slice(0, 10) })}>Pay out</Btn>}</span>}</td>
                     </tr>
                   ))}
                 </tbody>
@@ -145,6 +146,20 @@ export default function ProjectsClientMoney() {
                 <span style={{ gridColumn: '1 / -1', fontSize: 12.5, color: 'var(--text-secondary)' }}>A journal is posted in the books: into {a.bank_ledger.name}, owed through {a.liability_ledger?.name}.</span>
                 {problem && <Notice status="problem" style={{ gridColumn: '1 / -1' }}>{problem}</Notice>}
                 <div style={{ display: 'flex', gap: 8 }}><Btn type="submit" variant="primary" small busy={busy}>Record it</Btn><Btn small onClick={() => setMode(null)}>Cancel</Btn></div>
+              </form>
+            )}
+            {mode?.payOut && a.balances.some((b) => b.id === mode.payOut.id) && (
+              <form data-pay-out onSubmit={(e) => { e.preventDefault(); run(() => projectsAPI.payOutClientMoney(mode.payOut.id, { ...form, amount: Number(form.amount) }), 'Paid out, and recorded in the books'); }}
+                style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(170px, 1fr))', gap: 10, alignItems: 'end', padding: 12, borderRadius: 10, background: 'var(--surface-input)', marginTop: 12 }}>
+                <strong style={{ gridColumn: '1 / -1', fontSize: 13.5 }}>Pay out of {mode.payOut.label} <span style={{ fontWeight: 400, color: 'var(--text-secondary)' }}>· holds {money(mode.payOut.held, cur)}</span></strong>
+                <Field label="Amount" htmlFor="po-amount" hint={Number(form.amount) > mode.payOut.held ? 'More than this balance holds.' : undefined}><TextInput id="po-amount" type="number" min={0.01} max={mode.payOut.held} step="0.01" value={form.amount} onChange={(e) => set({ amount: e.target.value })} required /></Field>
+                <Field label="Paid to" htmlFor="po-to"><TextInput id="po-to" value={form.to} maxLength={120} onChange={(e) => set({ to: e.target.value })} required /></Field>
+                <Field label="Date" htmlFor="po-date"><TextInput id="po-date" type="date" max={new Date().toISOString().slice(0, 10)} value={form.date} onChange={(e) => set({ date: e.target.value })} required /></Field>
+                <Field label="Reference (optional)" htmlFor="po-ref"><TextInput id="po-ref" value={form.reference} maxLength={60} onChange={(e) => set({ reference: e.target.value })} /></Field>
+                <Field label="What for (optional)" htmlFor="po-note"><TextInput id="po-note" value={form.note} maxLength={160} onChange={(e) => set({ note: e.target.value })} /></Field>
+                <span style={{ gridColumn: '1 / -1', fontSize: 12.5, color: 'var(--text-secondary)' }}>A journal is posted in the books: out of {a.bank_ledger.name}, and less owed through {a.liability_ledger?.name}. Never more than this balance holds; other clients' money is not touched.</span>
+                {problem && <Notice status="problem" style={{ gridColumn: '1 / -1' }}>{problem}</Notice>}
+                <div style={{ display: 'flex', gap: 8 }}><Btn type="submit" variant="primary" small busy={busy} disabled={Number(form.amount) > mode.payOut.held}>Pay it out</Btn><Btn small onClick={() => setMode(null)}>Cancel</Btn></div>
               </form>
             )}
             {can.manage && !mode && (a.kind === 'pooled' || a.balances.filter((b) => !b.is_closed).length === 0) && <div style={{ marginTop: 10 }}><Btn small onClick={() => open({ balance: a }, { owners: [], label: '' })}>New balance</Btn></div>}

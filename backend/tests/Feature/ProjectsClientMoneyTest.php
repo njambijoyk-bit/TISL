@@ -8,7 +8,7 @@ use Illuminate\Support\Facades\Schema;
 use Laravel\Sanctum\Sanctum;
 use Tests\TestCase;
 
-/** Projects, build 4.4 (docs/PROJECTS_STAGE4_SPEC.md): client money accounts (pooled or dedicated), balances for one client or several jointly, receiving. */
+/** Projects, builds 4.4 and 4.5 (docs/PROJECTS_STAGE4_SPEC.md): client money accounts (pooled or dedicated), balances for one client or several jointly, receiving, paying out, and the guard in Books. */
 class ProjectsClientMoneyTest extends TestCase
 {
     use Concerns\CreatesProjectsWorld;
@@ -143,5 +143,123 @@ class ProjectsClientMoneyTest extends TestCase
         $this->assertStringContainsString("whereNotNull('project_holding_id')->exists()", $books, 'an edit on the Books form would lose which client the money belongs to, so it is refused there');
         $service = file_get_contents(app_path('Services/Books/VoucherService.php'));
         $this->assertStringContainsString("! empty(\$e['project_holding_id']) && VoucherEntry::holdsClientMoney()", $service, 'a journal line carries the balance only when it is given, and only once the column exists');
+    }
+
+    // ------------------------------------------------------------------ 4.5 paying out and the guard
+
+    private function receive(int $h, float $amount): void
+    {
+        $this->postJson("/api/admin/projects/client-money/balances/{$h}/receive", ['amount' => $amount, 'from' => 'Court award'])->assertCreated();
+    }
+
+    public function test_paying_out_posts_a_journal_and_never_takes_more_than_the_balance_holds(): void
+    {
+        $a = $this->account();
+        $mine = $this->balance($a, ['project_id' => $this->project]);
+        $theirs = $this->balance($a, ['owners' => [2]]);
+        $this->receive($mine, 1000);
+        $this->receive($theirs, 5000);
+
+        $r = $this->postJson("/api/admin/projects/client-money/balances/{$mine}/pay-out", ['amount' => 400, 'to' => 'Imara Sacco', 'reference' => 'CHQ 118', 'note' => 'part of the award'])->assertCreated()->json();
+        $this->assertSame(600, collect($r['accounts'][0]['balances'])->firstWhere('id', $mine)['held']);
+        $cc = (int) DB::table('projects')->where('id', $this->project)->value('cost_centre_id');
+        $last = end($this->posted);
+        $this->assertSame([['ledger_id' => 2, 'side' => 'D', 'amount' => 400.0, 'project_holding_id' => $mine, 'cost_centre_id' => $cc], ['ledger_id' => 1, 'side' => 'C', 'amount' => 400.0, 'project_holding_id' => $mine, 'cost_centre_id' => $cc]], $last['entries'],
+            'less is owed to the client and the money leaves the bank');
+        $this->assertSame(['CHQ 118', 'Client money paid out of Imara Sacco to Imara Sacco: part of the award'], [$last['reference'], $last['narration']]);
+
+        // the account holds 5,600 in all, but this balance only 600: another client's money is never used, guard or no guard
+        $this->postJson("/api/admin/projects/client-money/balances/{$mine}/pay-out", ['amount' => 700, 'to' => 'Imara Sacco'])->assertStatus(422)
+            ->assertJson(['message' => "That is more than this balance holds (600.00). Client money is never paid out of other clients' balances.", 'held' => 600]);
+        $this->postJson("/api/admin/projects/client-money/balances/{$mine}/pay-out", ['amount' => 600, 'to' => ''])->assertStatus(422)->assertJson(['message' => 'Say who the money is paid to.']);
+        $this->postJson("/api/admin/projects/client-money/balances/{$mine}/pay-out", ['amount' => 600, 'to' => 'Imara Sacco'])->assertCreated();
+        $this->assertSame([0.0, 5000.0], array_values(app(\App\Services\Books\ClientMoneyGuard::class)->held([$mine, $theirs])));
+        $this->assertSame('client_money.paid_out', DB::table('project_log')->orderByDesc('id')->value('action'));
+
+        Sanctum::actingAs($this->staff('Viewer', ['projects.use', 'projects.money.held.view']), ['*']);
+        $this->postJson("/api/admin/projects/client-money/balances/{$theirs}/pay-out", ['amount' => 1, 'to' => 'X'])->assertForbidden();
+    }
+
+    public function test_paying_out_and_switching_the_guard_off_follow_the_serious_action_rules(): void
+    {
+        $h = $this->balance($this->account());
+        $this->receive($h, 1000);
+        $this->postJson('/api/admin/projects/client-money/accounts/1/guard', ['on' => true])->assertOk()->assertJsonPath('accounts.0.guard_on', true);
+        $this->assertSame('client_money.guard_on', DB::table('project_log')->orderByDesc('id')->value('action'));
+
+        app(\App\Services\Projects\ProjectSettings::class)->save('serious', array_merge(\App\Services\Projects\ProjectSerious::defaults(), [
+            'held.pay_out' => ['needs' => 'supervisor', 'on_project' => true, 'reason' => true], 'held.guard_off' => ['needs' => 'supervisor', 'on_project' => true, 'reason' => false]]), $this->kamau);
+        $r = $this->postJson("/api/admin/projects/client-money/balances/{$h}/pay-out", ['amount' => 100, 'to' => 'Imara Sacco'])->assertStatus(428)->json();
+        $this->assertSame(['ask', 'held.pay_out', 'Pay out of held client money'], [$r['serious']['state'], $r['serious']['action'], $r['serious']['label']]);
+        $this->postJson('/api/admin/projects/client-money/accounts/1/guard', ['on' => false])->assertStatus(428)->assertJsonPath('serious.action', 'held.guard_off');
+        $this->assertTrue((bool) DB::table('project_client_accounts')->value('guard_on'), 'nothing changed');
+        $this->assertCount(1, $this->posted, 'only the receipt is in the books');
+
+        $saved = app(\App\Services\Projects\ProjectSettings::class)->get('serious');
+        $this->assertSame([true, false], [$saved['held.pay_out']['on_project'], $saved['held.guard_off']['on_project']], 'an account is not one piece of work, so no supervisor can be asked to be on it');
+    }
+
+    /** The Books side, on its own: what an account's guard refuses when vouchers are posted or cancelled in the books. */
+    public function test_the_guard_in_books_refuses_money_leaving_without_a_balance_and_any_balance_going_below_zero(): void
+    {
+        $a = $this->account();
+        $h = $this->balance($a);
+        $other = $this->balance($a, ['owners' => [2]]);
+        $receipt = $this->voucher([[1, 'D', 1000, $h], [2, 'C', 1000, $h]]);
+        $guard = app(\App\Services\Books\ClientMoneyGuard::class);
+
+        // off: the books post anything, as before
+        $guard->afterPosting($this->voucher([[2, 'D', 50, null], [1, 'C', 50, null]]));
+        $guard->afterPosting($this->voucher([[2, 'D', 5000, $h], [1, 'C', 5000, $h]]));
+        DB::table('vouchers')->whereNotIn('id', [$receipt])->update(['status' => 'cancelled']);
+
+        DB::table('project_client_accounts')->update(['guard_on' => 1]);
+        $refused = function (array $lines, string $words) use ($guard) {
+            try {
+                $guard->afterPosting($this->voucher($lines));
+                $this->fail("Expected the books to refuse: {$words}");
+            } catch (\App\Services\Books\BooksException $e) {
+                $this->assertStringContainsString($words, $e->getMessage());
+            }
+        };
+        $refused([[2, 'D', 50, null], [1, 'C', 50, null]], 'money leaving it must come out of a client\'s balance');
+        $refused([[2, 'D', 1500, $h], [1, 'C', 1500, $h]], 'This would take the client balance "Imara Sacco" below zero: it holds 1,000.00 and 1,500.00 would leave it.');
+        DB::table('vouchers')->whereNotIn('id', [$receipt])->update(['status' => 'cancelled']);
+
+        $guard->afterPosting($this->voucher([[1, 'D', 70, null], [9, 'C', 70, null]]));   // money coming in untagged (bank interest, say) is let in
+        $paid = $this->voucher([[2, 'D', 800, $h], [1, 'C', 800, $h]]);
+        $guard->afterPosting($paid);
+
+        // cancelling the receipt now would leave the balance at -800
+        DB::table('vouchers')->where('id', $receipt)->update(['status' => 'cancelled']);
+        $this->expectException(\App\Services\Books\BooksException::class);
+        $guard->afterCancelling($receipt);
+    }
+
+    public function test_the_guard_lets_a_balance_already_below_zero_go_up_and_cancelling_a_payment_is_always_let_through(): void
+    {
+        $a = $this->account();
+        $h = $this->balance($a);
+        $paid = $this->voucher([[2, 'D', 300, $h], [1, 'C', 300, $h]]);   // posted while the guard was off: the balance is -300
+        DB::table('project_client_accounts')->update(['guard_on' => 1]);
+        $guard = app(\App\Services\Books\ClientMoneyGuard::class);
+        $guard->afterPosting($this->voucher([[1, 'D', 100, $h], [2, 'C', 100, $h]]));
+        DB::table('vouchers')->where('id', $paid)->update(['status' => 'cancelled']);
+        $guard->afterCancelling($paid);
+        $this->assertSame([$h => 100.0], $guard->held([$h]));
+
+        $this->assertStringContainsString('app(ClientMoneyGuard::class)->afterPosting($voucher->id)', file_get_contents(app_path('Services/Books/VoucherService.php')), 'Books asks the guard after every voucher it writes');
+        $this->assertStringContainsString('app(ClientMoneyGuard::class)->afterCancelling($voucher->id)', file_get_contents(app_path('Services/Books/VoucherService.php')));
+    }
+
+    /** A posted voucher with its lines, written straight into the tables. @param array<int, array{0: int, 1: string, 2: float, 3: ?int}> $lines */
+    private function voucher(array $lines): int
+    {
+        $id = DB::table('vouchers')->insertGetId(['status' => 'posted']);
+        foreach ($lines as [$ledger, $side, $amount, $holding]) {
+            DB::table('voucher_entries')->insert(['voucher_id' => $id, 'ledger_id' => $ledger, 'side' => $side, 'amount' => $amount, 'project_holding_id' => $holding]);
+        }
+
+        return $id;
     }
 }

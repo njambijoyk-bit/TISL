@@ -31,6 +31,8 @@ class ProjectSerious
         'project.delete' => 'Put a project in the trash',
         'member.remove' => 'Remove someone from a project',
         'role.change' => 'Change what a project role can do',
+        'held.pay_out' => 'Pay out of held client money',
+        'held.guard_off' => 'Switch off the guard on a client money account',
     ];
 
     /** A sensible set to start from, applied in one click. Out of the box every action needs nothing. */
@@ -40,6 +42,8 @@ class ProjectSerious
         'project.unfreeze' => ['needs' => 'supervisor', 'on_project' => true, 'reason' => true],
         'project.transfer' => ['needs' => 'identity', 'on_project' => false, 'reason' => false],
         'role.change' => ['needs' => 'supervisor', 'on_project' => false, 'reason' => true],
+        'held.pay_out' => ['needs' => 'both', 'on_project' => false, 'reason' => true],
+        'held.guard_off' => ['needs' => 'supervisor', 'on_project' => false, 'reason' => true],
     ];
 
     private const NONE = ['needs' => 'none', 'on_project' => false, 'reason' => false];
@@ -68,7 +72,7 @@ class ProjectSerious
             }
             $supervised = in_array($needs, ['supervisor', 'both'], true);
             // a role is not about one project, so its supervisor cannot be asked to be on one
-            $out[$action] = ['needs' => $needs, 'on_project' => $supervised && $action !== 'role.change' && $action !== 'project.purge' && ! empty($r['on_project']), 'reason' => $needs !== 'none' && ! empty($r['reason'])];
+            $out[$action] = ['needs' => $needs, 'on_project' => $supervised && ! in_array($action, ['role.change', 'project.purge', 'held.guard_off'], true) && ! empty($r['on_project']), 'reason' => $needs !== 'none' && ! empty($r['reason'])];
         }
 
         return $out;

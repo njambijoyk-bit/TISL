@@ -231,6 +231,7 @@ class VoucherService
                 'status' => Voucher::CANCELLED, 'cancelled_at' => now(), 'cancelled_by' => $user?->id,
                 'cancel_reason' => $reason, 'fulfilment_status' => $voucher->fulfilment_status ? 'closed' : null,
             ]);
+            app(ClientMoneyGuard::class)->afterCancelling($voucher->id);   // cancelling a receipt that was already paid out is refused while the guard is on
             app(BudgetControl::class)->withdraw($voucher->id);
             app(\App\Services\Inventory\AssetAccountingService::class)->reinstate($voucher);   // an asset this voucher sold or disposed of is back on the register
             $this->audit($voucher, 'cancelled', $user, ['reason' => $reason]);
@@ -2817,6 +2818,7 @@ class VoucherService
         foreach ($plan['entries'] as $e) {
             VoucherEntry::create(array_merge($e, ['voucher_id' => $voucher->id, 'line_no' => ++$i, 'created_at' => now()]));
         }
+        app(ClientMoneyGuard::class)->afterPosting($voucher->id);   // money held for clients: off unless an account's guard is on
         foreach ($plan['bills'] as $b) {
             VoucherBillRef::create([
                 'voucher_id' => $voucher->id, 'ledger_id' => $b['ledger_id'], 'ref_type' => $b['type'],

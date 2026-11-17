@@ -4,6 +4,7 @@ namespace App\Services\Projects;
 
 use App\Models\Books\Ledger;
 use App\Models\User;
+use App\Services\Books\ClientMoneyGuard;
 use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Schema;
@@ -176,22 +177,74 @@ class ProjectHeldMoney
         return $voucher;
     }
 
-    /** What each balance holds now, from posted Books lines on its account's bank ledger: debits less credits. @return array<int, float> */
+    /** What each balance holds now, from posted Books lines on its account's bank ledger: debits less credits (the Books guard works it out). @return array<int, float> */
     public function balances(Collection $holdings): array
     {
         if ($holdings->isEmpty() || ! $this->ready()) {
             return [];
         }
-        $banks = DB::table('project_client_accounts')->whereIn('id', $holdings->pluck('account_id'))->pluck('ledger_id', 'id');
-        $out = array_fill_keys($holdings->pluck('id')->map(fn ($v) => (int) $v)->all(), 0.0);
-        $rows = DB::table('voucher_entries as e')->join('vouchers as v', 'v.id', '=', 'e.voucher_id')->where('v.status', 'posted')->whereIn('e.project_holding_id', array_keys($out))
-            ->whereIn('e.ledger_id', $banks->values())->groupBy('e.project_holding_id')
-            ->selectRaw("e.project_holding_id as h, SUM(CASE WHEN e.side = 'D' THEN e.amount ELSE -e.amount END) as n")->pluck('n', 'h');
-        foreach ($rows as $h => $n) {
-            $out[(int) $h] = round((float) $n, 2);
-        }
 
-        return $out;
+        return app(ClientMoneyGuard::class)->held($holdings->pluck('id')->all());
+    }
+
+    /**
+     * Pay money out of a balance: a journal in the books, debit the liability ledger (less is owed to the clients) and credit the bank ledger
+     * (the money leaves), both tagged. Never more than the balance holds, whether or not the account's guard is on. The caller has already
+     * asked the serious-action rules (`held.pay_out`).
+     *
+     * @param array<string, mixed> $d amount, date, to, reference, note
+     */
+    public function payOut(int $holdingId, array $d, User $by): int
+    {
+        [$h, $a] = $this->holding($holdingId);
+        $amount = round((float) ($d['amount'] ?? 0), 2);
+        if ($amount <= 0) {
+            throw new ProjectException('Enter the amount to pay out.');
+        }
+        $to = trim((string) ($d['to'] ?? ''));
+        if ($to === '') {
+            throw new ProjectException('Say who the money is paid to.');
+        }
+        $date = $this->date($d['date'] ?? null);
+
+        return DB::transaction(function () use ($h, $a, $amount, $to, $date, $d, $by) {
+            DB::table('project_client_holdings')->where('id', $h->id)->lockForUpdate()->first();   // two payments from one balance wait for each other
+            $held = app(ClientMoneyGuard::class)->held([(int) $h->id])[(int) $h->id] ?? 0.0;
+            if ($amount > $held + 0.004) {
+                throw new ProjectException('That is more than this balance holds (' . number_format(max($held, 0), 2) . '). Client money is never paid out of other clients\' balances.', 422, ['held' => $held]);
+            }
+            $cc = $h->project_id ? DB::table('projects')->where('id', $h->project_id)->value('cost_centre_id') : null;
+            $line = fn (int $ledger, string $side) => array_filter(['ledger_id' => $ledger, 'side' => $side, 'amount' => $amount, 'project_holding_id' => (int) $h->id, 'cost_centre_id' => $cc ? (int) $cc : null], fn ($v) => $v !== null);
+            $note = trim((string) ($d['note'] ?? ''));
+            $voucher = app(ProjectVoucherPoster::class)->journal($date, "Client money paid out of {$h->label} to {$to}" . ($note !== '' ? ": {$note}" : ''), ($r = trim((string) ($d['reference'] ?? ''))) === '' ? null : mb_substr($r, 0, 60),
+                [$line((int) $a->liability_ledger_id, 'D'), $line((int) $a->ledger_id, 'C')], $by);
+            ProjectLog::record($h->project_id ? (int) $h->project_id : null, $by, 'client_money.paid_out', 'client_holding', (int) $h->id, null, ['for' => $h->label, 'to' => $to, 'voucher_id' => $voucher]);
+
+            return $voucher;
+        });
+    }
+
+    /** Switch an account's guard in the books on or off. Switching it off is asked of the serious-action rules by the caller (`held.guard_off`). */
+    public function setGuard(int $accountId, bool $on, User $by): void
+    {
+        $this->needReady();
+        $a = DB::table('project_client_accounts')->where('id', $accountId)->first();
+        if (! $a) {
+            throw new ProjectException('Not found.', 404);
+        }
+        if ((bool) $a->guard_on === $on) {
+            return;
+        }
+        DB::table('project_client_accounts')->where('id', $a->id)->update(['guard_on' => $on ? 1 : 0, 'updated_at' => now()]);
+        ProjectLog::record(null, $by, $on ? 'client_money.guard_on' : 'client_money.guard_off', 'client_account', (int) $a->id, null, ['name' => $a->name]);
+    }
+
+    /** The piece of work a balance is for, if any (for the serious-action rules). */
+    public function projectOf(int $holdingId): ?object
+    {
+        $pid = DB::table('project_client_holdings')->where('id', $holdingId)->value('project_id');
+
+        return $pid ? DB::table('projects')->where('id', $pid)->first() : null;
     }
 
     /** @return array{0: object, 1: object} the balance and its account */

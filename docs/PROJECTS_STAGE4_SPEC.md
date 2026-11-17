@@ -140,3 +140,20 @@ Screen: `docs/screens/projects-client-money.png`.
 - **Guard:** each account has `guard_on`, off by default; switching it on and what it stops comes with 4.5.
 - **Routes:** `GET /projects/client-money`, `POST /projects/client-money/accounts`, `POST /projects/client-money/accounts/{account}/balances`, `POST /projects/client-money/balances/{balance}/receive`.
 - **Tests:** `tests/Feature/ProjectsClientMoneyTest.php` (5); browser check `e2e/projects-client-money-ui.mjs` (11 checks). In tests the real Books posting is stood in for, so **check by hand** once 260 is run: receive into a balance and see the journal in Books with both lines.
+
+### 4.5 Paying out, and the guard in Books (done)
+
+Screen: `docs/screens/projects-client-money-pay-out.png`.
+
+- **Paying out** (`ProjectHeldMoney::payOut`): a journal in Books, debit the liability ledger (less is owed to the clients) and credit the bank ledger (the money leaves), both lines tagged with the balance and on the work's cost centre when it has one. It asks who it was paid to, the date, a reference and what for.
+- **Never more than the balance holds,** guard or no guard: the balance's row is locked while it is worked out, so two payments at once wait for each other. Another client's money in the same pooled account is never used.
+- **Serious actions:** `held.pay_out` "Pay out of held client money" and `held.guard_off` "Switch off the guard on a client money account" are in the Configuration table (out of the box both need nothing). The suggested set asks identity and a supervisor for paying out, and a supervisor for switching a guard off. An account is not one piece of work, so "the supervisor must be on the work" cannot be asked for switching a guard off.
+- **The guard, in Books** (`App\Services\Books\ClientMoneyGuard`, called by `VoucherService` after it writes any voucher's lines and after it cancels one). On an account whose guard is on, the books refuse:
+  - money leaving its bank ledger without saying whose balance it comes from ("…pay it from Projects, Client money");
+  - any line that lowers a balance below zero, with the balance's name and figures;
+  - cancelling a receipt when what it brought in has been paid out.
+  Money coming in untagged (bank interest, say) is let in. A balance that was already below zero (posted while the guard was off) may still go up. Every account's guard is off until switched on; without script 260 the guard does nothing. This one check runs in the shared voucher service, so it covers Books screens, shop, till and gateways alike; with every guard off it costs one small query per voucher.
+- **Found and fixed on the way:** the "is script 260 run" answers (Books and Projects) were remembered for the life of the PHP process; they are now remembered per request, so a long-running worker sees the script once it is run. Saving the serious-actions table now knows the two new actions.
+- **Permissions:** paying out and switching a guard need `projects.money.held.pay`.
+- **Routes:** `POST /projects/client-money/balances/{balance}/pay-out`, `POST /projects/client-money/accounts/{account}/guard` (`on: true|false`).
+- **Tests:** `tests/Feature/ProjectsClientMoneyTest.php` now 9 (paying out and its limit, the serious-action rules, the Books guard on posting and cancelling, a balance already below zero); all Books-area tests pass. Browser check `e2e/projects-client-money-ui.mjs` now 18 checks (pay out, the over-balance hint, asking a supervisor, the guard switch). **Check by hand** once 260 is run: switch a guard on, then try in Books to post a payment out of that bank ledger, and see it refused.
