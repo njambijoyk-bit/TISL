@@ -6,6 +6,7 @@ import { day, message, money } from '../lib/format';
 import { Btn, Chip, Field, Notice, Panel, PanelTitle, SelectInput, TextInput } from './ui';
 import { check } from './uiTokens';
 import OpportunityForm from './OpportunityForm';
+import HistoryPanel from './HistoryPanel';
 
 /**
  * One opportunity, opened from the board or from a lead or client (build 3.2): where it stands, what it is worth, and what can be done with it.
@@ -101,6 +102,7 @@ export default function OpportunityPanel({ opportunity: o, can, word, onChanged,
           {o.stage.kind === 'open' && needsClient && <span style={{ fontSize: 12.5, color: 'var(--text-secondary)' }}>Winning makes this lead a client, which needs someone who manages clients.</span>}
         </div>
       )}
+      {!mode && <div style={{ marginTop: 14 }}><HistoryPanel key={o.id} type="opportunity" id={o.id} onChanged={onChanged} /></div>}
     </Panel>
   );
 }

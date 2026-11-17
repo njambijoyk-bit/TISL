@@ -125,3 +125,21 @@ Screens: `docs/screens/projects-contacts.png`, `projects-parties.png`.
 - **Routes:** `GET`, `POST /contacts/{customer|lead|party}/{id}`; `PUT`, `DELETE /contacts/{contact}`; `GET /parties`; `GET`, `POST /{project}/parties`; `DELETE /{project}/parties/{link}`; `POST /{project}/party-contacts`; `DELETE /{project}/party-contacts/{link}`.
 - **Tests:** `tests/Feature/ProjectsContactsPartiesTest.php` (6); `frontend/e2e/projects-parties-ui.mjs` (17 checks in a real browser).
 - **Not yet:** editing a party's own details after it is added (it is shown, and found by name, but changed only through its contacts); a shortcut key for the Parties tab.
+
+### 3.4 History and next actions (done)
+
+Screens: `docs/screens/projects-history.png`, `projects-done.png`, `projects-follow-ups.png`.
+
+- **Services:** `ProjectRelations` (who may see and write about a lead, client, party or opportunity), `ProjectInteractions`, `ProjectFollowUps`. **Controller:** `HistoryController`. **Command:** `projects:follow-up-reminders`, daily at 07:20.
+- **History:** a call, meeting, visit, email or note with a lead, a client or a party, optionally with one of their contacts and about one piece of work. Something still to do cannot be written as history (a date in the future is refused: set a next action instead). Seen by whoever may see the record; written with `projects.interactions`. Only the person who wrote an entry changes or removes it, and a removal is logged with what it said.
+- **Confidential work:** an entry about a confidential piece of work is seen only by the people on it, wherever it appears.
+- **Team only:** an entry can be marked never to be shown to the client. Staff see it everywhere; it matters once the client portal exists (stage 9).
+- **On an opportunity:** what is logged there is written to the lead or client it is for, and tied to the opportunity, so the client's history holds it too.
+- **Next action** on a lead, a client or an opportunity: what, by when, whose. The earliest open one is what the leads list and the pipeline cards show. Someone given a next action by someone else is told through the Core notifier (new type "Projects: next actions due and given to you").
+- **Done** asks what happened, which becomes a history entry, and what is next. Leaving "what is next" empty is refused unless "Nothing more is planned" is ticked, so a relationship is never left with nothing planned by accident.
+- **My follow-ups** (`/admin/projects/follow-ups`, in the Projects menu): every open next action of mine, late first, with counts and a link to each lead, client or opportunity; done from the list. With `projects.leads.view`, everyone's.
+- **Daily reminder:** each owner gets one message a day listing what is due or late, not one per action, and nothing when there is nothing due.
+- **Winning a lead** keeps its history and next actions: they move to the client (built in 3.2, tested again here).
+- **Routes:** `GET`, `POST /history/{lead|customer|party|opportunity}/{id}`; `PUT`, `DELETE /history/entries/{entry}`; `POST /next/{lead|customer|opportunity}/{id}`; `PUT /next/{followUp}`; `POST /next/{followUp}/done`; `GET /follow-ups`.
+- **Tests:** `tests/Feature/ProjectsHistoryTest.php` (7); `frontend/e2e/projects-history-ui.mjs` (15 checks in a real browser).
+- **Not yet:** a history tab on a piece of work itself (entries about it show on the client's history; the client page is 3.5); history for a party has no screen yet (the directory, 3.6).

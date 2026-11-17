@@ -13,6 +13,7 @@ class ProjectNotices
 {
     public const ACCESS = 'project_access';
     public const SECURITY = 'project_security';
+    public const FOLLOW_UP = 'project_follow_up';
 
     /** @param iterable<User>|User|null $to */
     public static function tell(iterable|User|null $to, string $type, string $title, string $message, ?string $path = null, ?string $linkText = null): void

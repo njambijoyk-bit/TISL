@@ -21,7 +21,7 @@ export default function ProjectsPipeline() {
   const [data, setData] = useState(null);
   const [failed, setFailed] = useState('');
   const [adding, setAdding] = useState(false);
-  const [openId, setOpenId] = useState(null);
+  const [openId, setOpenId] = useState(() => Number(new URLSearchParams(window.location.search).get('open')) || null);   // a follow-up links straight to its card
 
   const load = useCallback(async () => {
     try { setData(await projectsAPI.pipeline({ scope })); setFailed(''); } catch (e) { setFailed(message(e, 'The pipeline could not be loaded. Try again.')); }

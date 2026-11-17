@@ -78,6 +78,14 @@ const projectsAPI = {
   removeParty: async (id, linkId) => (await api.delete(`/admin/projects/${id}/parties/${linkId}`)).data,
   addPartyContact: async (id, data) => (await api.post(`/admin/projects/${id}/party-contacts`, data)).data,
   removePartyContact: async (id, linkId) => (await api.delete(`/admin/projects/${id}/party-contacts/${linkId}`)).data,
+  // the history of a relationship and what is next: each call answers { entries, next, kinds, owners, can }
+  history: async (type, id) => (await api.get(`/admin/projects/history/${type}/${id}`)).data,
+  addHistory: async (type, id, data) => (await api.post(`/admin/projects/history/${type}/${id}`, data)).data,
+  changeHistory: async (entryId, data) => (await api.put(`/admin/projects/history/entries/${entryId}`, data)).data,
+  removeHistory: async (entryId) => (await api.delete(`/admin/projects/history/entries/${entryId}`)).data,
+  setNext: async (type, id, data) => (await api.post(`/admin/projects/next/${type}/${id}`, data)).data,
+  doneNext: async (followUpId, data) => (await api.post(`/admin/projects/next/${followUpId}/done`, data)).data,
+  followUps: async (params) => (await api.get('/admin/projects/follow-ups', { params })).data,
   // the pipeline: the board answers { stages: [{ ..., items, totals }], open, sees_all, ready, can }
   pipeline: async (params) => (await api.get('/admin/projects/pipeline', { params })).data,
   pipelineOptions: async () => (await api.get('/admin/projects/pipeline/options')).data,

@@ -1953,6 +1953,15 @@ Route::middleware('auth:sanctum')->group(function () {
             Route::delete('/{project}/parties/{link}', [$rel, 'removeParty'])->whereNumber(['project', 'link'])->middleware('permission:projects.parties');
             Route::post('/{project}/party-contacts', [$rel, 'addPartyContact'])->whereNumber('project')->middleware('permission:projects.parties');
             Route::delete('/{project}/party-contacts/{link}', [$rel, 'removePartyContact'])->whereNumber(['project', 'link'])->middleware('permission:projects.parties');
+            $his = \App\Http\Controllers\Api\Projects\HistoryController::class;
+            Route::get('/history/{type}/{id}', [$his, 'show'])->whereIn('type', ['lead', 'customer', 'party', 'opportunity'])->whereNumber('id');
+            Route::post('/history/{type}/{id}', [$his, 'add'])->whereIn('type', ['lead', 'customer', 'party', 'opportunity'])->whereNumber('id')->middleware('permission:projects.interactions');
+            Route::put('/history/entries/{entry}', [$his, 'change'])->whereNumber('entry')->middleware('permission:projects.interactions');
+            Route::delete('/history/entries/{entry}', [$his, 'change'])->whereNumber('entry')->middleware('permission:projects.interactions');
+            Route::post('/next/{type}/{id}', [$his, 'setNext'])->whereIn('type', ['lead', 'customer', 'opportunity'])->whereNumber('id')->middleware('permission:projects.interactions');
+            Route::put('/next/{followUp}', [$his, 'changeNext'])->whereNumber('followUp')->middleware('permission:projects.interactions');
+            Route::post('/next/{followUp}/done', [$his, 'done'])->whereNumber('followUp')->middleware('permission:projects.interactions');
+            Route::get('/follow-ups', [$his, 'mine'])->middleware('permission:projects.interactions,projects.leads.view');
             Route::get('/known', [$rel, 'known'])->middleware('permission:projects.leads.manage,projects.clients.manage,projects.parties');
             Route::get('/configuration/lists', [$rel, 'listsPage'])->middleware('permission:projects.config.view');
             Route::post('/configuration/lists/{list}', [$rel, 'addToList'])->middleware('permission:projects.config.manage');

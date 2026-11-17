@@ -11,6 +11,7 @@ import LeadForm from '../../components/LeadForm';
 import OpportunityForm from '../../components/OpportunityForm';
 import OpportunityPanel from '../../components/OpportunityPanel';
 import ContactsPanel from '../../components/ContactsPanel';
+import HistoryPanel from '../../components/HistoryPanel';
 import { useProjectNames } from '../../lib/names';
 import { hasPermission } from '../../../_shared/lib/roles';
 import { useAuthStore } from '../../../_shared/store/index';
@@ -88,6 +89,7 @@ export default function LeadDetail() {
           <OpportunityForm forWhom={{ type: 'lead', id: lead.id, name: lead.name }} onSaved={(o) => { setMode(null); setOpenId(o.id); load(); }} onCancel={() => setMode(null)} />
         </Panel>
       )}
+      {lead.status !== 'won' && <div style={{ maxWidth: 760 }}><HistoryPanel type="lead" id={lead.id} onChanged={load} /></div>}
       {lead.status !== 'won' && <div style={{ maxWidth: 640 }}><ContactsPanel type="lead" id={lead.id} /></div>}
       {(opps.length > 0 || (mayPipeline && lead.status !== 'lost')) && (
         <Panel style={{ marginBottom: 16, maxWidth: 640 }}>
