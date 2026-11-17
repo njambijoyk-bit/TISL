@@ -28,6 +28,10 @@ class ProjectSettings
             'reveals' => ['on' => true, 'count' => 20, 'minutes' => 10, 'response' => 'alert'], 'cool_off_minutes' => 15],
         // money (stage 4): post bills or prepare drafts; where retention goes by default; whether a project shows on each kind of voucher (required | optional | none)
         'money' => ['bill_mode' => 'draft', 'retention_mode' => 'company', 'retention_ledger_id' => 0, 'voucher_project' => ['payment' => 'optional', 'receipt' => 'optional', 'sales' => 'optional', 'cash_sale' => 'optional', 'credit_note' => 'optional', 'purchase' => 'optional', 'debit_note' => 'optional', 'journal' => 'optional', 'contra' => 'optional', 'quotation' => 'optional', 'sales_order' => 'optional', 'purchase_order' => 'optional', 'delivery_note' => 'optional', 'receipt_note' => 'optional']],
+        // work and time (stage 5): time rounded up to so many minutes (0 = exact); a forgotten timer stops after so many hours; time beyond what
+        // Attendance says was worked: warn | refuse | off; who approves time: the work's leads | the person's manager; whether work is billable unless
+        // a task says otherwise; key date warnings, days before; remind people of an unsubmitted week; split pay by timesheets; where billed-back costs go
+        'work' => ['rounding' => 6, 'timer_cap_hours' => 10, 'attendance_check' => 'warn', 'approve_by' => 'lead', 'billable_default' => true, 'warn_days' => '14,7,1', 'week_reminder' => true, 'payroll_split' => false, 'disbursement_ledger_id' => 0],
         // the directory (stage 3): which visibility levels can be used beyond staff only
         'directory' => ['levels' => ['clients', 'public']],
         // client health (stage 3): days since the last contact, days a next action is late, nothing planned, days money is overdue in the books. 0 switches a rule off.
@@ -189,6 +193,31 @@ class ProjectSettings
 
             return ['warn_days' => $days, 'default_hours' => $hours, 'read_outside_hours' => (bool) $v['read_outside_hours'], 'passes' => (bool) $v['passes'], 'pass_minutes' => $minutes,
                 'unlock_minutes' => (int) $v['unlock_minutes'], 'lock_tries' => (int) $v['lock_tries'], 'lock_wait_minutes' => (int) $v['lock_wait_minutes'], 'approval_hours' => (int) $v['approval_hours']];
+        }
+
+        if ($part === 'work') {
+            if (! in_array((int) $v['rounding'], [0, 1, 6, 10, 15], true)) {
+                throw new ProjectException('Round time to the minute, or up to 6, 10 or 15 minutes.');
+            }
+            if ((int) $v['timer_cap_hours'] < 1 || (int) $v['timer_cap_hours'] > 24) {
+                throw new ProjectException('A forgotten timer stops after 1 to 24 hours.');
+            }
+            if (! in_array($v['attendance_check'], ['warn', 'refuse', 'off'], true)) {
+                throw new ProjectException('Choose what happens when time is more than Attendance says was worked: warn, refuse or nothing.');
+            }
+            if (! in_array($v['approve_by'], ['lead', 'manager'], true)) {
+                throw new ProjectException('Choose who approves time: the leads of the work, or the person\'s manager.');
+            }
+            $days = array_values(array_unique(array_filter(array_map('intval', explode(',', (string) $v['warn_days'])), fn ($d) => $d > 0 && $d <= 365)));
+            rsort($days);
+            $ledger = (int) $v['disbursement_ledger_id'];
+            if ($ledger && \Illuminate\Support\Facades\Schema::hasTable('ledgers') && ! DB::table('ledgers')->where('id', $ledger)->exists()) {
+                throw new ProjectException('Choose the ledger billed-back costs go to from the books.');
+            }
+
+            return ['rounding' => (int) $v['rounding'], 'timer_cap_hours' => (int) $v['timer_cap_hours'], 'attendance_check' => $v['attendance_check'], 'approve_by' => $v['approve_by'],
+                'billable_default' => (bool) $v['billable_default'], 'warn_days' => implode(',', array_slice($days, 0, 6)), 'week_reminder' => (bool) $v['week_reminder'],
+                'payroll_split' => (bool) $v['payroll_split'], 'disbursement_ledger_id' => $ledger];
         }
 
         if ($part === 'money') {

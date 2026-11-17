@@ -1,6 +1,6 @@
-# Projects Stage 5: Work and time (design)
+# Projects Stage 5: Work and time (being built)
 
-Status: DESIGN, written 2026-11-17 for the owner to read. Nothing here is built. Say "build" to accept the four choices at the end, or change any of them.
+Status: the owner said "build" on 2026-11-17, accepting the four choices at the end. What is built so far is listed under "As built"; everything else is still design.
 
 Stages 1 to 4 built the work, who may touch it, who it is for, and its money. Stage 5 builds the doing of it: tasks, scope, key dates, changes, time, and billing that time. It also brings the three things Stage 4 left waiting: hourly billing, disbursements and write-offs.
 
@@ -107,7 +107,7 @@ New serious actions (out of the box each needs nothing): approve a change, write
 
 | Table | Holds |
 |---|---|
-| `project_tasks` | A task: work, number, phase, scope line, parent, title, status, priority, dates, estimate minutes, billable |
+| `project_work_tasks` | A task: work, number, phase, scope line, parent, title, status, priority, dates, estimate minutes, billable |
 | `project_task_people` | Who is on a task |
 | `project_task_waits` | "Starts when that is done" between two tasks |
 | `project_task_checks` | A task's checklist |
@@ -145,3 +145,29 @@ Every build runs the Projects, Books and Payroll tests and the Projects browser 
 2. **Payroll split against what:** approved project hours divided by the hours Attendance says they worked that month, the rest by their usual shares. The other way is against hours logged in total, which puts all pay on project work for someone who logs nothing else.
 3. **A change's price:** through a Books sales order opened from the approved change, so the agreed value includes it at once. The other way is a Books quotation first, which counts only once it becomes an order.
 4. **Billing work done from scope progress (valuations, as construction does):** later, in Stage 11 with the other industry billing methods, to keep this stage to its ten builds. The other way is an eleventh build here.
+
+## As built
+
+### To run
+
+1. `backend/database/sql/261_projects_work.sql` (after 257 to 260). Twelve tables, the new project-role abilities, and the five task-status words in the names table. It adds only.
+2. No permission seed.
+
+### 5.1 Tasks and the Work tab (done)
+
+Screens: `docs/screens/projects-work.png`, `docs/screens/projects-work-task.png`.
+
+- **The tasks table is `project_work_tasks`, not `project_tasks`:** the old Projects module had a `project_tasks` table, which script 256 drops. A different name means script 261 can never meet the old table, whichever order the scripts are run in.
+- **Script 261** makes all twelve tables of the stage now, so it is run once. Later builds use the rest.
+- **Service:** `ProjectTasks`. **Tab:** Work, beside the phases.
+- **Tasks:** numbered per piece of work (`M-0413-T12`), numbers never reused. Title, description, phase, scope line, parent (subtasks to any depth, never under itself), people (only people on the work, up to 20), priority, start and due dates (due not before start), estimate in hours, billable or as the work. Checklist up to 50 lines.
+- **Statuses** are words in the names table (new terms `task_todo` to `task_cancelled`, every industry; legal's Waiting reads "Awaiting client"). A company can rename them on the Names page.
+- **"Starts when that is done":** tasks of the same work only, no circles (refused with the reason). Starting or finishing a task while something it waits for is open asks why; the reason is kept in the log.
+- **Finishing** needs its subtasks done or cancelled.
+- **Who may do what:** reading needs only to open the work. Adding, changing, assigning and deleting need `projects.tasks` and the new project-role ability "tasks". Someone the task is given to may move its status and tick its checklist without them. Nothing changes on frozen work.
+- **Project roles:** new abilities `tasks`, `time` and `approve_time`. Lead gets all three, Member gets `tasks` and `time` (script 261).
+- **Deleting** takes the subtasks too, and is refused when time is logged on any of them (cancel it instead). Other tasks stop waiting for it.
+- **Filters:** mine, overdue, status, phase, search. A matching subtask keeps its parent tasks in view, dimmed.
+- **Work settings** (Configuration, "Work and time"): rounding (default 6 minutes), forgotten timer cap (10 hours), the Attendance check (warn), who approves time (the work's leads), billable by default, key date warning days (14,7,1), the weekly reminder, and split pay by timesheets (off). Only "billable by default" is used yet; the rest arrive with their builds.
+- **Routes:** `GET`, `POST /projects/{project}/tasks`; `GET`, `PUT`, `DELETE /projects/{project}/tasks/{task}`; `POST .../status`; `POST .../checks`; `PUT`, `DELETE .../checks/{check}`; `GET`, `PUT /projects/configuration/work`.
+- **Tests:** `tests/Feature/ProjectsTasksTest.php` (6). Three earlier tests now expect the new abilities and the five new words. All Projects tests pass. Browser check `e2e/projects-work-ui.mjs` (13 checks); the configuration, record, money and serious checks still pass.

@@ -23,6 +23,9 @@ class ProjectRoles
         'log' => 'Read its activity log',
         'access' => 'Set its hours, end dates and locked areas',
         'money' => 'See its money',
+        'tasks' => 'Add, change and assign its tasks',
+        'time' => 'Log time on it',
+        'approve_time' => 'Approve time logged on it',
         'open_shared' => 'See only what is shared with them (for clients and guests)',
     ];
 

@@ -1924,6 +1924,7 @@ Route::middleware('auth:sanctum')->group(function () {
             $hel = \App\Http\Controllers\Api\Projects\HeldMoneyController::class;
             $bil = \App\Http\Controllers\Api\Projects\BillingController::class;
             $ter = \App\Http\Controllers\Api\Projects\TermsController::class;
+            $wrk = \App\Http\Controllers\Api\Projects\WorkController::class;
             Route::get('/client-money', [$hel, 'index'])->middleware('permission:projects.money.held.view,projects.money.held.pay');
             Route::post('/client-money/accounts', [$hel, 'openAccount'])->middleware('permission:projects.money.held.pay');
             Route::post('/client-money/accounts/{account}/balances', [$hel, 'openBalance'])->whereNumber('account')->middleware('permission:projects.money.held.pay');
@@ -1942,6 +1943,17 @@ Route::middleware('auth:sanctum')->group(function () {
             Route::post('/{project}/retention/release', [$ter, 'release'])->whereNumber('project')->middleware('permission:projects.money.retention');
             Route::get('/{project}/ledgers', [$mon, 'ledgers'])->whereNumber('project')->middleware('permission:projects.money.view');
             Route::post('/{project}/ledgers', [$mon, 'makeLedger'])->whereNumber('project')->middleware('permission:projects.money.view')->middleware('permission:projects.ledgers.create');
+            Route::get('/configuration/work', [$wrk, 'settings'])->middleware('permission:projects.config.view');
+            Route::put('/configuration/work', [$wrk, 'saveSettings'])->middleware('permission:projects.config.manage');
+            Route::get('/{project}/tasks', [$wrk, 'index'])->whereNumber('project');
+            Route::post('/{project}/tasks', [$wrk, 'store'])->whereNumber('project')->middleware('permission:projects.tasks');
+            Route::get('/{project}/tasks/{task}', [$wrk, 'show'])->whereNumber('project')->whereNumber('task');
+            Route::put('/{project}/tasks/{task}', [$wrk, 'update'])->whereNumber('project')->whereNumber('task')->middleware('permission:projects.tasks');
+            Route::delete('/{project}/tasks/{task}', [$wrk, 'destroy'])->whereNumber('project')->whereNumber('task')->middleware('permission:projects.tasks');
+            Route::post('/{project}/tasks/{task}/status', [$wrk, 'move'])->whereNumber('project')->whereNumber('task');
+            Route::post('/{project}/tasks/{task}/checks', [$wrk, 'addCheck'])->whereNumber('project')->whereNumber('task');
+            Route::put('/{project}/tasks/{task}/checks/{check}', [$wrk, 'tick'])->whereNumber('project')->whereNumber('task')->whereNumber('check');
+            Route::delete('/{project}/tasks/{task}/checks/{check}', [$wrk, 'removeCheck'])->whereNumber('project')->whereNumber('task')->whereNumber('check');
             Route::get('/configuration/money', [$mon, 'settings'])->middleware('permission:projects.config.view');
             Route::put('/configuration/money', [$mon, 'saveSettings'])->middleware('permission:projects.config.manage');
             // stage 3, relationships

@@ -19,6 +19,8 @@ class ProjectsSetup
 
     private static ?bool $money = null;
 
+    private static ?bool $work = null;
+
     public static function ready(): bool
     {
         return self::$ready ??= Schema::hasTable('project_industries') && Schema::hasTable('project_log');
@@ -42,6 +44,12 @@ class ProjectsSetup
         return self::$money ??= self::ready() && Schema::hasTable('project_client_accounts') && Schema::hasTable('project_ledgers');
     }
 
+    /** Stage 5 (script 261): tasks, scope lines, key dates, changes, time, rates and disbursements. */
+    public static function work(): bool
+    {
+        return self::$work ??= self::ready() && Schema::hasTable('project_work_tasks') && Schema::hasTable('project_time');
+    }
+
     /** Look again at the next call (a test creates the tables). */
     public static function forget(): void
     {
@@ -49,5 +57,6 @@ class ProjectsSetup
         self::$controlRoom = null;
         self::$relationships = null;
         self::$money = null;
+        self::$work = null;
     }
 }

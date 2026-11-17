@@ -27,8 +27,8 @@ class ProjectsConfigurationTest extends TestCase
     public function test_the_starter_rows_of_script_257_load_and_name_every_term_in_every_industry(): void
     {
         $this->assertSame(15, DB::table('project_industries')->count());
-        $this->assertSame(30, DB::table('project_terms')->count());
-        $this->assertSame(450, DB::table('project_term_names')->count());
+        $this->assertSame(35, DB::table('project_terms')->count());   // 30 from script 257, and the five task statuses from 261
+        $this->assertSame(525, DB::table('project_term_names')->count());   // every term named in all 15 industries
         $this->assertSame(40, DB::table('project_types')->count());
         $this->assertSame(212, DB::table('project_stages')->count());
         $this->assertSame(40, DB::table('project_series')->count());
@@ -47,7 +47,7 @@ class ProjectsConfigurationTest extends TestCase
         $this->assertTrue($r['ready']);
         $this->assertSame('general', $r['industry']);
         $this->assertSame(['name' => 'Project', 'plural' => 'Projects'], $r['names']['project']);
-        $this->assertCount(30, $r['names']);
+        $this->assertCount(35, $r['names']);
     }
 
     public function test_projects_is_closed_to_someone_without_the_permission_and_when_the_module_is_off(): void
