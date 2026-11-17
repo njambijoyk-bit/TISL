@@ -28,6 +28,19 @@ class MoneyController extends Controller
         return response()->json($vp->picker($request->user(), $base, $current['project_id'] ?? null) + ['current' => $current]);
     }
 
+    /** The Money tab: every figure read from the books. */
+    public function tab(Request $request, int $project): JsonResponse
+    {
+        try {
+            $p = app(\App\Services\Projects\ProjectService::class)->findFor($request->user(), $project, 'money');
+        } catch (ProjectException $e) {
+            return response()->json(['message' => $e->getMessage()] + $e->extra, $e->status);
+        }
+
+        return response()->json(['money' => app(\App\Services\Projects\ProjectMoney::class)->for($p),
+            'can' => ['budget' => $request->user()->hasPermission('projects.money.budget') && $request->user()->hasPermission('books.view')]]);
+    }
+
     public function settings(Request $request): JsonResponse
     {
         return response()->json([

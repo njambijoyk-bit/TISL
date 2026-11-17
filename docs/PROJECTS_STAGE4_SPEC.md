@@ -94,3 +94,21 @@ Screens: `docs/screens/projects-voucher-picker.png`, `projects-money-settings.pn
 - **Books changes in this build:** the picker on the form, and one call in each of the two doors. Nothing else in Books.
 - **Routes:** `GET /projects/voucher-picker` (needs `books.post`), `GET`, `PUT /projects/configuration/money`.
 - **Tests:** `tests/Feature/ProjectsVoucherPickerTest.php` (5). Every Books, voucher, budget, cost centre and ledger test was run with it and passes (2,131 assertions). `frontend/e2e/projects-voucher-picker-ui.mjs` (13 checks) opens the real Books voucher form with a stand-in API.
+
+### 4.2 The Money tab (done)
+
+Screen: `docs/screens/projects-money.png`.
+
+- **Services:** `ProjectMoney` (reads every figure), `ProjectReceivables` (what is open, from Books' receivables ageing).
+- **Every figure is read from posted Books entries** on the project's cost centre and every cost centre under it (its phases), in the base currency. Cancelled vouchers are not counted. A line posted to the project on a voucher that is not counts (Books' line cost centre).
+  - **Agreed:** the linked sales orders, or failing those the linked quotations (a sales order made from a quotation is not counted twice).
+  - **Billed:** posted sales invoices and cash sales, less credit notes. **Owed** and how late: from the receivables ageing. **Paid:** billed less owed.
+  - **Income and spent:** accounts whose group is of income or expense nature (credits less debits, debits less credits). **Profit:** income less spent.
+  - **Committed:** open purchase orders, exactly as Books' budget control counts them.
+  - **Budget:** expense rows on these cost centres in each active budget's current version (the approved one when there is one, never a draft being worked on), with approved transfers; recovery rows lower it. Shown as none, never zero, when there is no budget.
+  - **By phase:** each phase with its own cost centre.
+- **Changed from the design: the budget is planned in Books, not from the tab.** Writing a budget from Projects would mean writing into whatever draft version finance is working on, outside its approval steps. The tab reads the project's budget, and "Plan it in Books" opens Books' budget planner (with `projects.money.budget` and `books.view`). Books' budget control then warns or stops project spending as it already does.
+- **Who sees it:** `projects.money.view` and a project role that sees money (a new project-role ability, "See its money", given to Lead and Finance by script 260). Someone who sees every piece of work can read the money of one that is not confidential, with the permission.
+- **Route:** `GET /projects/{project}/money`.
+- **Tests:** `tests/Feature/ProjectsMoneyTabTest.php` (4, with real voucher, entry, ledger and budget tables); `frontend/e2e/projects-money-ui.mjs` (10 checks in a real browser).
+- **Not tested here:** the real receivables ageing (stood in; the tests have no ageing tables). Compare one project's Owed with Books' ageing report after running the script.

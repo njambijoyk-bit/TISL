@@ -115,6 +115,9 @@ CREATE TABLE IF NOT EXISTS project_ledgers (
     KEY idx_project_ledgers_ledger (ledger_id)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE utf8mb4_unicode_ci;
 
+-- the Lead and Finance project roles see a project's money (each still needs the permission projects.money.view)
+INSERT IGNORE INTO project_role_permissions (project_role_id, ability) SELECT id, 'money' FROM project_roles WHERE `key` IN ('lead', 'finance');
+
 -- PART C - CHECK (expect 6 tables and 1 column)
 SELECT COUNT(*) AS tables_made FROM information_schema.tables WHERE table_schema = DATABASE() AND table_name IN ('project_client_accounts', 'project_client_holdings', 'project_client_holding_owners', 'project_billing_stages', 'project_money_terms', 'project_ledgers');
 SELECT COUNT(*) AS books_column FROM information_schema.columns WHERE table_schema = DATABASE() AND table_name = 'voucher_entries' AND column_name = 'project_holding_id';

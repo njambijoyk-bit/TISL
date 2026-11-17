@@ -22,6 +22,7 @@ class ProjectRoles
         'links' => 'Add and remove links',
         'log' => 'Read its activity log',
         'access' => 'Set its hours, end dates and locked areas',
+        'money' => 'See its money',
         'open_shared' => 'See only what is shared with them (for clients and guests)',
     ];
 
