@@ -1937,6 +1937,18 @@ Route::middleware('auth:sanctum')->group(function () {
             Route::put('/{project}/billing', [$bil, 'save'])->whereNumber('project')->middleware('permission:projects.money.bill');
             Route::post('/{project}/billing/{stage}/bill', [$bil, 'bill'])->whereNumber('project')->whereNumber('stage')->middleware('permission:projects.money.bill');
             Route::get('/billing-stages/{stage}/form', [$bil, 'form'])->whereNumber('stage')->middleware('permission:books.post');
+            Route::get('/{project}/time-billing', [$bil, 'unbilled'])->whereNumber('project')->middleware('permission:projects.money.view');
+            Route::post('/{project}/time-billing', [$bil, 'billTime'])->whereNumber('project')->middleware('permission:projects.money.bill');
+            Route::delete('/{project}/time-billing/{stage}', [$bil, 'dropTimeBill'])->whereNumber('project')->whereNumber('stage')->middleware('permission:projects.money.bill');
+            Route::post('/time/{entry}/write-off', [$bil, 'writeOffTime'])->whereNumber('entry')->middleware('permission:projects.money.writeoff');
+            Route::get('/rates', [$bil, 'rates'])->middleware('permission:projects.money.view,projects.money.rates');
+            Route::post('/rates', [$bil, 'saveRate'])->middleware('permission:projects.money.rates');
+            Route::delete('/rates/{rate}', [$bil, 'deleteRate'])->whereNumber('rate')->middleware('permission:projects.money.rates');
+            Route::get('/{project}/rates', [$bil, 'rates'])->whereNumber('project')->middleware('permission:projects.money.view');
+            Route::post('/{project}/rates', [$bil, 'saveRate'])->whereNumber('project')->middleware('permission:projects.money.rates');
+            Route::delete('/{project}/rates/{rate}', [$bil, 'deleteProjectRate'])->whereNumber('project')->whereNumber('rate')->middleware('permission:projects.money.rates');
+            Route::get('/{project}/disbursements', [$bil, 'disbursements'])->whereNumber('project')->middleware('permission:projects.money.view');
+            Route::put('/{project}/disbursements/{entry}', [$bil, 'markDisbursement'])->whereNumber('project')->whereNumber('entry')->middleware('permission:projects.money.disbursements,projects.money.writeoff');
             Route::post('/{project}/billing/{stage}/deduct', [$bil, 'deduct'])->whereNumber('project')->whereNumber('stage')->middleware('permission:projects.money.bill');
             Route::get('/{project}/terms', [$ter, 'show'])->whereNumber('project')->middleware('permission:projects.money.view');
             Route::put('/{project}/terms', [$ter, 'save'])->whereNumber('project')->middleware('permission:projects.money.retention,projects.money.bill');

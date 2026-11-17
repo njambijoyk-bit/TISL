@@ -108,7 +108,7 @@ class ProjectBilling
             throw new ProjectException('Choose an income ledger from the books.');
         }
         DB::transaction(function () use ($project, $live, $clean, $incomeLedgerId, $by, $total) {
-            DB::table('project_billing_stages')->where('project_id', $project->id)->whereNotIn('id', $live ?: [0])->delete();
+            DB::table('project_billing_stages')->where('project_id', $project->id)->where('kind', 'plan')->whereNotIn('id', $live ?: [0])->delete();
             foreach ($clean as $c) {
                 DB::table('project_billing_stages')->insert($c + ['project_id' => $project->id, 'created_by' => $by->id, 'created_at' => now(), 'updated_at' => now()]);
             }
@@ -199,11 +199,14 @@ class ProjectBilling
         }
         DB::table('project_billing_stages')->where('id', $stageId)->update(['voucher_id' => $voucherId, 'retention_voucher_id' => null, 'advance_voucher_id' => null, 'updated_at' => now()]);
         ProjectLog::record((int) $r->project_id, $by, 'billing.billed', 'billing_stage', $stageId, null, ['stage' => $r->name, 'voucher_id' => $voucherId, 'from' => 'books form']);
+        if (($r->kind ?? 'plan') === 'time') {
+            app(ProjectTimeBilling::class)->billed($stageId, $voucherId);   // the time and costs on it are billed now
+        }
         if ($by) {
             // retention and advances come off it now; if they cannot (no retention ledger chosen, say), the invoice stands and the Money tab offers to try again
             try {
                 $project = DB::table('projects')->where('id', $r->project_id)->first();
-                app(ProjectTerms::class)->deduct($project, $stageId, $by, $this->stageNet($project, $stageId));
+                app(ProjectTerms::class)->deduct($project, $stageId, $by, $this->netOf($project, $r, $voucherId));
             } catch (ProjectException $e) {
                 ProjectLog::record((int) $r->project_id, $by, 'billing.deduct_waiting', 'billing_stage', $stageId, null, ['why' => $e->getMessage()]);
             }
@@ -214,11 +217,18 @@ class ProjectBilling
     public function deduct(object $project, int $stageId, User $by): array
     {
         $this->needReady();
-        if (! in_array($stageId, $this->billedIds($this->rows((int) $project->id)), true)) {
+        $r = DB::table('project_billing_stages')->where('id', $stageId)->where('project_id', $project->id)->first();
+        if (! $r || ! in_array($stageId, $this->billedIds(collect([$r])), true)) {
             throw new ProjectException('This stage is not billed yet.');
         }
 
-        return app(ProjectTerms::class)->deduct($project, $stageId, $by, $this->stageNet($project, $stageId));
+        return app(ProjectTerms::class)->deduct($project, $stageId, $by, $this->netOf($project, $r, (int) $r->voucher_id));
+    }
+
+    /** Before tax: a plan stage's share of the agreed value; a time bill's lines as Books has them. */
+    private function netOf(object $project, object $stage, int $voucherId): float
+    {
+        return ($stage->kind ?? 'plan') === 'time' ? app(ProjectTimeBilling::class)->netOf($voucherId) : $this->stageNet($project, (int) $stage->id);
     }
 
     /** What a stage comes to before tax, from the agreed value as it is now. */
@@ -283,7 +293,7 @@ class ProjectBilling
 
     private function rows(int $projectId)
     {
-        return DB::table('project_billing_stages')->where('project_id', $projectId)->orderBy('sort_order')->orderBy('id')->get();
+        return DB::table('project_billing_stages')->where('project_id', $projectId)->where('kind', 'plan')->orderBy('sort_order')->orderBy('id')->get();   // time bills (stage 5) are not part of the plan
     }
 
     /** Stages whose invoice stands (not cancelled). @return int[] */

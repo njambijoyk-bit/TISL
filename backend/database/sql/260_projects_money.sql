@@ -82,6 +82,7 @@ CREATE TABLE IF NOT EXISTS project_billing_stages (
     id          BIGINT UNSIGNED NOT NULL AUTO_INCREMENT PRIMARY KEY,
     project_id  BIGINT UNSIGNED NOT NULL,
     name        VARCHAR(120) NOT NULL,
+    kind        VARCHAR(8) NOT NULL DEFAULT 'plan',                     -- plan (a share of the agreed value) | time (approved time and costs billed, stage 5)
     share       DECIMAL(7,4) NOT NULL,                                  -- a percentage of the agreed value (the linked quotation or sales order), never an amount
     due_kind    VARCHAR(8) NOT NULL DEFAULT 'manual',                   -- manual | date | phase | stage
     due_on      DATE NULL,

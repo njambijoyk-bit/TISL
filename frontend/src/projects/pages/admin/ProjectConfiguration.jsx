@@ -18,6 +18,7 @@ import HealthRulesPanel from '../../components/HealthRulesPanel';
 import DirectorySettingsPanel from '../../components/DirectorySettingsPanel';
 import MoneySettingsPanel from '../../components/MoneySettingsPanel';
 import WorkSettingsPanel from '../../components/WorkSettingsPanel';
+import RatesPanel from '../../components/RatesPanel';
 import ProjectKeys from '../../components/ProjectKeys';
 
 /**
@@ -307,7 +308,7 @@ export default function ProjectConfiguration() {
           {tab === 'pipeline' && <PipelineStagesPanel />}
           {tab === 'health' && <HealthRulesPanel />}
           {tab === 'directory' && <DirectorySettingsPanel />}
-          {tab === 'money' && <MoneySettingsPanel />}
+          {tab === 'money' && <><MoneySettingsPanel /><RatesPanel /></>}
           {tab === 'work' && <WorkSettingsPanel />}
           {tab === 'shortcuts' && <ShortcutsPanel onChanged={reloadNames} />}
 

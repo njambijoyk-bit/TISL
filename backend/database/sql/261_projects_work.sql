@@ -189,6 +189,7 @@ CREATE TABLE IF NOT EXISTS project_time (
     written_off_minutes INT NOT NULL DEFAULT 0,
     write_off_reason    VARCHAR(300) NULL,
     billed_voucher_id   BIGINT UNSIGNED NULL,                            -- the Books invoice it went on
+    bill_stage_id       BIGINT UNSIGNED NULL,                            -- the time bill it is on (project_billing_stages, kind time), drafted or posted
     entered_by          BIGINT UNSIGNED NULL,                            -- someone else, with projects.time.others
     deleted_at          TIMESTAMP NULL,
     created_at          TIMESTAMP NULL,
@@ -226,6 +227,7 @@ CREATE TABLE IF NOT EXISTS project_disbursements (
     voucher_entry_id  BIGINT UNSIGNED NOT NULL,                          -- the Books cost line (its amount is Books')
     voucher_id        BIGINT UNSIGNED NOT NULL,
     billed_voucher_id BIGINT UNSIGNED NULL,
+    bill_stage_id     BIGINT UNSIGNED NULL,                              -- the bill it is on, drafted or posted
     written_off       TINYINT(1) NOT NULL DEFAULT 0,
     write_off_reason  VARCHAR(300) NULL,
     marked_by         BIGINT UNSIGNED NULL,

@@ -37,6 +37,7 @@ class ProjectSerious
         'retention.release' => 'Release retention to the client',
         'change.approve' => 'Approve a change to the work',
         'time.reopen' => 'Reopen approved time',
+        'time.writeoff' => 'Write off time or costs',
     ];
 
     /** A sensible set to start from, applied in one click. Out of the box every action needs nothing. */
@@ -52,6 +53,7 @@ class ProjectSerious
         'retention.release' => ['needs' => 'supervisor', 'on_project' => true, 'reason' => true],
         'change.approve' => ['needs' => 'identity', 'on_project' => false, 'reason' => false],
         'time.reopen' => ['needs' => 'supervisor', 'on_project' => true, 'reason' => true],
+        'time.writeoff' => ['needs' => 'supervisor', 'on_project' => true, 'reason' => true],
     ];
 
     private const NONE = ['needs' => 'none', 'on_project' => false, 'reason' => false];

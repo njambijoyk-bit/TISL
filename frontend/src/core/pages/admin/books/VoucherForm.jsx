@@ -444,7 +444,9 @@ export default function VoucherForm({ api = booksAPI, mode = 'books' }) {
     const fill = (f) => {
       setAcct(false);
       setH((x) => ({ ...x, customer: { customer_id: f.customer_id, name: f.customer_name }, party_ledger_id: '', cost_centre_id: f.cost_centre_id, narration: f.narration, reference_no: f.reference_no }));
-      setLines(f.lines.map((l) => ({ ...emptyLine('custom'), description: l.description, quantity: l.quantity, rate: l.rate ?? '', ledger_id: l.ledger_id ?? '' })));
+      setLines(f.lines.map((l) => (l.type === 'service'
+        ? { ...emptyLine('service'), service_id: l.service_id, service_variant_id: l.service_variant_id, quantity: l.quantity, rate: '', label: l.label, notes: l.notes ?? '', materials: [] }   // time billed: Books prices it
+        : { ...emptyLine('custom'), description: l.description, quantity: l.quantity, rate: l.rate ?? '', ledger_id: l.ledger_id ?? '' })));
     };
     if (billStage) projectsAPI.billForm(billStage).then(({ bill }) => { setProjectBill(bill); fill(bill); }).catch((e) => toast.error(errMsg(e, 'The bill from Projects could not be opened')));
     else projectsAPI.changeOrderForm(changeId).then(({ order }) => { setProjectChange(order); fill(order); }).catch((e) => toast.error(errMsg(e, 'The change from Projects could not be opened')));

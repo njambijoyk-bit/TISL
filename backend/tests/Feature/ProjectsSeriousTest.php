@@ -70,7 +70,7 @@ class ProjectsSeriousTest extends TestCase
     public function test_out_of_the_box_nothing_is_serious_and_the_table_is_changed_only_with_the_permission(): void
     {
         $page = $this->getJson('/api/admin/projects/configuration/serious')->assertOk()->json();
-        $this->assertSame(14, count($page['actions']));   // 8 from stage 2, paying out held money and switching off its guard (4.5), posting a bill (4.6), releasing retention (4.7), approving a change (5.5), reopening approved time (5.7)
+        $this->assertSame(15, count($page['actions']));   // 8 from stage 2, paying out held money and switching off its guard (4.5), posting a bill (4.6), releasing retention (4.7), approving a change (5.5), reopening approved time (5.7), writing off time or costs (5.8)
         $this->assertSame(['none'], array_values(array_unique(array_column($page['rules'], 'needs'))));
         $this->assertSame(['both', true], [$page['suggested']['project.purge']['needs'], $page['suggested']['project.purge']['reason']]);
         $this->assertSame([false, 2, true], [$page['identity_ready'], $page['approvers'], $page['can']['change']]);
