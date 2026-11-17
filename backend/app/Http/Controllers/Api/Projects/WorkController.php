@@ -179,6 +179,68 @@ class WorkController extends Controller
         });
     }
 
+    // ------------------------------------------------------------------ changes (5.5)
+
+    public function changes(Request $request, int $project): JsonResponse
+    {
+        return $this->guard(fn () => response()->json(app(\App\Services\Projects\ProjectChanges::class)->list($this->project($request, $project), $request->user())));
+    }
+
+    public function raiseChange(Request $request, int $project): JsonResponse
+    {
+        return $this->guard(function () use ($request, $project) {
+            $p = $this->project($request, $project);
+            $c = app(\App\Services\Projects\ProjectChanges::class);
+            $c->create($p, $request->all(), $request->user());
+
+            return response()->json($c->list($p, $request->user()), 201);
+        });
+    }
+
+    public function editChange(Request $request, int $project, int $change): JsonResponse
+    {
+        return $this->guard(function () use ($request, $project, $change) {
+            $p = $this->project($request, $project);
+            $c = app(\App\Services\Projects\ProjectChanges::class);
+            $c->update($p, $change, $request->all(), $request->user());
+
+            return response()->json($c->list($p, $request->user()));
+        });
+    }
+
+    /** submit | withdraw | approve | reject */
+    public function decideChange(Request $request, int $project, int $change, string $step): JsonResponse
+    {
+        return $this->guard(function () use ($request, $project, $change, $step) {
+            $p = $this->project($request, $project);
+            $c = app(\App\Services\Projects\ProjectChanges::class);
+            $out = [];
+            switch ($step) {
+                case 'submit': $c->submit($p, $change, $request->user()); break;
+                case 'withdraw': $c->withdraw($p, $change, $request->user()); break;
+                case 'reject': $c->reject($p, $change, $request->input('note'), $request->user()); break;
+                case 'approve':
+                    $row = \Illuminate\Support\Facades\DB::table('project_changes')->where('id', $change)->where('project_id', $p->id)->first() ?? throw new ProjectException('Not found.', 404);
+                    $done = app(\App\Services\Projects\ProjectSerious::class)->gate($request, 'change.approve', $p, ['change' => $change], sprintf('approve change C-%02d "%s" on %s', $row->number, $row->title, $p->number));
+                    $out = $c->approve($p, $change, $request->input('note'), $request->user());
+                    $done();
+                    break;
+                default: throw new ProjectException('Not found.', 404);
+            }
+
+            return response()->json($out + $c->list($p, $request->user()));
+        });
+    }
+
+    public function changeOrderForm(Request $request, int $change): JsonResponse
+    {
+        return $this->guard(function () use ($request, $change) {
+            $projectId = (int) \Illuminate\Support\Facades\DB::table('project_changes')->where('id', $change)->value('project_id') ?: throw new ProjectException('Not found.', 404);
+
+            return response()->json(['order' => app(\App\Services\Projects\ProjectChanges::class)->orderForm($this->project($request, $projectId), $change, $request->user())]);
+        });
+    }
+
     public function views(Request $request, string $place): JsonResponse
     {
         return $this->guard(fn () => response()->json(['views' => app(\App\Services\Projects\ProjectSavedViews::class)->of($request->user(), $place)]));

@@ -35,6 +35,7 @@ class ProjectSerious
         'held.guard_off' => 'Switch off the guard on a client money account',
         'bill.post' => 'Post a bill from a billing plan',
         'retention.release' => 'Release retention to the client',
+        'change.approve' => 'Approve a change to the work',
     ];
 
     /** A sensible set to start from, applied in one click. Out of the box every action needs nothing. */
@@ -48,6 +49,7 @@ class ProjectSerious
         'held.guard_off' => ['needs' => 'supervisor', 'on_project' => false, 'reason' => true],
         'bill.post' => ['needs' => 'identity', 'on_project' => false, 'reason' => false],
         'retention.release' => ['needs' => 'supervisor', 'on_project' => true, 'reason' => true],
+        'change.approve' => ['needs' => 'identity', 'on_project' => false, 'reason' => false],
     ];
 
     private const NONE = ['needs' => 'none', 'on_project' => false, 'reason' => false];

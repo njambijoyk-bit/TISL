@@ -212,3 +212,17 @@ Screen: `docs/screens/projects-key-dates.png`.
 - **Who:** reading needs only to open the work; the rest needs `projects.dates` and a project role that works on tasks.
 - **Routes:** `GET` (`past=1` for old ones), `POST /projects/{project}/key-dates`; `PUT` (`done`, or `reason` with a new `date` to move), `DELETE /projects/{project}/key-dates/{date}`.
 - **Tests:** `tests/Feature/ProjectsKeyDatesTest.php` (3); the leads test now counts 85 list rows and the new list. All Projects and Calendar tests pass. Browser check `e2e/projects-key-dates-ui.mjs` (7 checks); Work, scope and configuration checks still pass.
+
+### 5.5 Changes (done)
+
+Screens: `docs/screens/projects-change-form.png`, `docs/screens/projects-changes.png`.
+
+- **Service:** `ProjectChanges`; the fourth part of the Work tab (a construction contract reads "Variations"). Numbered per piece of work: C-01, C-02.
+- **A change:** what and why, whether it changes the price, and up to 30 things it does: add a scope line, alter one (quantity or description), move a key date (day and optional time), move a task (start or due). Each is checked when saved.
+- **Steps:** Draft, Submitted, Approved, Rejected, Withdrawn. A draft can be changed by whoever raised it or someone who decides on changes; a change with nothing in it and no price change cannot be sent.
+- **Deciding** needs `projects.changes.approve` and a project role that may change the work (ability `edit`, the Lead out of the box), and is never by whoever raised it. Rejecting needs a note. Approving follows the serious-action rules (new action "Approve a change to the work"; out of the box needs nothing; the suggested set asks identity).
+- **On approval** everything it does is applied in one step, or nothing is: a target that has gone stops the whole change with the reason. Scope lines it adds remember the change; a key date it moves keeps where it was, with "Change C-03: …" as the reason; tasks and dates move on the calendar. Each step is logged.
+- **The price** (owner's choice 3): an approved change that alters the price opens Books' **sales order** form filled in (client, work, narration, a line for the change; the rate is typed in Books, so no amount passes through Projects). The saved order is tied to the change and **linked to the work**, so the agreed value on the Money tab, and billing plans, include it at once. A change keeps one order; one not on the work's cost centre is left alone.
+- **Routes:** `GET`, `POST /projects/{project}/changes`; `PUT /projects/{project}/changes/{change}`; `POST /projects/{project}/changes/{change}/{submit|withdraw|approve|reject}`; `GET /projects/changes/{change}/order-form` (needs `books.post`).
+- **Books:** its voucher form also fills in from an approved change and sends `project_change_id`; Books' store ties the order (one line in `BooksVoucherController::store`). Nothing else changes.
+- **Tests:** `tests/Feature/ProjectsChangesTest.php` (4); the serious-actions table now has 13 actions. All Projects, Calendar and Books-area tests pass. Browser check `e2e/projects-changes-ui.mjs` (6 checks, including the real Books form filling in); billing and voucher picker checks still pass.

@@ -50,6 +50,7 @@ class ProjectSettings
             'held.guard_off' => ['needs' => 'none', 'on_project' => false, 'reason' => false],
             'bill.post' => ['needs' => 'none', 'on_project' => false, 'reason' => false],
             'retention.release' => ['needs' => 'none', 'on_project' => false, 'reason' => false],
+            'change.approve' => ['needs' => 'none', 'on_project' => false, 'reason' => false],
         ],
     ];
 

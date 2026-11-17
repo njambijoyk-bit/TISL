@@ -434,18 +434,21 @@ export default function VoucherForm({ api = booksAPI, mode = 'books' }) {
     api.customerCredits(cid).then((d) => setCustCredits(d.credits ?? [])).catch(() => setCustCredits([]));
   }, [h.customer?.customer_id, base, editing]); // eslint-disable-line react-hooks/exhaustive-deps
 
-  // Projects: a bill drafted from a billing plan opens this form filled in; saving it ties the invoice to that stage
+  // Projects: a bill drafted from a billing plan, or the sales order for an approved change, opens this form filled in; saving it ties the voucher back
   const billStage = params.get('project_bill');
+  const changeId = params.get('project_change');
   const [projectBill, setProjectBill] = useState(null);
+  const [projectChange, setProjectChange] = useState(null);
   useEffect(() => {
-    if (!billStage || editing || mode !== 'books' || draftLoaded !== String(typeId)) return;
-    projectsAPI.billForm(billStage).then(({ bill }) => {
-      setProjectBill(bill);
+    if ((!billStage && !changeId) || editing || mode !== 'books' || draftLoaded !== String(typeId)) return;
+    const fill = (f) => {
       setAcct(false);
-      setH((x) => ({ ...x, customer: { customer_id: bill.customer_id, name: bill.customer_name }, party_ledger_id: '', cost_centre_id: bill.cost_centre_id, narration: bill.narration, reference_no: bill.reference_no }));
-      setLines(bill.lines.map((l) => ({ ...emptyLine('custom'), description: l.description, quantity: l.quantity, rate: l.rate, ledger_id: l.ledger_id })));
-    }).catch((e) => toast.error(errMsg(e, 'The bill from Projects could not be opened')));
-  }, [billStage, draftLoaded, typeId, editing, mode]);
+      setH((x) => ({ ...x, customer: { customer_id: f.customer_id, name: f.customer_name }, party_ledger_id: '', cost_centre_id: f.cost_centre_id, narration: f.narration, reference_no: f.reference_no }));
+      setLines(f.lines.map((l) => ({ ...emptyLine('custom'), description: l.description, quantity: l.quantity, rate: l.rate ?? '', ledger_id: l.ledger_id ?? '' })));
+    };
+    if (billStage) projectsAPI.billForm(billStage).then(({ bill }) => { setProjectBill(bill); fill(bill); }).catch((e) => toast.error(errMsg(e, 'The bill from Projects could not be opened')));
+    else projectsAPI.changeOrderForm(changeId).then(({ order }) => { setProjectChange(order); fill(order); }).catch((e) => toast.error(errMsg(e, 'The change from Projects could not be opened')));
+  }, [billStage, changeId, draftLoaded, typeId, editing, mode]);
 
   // giving an overpayment back: the Payment is prefilled from the receipt it refunds
   const refundId = params.get('refund');
@@ -511,6 +514,7 @@ export default function VoucherForm({ api = booksAPI, mode = 'books' }) {
       currency_id: editing && h.currency_id ? Number(h.currency_id) : undefined,   // an edit keeps the voucher's own currency; a new one is in the base currency
       valid_until: h.valid_until || undefined,
       ...(projectBill ? { project_billing_stage_id: projectBill.stage_id } : {}),
+      ...(projectChange ? { project_change_id: projectChange.change_id } : {}),
     };
     if (acct && canAcct) p.meta = { invoice_mode: 'accounting' };
     if (hasItems) {
@@ -561,7 +565,7 @@ export default function VoucherForm({ api = booksAPI, mode = 'books' }) {
       else if (h.series_id) p.series_id = h.series_id;
     }
     return p;
-  }, [typeId, acct, canAcct, h, projectBill, cc.line_override, ini.ready, lines, entries, tenders, wh, alloc, ins, slip, moneyBank, contraBankIn, contraBankOut, refund, isAdvance, advanceFor, custCredits, creditPick, hasItems, isMoney, isEntries, manual, editing, expiredOverride, discountPick, giftPlan, giftPick, base, methods, preview?.total, rounding, cashPurchase]);
+  }, [typeId, acct, canAcct, h, projectBill, projectChange, cc.line_override, ini.ready, lines, entries, tenders, wh, alloc, ins, slip, moneyBank, contraBankIn, contraBankOut, refund, isAdvance, advanceFor, custCredits, creditPick, hasItems, isMoney, isEntries, manual, editing, expiredOverride, discountPick, giftPlan, giftPick, base, methods, preview?.total, rounding, cashPurchase]);
 
   // live preview (business errors show inline, not as toasts)
   useEffect(() => {

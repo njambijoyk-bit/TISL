@@ -1951,6 +1951,11 @@ Route::middleware('auth:sanctum')->group(function () {
             Route::get('/{project}/tasks', [$wrk, 'index'])->whereNumber('project');
             Route::get('/{project}/scope', [$wrk, 'scope'])->whereNumber('project');
             Route::get('/{project}/key-dates', [$wrk, 'dates'])->whereNumber('project');
+            Route::get('/{project}/changes', [$wrk, 'changes'])->whereNumber('project');
+            Route::post('/{project}/changes', [$wrk, 'raiseChange'])->whereNumber('project')->middleware('permission:projects.changes');
+            Route::put('/{project}/changes/{change}', [$wrk, 'editChange'])->whereNumber('project')->whereNumber('change')->middleware('permission:projects.changes');
+            Route::post('/{project}/changes/{change}/{step}', [$wrk, 'decideChange'])->whereNumber('project')->whereNumber('change')->whereIn('step', ['submit', 'withdraw', 'approve', 'reject']);
+            Route::get('/changes/{change}/order-form', [$wrk, 'changeOrderForm'])->whereNumber('change')->middleware('permission:books.post');
             Route::post('/{project}/key-dates', [$wrk, 'addDate'])->whereNumber('project')->middleware('permission:projects.dates');
             Route::put('/{project}/key-dates/{date}', [$wrk, 'changeDate'])->whereNumber('project')->whereNumber('date')->middleware('permission:projects.dates');
             Route::delete('/{project}/key-dates/{date}', [$wrk, 'deleteDate'])->whereNumber('project')->whereNumber('date')->middleware('permission:projects.dates');

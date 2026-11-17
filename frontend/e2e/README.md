@@ -56,6 +56,7 @@ node e2e/projects-terms-ui.mjs                   # Projects: advances and retent
 node e2e/projects-work-ui.mjs                    # Projects: the Work tab (tasks by phase, subtasks, filters, adding, the task panel: status with a reason, checklist, change, delete) (needs only the website)
 node e2e/projects-scope-ui.mjs                   # Projects: scope lines (copying a sales order's lines in, prices from Books, progress as a quantity or a percentage) (needs only the website)
 node e2e/projects-key-dates-ui.mjs               # Projects: key dates (how soon, adding with a time and who is responsible, moving with a reason, done, diamonds on the timeline) (needs only the website)
+node e2e/projects-changes-ui.mjs                 # Projects: changes (raising with what they do, sending, deciding, rejecting with a note, approving one that changes the price opening Books' sales order form) (needs only the website)
 ```
 
 Needs Playwright (`PLAYWRIGHT_MODULE_DIR` points at the folder holding it, default `/opt/node22/lib/node_modules/`) and a Chromium (`CHROME`).
