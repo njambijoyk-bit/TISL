@@ -157,3 +157,20 @@ Screen: `docs/screens/projects-client-money-pay-out.png`.
 - **Permissions:** paying out and switching a guard need `projects.money.held.pay`.
 - **Routes:** `POST /projects/client-money/balances/{balance}/pay-out`, `POST /projects/client-money/accounts/{account}/guard` (`on: true|false`).
 - **Tests:** `tests/Feature/ProjectsClientMoneyTest.php` now 9 (paying out and its limit, the serious-action rules, the Books guard on posting and cancelling, a balance already below zero); all Books-area tests pass. Browser check `e2e/projects-client-money-ui.mjs` now 18 checks (pay out, the over-balance hint, asking a supervisor, the guard switch). **Check by hand** once 260 is run: switch a guard on, then try in Books to post a payment out of that bank ledger, and see it refused.
+
+### 4.6 Billing plans and the post-or-draft setting (done)
+
+Screens: `docs/screens/projects-billing.png`, `docs/screens/projects-billing-plan.png`, `docs/screens/projects-billing-books-form.png`.
+
+- **Service:** `ProjectBilling`; the plan is a panel on the Money tab.
+- **A stage is a share (%) of the agreed value before tax:** the lines of the linked sales orders (or, with none, the linked quotations), not cancelled. No amount is stored. The last stage of a plan at 100% takes what the others leave, so the bills add up to the agreed value to the cent (a test plans 33.3333 / 33.3333 / 33.3334 of 1,000,000.01).
+- **Falls due:** when someone bills it, on a date, when a phase is done, or when the work reaches a stage of its kind. Shown as Due / Not yet / Billed. Any stage not billed can be billed early.
+- **Changing the plan:** stages already billed stay as they are; the rest are replaced. Shares add up to no more than 100% (checked on the screen and on the server). No plan without a linked quotation or sales order (owner's choice 1).
+- **Income ledger:** the one the agreed order mostly uses, unless one is chosen on the plan (`project_money_terms.income_ledger_id`, added to script 260 in place; 260 is not run yet). The bill is one custom line to it, so the ledger decides the tax, as on the Books form.
+- **Billing a stage:**
+  - setting **"Post the voucher"**: a Books sales invoice to the work's client, on its cost centre, posted through `VoucherService::create` (channel `projects`), reference = the work's number. Needs `projects.money.bill`, then the serious-action rules: new action `bill.post` "Post a bill from a billing plan" (out of the box needs nothing; the suggested set asks identity). Two people billing one stage: the second is told it is billed.
+  - setting **"Save a draft"** (the default): Books has no draft vouchers, so a draft is Books' own sales form opened **filled in** (client, work, line, narration, reference) for a person to check and post with their Books permission (`books.post`, asked before it opens). The form sends `project_billing_stage_id`; Books' store ties the new invoice to the stage only when it is on that work's cost centre (or a phase's) and the stage is not billed yet. Nothing else in Books changes.
+- **An invoice cancelled in Books frees its stage** to be billed again.
+- **Routes:** `GET`, `PUT /projects/{project}/billing`, `POST /projects/{project}/billing/{stage}/bill`, `GET /projects/billing-stages/{stage}/form` (for the Books form; needs `books.post` and `projects.money.bill`).
+- **Tests:** `tests/Feature/ProjectsBillingTest.php` (5); the serious-actions table now has 11 actions; all Projects and Books-area tests pass. Browser check `e2e/projects-billing-ui.mjs` (13 checks, including the real Books form filling in and sending the stage); the money, client money and voucher picker checks still pass. **Check by hand** once 260 is run: link a sales order to a piece of work, make a 30/70 plan, and bill the first stage both ways.
+- **Not in this build:** a reminder when a stage falls due (it shows on the Money tab); retention and advances are taken off bills in 4.7.

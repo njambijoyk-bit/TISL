@@ -100,6 +100,7 @@ CREATE TABLE IF NOT EXISTS project_money_terms (
     retention_percent   DECIMAL(6,3) NULL,                              -- held back on each bill
     retention_ledger_id BIGINT UNSIGNED NULL,                           -- overrides the company's choice for this project
     advance_ledger_id   BIGINT UNSIGNED NULL,
+    income_ledger_id    BIGINT UNSIGNED NULL,                           -- the income ledger bills from the billing plan go to (empty: the one the agreed quotation or order mostly uses)
     updated_by          BIGINT UNSIGNED NULL,
     updated_at          TIMESTAMP NULL
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE utf8mb4_unicode_ci;

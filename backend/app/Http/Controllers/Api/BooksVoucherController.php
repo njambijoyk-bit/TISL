@@ -130,6 +130,9 @@ class BooksVoucherController extends Controller
             $this->writableAt($request->input('location_id') ?: \App\Models\Location::default()?->id, $request->input('cost_centre_id'));
             app(\App\Services\Projects\VoucherProjects::class)->assertForForm($request->input('voucher_type_id'), $request->input('cost_centre_id'));   // Projects: a kind of voucher can require a piece of work (only here, on the form)
             $v = $this->vouchers->create($request->all(), $request->user());
+            if ($request->filled('project_billing_stage_id')) {   // Projects: a sales invoice finished from a drafted bill is tied to its billing stage
+                app(\App\Services\Projects\ProjectBilling::class)->tie($request->integer('project_billing_stage_id'), (int) $v->id, $v->cost_centre_id ? (int) $v->cost_centre_id : null);
+            }
 
             return response()->json(['message' => "{$v->voucher_number} saved" . $this->budgetNote(), 'data' => $v->load($this->vouchers->relations()), 'budget' => $this->vouchers->budgetCheck()], 201);
         });

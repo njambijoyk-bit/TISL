@@ -33,6 +33,7 @@ class ProjectSerious
         'role.change' => 'Change what a project role can do',
         'held.pay_out' => 'Pay out of held client money',
         'held.guard_off' => 'Switch off the guard on a client money account',
+        'bill.post' => 'Post a bill from a billing plan',
     ];
 
     /** A sensible set to start from, applied in one click. Out of the box every action needs nothing. */
@@ -44,6 +45,7 @@ class ProjectSerious
         'role.change' => ['needs' => 'supervisor', 'on_project' => false, 'reason' => true],
         'held.pay_out' => ['needs' => 'both', 'on_project' => false, 'reason' => true],
         'held.guard_off' => ['needs' => 'supervisor', 'on_project' => false, 'reason' => true],
+        'bill.post' => ['needs' => 'identity', 'on_project' => false, 'reason' => false],
     ];
 
     private const NONE = ['needs' => 'none', 'on_project' => false, 'reason' => false];

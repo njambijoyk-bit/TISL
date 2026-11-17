@@ -5,6 +5,7 @@ import { message, money } from '../lib/format';
 import { Btn, Chip, DataTable, Notice, Panel, PanelTitle } from './ui';
 import { td, th } from './uiTokens';
 import LedgersPanel from './LedgersPanel';
+import BillingPanel from './BillingPanel';
 
 /**
  * The Money tab (docs/PROJECTS_STAGE4_SPEC.md, build 4.2). Every figure is read from posted Books entries on this piece of work's cost centre
@@ -94,6 +95,7 @@ export default function MoneyPanel({ projectId }) {
         </Panel>
       )}
       <p style={{ margin: '12px 0 0', fontSize: 12.5, color: 'var(--text-secondary)' }}>Read from posted vouchers on this work's cost centres, in the base currency. Cancelled vouchers are not counted.</p>
+      <BillingPanel projectId={projectId} currency={m.currency} onBilled={load} />
       <LedgersPanel projectId={projectId} />
     </div>
   );

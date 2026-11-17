@@ -1922,6 +1922,7 @@ Route::middleware('auth:sanctum')->group(function () {
             $mon = \App\Http\Controllers\Api\Projects\MoneyController::class;
             Route::get('/voucher-picker', [$mon, 'picker'])->middleware('permission:books.post');
             $hel = \App\Http\Controllers\Api\Projects\HeldMoneyController::class;
+            $bil = \App\Http\Controllers\Api\Projects\BillingController::class;
             Route::get('/client-money', [$hel, 'index'])->middleware('permission:projects.money.held.view,projects.money.held.pay');
             Route::post('/client-money/accounts', [$hel, 'openAccount'])->middleware('permission:projects.money.held.pay');
             Route::post('/client-money/accounts/{account}/balances', [$hel, 'openBalance'])->whereNumber('account')->middleware('permission:projects.money.held.pay');
@@ -1929,6 +1930,10 @@ Route::middleware('auth:sanctum')->group(function () {
             Route::post('/client-money/balances/{balance}/pay-out', [$hel, 'payOut'])->whereNumber('balance')->middleware('permission:projects.money.held.pay');
             Route::post('/client-money/accounts/{account}/guard', [$hel, 'setGuard'])->whereNumber('account')->middleware('permission:projects.money.held.pay');
             Route::get('/{project}/money', [$mon, 'tab'])->whereNumber('project')->middleware('permission:projects.money.view');
+            Route::get('/{project}/billing', [$bil, 'show'])->whereNumber('project')->middleware('permission:projects.money.view');
+            Route::put('/{project}/billing', [$bil, 'save'])->whereNumber('project')->middleware('permission:projects.money.bill');
+            Route::post('/{project}/billing/{stage}/bill', [$bil, 'bill'])->whereNumber('project')->whereNumber('stage')->middleware('permission:projects.money.bill');
+            Route::get('/billing-stages/{stage}/form', [$bil, 'form'])->whereNumber('stage')->middleware('permission:books.post');
             Route::get('/{project}/ledgers', [$mon, 'ledgers'])->whereNumber('project')->middleware('permission:projects.money.view');
             Route::post('/{project}/ledgers', [$mon, 'makeLedger'])->whereNumber('project')->middleware('permission:projects.money.view')->middleware('permission:projects.ledgers.create');
             Route::get('/configuration/money', [$mon, 'settings'])->middleware('permission:projects.config.view');
