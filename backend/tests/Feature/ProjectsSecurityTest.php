@@ -189,7 +189,7 @@ class ProjectsSecurityTest extends TestCase
     public function test_the_settings_are_checked_and_the_screen_is_only_for_those_who_hold_the_permission(): void
     {
         $page = $this->as($this->amina)->getJson('/api/admin/projects/security')->assertOk()->json();
-        $this->assertSame([4, ['alert'], 15, 1, true], [count($page['signals']), array_values(array_unique(array_column(array_filter($page['settings'], 'is_array'), 'response'))), $page['settings']['cool_off_minutes'], $page['watchers'], $page['can']['settings']]);
+        $this->assertSame([5, ['alert'], 15, 1, true], [count($page['signals']), array_values(array_unique(array_column(array_filter($page['settings'], 'is_array'), 'response'))), $page['settings']['cool_off_minutes'], $page['watchers'], $page['can']['settings']]);
         $bad = fn (array $o) => $this->putJson('/api/admin/projects/configuration/security', ['settings' => array_replace_recursive($page['settings'], $o)])->assertStatus(422);
         $bad(['refusals' => ['count' => 1]]);
         $bad(['refusals' => ['minutes' => 0]]);

@@ -13,6 +13,7 @@ import ProjectsPipeline from '/src/projects/pages/admin/ProjectsPipeline.jsx';
 import ProjectsFollowUps from '/src/projects/pages/admin/ProjectsFollowUps.jsx';
 import ProjectsClients from '/src/projects/pages/admin/ProjectsClients.jsx';
 import ClientDetail from '/src/projects/pages/admin/ClientDetail.jsx';
+import ProjectsDirectory from '/src/projects/pages/admin/ProjectsDirectory.jsx';
 import KeyboardShortcuts from '/src/_shared/components/common/KeyboardShortcuts.jsx';
 
 /** The Projects screens with their own addresses, so moving between them works as in the app. Starts at ?at=/admin/projects/... */
@@ -34,6 +35,7 @@ export default function ProjectsProbe() {
       <Route path="/admin/projects/follow-ups" element={<ProjectsFollowUps />} />
       <Route path="/admin/projects/clients" element={<ProjectsClients />} />
       <Route path="/admin/projects/clients/:id" element={<ClientDetail />} />
+      <Route path="/admin/projects/directory" element={<ProjectsDirectory />} />
       <Route path="/admin/projects/leads/:id" element={<LeadDetail />} />
       <Route path="/admin/projects/new" element={<ProjectForm />} />
       <Route path="/admin/projects/:id" element={<ProjectDetail />} />

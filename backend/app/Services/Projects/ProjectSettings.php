@@ -24,7 +24,10 @@ class ProjectSettings
             'unlock_minutes' => 15, 'lock_tries' => 5, 'lock_wait_minutes' => 15, 'approval_hours' => 24],
         // security signals: how many of what, in how many minutes, and what happens then. Out of the box each only alerts.
         'security' => ['refusals' => ['on' => true, 'count' => 10, 'minutes' => 10, 'response' => 'alert'], 'lock_tries' => ['on' => true, 'count' => 5, 'minutes' => 15, 'response' => 'alert'],
-            'outside_hours' => ['on' => true, 'count' => 4, 'minutes' => 30, 'response' => 'alert'], 'opening_spree' => ['on' => true, 'count' => 50, 'minutes' => 15, 'response' => 'alert'], 'cool_off_minutes' => 15],
+            'outside_hours' => ['on' => true, 'count' => 4, 'minutes' => 30, 'response' => 'alert'], 'opening_spree' => ['on' => true, 'count' => 50, 'minutes' => 15, 'response' => 'alert'],
+            'reveals' => ['on' => true, 'count' => 20, 'minutes' => 10, 'response' => 'alert'], 'cool_off_minutes' => 15],
+        // the directory (stage 3): which visibility levels can be used beyond staff only
+        'directory' => ['levels' => ['clients', 'public']],
         // client health (stage 3): days since the last contact, days a next action is late, nothing planned, days money is overdue in the books. 0 switches a rule off.
         'health' => ['contact_amber_days' => 30, 'contact_red_days' => 60, 'late_red_days' => 14, 'nothing_planned_amber' => true, 'overdue_amber_days' => 1, 'overdue_red_days' => 60],
         // what each serious action needs before it happens (ProjectSerious lists the actions): out of the box, nothing
@@ -180,6 +183,12 @@ class ProjectSettings
 
             return ['warn_days' => $days, 'default_hours' => $hours, 'read_outside_hours' => (bool) $v['read_outside_hours'], 'passes' => (bool) $v['passes'], 'pass_minutes' => $minutes,
                 'unlock_minutes' => (int) $v['unlock_minutes'], 'lock_tries' => (int) $v['lock_tries'], 'lock_wait_minutes' => (int) $v['lock_wait_minutes'], 'approval_hours' => (int) $v['approval_hours']];
+        }
+
+        if ($part === 'directory') {
+            $levels = array_values(array_intersect(['clients', 'public'], array_map('strval', (array) $v['levels'])));
+
+            return ['levels' => $levels];
         }
 
         if ($part === 'health') {

@@ -23,6 +23,7 @@ class ProjectSecurity
         'lock_tries' => ['Wrong lock passwords', 'Wrong passwords for locked areas'],
         'outside_hours' => ['Tries outside hours', 'Tries to open a project outside its hours'],
         'opening_spree' => ['Opening spree', 'Different projects opened'],
+        'reveals' => ['Many directory reveals', 'Phone numbers and emails revealed in the directory'],
     ];
 
     public const RESPONSES = ['alert' => 'Alert only', 'slow' => 'Cool off: read only for a while', 'pause' => 'Pause their access to Projects'];
@@ -105,6 +106,22 @@ class ProjectSecurity
         if (count($seen['ids']) >= $s['opening_spree']['count']) {
             $this->fire('opening_spree', $user, null, 'Opened ' . count($seen['ids']) . " projects in {$s['opening_spree']['minutes']} minutes", $s);
             Cache::forget($key);
+        }
+    }
+
+    /** Called after each reveal in the directory: someone collecting phone numbers. */
+    public function noteReveal(User $user): void
+    {
+        if (! ProjectsSetup::controlRoom()) {
+            return;
+        }
+        $s = app(ProjectSettings::class)->get('security');
+        if (! ($s['reveals']['on'] ?? false)) {
+            return;
+        }
+        $n = DB::table('project_log')->where('actor_id', $user->id)->where('action', 'directory.revealed')->where('created_at', '>', now()->subMinutes($s['reveals']['minutes']))->count();
+        if ($n >= $s['reveals']['count']) {
+            $this->fire('reveals', $user, null, "{$n} reveals in {$s['reveals']['minutes']} minutes", $s);
         }
     }
 

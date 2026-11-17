@@ -15,6 +15,7 @@ import SeriousPanel from '../../components/SeriousPanel';
 import ListsPanel from '../../components/ListsPanel';
 import PipelineStagesPanel from '../../components/PipelineStagesPanel';
 import HealthRulesPanel from '../../components/HealthRulesPanel';
+import DirectorySettingsPanel from '../../components/DirectorySettingsPanel';
 import ProjectKeys from '../../components/ProjectKeys';
 
 /**
@@ -188,7 +189,7 @@ export default function ProjectConfiguration() {
   };
 
   const industryName = (key) => data?.industries.find((i) => i.key === key)?.name || key;
-  const tabs = [{ key: 'names', label: 'Industry and names' }, { key: 'industries', label: 'Industries' }, { key: 'stages', label: 'Kinds of work and stages' }, { key: 'fields', label: 'Fields' }, { key: 'roles', label: 'Project roles' }, { key: 'access', label: 'Access' }, { key: 'serious', label: 'Serious actions' }, { key: 'lists', label: 'Lists' }, { key: 'pipeline', label: 'Pipeline' }, { key: 'health', label: 'Client health' }, { key: 'shortcuts', label: 'Shortcuts' }, { key: 'history', label: 'History and roll back' }];
+  const tabs = [{ key: 'names', label: 'Industry and names' }, { key: 'industries', label: 'Industries' }, { key: 'stages', label: 'Kinds of work and stages' }, { key: 'fields', label: 'Fields' }, { key: 'roles', label: 'Project roles' }, { key: 'access', label: 'Access' }, { key: 'serious', label: 'Serious actions' }, { key: 'lists', label: 'Lists' }, { key: 'pipeline', label: 'Pipeline' }, { key: 'health', label: 'Client health' }, { key: 'directory', label: 'Directory' }, { key: 'shortcuts', label: 'Shortcuts' }, { key: 'history', label: 'History and roll back' }];
 
   return (
     <AdminLayout><ProjectKeys />
@@ -303,6 +304,7 @@ export default function ProjectConfiguration() {
           {tab === 'lists' && <ListsPanel />}
           {tab === 'pipeline' && <PipelineStagesPanel />}
           {tab === 'health' && <HealthRulesPanel />}
+          {tab === 'directory' && <DirectorySettingsPanel />}
           {tab === 'shortcuts' && <ShortcutsPanel onChanged={reloadNames} />}
 
           {tab === 'history' && (

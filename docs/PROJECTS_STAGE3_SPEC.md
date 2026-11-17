@@ -1,6 +1,6 @@
-# Projects Stage 3: Relationships (being built)
+# Projects Stage 3: Relationships (built)
 
-Status: the owner said "build" on 2026-11-16, accepting the four choices at the end. What is built so far is listed under "As built"; everything else is still design.
+Status: built on 2026-11-16 and 17 in six builds (3.1 to 3.6), accepting the four choices at the end. Each build is listed under "As built" with what changed from this design. It needs database script 259.
 
 Stages 1 and 2 built the work and who may touch it. Stage 3 builds the people the work is for.
 
@@ -160,3 +160,29 @@ Screens: `docs/screens/projects-clients.png`, `projects-client.png`.
 - **Tests:** `tests/Feature/ProjectsClientsTest.php` (7); `frontend/e2e/projects-clients-ui.mjs` (22 checks in a real browser).
 - **Not tested here:** the real Books ageing. The tests stand in for `ClientMoney`, because the test database has no ledgers; the real path calls Books' `Figures::ageing('receivables')`. Open a client with an unpaid invoice after running the script and compare with Books' receivables ageing report.
 - **Not yet:** scores out of 100 (stage 12); bills and payments on the client page (stage 4).
+
+### 3.6 The directory (done)
+
+Screen: `docs/screens/projects-directory.png`.
+
+- **Service:** `ProjectDirectory`. **Controller:** `DirectoryController`.
+- **A view, not a copy:** the directory reads customers, contacts, other parties, vendors and staff where they already live. Only each entry's trades and visibility are stored (`project_directory`).
+- **Yellow pages** (`projects.directory.yellow`): organisations (clients that are companies, parties that are organisations, vendors), grouped by trade down the side with counts, plus "No trade yet". Trades are set per entry with `projects.directory.manage`, from the managed list.
+- **White pages** (`projects.directory.white`): people (client contacts, parties that are people, clients that are people) with their job title and who they work for. Staff appear only for those with `projects.directory.staff`. A lead's people are left out until the lead is won. Someone with only one book is shown that one.
+- **Masked details:** phone numbers and emails are sent masked (last three digits; first letter and domain). "Show" asks the server for the full details, which needs `projects.directory.contacts`; each showing is written to the log with whose details they were.
+- **A fifth security signal:** many showings in a short time (20 in 10 minutes, a setting on the Security page), alert only by default.
+- **Visibility** per entry: staff only (the default), clients who share work with it, or public. Changing it needs `projects.directory.visibility`; making one public needs `projects.directory.publish` too. Configuration (new Directory tab) can switch clients or public off; an entry already at a level that is switched off keeps it until changed, and says so.
+- **Worked with on:** how many pieces of work each client, party or contact has been on, counting only work the person may see.
+- **Export** (`projects.directory.export`, F9): one book as a spreadsheet file; details in full only for someone who may show them, masked otherwise. Logged, saying which.
+- **Routes:** `GET /directory`, `GET /directory/export`, `POST /directory/{type}/{id}/reveal`, `PUT /directory/{type}/{id}`, `GET`, `PUT /configuration/directory`.
+- **Tests:** `tests/Feature/ProjectsDirectoryTest.php` (7); `frontend/e2e/projects-directory-ui.mjs` (15 checks in a real browser).
+- **Waits, as decided:** what a client sees of the directory, and the public page (stage 9). The visibility is recorded now.
+
+### Stage 3 as a whole
+
+- **One path:** lead (Projects only) → opportunity (pipeline) → won (a customer, made the way TISL makes customers) → work (started through the normal path, with the quotation) → client page. What was known about a lead moves with it.
+- **Money stays in Books:** values are read from linked quotations, balances and overdue amounts from the receivables ageing. The only figure Projects keeps is an opportunity's estimate, which is labelled as a guess, never posted, and replaced by a linked quotation (choice 1).
+- **Nothing gives confidential work away:** history about it, counts of it on the client list and in the directory, and approvals for it are limited to the people who may open it.
+- **Until script 259 has run**, `ProjectsSetup::relationships()` is false and every Stage 3 screen says so; Stages 1 and 2 are untouched.
+- **Whole test suite after 3.6:** 3154 backend tests, 1 failure, which is Laravel's stock `ExampleTest` (not part of Projects, failing before this work). 383 checks across seventeen Projects browser checks, all passing. The browser checks use a stand-in API, not a real database. Script 259 was not run against MySQL or MariaDB in this session.
+- **Two things to try by hand after running 259:** win a lead and check the new customer in Books (the tests stand in for customer creation); open a client with an unpaid invoice and compare what it owes with Books' receivables ageing report (the tests stand in for the books).

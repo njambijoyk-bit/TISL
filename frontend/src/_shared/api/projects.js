@@ -87,6 +87,13 @@ const projectsAPI = {
   removeClientFlag: async (id, flagId, note) => (await api.delete(`/admin/projects/clients/${id}/flags/${flagId}`, { data: { note } })).data,
   healthRules: async () => (await api.get('/admin/projects/configuration/health')).data,
   saveHealthRules: async (data) => (await api.put('/admin/projects/configuration/health', data)).data,
+  // the directory: the page answers { book, entries, total, page, per_page, trades, no_trade, levels, can, ready }
+  directory: async (params) => (await api.get('/admin/projects/directory', { params })).data,
+  revealDirectory: async (type, id) => (await api.post(`/admin/projects/directory/${type}/${id}/reveal`)).data,
+  changeDirectory: async (type, id, data) => (await api.put(`/admin/projects/directory/${type}/${id}`, data)).data,
+  exportDirectory: async (book) => (await api.get('/admin/projects/directory/export', { params: { book }, responseType: 'blob' })).data,
+  directorySettings: async () => (await api.get('/admin/projects/configuration/directory')).data,
+  saveDirectorySettings: async (levels) => (await api.put('/admin/projects/configuration/directory', { levels })).data,
   // the history of a relationship and what is next: each call answers { entries, next, kinds, owners, can }
   history: async (type, id) => (await api.get(`/admin/projects/history/${type}/${id}`)).data,
   addHistory: async (type, id, data) => (await api.post(`/admin/projects/history/${type}/${id}`, data)).data,

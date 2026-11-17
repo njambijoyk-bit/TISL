@@ -1973,6 +1973,15 @@ Route::middleware('auth:sanctum')->group(function () {
             });
             Route::get('/configuration/health', [$cli, 'health'])->middleware('permission:projects.config.view');
             Route::put('/configuration/health', [$cli, 'saveHealth'])->middleware('permission:projects.config.manage');
+            $dir = \App\Http\Controllers\Api\Projects\DirectoryController::class;
+            Route::middleware('permission:projects.directory.yellow,projects.directory.white')->group(function () use ($dir) {
+                Route::get('/directory', [$dir, 'index']);
+                Route::get('/directory/export', [$dir, 'export'])->middleware('permission:projects.directory.export');
+                Route::post('/directory/{type}/{id}/reveal', [$dir, 'reveal'])->whereIn('type', ['customer', 'contact', 'party', 'vendor', 'employee'])->whereNumber('id')->middleware('permission:projects.directory.contacts')->middleware('throttle:120,1');
+                Route::put('/directory/{type}/{id}', [$dir, 'update'])->whereIn('type', ['customer', 'contact', 'party', 'vendor', 'employee'])->whereNumber('id')->middleware('permission:projects.directory.manage,projects.directory.visibility');
+            });
+            Route::get('/configuration/directory', [$dir, 'settings'])->middleware('permission:projects.config.view');
+            Route::put('/configuration/directory', [$dir, 'saveSettings'])->middleware('permission:projects.config.manage');
             Route::get('/known', [$rel, 'known'])->middleware('permission:projects.leads.manage,projects.clients.manage,projects.parties');
             Route::get('/configuration/lists', [$rel, 'listsPage'])->middleware('permission:projects.config.view');
             Route::post('/configuration/lists/{list}', [$rel, 'addToList'])->middleware('permission:projects.config.manage');
