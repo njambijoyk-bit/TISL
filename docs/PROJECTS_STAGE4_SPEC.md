@@ -1,6 +1,6 @@
-# Projects Stage 4: Money through Books (being built)
+# Projects Stage 4: Money through Books (built)
 
-Status: the owner said "build" on 2026-11-17, accepting the two choices at the end. What is built so far is listed under "As built"; everything else is still design.
+Status: built on 2026-11-17 in seven builds (4.1 to 4.7), accepting the two choices at the end. Each build is listed under "As built" with what changed from this design. It needs database script 260.
 
 Every amount stays in the double-entry books. A project sees its money by reading Books, and moves money by preparing ordinary Books vouchers.
 
@@ -79,8 +79,10 @@ The whole Books test suite and Books browser checks run with every build.
 
 ### To run
 
-1. `backend/database/sql/260_projects_money.sql` (after 257 to 259). Six tables, and one nullable column in Books, `voucher_entries.project_holding_id`, added only if it is not there. It adds only.
+1. `backend/database/sql/260_projects_money.sql` (after 257 to 259). Six tables, and one nullable column in Books, `voucher_entries.project_holding_id`, added only if it is not there. It adds only. Columns were added to it during the builds (`project_client_accounts.liability_ledger_id`, `project_money_terms.income_ledger_id`, `project_billing_stages.retention_voucher_id` and `advance_voucher_id`); it has not been run anywhere yet, so the file as it is now is the one to run.
 2. No permission seed.
+3. Books changes, all quiet until used: the voucher form's Project picker (4.1); Books refuses to edit a voucher that moved client money (4.4); the client money guard in the voucher service, off for every account until switched on (4.5); the sales form fills itself from a drafted bill and ties the saved invoice to its stage (4.6).
+4. Hand checks once it is run, in this order: a payment with the Project picker; receiving and paying out client money, then the guard refusing a payment out of that bank ledger from Books; a 30/70 billing plan on work with a linked sales order, billed once posted and once drafted; 10% retention and an advance coming off a bill, and the invoice's open amount in Books.
 
 ### 4.1 Script 260 and the project picker on vouchers (done)
 
