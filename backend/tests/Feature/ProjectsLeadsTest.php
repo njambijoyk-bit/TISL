@@ -43,7 +43,7 @@ class ProjectsLeadsTest extends TestCase
 
     public function test_the_script_ships_the_lists_and_the_pipeline_and_adds_three_columns_to_customers(): void
     {
-        $this->assertSame(70, DB::table('project_lists')->count());
+        $this->assertSame(85, DB::table('project_lists')->count());   // 70 from script 259, and 15 kinds of key date from 261
         $this->assertSame(['new', 'qualified', 'proposal', 'negotiation', 'won', 'lost'], DB::table('project_pipeline_stages')->orderBy('sort_order')->pluck('key')->all());
         $this->assertSame([], array_diff(DB::table('project_lists')->whereNotNull('industry_key')->distinct()->pluck('industry_key')->all(), DB::table('project_industries')->pluck('key')->all()), 'every party role belongs to a real industry');
         foreach (['projects_account_manager_id', 'projects_lead_id', 'projects_client_since'] as $column) {
@@ -130,7 +130,7 @@ class ProjectsLeadsTest extends TestCase
     {
         $this->as($this->kamau);
         $page = $this->getJson('/api/admin/projects/configuration/lists')->assertOk()->json();
-        $this->assertSame(['source', 'lost_reason', 'contact_role', 'party_role', 'flag', 'trade'], array_column($page['lists'], 'key'));
+        $this->assertSame(['source', 'lost_reason', 'contact_role', 'party_role', 'flag', 'trade', 'key_date'], array_column($page['lists'], 'key'));
         $this->assertSame('Referral', $page['rows']['source'][0]['name']);
 
         $page = $this->postJson('/api/admin/projects/configuration/lists/source', ['name' => 'Radio advert'])->assertCreated()->json();

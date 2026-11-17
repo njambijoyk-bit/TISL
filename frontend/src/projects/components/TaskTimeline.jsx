@@ -5,17 +5,18 @@ const toDay = (d) => Date.UTC(...String(d).slice(0, 10).split('-').map((n, i) =>
 
 /**
  * The timeline (build 5.2): a bar per task from its start to its due date (a task with only one of them is a single day), on one scale from the
- * earliest to the latest date, with marks (Mondays over a short range, months over a long one) and today. Read only: dragging bars comes with Stage 12. Tasks with neither date are listed below.
+ * earliest to the latest date, with key dates as diamonds, marks (Mondays over a short range, months over a long one) and today. Read only: dragging bars comes with Stage 12. Tasks with neither date are listed below.
  */
-export default function TaskTimeline({ data, onOpen }) {
+export default function TaskTimeline({ data, dates = [], onOpen }) {
   const dated = data.tasks.filter((t) => (t.start_date || t.due_date) && t.matches !== false);
   const undated = data.tasks.filter((t) => !t.start_date && !t.due_date && t.matches !== false);
-  if (!dated.length) return <p style={{ margin: 0, fontSize: 13.5, color: 'var(--text-secondary)' }} data-timeline>No task has a start or due date yet, so there is nothing to draw.</p>;
+  if (!dated.length && !dates.some((d) => d.state !== 'done')) return <p style={{ margin: 0, fontSize: 13.5, color: 'var(--text-secondary)' }} data-timeline>No task has a start or due date yet, so there is nothing to draw.</p>;
   const now = new Date();
   const today = Date.UTC(now.getFullYear(), now.getMonth(), now.getDate());
   const spans = dated.map((t) => { const a = toDay(t.start_date || t.due_date); const b = toDay(t.due_date || t.start_date); return { t, a: Math.min(a, b), b: Math.max(a, b) }; });
-  const from = Math.min(today, ...spans.map((s) => s.a)) - 2 * DAY;
-  const to = Math.max(today, ...spans.map((s) => s.b)) + 3 * DAY;
+  const keys = dates.filter((d) => d.state !== 'done').map((d) => ({ d, at: toDay(d.starts_at) }));
+  const from = Math.min(today, ...spans.map((s) => s.a), ...keys.map((k) => k.at)) - 2 * DAY;
+  const to = Math.max(today, ...spans.map((s) => s.b), ...keys.map((k) => k.at)) + 3 * DAY;
   const pct = (x) => `${((x - from) / (to - from)) * 100}%`;
   // marks: the first of each month over a long range; each Monday over a range of under ten weeks
   const label = (x, o) => new Date(x).toLocaleDateString('en-GB', { ...o, timeZone: 'UTC' });
@@ -47,6 +48,12 @@ export default function TaskTimeline({ data, onOpen }) {
             </div>,
           ];
         })}
+        {keys.map(({ d, at }) => [
+          <span key={`kn${d.id}`} style={{ whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>◆ {d.title}</span>,
+          <div key={`kb${d.id}`} style={{ position: 'relative', height: 18, borderLeft: '1px solid var(--line)' }} data-key-date-mark={d.title}>
+            <i title={`${d.title}, ${day(d.starts_at)}`} style={{ position: 'absolute', left: `calc(${pct(at)} - 5px)`, top: 4, width: 10, height: 10, transform: 'rotate(45deg)', background: d.state === 'missed' ? 'var(--status-error)' : 'var(--status-warning)' }} />
+          </div>,
+        ])}
       </div>
       {undated.length > 0 && <p style={{ margin: '12px 0 0', fontSize: 12.5, color: 'var(--text-secondary)' }}>Without dates: {undated.map((t) => `T${t.number} ${t.title}`).join(', ')}.</p>}
     </div>

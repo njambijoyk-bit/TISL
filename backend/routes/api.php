@@ -1950,6 +1950,10 @@ Route::middleware('auth:sanctum')->group(function () {
             Route::delete('/saved-views/{place}/{view}', [$wrk, 'deleteView'])->where('place', '[a-z]+')->whereNumber('view');
             Route::get('/{project}/tasks', [$wrk, 'index'])->whereNumber('project');
             Route::get('/{project}/scope', [$wrk, 'scope'])->whereNumber('project');
+            Route::get('/{project}/key-dates', [$wrk, 'dates'])->whereNumber('project');
+            Route::post('/{project}/key-dates', [$wrk, 'addDate'])->whereNumber('project')->middleware('permission:projects.dates');
+            Route::put('/{project}/key-dates/{date}', [$wrk, 'changeDate'])->whereNumber('project')->whereNumber('date')->middleware('permission:projects.dates');
+            Route::delete('/{project}/key-dates/{date}', [$wrk, 'deleteDate'])->whereNumber('project')->whereNumber('date')->middleware('permission:projects.dates');
             Route::post('/{project}/scope', [$wrk, 'addScope'])->whereNumber('project')->middleware('permission:projects.scope');
             Route::put('/{project}/scope/{line}', [$wrk, 'changeScope'])->whereNumber('project')->whereNumber('line')->middleware('permission:projects.scope');
             Route::delete('/{project}/scope/{line}', [$wrk, 'deleteScope'])->whereNumber('project')->whereNumber('line')->middleware('permission:projects.scope');

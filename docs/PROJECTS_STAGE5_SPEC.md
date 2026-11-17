@@ -197,3 +197,18 @@ Screen: `docs/screens/projects-scope.png`.
 - **Who:** reading needs only to open the work; the rest needs `projects.scope` and a project role that works on tasks.
 - **Routes:** `GET`, `POST /projects/{project}/scope` (`copy_from` copies an order); `PUT` (`progress` records progress), `DELETE /projects/{project}/scope/{line}`.
 - **Tests:** `tests/Feature/ProjectsScopeTest.php` (3); all Projects tests pass. Browser check `e2e/projects-scope-ui.mjs` (7 checks); the Work check still passes.
+
+### 5.4 Key dates (done)
+
+Screen: `docs/screens/projects-key-dates.png`.
+
+- **Service:** `ProjectKeyDates`; a third part of the Work tab (a legal matter reads "Court dates").
+- **Kinds** are a new list on the Configuration page, "Kinds of key date", which like party roles can belong to one industry or all: every industry gets Deadline, Meeting, Handover, Renewal or expiry, Payment due and Other; legal adds Hearing, Mention, Filing deadline, Limitation date and Judgment; construction adds Inspection, Site meeting, Practical completion and End of defects period (15 rows in script 261). A date offers only its work's industry's kinds.
+- **A date:** what it is, kind, day and optional time (no time = all day), the person responsible (someone on the work), phase and task, and its own warning days (or the company's, 14,7,1).
+- **Warnings** (`projects:key-date-warnings`, daily at 07:00, new notice type "Projects: key dates coming up, on the day, and missed"): on each warning day and on the day, once each; a run that missed some days sends one warning, not several. An open date whose day has passed becomes **missed**, with one notice. Sent to the person responsible and the work's leads. Frozen work and work in the trash are left out.
+- **Moving** needs a reason; the date keeps where it was, who moved it and why (shown under it, and in the log); its warnings start again; a missed date moved ahead is open again. A plain change cannot move it. A done date cannot be moved (add a new one).
+- **Calendar:** every key date is on the calendar of everyone on the work (source `project_key_date`), with its time when it has one, marked done or missed. Core's calendar refresh brings key dates in and sweeps the ones that no longer apply, as for tasks.
+- **Timeline:** key dates not yet done show as diamonds (missed ones red).
+- **Who:** reading needs only to open the work; the rest needs `projects.dates` and a project role that works on tasks.
+- **Routes:** `GET` (`past=1` for old ones), `POST /projects/{project}/key-dates`; `PUT` (`done`, or `reason` with a new `date` to move), `DELETE /projects/{project}/key-dates/{date}`.
+- **Tests:** `tests/Feature/ProjectsKeyDatesTest.php` (3); the leads test now counts 85 list rows and the new list. All Projects and Calendar tests pass. Browser check `e2e/projects-key-dates-ui.mjs` (7 checks); Work, scope and configuration checks still pass.

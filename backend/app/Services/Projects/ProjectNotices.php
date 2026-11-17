@@ -15,6 +15,7 @@ class ProjectNotices
     public const SECURITY = 'project_security';
     public const FOLLOW_UP = 'project_follow_up';
     public const TASK = 'project_task';
+    public const KEY_DATE = 'project_key_date';
 
     /** @param iterable<User>|User|null $to */
     public static function tell(iterable|User|null $to, string $type, string $title, string $message, ?string $path = null, ?string $linkText = null): void

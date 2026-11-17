@@ -26,6 +26,7 @@ export default function WorkPanel({ projectId, word }) {
   const [pending, setPending] = useState(null);   // a move refused on the board because it needs a reason: asked in the task panel
   const [saved, setSaved] = useState([]);
   const [naming, setNaming] = useState(null);
+  const [dates, setDates] = useState([]);   // key dates, drawn as diamonds on the timeline
   const [problem, setProblem] = useState('');
   const [busy, setBusy] = useState(false);
 
@@ -34,7 +35,8 @@ export default function WorkPanel({ projectId, word }) {
     try { setData(await projectsAPI.tasks(projectId, params)); setFailed(''); } catch (e) { setFailed(message(e, 'The tasks could not be loaded. Try again.')); }
   }, [projectId, f]);
   useEffect(() => { const id = setTimeout(load, f.q ? 250 : 0); return () => clearTimeout(id); }, [load, f.q]);
-  useEffect(() => { projectsAPI.savedViews('work').then((r) => setSaved(r.views)).catch(() => setSaved([])); }, []);
+  useEffect(() => { if (view === 'timeline') projectsAPI.keyDates(projectId).then((r) => setDates(r?.dates ?? [])).catch(() => setDates([])); }, [view, projectId]);
+  useEffect(() => { projectsAPI.savedViews('work').then((r) => setSaved(r?.views ?? [])).catch(() => setSaved([])); }, []);
 
   if (failed) return <Notice status="problem">{failed}</Notice>;
   if (!data) return null;
@@ -131,7 +133,7 @@ export default function WorkPanel({ projectId, word }) {
 
       {data.tasks.length === 0 && <Panel><p style={{ margin: 0, fontSize: 13.5, color: 'var(--text-secondary)' }}>{filtered ? 'Nothing matches.' : `No ${word ? word('task', true).toLowerCase() : 'tasks'} yet.`}{!filtered && data.can.manage ? ` Add one with New ${task.toLowerCase()}.` : ''}</p></Panel>}
       {data.tasks.length > 0 && view === 'board' && <TaskBoard data={data} onMove={moveOnBoard} onOpen={(id) => openTask(id)} />}
-      {data.tasks.length > 0 && view === 'timeline' && <Panel><TaskTimeline data={data} onOpen={(id) => openTask(id)} /></Panel>}
+      {data.tasks.length > 0 && view === 'timeline' && <Panel><TaskTimeline data={data} dates={dates} onOpen={(id) => openTask(id)} /></Panel>}
       {data.tasks.length > 0 && view === 'list' && (
         <Panel style={{ padding: 0 }}>
           <DataTable minWidth={760}>

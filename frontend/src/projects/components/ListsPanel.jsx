@@ -50,7 +50,7 @@ export default function ListsPanel() {
       {can && (
         <form onSubmit={add} style={{ display: 'flex', gap: 10, alignItems: 'end', flexWrap: 'wrap', padding: 12, borderRadius: 10, background: 'var(--surface-input)', marginBottom: 12 }}>
           <Field label="Add to this list" htmlFor="list-name" style={{ flex: '1 1 220px' }}><TextInput id="list-name" value={form.name} maxLength={80} onChange={(e) => { setForm({ ...form, name: e.target.value }); setProblem(''); }} required /></Field>
-          {list === 'party_role' && <Field label="For which industry" htmlFor="list-industry"><SelectInput id="list-industry" value={form.industry} onChange={(e) => setForm({ ...form, industry: e.target.value })}><option value="">Every industry</option>{data.industries.map((i) => <option key={i.key} value={i.key}>{i.name}</option>)}</SelectInput></Field>}
+          {['party_role', 'key_date'].includes(list) && <Field label="For which industry" htmlFor="list-industry"><SelectInput id="list-industry" value={form.industry} onChange={(e) => setForm({ ...form, industry: e.target.value })}><option value="">Every industry</option>{data.industries.map((i) => <option key={i.key} value={i.key}>{i.name}</option>)}</SelectInput></Field>}
           {list === 'flag' && <Field label="Shown as" htmlFor="list-status"><SelectInput id="list-status" value={form.status} onChange={(e) => setForm({ ...form, status: e.target.value })}>{Object.entries(STATUS).map(([k, label]) => <option key={k} value={k}>{label}</option>)}</SelectInput></Field>}
           <Btn type="submit" variant="primary" small busy={busy}>Add</Btn>
         </form>
@@ -58,7 +58,7 @@ export default function ListsPanel() {
       {problem && <Notice status="problem" style={{ marginBottom: 12 }}>{problem}</Notice>}
 
       <DataTable minWidth={520}>
-        <thead><tr><th style={th}>Name</th>{list === 'party_role' && <th style={th}>Industry</th>}{list === 'flag' && <th style={th}>Shown as</th>}<th style={th}>Offered</th><th style={th}><span className="sr-only">Actions</span></th></tr></thead>
+        <thead><tr><th style={th}>Name</th>{['party_role', 'key_date'].includes(list) && <th style={th}>Industry</th>}{list === 'flag' && <th style={th}>Shown as</th>}<th style={th}>Offered</th><th style={th}><span className="sr-only">Actions</span></th></tr></thead>
         <tbody>
           {rows.map((r, i) => (
             <tr key={r.id} data-row={r.name}>
@@ -70,7 +70,7 @@ export default function ListsPanel() {
                   </form>
                   : r.name}
               </td>
-              {list === 'party_role' && <td style={td}>{r.industry ? industry(r.industry) : <span style={{ color: 'var(--text-secondary)' }}>Every industry</span>}</td>}
+              {['party_role', 'key_date'].includes(list) && <td style={td}>{r.industry ? industry(r.industry) : <span style={{ color: 'var(--text-secondary)' }}>Every industry</span>}</td>}
               {list === 'flag' && <td style={td}><Chip status={r.status}>{STATUS[r.status]}</Chip></td>}
               <td style={td}><Chip status={r.is_active ? 'good' : 'neutral'}>{r.is_active ? 'Yes' : 'Off'}</Chip></td>
               <td style={{ ...td, textAlign: 'right', whiteSpace: 'nowrap' }}>

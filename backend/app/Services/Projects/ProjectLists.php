@@ -21,6 +21,7 @@ class ProjectLists
         'party_role' => ['What another party is on a project', 'Can belong to one industry or to all.'],
         'flag' => ['Flags on a client', 'Each is shown as one of the four named statuses.'],
         'trade' => ['Trades in the yellow pages', 'How organisations are grouped in the directory.'],
+        'key_date' => ['Kinds of key date', 'Can belong to one industry or to all. Chosen when a key date is added.'],
     ];
 
     private const STATUSES = ['info', 'good', 'warning', 'problem'];
@@ -115,7 +116,7 @@ class ProjectLists
             throw new ProjectException('That name is already on the list.');
         }
         $out = ['name' => $name, 'industry_key' => null, 'status_token' => null];
-        if ($list === 'party_role' && ($d['industry'] ?? null) !== null && $d['industry'] !== '') {
+        if (in_array($list, ['party_role', 'key_date'], true) && ($d['industry'] ?? null) !== null && $d['industry'] !== '') {
             if (! DB::table('project_industries')->where('key', $d['industry'])->exists()) {
                 throw new ProjectException('Choose an industry from the list.');
             }

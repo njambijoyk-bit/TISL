@@ -135,6 +135,50 @@ class WorkController extends Controller
         });
     }
 
+    // ------------------------------------------------------------------ key dates (5.4)
+
+    public function dates(Request $request, int $project): JsonResponse
+    {
+        return $this->guard(fn () => response()->json(app(\App\Services\Projects\ProjectKeyDates::class)->list($this->project($request, $project), $request->user(), $request->boolean('past'))));
+    }
+
+    public function addDate(Request $request, int $project): JsonResponse
+    {
+        return $this->guard(function () use ($request, $project) {
+            $p = $this->project($request, $project);
+            $k = app(\App\Services\Projects\ProjectKeyDates::class);
+            $k->create($p, $request->all(), $request->user());
+
+            return response()->json($k->list($p, $request->user()), 201);
+        });
+    }
+
+    public function changeDate(Request $request, int $project, int $date): JsonResponse
+    {
+        return $this->guard(function () use ($request, $project, $date) {
+            $p = $this->project($request, $project);
+            $k = app(\App\Services\Projects\ProjectKeyDates::class);
+            match (true) {
+                $request->has('done') => $k->done($p, $date, $request->boolean('done'), $request->user()),
+                $request->has('reason') => $k->move($p, $date, $request->all(), $request->user()),
+                default => $k->update($p, $date, $request->all(), $request->user()),
+            };
+
+            return response()->json($k->list($p, $request->user()));
+        });
+    }
+
+    public function deleteDate(Request $request, int $project, int $date): JsonResponse
+    {
+        return $this->guard(function () use ($request, $project, $date) {
+            $p = $this->project($request, $project);
+            $k = app(\App\Services\Projects\ProjectKeyDates::class);
+            $k->delete($p, $date, $request->user());
+
+            return response()->json($k->list($p, $request->user()));
+        });
+    }
+
     public function views(Request $request, string $place): JsonResponse
     {
         return $this->guard(fn () => response()->json(['views' => app(\App\Services\Projects\ProjectSavedViews::class)->of($request->user(), $place)]));

@@ -249,6 +249,11 @@ CREATE TABLE IF NOT EXISTS project_saved_views (
 INSERT IGNORE INTO project_role_permissions (project_role_id, ability) SELECT id, a.ability FROM project_roles JOIN (SELECT 'tasks' AS ability UNION ALL SELECT 'time' AS ability UNION ALL SELECT 'approve_time' AS ability) a WHERE `key` = 'lead';
 INSERT IGNORE INTO project_role_permissions (project_role_id, ability) SELECT id, a.ability FROM project_roles JOIN (SELECT 'tasks' AS ability UNION ALL SELECT 'time' AS ability) a WHERE `key` = 'member';
 
+-- kinds of key date (a list on the Configuration page, like the stage 3 lists): every industry's, then legal's and construction's own
+INSERT IGNORE INTO project_lists (list, `key`, name, industry_key, status_token, is_system, sort_order) VALUES ('key_date', 'deadline', 'Deadline', NULL, NULL, 1, 10), ('key_date', 'meeting', 'Meeting', NULL, NULL, 1, 20), ('key_date', 'handover', 'Handover', NULL, NULL, 1, 30), ('key_date', 'renewal', 'Renewal or expiry', NULL, NULL, 1, 40), ('key_date', 'payment', 'Payment due', NULL, NULL, 1, 50), ('key_date', 'other', 'Other', NULL, NULL, 1, 90);
+INSERT IGNORE INTO project_lists (list, `key`, name, industry_key, status_token, is_system, sort_order) VALUES ('key_date', 'hearing', 'Hearing', 'legal', NULL, 1, 11), ('key_date', 'mention', 'Mention', 'legal', NULL, 1, 12), ('key_date', 'filing', 'Filing deadline', 'legal', NULL, 1, 13), ('key_date', 'limitation', 'Limitation date', 'legal', NULL, 1, 14), ('key_date', 'judgment', 'Judgment', 'legal', NULL, 1, 15);
+INSERT IGNORE INTO project_lists (list, `key`, name, industry_key, status_token, is_system, sort_order) VALUES ('key_date', 'inspection', 'Inspection', 'construction', NULL, 1, 16), ('key_date', 'site_meeting', 'Site meeting', 'construction', NULL, 1, 17), ('key_date', 'practical_completion', 'Practical completion', 'construction', NULL, 1, 18), ('key_date', 'defects_end', 'End of defects period', 'construction', NULL, 1, 19);
+
 -- the five task statuses are words in the names table, so each industry (and each company) can call them what it does
 INSERT IGNORE INTO project_terms (`key`, description, sort_order) VALUES
     ('task_todo', 'A task nobody has started', 111),
