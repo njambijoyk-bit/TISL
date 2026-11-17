@@ -126,3 +126,17 @@ Screen: `docs/screens/projects-ledgers.png`.
 - **Routes:** `GET`, `POST /projects/{project}/ledgers`.
 - **Tests:** `tests/Feature/ProjectsLedgersTest.php` (4, with real ledger and group tables); the Money browser check now covers the ledgers too (17 checks).
 - **Left for 4.4 and 4.7:** client money, retention and advance ledgers are made by those builds' own screens, so their purposes are not offered here.
+
+### 4.4 Client money accounts and receiving (done)
+
+Screen: `docs/screens/projects-client-money.png`.
+
+- **Services:** `ProjectHeldMoney` (accounts, balances, receiving) and `ProjectVoucherPoster` (posts a journal through Books' own `VoucherService::create`, channel `projects`). Page: Projects → **Client money**; what is held for a piece of work also shows on its Money tab.
+- **An account** is pooled (a balance per client inside it) or dedicated (it holds one balance). It has two Books ledgers: the **bank ledger** the money sits in and the **liability ledger** saying it is owed to clients. Either can be an existing ledger or be opened in Books from the form (same checks as 4.3). Script 260 now also has `liability_ledger_id` on `project_client_accounts` (the owner has not run 260 yet, so it was added in place).
+- **A balance** belongs to one client or to several jointly (any number of owners), and can name the piece of work it is for. A dedicated account refuses a second balance.
+- **Receiving** posts a journal in Books: debit the bank ledger, credit the liability ledger, both lines tagged with the balance (`voucher_entries.project_holding_id`). What a balance holds is worked out from the posted, tagged bank lines; Projects stores no amount.
+- **Books:** a journal line may carry `project_holding_id` (only when the column exists). Books' voucher form refuses to edit a voucher with tagged lines ("This voucher moved client money held in Projects, so it is not edited here…"); a mistake is put right from Projects (paying out comes in 4.5).
+- **Permissions:** viewing needs `projects.money.held.view` or `projects.money.held.pay`; opening accounts, balances and receiving need `projects.money.held.pay`; opening a bank ledger also needs `projects.ledgers.bank`. Refusals are logged.
+- **Guard:** each account has `guard_on`, off by default; switching it on and what it stops comes with 4.5.
+- **Routes:** `GET /projects/client-money`, `POST /projects/client-money/accounts`, `POST /projects/client-money/accounts/{account}/balances`, `POST /projects/client-money/balances/{balance}/receive`.
+- **Tests:** `tests/Feature/ProjectsClientMoneyTest.php` (5); browser check `e2e/projects-client-money-ui.mjs` (11 checks). In tests the real Books posting is stood in for, so **check by hand** once 260 is run: receive into a balance and see the journal in Books with both lines.

@@ -2030,7 +2030,9 @@ class VoucherService
             if (! empty($e['cost_centre_id']) && app(\App\Services\CostCentres\CostCentreService::class)->booksReady()) {
                 app(\App\Services\CostCentres\CostCentreService::class)->assertActive($e['cost_centre_id'], 'entries.' . count($entries) . '.cost_centre_id');
             }
-            $entries[] = $mk((int) $e['ledger_id'], $side, $amt, ['narration' => $e['narration'] ?? null, 'is_party' => ! empty($e['is_party']), 'cost_centre_id' => $e['cost_centre_id'] ?? null, 'location_id' => $e['location_id'] ?? null]);
+            // Projects (script 260): a line can say which client's held money it belongs to. Only added when given, so no other voucher is touched.
+            $held = ! empty($e['project_holding_id']) && VoucherEntry::holdsClientMoney() ? ['project_holding_id' => (int) $e['project_holding_id']] : [];
+            $entries[] = $mk((int) $e['ledger_id'], $side, $amt, $held + ['narration' => $e['narration'] ?? null, 'is_party' => ! empty($e['is_party']), 'cost_centre_id' => $e['cost_centre_id'] ?? null, 'location_id' => $e['location_id'] ?? null]);
             $debit += $side === 'D' ? $amt : 0;
         }
         if (count($entries) < 2) {

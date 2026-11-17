@@ -68,6 +68,14 @@ export default function MoneyPanel({ projectId }) {
           <Row label="Spent">{f(m.spent)}</Row>
           <Row label="Profit" strong>{f(m.profit)}</Row>
         </Panel>
+        {m.held && (
+          <Panel data-held>
+            <PanelTitle hint="Money held for clients on this work. Never the firm's own." right={<Link to="/admin/projects/client-money" style={{ fontSize: 13, color: 'var(--color-primary-500)', fontWeight: 600 }}>Client money</Link>}>Held for clients</PanelTitle>
+            {m.held.balances.length === 0 && <p style={{ margin: 0, fontSize: 13.5, color: 'var(--text-secondary)' }}>Nothing held.</p>}
+            {m.held.balances.map((b) => <Row key={b.id} label={<>{b.label}{b.joint ? ' (joint)' : ''}<span style={{ display: 'block', fontSize: 12 }}>{b.account}</span></>}>{f(b.held)}</Row>)}
+            {m.held.balances.length > 1 && <Row label="Total" strong>{f(m.held.total)}</Row>}
+          </Panel>
+        )}
       </div>
       {m.phases.length > 0 && (
         <Panel>

@@ -37,7 +37,7 @@ class MoneyController extends Controller
             return response()->json(['message' => $e->getMessage()] + $e->extra, $e->status);
         }
 
-        return response()->json(['money' => app(\App\Services\Projects\ProjectMoney::class)->for($p),
+        return response()->json(['money' => app(\App\Services\Projects\ProjectMoney::class)->for($p, $request->user()),
             'can' => ['budget' => $request->user()->hasPermission('projects.money.budget') && $request->user()->hasPermission('books.view')]]);
     }
 

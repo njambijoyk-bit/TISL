@@ -47,6 +47,7 @@ DROP PROCEDURE IF EXISTS projects_money_guard;
 CREATE TABLE IF NOT EXISTS project_client_accounts (
     id         BIGINT UNSIGNED NOT NULL AUTO_INCREMENT PRIMARY KEY,
     ledger_id  BIGINT UNSIGNED NOT NULL,                                -- the Books bank ledger the money sits in (Books owns it)
+    liability_ledger_id BIGINT UNSIGNED NULL,                           -- the Books liability ledger that says the money is owed to the clients, not the firm's
     name       VARCHAR(120) NOT NULL,
     kind       VARCHAR(10) NOT NULL DEFAULT 'pooled',                   -- pooled (a balance per client inside one ledger) | dedicated (one ledger, usually one balance)
     guard_on   TINYINT(1) NOT NULL DEFAULT 0,                           -- 1 = Books refuses a line that takes any balance below zero

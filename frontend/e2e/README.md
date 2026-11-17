@@ -50,6 +50,7 @@ node e2e/projects-clients-ui.mjs                # Projects: clients (the list wi
 node e2e/projects-directory-ui.mjs              # Projects: the directory (yellow pages by trade, white pages by name, masked details and showing them, trades, who can see an entry) and its levels in Configuration (needs only the website)
 node e2e/projects-voucher-picker-ui.mjs         # Projects in Books: the project picker on the real voucher form (required, optional, not shown, filling the cost centre) and the Money settings (needs only the website)
 node e2e/projects-money-ui.mjs                  # Projects: the Money tab (agreed, billed, paid, owed, budget, spend, committed, profit, phases) as the books have them, and ledgers made from the work (needs only the website)
+node e2e/projects-client-money-ui.mjs           # Projects: client money (pooled and dedicated accounts, opening one with its ledgers, joint balances, receiving) and held money on the Money tab (needs only the website)
 ```
 
 Needs Playwright (`PLAYWRIGHT_MODULE_DIR` points at the folder holding it, default `/opt/node22/lib/node_modules/`) and a Chromium (`CHROME`).

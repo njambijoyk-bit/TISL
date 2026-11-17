@@ -11,7 +11,15 @@ class VoucherEntry extends Model
 
     protected $table = 'voucher_entries';
 
-    protected $fillable = ['voucher_id', 'line_no', 'ledger_id', 'side', 'amount', 'base_amount', 'is_party', 'is_tax', 'narration', 'cost_centre_id', 'location_id', 'initiative_id', 'created_at'];
+    protected $fillable = ['voucher_id', 'line_no', 'ledger_id', 'side', 'amount', 'base_amount', 'is_party', 'is_tax', 'narration', 'cost_centre_id', 'location_id', 'initiative_id', 'project_holding_id', 'created_at'];
+
+    private static ?bool $holding = null;
+
+    /** Has script 260 added the column that ties a line to a client's held money (Projects)? */
+    public static function holdsClientMoney(): bool
+    {
+        return self::$holding ??= \Illuminate\Support\Facades\Schema::hasColumn('voucher_entries', 'project_holding_id');
+    }
 
     protected $casts = [
         'amount'      => 'decimal:2',

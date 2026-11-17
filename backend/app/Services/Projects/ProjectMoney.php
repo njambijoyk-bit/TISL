@@ -24,7 +24,7 @@ use Illuminate\Support\Facades\Schema;
 class ProjectMoney
 {
     /** @return array<string, mixed> */
-    public function for(object $project): array
+    public function for(object $project, ?\App\Models\User $user = null): array
     {
         $tree = $this->tree($project->cost_centre_id ? (int) $project->cost_centre_id : null);
         $books = Schema::hasTable('vouchers') && Schema::hasTable('voucher_entries') && Schema::hasTable('ledgers') && Schema::hasTable('ledger_groups');
@@ -50,6 +50,8 @@ class ProjectMoney
             'income' => $income, 'spent' => $spent, 'profit' => round($income - $spent, 2),
             'committed' => $this->committed($all), 'budget' => $this->budget($all),
             'phases' => $phases, 'cost_centres' => count($all),
+            // client money held for this work (never the firm's own), for someone who may see it
+            'held' => $user && $user->hasPermission('projects.money.held.view') ? app(ProjectHeldMoney::class)->forProject($project, $user) : null,
         ];
     }
 

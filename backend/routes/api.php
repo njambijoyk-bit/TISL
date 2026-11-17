@@ -1921,6 +1921,11 @@ Route::middleware('auth:sanctum')->group(function () {
             // stage 4, money through Books
             $mon = \App\Http\Controllers\Api\Projects\MoneyController::class;
             Route::get('/voucher-picker', [$mon, 'picker'])->middleware('permission:books.post');
+            $hel = \App\Http\Controllers\Api\Projects\HeldMoneyController::class;
+            Route::get('/client-money', [$hel, 'index'])->middleware('permission:projects.money.held.view,projects.money.held.pay');
+            Route::post('/client-money/accounts', [$hel, 'openAccount'])->middleware('permission:projects.money.held.pay');
+            Route::post('/client-money/accounts/{account}/balances', [$hel, 'openBalance'])->whereNumber('account')->middleware('permission:projects.money.held.pay');
+            Route::post('/client-money/balances/{balance}/receive', [$hel, 'receive'])->whereNumber('balance')->middleware('permission:projects.money.held.pay');
             Route::get('/{project}/money', [$mon, 'tab'])->whereNumber('project')->middleware('permission:projects.money.view');
             Route::get('/{project}/ledgers', [$mon, 'ledgers'])->whereNumber('project')->middleware('permission:projects.money.view');
             Route::post('/{project}/ledgers', [$mon, 'makeLedger'])->whereNumber('project')->middleware('permission:projects.money.view')->middleware('permission:projects.ledgers.create');

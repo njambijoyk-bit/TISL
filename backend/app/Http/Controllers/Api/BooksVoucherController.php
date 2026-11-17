@@ -139,6 +139,9 @@ class BooksVoucherController extends Controller
     {
         return $this->guard(function () use ($request, $id) {
             $existing = $this->writable(Voucher::findOrFail($id));
+            if (\App\Models\Books\VoucherEntry::holdsClientMoney() && \App\Models\Books\VoucherEntry::where('voucher_id', $existing->id)->whereNotNull('project_holding_id')->exists()) {
+                throw new BooksException('This voucher moved client money held in Projects, so it is not edited here: the form would lose which client it belongs to. Cancel it and record it again from Projects.');
+            }
             if ($request->filled('location_id')) {
                 $this->writableAt($request->input('location_id'), $request->input('cost_centre_id'));   // moving it to another branch needs that branch too
             }

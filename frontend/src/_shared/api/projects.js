@@ -82,6 +82,11 @@ const projectsAPI = {
   money: async (id) => (await api.get(`/admin/projects/${id}/money`)).data,   // { money: every figure from the books, can }
   projectLedgers: async (id) => (await api.get(`/admin/projects/${id}/ledgers`)).data,   // { ledgers, groups, purposes, can }
   makeProjectLedger: async (id, data) => (await api.post(`/admin/projects/${id}/ledgers`, data)).data,
+  // client money: each call answers { accounts, ready, currency, options?, can }
+  clientMoney: async () => (await api.get('/admin/projects/client-money')).data,
+  openClientAccount: async (data) => (await api.post('/admin/projects/client-money/accounts', data)).data,
+  openClientBalance: async (accountId, data) => (await api.post(`/admin/projects/client-money/accounts/${accountId}/balances`, data)).data,
+  receiveClientMoney: async (balanceId, data) => (await api.post(`/admin/projects/client-money/balances/${balanceId}/receive`, data)).data,
   voucherPicker: async (params) => (await api.get('/admin/projects/voucher-picker', { params })).data,
   moneySettings: async () => (await api.get('/admin/projects/configuration/money')).data,
   saveMoneySettings: async (data) => (await api.put('/admin/projects/configuration/money', data)).data,
