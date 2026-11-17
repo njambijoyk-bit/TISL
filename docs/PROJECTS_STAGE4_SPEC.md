@@ -112,3 +112,17 @@ Screen: `docs/screens/projects-money.png`.
 - **Route:** `GET /projects/{project}/money`.
 - **Tests:** `tests/Feature/ProjectsMoneyTabTest.php` (4, with real voucher, entry, ledger and budget tables); `frontend/e2e/projects-money-ui.mjs` (10 checks in a real browser).
 - **Not tested here:** the real receivables ageing (stood in; the tests have no ageing tables). Compare one project's Owed with Books' ageing report after running the script.
+
+### 4.3 Ledgers from a project (done)
+
+Screen: `docs/screens/projects-ledgers.png`.
+
+- **Service:** `ProjectLedgers`. Shown at the foot of the Money tab.
+- **A ledger is made in Books** with the Ledger model and the checks Books' own ledger screen uses (the Duties & Taxes guard, statement line placement where statement lines are on). Books owns it from then on; Projects only remembers which work asked for it, and lists it with its group and who made it. A ledger later switched off in Books says so.
+- **No opening balance is taken,** whatever is sent: money only enters the books as a voucher (a test sends one and checks it is ignored).
+- **Groups offered:** for an account, income, expense and liability groups whose behaviour is ordinary, sales or purchase (no tax, debtors, delivery, charge or bank groups); for a bank account, Bank Accounts and the groups under it. A name the books already have, in any capitals, is refused.
+- **Permissions:** `projects.ledgers.create`, and for a bank ledger also `projects.ledgers.bank`; both need a project role that sees money. Refusals are logged.
+- **Bank details** on a new ledger ask the same sensitive action as on Books' own ledger screen (`bank_details`), when that rule is on.
+- **Routes:** `GET`, `POST /projects/{project}/ledgers`.
+- **Tests:** `tests/Feature/ProjectsLedgersTest.php` (4, with real ledger and group tables); the Money browser check now covers the ledgers too (17 checks).
+- **Left for 4.4 and 4.7:** client money, retention and advance ledgers are made by those builds' own screens, so their purposes are not offered here.

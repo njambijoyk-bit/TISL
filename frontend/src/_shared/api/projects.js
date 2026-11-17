@@ -80,6 +80,8 @@ const projectsAPI = {
   removePartyContact: async (id, linkId) => (await api.delete(`/admin/projects/${id}/party-contacts/${linkId}`)).data,
   // stage 4, money: the picker answers { rule: required | optional | none, projects: [{ id, number, title, cost_centre_id, phases }], current }
   money: async (id) => (await api.get(`/admin/projects/${id}/money`)).data,   // { money: every figure from the books, can }
+  projectLedgers: async (id) => (await api.get(`/admin/projects/${id}/ledgers`)).data,   // { ledgers, groups, purposes, can }
+  makeProjectLedger: async (id, data) => (await api.post(`/admin/projects/${id}/ledgers`, data)).data,
   voucherPicker: async (params) => (await api.get('/admin/projects/voucher-picker', { params })).data,
   moneySettings: async () => (await api.get('/admin/projects/configuration/money')).data,
   saveMoneySettings: async (data) => (await api.put('/admin/projects/configuration/money', data)).data,

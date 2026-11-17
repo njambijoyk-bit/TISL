@@ -1922,6 +1922,8 @@ Route::middleware('auth:sanctum')->group(function () {
             $mon = \App\Http\Controllers\Api\Projects\MoneyController::class;
             Route::get('/voucher-picker', [$mon, 'picker'])->middleware('permission:books.post');
             Route::get('/{project}/money', [$mon, 'tab'])->whereNumber('project')->middleware('permission:projects.money.view');
+            Route::get('/{project}/ledgers', [$mon, 'ledgers'])->whereNumber('project')->middleware('permission:projects.money.view');
+            Route::post('/{project}/ledgers', [$mon, 'makeLedger'])->whereNumber('project')->middleware('permission:projects.money.view')->middleware('permission:projects.ledgers.create');
             Route::get('/configuration/money', [$mon, 'settings'])->middleware('permission:projects.config.view');
             Route::put('/configuration/money', [$mon, 'saveSettings'])->middleware('permission:projects.config.manage');
             // stage 3, relationships

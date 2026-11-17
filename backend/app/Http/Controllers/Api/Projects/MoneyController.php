@@ -41,6 +41,44 @@ class MoneyController extends Controller
             'can' => ['budget' => $request->user()->hasPermission('projects.money.budget') && $request->user()->hasPermission('books.view')]]);
     }
 
+    /** Ledgers made in Books from this project, and where a new one can go. */
+    public function ledgers(Request $request, int $project): JsonResponse
+    {
+        try {
+            $p = app(\App\Services\Projects\ProjectService::class)->findFor($request->user(), $project, 'money');
+        } catch (ProjectException $e) {
+            return response()->json(['message' => $e->getMessage()] + $e->extra, $e->status);
+        }
+
+        return $this->ledgerList($request, $p);
+    }
+
+    public function makeLedger(Request $request, int $project): JsonResponse
+    {
+        try {
+            $p = app(\App\Services\Projects\ProjectService::class)->findFor($request->user(), $project, 'money');
+            // bank or payee details on a new ledger are the same sensitive action as on Books' own ledger screen
+            $bankFields = collect(['bank_name', 'account_number', 'account_name'])->contains(fn ($k) => trim((string) $request->input($k, '')) !== '');
+            if ($held = \App\Http\Middleware\Assurance::check($request, 'bank_details', fn () => $bankFields)) {
+                return $held;
+            }
+            app(\App\Services\Projects\ProjectLedgers::class)->make($p, $request->all(), $request->user());
+        } catch (ProjectException $e) {
+            return response()->json(['message' => $e->getMessage()] + $e->extra, $e->status);
+        }
+
+        return $this->ledgerList($request, $p, 201);
+    }
+
+    private function ledgerList(Request $request, object $p, int $status = 200): JsonResponse
+    {
+        $user = $request->user();
+        $l = app(\App\Services\Projects\ProjectLedgers::class);
+
+        return response()->json(['ledgers' => $l->of($p), 'groups' => $l->groups(), 'purposes' => \App\Services\Projects\ProjectLedgers::PURPOSES,
+            'can' => ['make' => $user->hasPermission('projects.ledgers.create'), 'bank' => $user->hasPermission('projects.ledgers.create') && $user->hasPermission('projects.ledgers.bank')]], $status);
+    }
+
     public function settings(Request $request): JsonResponse
     {
         return response()->json([
