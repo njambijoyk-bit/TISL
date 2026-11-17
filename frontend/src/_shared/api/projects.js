@@ -134,6 +134,7 @@ const projectsAPI = {
   deleteRate: async (projectId, id) => (await api.delete(projectId ? `/admin/projects/${projectId}/rates/${id}` : `/admin/projects/rates/${id}`)).data,
   disbursements: async (projectId) => (await api.get(`/admin/projects/${projectId}/disbursements`)).data,
   markDisbursement: async (projectId, entryId, data) => (await api.put(`/admin/projects/${projectId}/disbursements/${entryId}`, data)).data,
+  myWork: async () => (await api.get('/admin/projects/my-work')).data,
   savedViews: async (place) => (await api.get(`/admin/projects/saved-views/${place}`)).data,
   saveView: async (place, name, settings) => (await api.post(`/admin/projects/saved-views/${place}`, { name, settings })).data,
   deleteView: async (place, id) => (await api.delete(`/admin/projects/saved-views/${place}/${id}`)).data,

@@ -275,3 +275,17 @@ Screen: `docs/screens/projects-time-billing.png`.
 - **Found and fixed on the way:** the "has script 257 to 261 been run" answers in Projects were remembered for the life of the PHP process; they are now remembered per request (as Books' were in 4.5), so one test, or a long-running worker, never sees a stale answer.
 - **Routes:** `GET /projects/{project}/disbursements`; `PUT /projects/{project}/disbursements/{entry}` (`on`, or `write_off` with `reason`). The work settings now also list income and expense ledgers for the billed-back costs.
 - **Tests:** `tests/Feature/ProjectsDisbursementsPayrollTest.php` (2); all Projects, Payroll and Books-area tests pass. The time-billing browser check now has 11 checks (marking and writing off costs).
+
+### 5.10 My Work (done)
+
+Screen: `docs/screens/projects-my-work.png`.
+
+- **Service:** `ProjectMyWork`; a new page, Projects → **My Work** (first in the Projects menu), opened anywhere in Projects with **G then M** (a new shortcut, a setting like the others).
+- **This week:** time logged, the running timer, and Submit when something waits to be submitted; a link to the timesheet.
+- **Waiting for you:** time to approve, changes to decide on (submitted, on work where you decide, not raised by you), and approvals (Stage 2).
+- **Key dates:** on the work you are on, the next 30 days and any missed, with how soon.
+- **Your tasks:** open tasks given to you on work you may still open, grouped Late, Today, Later this week, Later or no date, with their status in the work's industry words and a link straight to the task. Work in the trash drops out.
+- **Follow-ups:** your next actions on leads, clients and opportunities that are due or late (Stage 3).
+- Everything comes from the service that owns it, so its rules apply as they do elsewhere.
+- **Route:** `GET /projects/my-work`.
+- **Tests:** `tests/Feature/ProjectsMyWorkTest.php` (1); all Projects tests pass. Browser check `e2e/projects-my-work-ui.mjs` (7 checks, including G then M); the shortcut keys check still passes.

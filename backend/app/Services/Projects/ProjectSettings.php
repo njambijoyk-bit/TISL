@@ -15,7 +15,7 @@ class ProjectSettings
     public const DEFAULTS = [
         'general' => ['default_industry' => 'general', 'project_may_use_other_industry' => true, 'trash_days' => 30],
         // the company's shortcut keys (ProjectKeys says what each is for)
-        'shortcuts' => ['go_list' => 'P', 'go_new' => 'N', 'go_log' => 'L', 'go_trash' => 'T', 'go_config' => 'C', 'act_edit' => 'E', 'act_hold' => 'H', 'act_next' => 'F', 'act_delete' => 'D',
+        'shortcuts' => ['go_list' => 'P', 'go_new' => 'N', 'go_log' => 'L', 'go_trash' => 'T', 'go_config' => 'C', 'go_mywork' => 'M', 'act_edit' => 'E', 'act_hold' => 'H', 'act_next' => 'F', 'act_delete' => 'D',
             'tab_overview' => 'O', 'tab_phases' => 'P', 'tab_people' => 'I', 'tab_links' => 'K', 'tab_activity' => 'Y'],
         // stage 2, the control room: how long before an end date the lead is told
         // and the hours a new project starts with (a list of {day, opens, closes}; empty = any time), whether reading is allowed outside them, and short passes

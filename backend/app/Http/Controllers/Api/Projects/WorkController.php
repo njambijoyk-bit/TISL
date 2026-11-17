@@ -266,6 +266,12 @@ class WorkController extends Controller
         });
     }
 
+    /** My Work (5.10): each person's home in Projects. */
+    public function myWork(Request $request): JsonResponse
+    {
+        return response()->json(app(\App\Services\Projects\ProjectMyWork::class)->for($request->user()));
+    }
+
     public function settings(Request $request): JsonResponse
     {
         $ledgers = \Illuminate\Support\Facades\Schema::hasTable('ledgers') && \Illuminate\Support\Facades\Schema::hasTable('ledger_groups')

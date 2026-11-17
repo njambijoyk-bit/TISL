@@ -10,6 +10,7 @@ export const GO = [
   { key: 'go_log', what: 'the activity log', path: '/admin/projects/log', perm: 'projects.log.view' },
   { key: 'go_trash', what: 'the trash', path: '/admin/projects/trash', perm: 'projects.delete' },
   { key: 'go_config', what: 'Configuration', path: '/admin/projects/configuration', perm: 'projects.config.view' },
+  { key: 'go_mywork', what: 'My Work', path: '/admin/projects/my-work', perm: 'projects.use' },
 ];
 
 /** On an open piece of work: each presses the control that carries this mark, if it is on the screen. */

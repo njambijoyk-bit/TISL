@@ -1958,6 +1958,7 @@ Route::middleware('auth:sanctum')->group(function () {
             Route::post('/{project}/ledgers', [$mon, 'makeLedger'])->whereNumber('project')->middleware('permission:projects.money.view')->middleware('permission:projects.ledgers.create');
             Route::get('/configuration/work', [$wrk, 'settings'])->middleware('permission:projects.config.view');
             Route::put('/configuration/work', [$wrk, 'saveSettings'])->middleware('permission:projects.config.manage');
+            Route::get('/my-work', [$wrk, 'myWork']);
             Route::get('/saved-views/{place}', [$wrk, 'views'])->where('place', '[a-z]+');
             Route::post('/saved-views/{place}', [$wrk, 'saveView'])->where('place', '[a-z]+');
             Route::delete('/saved-views/{place}/{view}', [$wrk, 'deleteView'])->where('place', '[a-z]+')->whereNumber('view');
