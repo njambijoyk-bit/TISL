@@ -95,6 +95,46 @@ class WorkController extends Controller
         });
     }
 
+    // ------------------------------------------------------------------ scope lines (5.3)
+
+    public function scope(Request $request, int $project): JsonResponse
+    {
+        return $this->guard(fn () => response()->json(app(\App\Services\Projects\ProjectScope::class)->list($this->project($request, $project), $request->user())));
+    }
+
+    public function addScope(Request $request, int $project): JsonResponse
+    {
+        return $this->guard(function () use ($request, $project) {
+            $p = $this->project($request, $project);
+            $s = app(\App\Services\Projects\ProjectScope::class);
+            $request->filled('copy_from') ? $s->copyOrder($p, $request->integer('copy_from'), $request->user()) : $s->create($p, $request->all(), $request->user());
+
+            return response()->json($s->list($p, $request->user()), 201);
+        });
+    }
+
+    public function changeScope(Request $request, int $project, int $line): JsonResponse
+    {
+        return $this->guard(function () use ($request, $project, $line) {
+            $p = $this->project($request, $project);
+            $s = app(\App\Services\Projects\ProjectScope::class);
+            $request->has('progress') ? $s->progress($p, $line, $request->input('progress'), $request->user(), $request->input('note')) : $s->update($p, $line, $request->all(), $request->user());
+
+            return response()->json($s->list($p, $request->user()));
+        });
+    }
+
+    public function deleteScope(Request $request, int $project, int $line): JsonResponse
+    {
+        return $this->guard(function () use ($request, $project, $line) {
+            $p = $this->project($request, $project);
+            $s = app(\App\Services\Projects\ProjectScope::class);
+            $s->delete($p, $line, $request->user());
+
+            return response()->json($s->list($p, $request->user()));
+        });
+    }
+
     public function views(Request $request, string $place): JsonResponse
     {
         return $this->guard(fn () => response()->json(['views' => app(\App\Services\Projects\ProjectSavedViews::class)->of($request->user(), $place)]));

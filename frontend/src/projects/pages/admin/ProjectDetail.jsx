@@ -12,7 +12,7 @@ import AccessPanel from '../../components/AccessPanel';
 import UnlockPanel from '../../components/UnlockPanel';
 import PartiesPanel from '../../components/PartiesPanel';
 import MoneyPanel from '../../components/MoneyPanel';
-import WorkPanel from '../../components/WorkPanel';
+import WorkTab from '../../components/WorkTab';
 import ActivityPanel from '../../components/ActivityPanel';
 import LinksPanel from '../../components/LinksPanel';
 import { hasPermission } from '../../../_shared/lib/roles';
@@ -195,7 +195,7 @@ export default function ProjectDetail() {
         </div>
       )}
       {!lockedTab && tab === 'phases' && <PhasesPanel key={`${p.id}-${p.frozen}`} projectId={p.id} word={word} />}
-      {!lockedTab && tab === 'work' && <WorkPanel key={`${p.id}-${p.frozen}`} projectId={p.id} word={word} />}
+      {!lockedTab && tab === 'work' && <WorkTab key={`${p.id}-${p.frozen}`} projectId={p.id} word={word} />}
       {tab === 'money' && <MoneyPanel key={p.id} projectId={p.id} />}
       {tab === 'parties' && <PartiesPanel key={`${p.id}-${p.frozen}`} projectId={p.id} word={word} />}
       {!lockedTab && tab === 'links' && <LinksPanel key={`${p.id}-${p.frozen}`} projectId={p.id} />}

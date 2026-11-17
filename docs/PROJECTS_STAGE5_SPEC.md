@@ -183,3 +183,17 @@ Screens: `docs/screens/projects-work-board.png`, `docs/screens/projects-work-tim
 - **Notices** (new type "Projects: tasks given to you, due, late, and what they wait for done", not essential, staff): when someone gives you a task (not when you give one to yourself, not again when you are already on it); when a task that yours waits for is done; and each morning at 07:30 (`projects:task-reminders`), one message per person listing tasks due tomorrow and tasks that became late yesterday. Frozen work and work in the trash are left out.
 - **Routes:** `GET`, `POST /projects/saved-views/{place}`, `DELETE /projects/saved-views/{place}/{view}`.
 - **Tests:** `tests/Feature/ProjectsTaskViewsTest.php` (3); all Projects and Calendar tests pass. The Work browser check now has 22 checks (board, timeline, saved views).
+
+### 5.3 Scope lines (done)
+
+Screen: `docs/screens/projects-scope.png`.
+
+- **Service:** `ProjectScope`. The Work tab now has parts: Tasks and the scope (named per industry, so a construction contract reads "Bill of quantities"). A link can open a part (`?part=scope`).
+- **A line:** code, description, unit and quantity (a unit needs its quantity), phase, and optionally the Books sales order or quotation line that prices it, from orders linked to the work only.
+- **Copy in an order's lines:** one step makes a scope line from each line of a linked quotation or sales order, pointing at it. Lines already copied are skipped.
+- **No price is kept.** The rate shown beside a line is read from Books each time (a test changes the Books price and sees it follow). A Books line that is gone, or whose voucher is cancelled, says so.
+- **Progress:** a quantity done for a line with a unit, a percentage for one without. Far more than agreed (over one and a half times) is refused with "raise a change". Each change is logged with the old value and an optional note. Moving a line between a unit and a percentage starts its progress again. Overall progress counts each line equally, since no prices are kept to weigh them.
+- **Tasks** tied to a line show "n of m tasks done" on it. Deleting a line leaves its tasks, untied.
+- **Who:** reading needs only to open the work; the rest needs `projects.scope` and a project role that works on tasks.
+- **Routes:** `GET`, `POST /projects/{project}/scope` (`copy_from` copies an order); `PUT` (`progress` records progress), `DELETE /projects/{project}/scope/{line}`.
+- **Tests:** `tests/Feature/ProjectsScopeTest.php` (3); all Projects tests pass. Browser check `e2e/projects-scope-ui.mjs` (7 checks); the Work check still passes.
