@@ -145,6 +145,7 @@ final class ModuleTables
             'project_access', 'project_hours', 'project_passes', 'project_locks', 'project_unlocks', 'project_approvals', 'project_security_events',   // stage 2 (script 258)
             'project_lists', 'project_leads', 'project_pipeline_stages', 'project_opportunities', 'project_contacts', 'project_contact_links', 'project_parties', 'project_party_links',
             'project_interactions', 'project_follow_ups', 'project_client_flags', 'project_directory',   // stage 3 (script 259)
+            'project_client_accounts', 'project_client_holdings', 'project_client_holding_owners', 'project_billing_stages', 'project_money_terms', 'project_ledgers',   // stage 4 (script 260)
         ],
         'listings'       => [/* built later */],
         'campaigns'      => ['campaigns', 'campaign_sections', 'campaign_items', 'campaign_events',

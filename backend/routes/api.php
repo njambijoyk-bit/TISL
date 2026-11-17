@@ -1918,6 +1918,11 @@ Route::middleware('auth:sanctum')->group(function () {
             Route::put('/{project}/members/{member}', [$mem, 'change'])->whereNumber(['project', 'member'])->middleware('permission:projects.members.manage');
             Route::delete('/{project}/members/{member}', [$mem, 'remove'])->whereNumber(['project', 'member'])->middleware('permission:projects.members.manage');
             Route::post('/{project}/transfer', [$mem, 'transfer'])->whereNumber('project')->middleware('permission:projects.transfer');
+            // stage 4, money through Books
+            $mon = \App\Http\Controllers\Api\Projects\MoneyController::class;
+            Route::get('/voucher-picker', [$mon, 'picker'])->middleware('permission:books.post');
+            Route::get('/configuration/money', [$mon, 'settings'])->middleware('permission:projects.config.view');
+            Route::put('/configuration/money', [$mon, 'saveSettings'])->middleware('permission:projects.config.manage');
             // stage 3, relationships
             $rel = \App\Http\Controllers\Api\Projects\RelationshipController::class;
             Route::middleware('permission:projects.leads.view,projects.leads.manage')->group(function () use ($rel) {

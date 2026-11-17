@@ -128,6 +128,7 @@ class BooksVoucherController extends Controller
     {
         return $this->guard(function () use ($request) {
             $this->writableAt($request->input('location_id') ?: \App\Models\Location::default()?->id, $request->input('cost_centre_id'));
+            app(\App\Services\Projects\VoucherProjects::class)->assertForForm($request->input('voucher_type_id'), $request->input('cost_centre_id'));   // Projects: a kind of voucher can require a piece of work (only here, on the form)
             $v = $this->vouchers->create($request->all(), $request->user());
 
             return response()->json(['message' => "{$v->voucher_number} saved" . $this->budgetNote(), 'data' => $v->load($this->vouchers->relations()), 'budget' => $this->vouchers->budgetCheck()], 201);
@@ -141,6 +142,7 @@ class BooksVoucherController extends Controller
             if ($request->filled('location_id')) {
                 $this->writableAt($request->input('location_id'), $request->input('cost_centre_id'));   // moving it to another branch needs that branch too
             }
+            app(\App\Services\Projects\VoucherProjects::class)->assertForForm($existing->voucher_type_id, $request->input('cost_centre_id', $existing->cost_centre_id));
             $v = $this->vouchers->alter($existing, $request->all(), $request->user());
 
             return response()->json(['message' => "{$v->voucher_number} updated" . $this->budgetNote(), 'data' => $v->load($this->vouchers->relations()), 'budget' => $this->vouchers->budgetCheck()]);

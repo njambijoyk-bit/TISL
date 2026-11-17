@@ -17,6 +17,8 @@ class ProjectsSetup
 
     private static ?bool $relationships = null;
 
+    private static ?bool $money = null;
+
     public static function ready(): bool
     {
         return self::$ready ??= Schema::hasTable('project_industries') && Schema::hasTable('project_log');
@@ -34,11 +36,18 @@ class ProjectsSetup
         return self::$relationships ??= self::ready() && Schema::hasTable('project_leads') && Schema::hasTable('project_directory');
     }
 
+    /** Stage 4 (script 260): client money, billing plans, money terms and ledgers made from a project. */
+    public static function money(): bool
+    {
+        return self::$money ??= self::ready() && Schema::hasTable('project_client_accounts') && Schema::hasTable('project_ledgers');
+    }
+
     /** Look again at the next call (a test creates the tables). */
     public static function forget(): void
     {
         self::$ready = null;
         self::$controlRoom = null;
         self::$relationships = null;
+        self::$money = null;
     }
 }

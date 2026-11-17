@@ -26,6 +26,8 @@ class ProjectSettings
         'security' => ['refusals' => ['on' => true, 'count' => 10, 'minutes' => 10, 'response' => 'alert'], 'lock_tries' => ['on' => true, 'count' => 5, 'minutes' => 15, 'response' => 'alert'],
             'outside_hours' => ['on' => true, 'count' => 4, 'minutes' => 30, 'response' => 'alert'], 'opening_spree' => ['on' => true, 'count' => 50, 'minutes' => 15, 'response' => 'alert'],
             'reveals' => ['on' => true, 'count' => 20, 'minutes' => 10, 'response' => 'alert'], 'cool_off_minutes' => 15],
+        // money (stage 4): post bills or prepare drafts; where retention goes by default; whether a project shows on each kind of voucher (required | optional | none)
+        'money' => ['bill_mode' => 'draft', 'retention_mode' => 'company', 'retention_ledger_id' => 0, 'voucher_project' => ['payment' => 'optional', 'receipt' => 'optional', 'sales' => 'optional', 'cash_sale' => 'optional', 'credit_note' => 'optional', 'purchase' => 'optional', 'debit_note' => 'optional', 'journal' => 'optional', 'contra' => 'optional', 'quotation' => 'optional', 'sales_order' => 'optional', 'purchase_order' => 'optional', 'delivery_note' => 'optional', 'receipt_note' => 'optional']],
         // the directory (stage 3): which visibility levels can be used beyond staff only
         'directory' => ['levels' => ['clients', 'public']],
         // client health (stage 3): days since the last contact, days a next action is late, nothing planned, days money is overdue in the books. 0 switches a rule off.
@@ -183,6 +185,29 @@ class ProjectSettings
 
             return ['warn_days' => $days, 'default_hours' => $hours, 'read_outside_hours' => (bool) $v['read_outside_hours'], 'passes' => (bool) $v['passes'], 'pass_minutes' => $minutes,
                 'unlock_minutes' => (int) $v['unlock_minutes'], 'lock_tries' => (int) $v['lock_tries'], 'lock_wait_minutes' => (int) $v['lock_wait_minutes'], 'approval_hours' => (int) $v['approval_hours']];
+        }
+
+        if ($part === 'money') {
+            if (! in_array($v['bill_mode'], ['post', 'draft'], true)) {
+                throw new ProjectException('Choose whether bills are posted or prepared as drafts.');
+            }
+            if (! in_array($v['retention_mode'], ['company', 'client'], true)) {
+                throw new ProjectException('Choose where retention goes: one company ledger, or a ledger per client.');
+            }
+            $rules = [];
+            foreach (self::DEFAULTS['money']['voucher_project'] as $base => $default) {
+                $rule = (string) ($v['voucher_project'][$base] ?? $default);
+                if (! in_array($rule, ['required', 'optional', 'none'], true)) {
+                    throw new ProjectException('Each kind of voucher takes a project as required, optional or not shown.');
+                }
+                $rules[$base] = $rule;
+            }
+            $ledger = (int) $v['retention_ledger_id'];
+            if ($ledger && \Illuminate\Support\Facades\Schema::hasTable('ledgers') && ! DB::table('ledgers')->where('id', $ledger)->exists()) {
+                throw new ProjectException('Choose a retention ledger from the books.');
+            }
+
+            return ['bill_mode' => $v['bill_mode'], 'retention_mode' => $v['retention_mode'], 'retention_ledger_id' => $ledger, 'voucher_project' => $rules];
         }
 
         if ($part === 'directory') {

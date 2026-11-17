@@ -1,6 +1,6 @@
-# Projects Stage 4: Money through Books (DESIGN, nothing built yet)
+# Projects Stage 4: Money through Books (being built)
 
-Status: DESIGN, shared with the owner on 2026-11-17, with the owner's four answers built in. Waiting for "build". Nothing in this document is built.
+Status: the owner said "build" on 2026-11-17, accepting the two choices at the end. What is built so far is listed under "As built"; everything else is still design.
 
 Every amount stays in the double-entry books. A project sees its money by reading Books, and moves money by preparing ordinary Books vouchers.
 
@@ -74,3 +74,23 @@ The whole Books test suite and Books browser checks run with every build.
 
 1. Billing stages are shares of the agreed value (the linked Books quotation or sales order), not typed amounts, to keep "Projects never stores money". A project with no quotation linked cannot have a staged plan until one is.
 2. Hourly billing, disbursements and write-offs wait for Stage 5.
+
+## As built
+
+### To run
+
+1. `backend/database/sql/260_projects_money.sql` (after 257 to 259). Six tables, and one nullable column in Books, `voucher_entries.project_holding_id`, added only if it is not there. It adds only.
+2. No permission seed.
+
+### 4.1 Script 260 and the project picker on vouchers (done)
+
+Screens: `docs/screens/projects-voucher-picker.png`, `projects-money-settings.png`.
+
+- **Script 260** makes all the Stage 4 tables at once. The Books column is added through a prepared statement inside the guard, so it is added once and the script can run twice. No table holds an amount: shares and percentages only (a test checks the columns).
+- **Service:** `VoucherProjects`. **Controller:** `MoneyController`.
+- **Money settings** (Configuration, new Money tab; changed with `projects.config.manage`; a versioned settings part): bills posted or prepared as drafts (radio, default draft); retention to one company ledger or a ledger per client (radio, default company); and per kind of Books voucher, a project required, optional or not shown (default optional everywhere, so Books works exactly as before until someone chooses).
+- **The picker on Books' voucher form:** a Project field beside Cost centre, listing the open work the person may see and each phase that has its own cost centre ("M-0413 › Pleadings"). Choosing one fills the cost centre field Books already had; choosing a project's cost centre directly shows the project. A closed project is still shown on a voucher already posted to it. When Projects is not licensed, not on, or refuses the person, the picker does not show and the form is as before.
+- **Required is enforced only on the Books form's own save and change doors** (`BooksVoucherController::store` and `update`): a refused voucher reads "A payment must be posted to a piece of work. Choose one under Project.", like any other Books refusal. It is never in the shared save path (`VoucherService`) that the shop, the till and payment gateways use, so a shop order is never refused for having no project (a test checks both).
+- **Books changes in this build:** the picker on the form, and one call in each of the two doors. Nothing else in Books.
+- **Routes:** `GET /projects/voucher-picker` (needs `books.post`), `GET`, `PUT /projects/configuration/money`.
+- **Tests:** `tests/Feature/ProjectsVoucherPickerTest.php` (5). Every Books, voucher, budget, cost centre and ledger test was run with it and passes (2,131 assertions). `frontend/e2e/projects-voucher-picker-ui.mjs` (13 checks) opens the real Books voucher form with a stand-in API.

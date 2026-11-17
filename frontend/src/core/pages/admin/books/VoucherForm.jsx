@@ -11,6 +11,7 @@ import { creditSentence } from '../../../components/admin/books/creditText';
 import booksAPI from '../../../../_shared/api/books';
 import locationsAPI from '../../../../_shared/api/locations';
 import costCentresAPI from '../../../../_shared/api/costCentres';
+import projectsAPI from '../../../../_shared/api/projects';
 import useAuthStore from '../../../../_shared/store/authStore';
 import useModuleStore from '../../../../_shared/store/moduleStore';
 import { isModuleActive, MODULES } from '../../../../_shared/navigation/modules';
@@ -213,6 +214,18 @@ export default function VoucherForm({ api = booksAPI, mode = 'books' }) {
   const [entries, setEntries] = useState(blankEntries);
   const [cc, setCc] = useState({ ready: false, line_override: false, data: [] });
   useEffect(() => { costCentresAPI.options().then(setCc).catch(() => {}); }, []);
+  // Projects (stage 4): a project picker that fills the cost centre. Whether it shows, and whether it is required, is set per kind of voucher in Projects.
+  // When Projects is not licensed, not on, or the person cannot open it, the call is refused and the picker simply does not show.
+  const [vp, setVp] = useState({ rule: 'none', projects: [] });
+  const ccNow = useRef('');
+  ccNow.current = h.cost_centre_id;
+  useEffect(() => {
+    if (!typeId || loading) return;
+    let live = true;
+    projectsAPI.voucherPicker({ voucher_type_id: typeId, cost_centre_id: ccNow.current || undefined }).then((r) => { if (live) setVp(r); }).catch(() => { if (live) setVp({ rule: 'none', projects: [] }); });
+    return () => { live = false; };
+  }, [typeId, loading]);
+  const vpCostCentres = vp.projects.flatMap((p) => [String(p.cost_centre_id), ...p.phases.map((ph) => String(ph.cost_centre_id))]);
   const [ini, setIni] = useState({ ready: false, data: [] });   // initiatives a voucher can be posted to (script 244)
   useEffect(() => { booksAPI.budgetInitiatives().then(setIni).catch(() => {}); }, []);
   const [manual, setManual] = useState(false);
@@ -694,6 +707,18 @@ export default function VoucherForm({ api = booksAPI, mode = 'books' }) {
                   <select value={h.initiative_id} onChange={(e) => setH((x) => ({ ...x, initiative_id: e.target.value }))} style={small} aria-label="Initiative">
                     <option value="">None</option>
                     {ini.data.map((i) => <option key={i.id} value={i.id}>{'— '.repeat(i.depth)}{i.name}</option>)}
+                  </select>
+                </div>
+              )}
+              {vp.rule !== 'none' && (
+                <div>
+                  <label style={label}>Project{vp.rule === 'required' ? ' (required)' : ''}</label>
+                  <select value={vpCostCentres.includes(String(h.cost_centre_id)) ? h.cost_centre_id : ''} onChange={(e) => setH((x) => ({ ...x, cost_centre_id: e.target.value }))} style={small} aria-label="Project" required={vp.rule === 'required'}>
+                    <option value="">{vp.rule === 'required' ? 'Choose the work…' : 'None'}</option>
+                    {vp.projects.map((p) => [
+                      <option key={`p${p.id}`} value={p.cost_centre_id}>{p.number}{p.title ? ` · ${p.title}` : ''}</option>,
+                      ...p.phases.map((ph) => <option key={`ph${ph.id}`} value={ph.cost_centre_id}>{p.number} › {ph.name}</option>),
+                    ])}
                   </select>
                 </div>
               )}

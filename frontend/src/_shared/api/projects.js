@@ -78,6 +78,10 @@ const projectsAPI = {
   removeParty: async (id, linkId) => (await api.delete(`/admin/projects/${id}/parties/${linkId}`)).data,
   addPartyContact: async (id, data) => (await api.post(`/admin/projects/${id}/party-contacts`, data)).data,
   removePartyContact: async (id, linkId) => (await api.delete(`/admin/projects/${id}/party-contacts/${linkId}`)).data,
+  // stage 4, money: the picker answers { rule: required | optional | none, projects: [{ id, number, title, cost_centre_id, phases }], current }
+  voucherPicker: async (params) => (await api.get('/admin/projects/voucher-picker', { params })).data,
+  moneySettings: async () => (await api.get('/admin/projects/configuration/money')).data,
+  saveMoneySettings: async (data) => (await api.put('/admin/projects/configuration/money', data)).data,
   // clients: the list answers { data, total, page, per_page, counts, ready, can }; one answers { client, managers, flag_choices }
   clients: async (params) => (await api.get('/admin/projects/clients', { params })).data,
   exportClients: async (params) => (await api.get('/admin/projects/clients/export', { params, responseType: 'blob' })).data,
