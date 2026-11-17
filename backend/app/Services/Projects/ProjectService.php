@@ -162,7 +162,11 @@ class ProjectService
             ->when(trim($q) !== '', fn ($w) => $w->where(fn ($x) => $x->where('company_name', 'like', $like)->orWhere('first_name', 'like', $like)->orWhere('last_name', 'like', $like)
                 ->orWhere('email', 'like', $like)->orWhere('customer_number', 'like', $like)))
             ->orderBy('company_name')->orderBy('first_name')->limit(20)->get(['id', 'first_name', 'last_name', 'company_name', 'email', 'customer_number'])
-            ->map(fn ($c) => ['id' => (int) $c->id, 'name' => self::customerName($c), 'detail' => $c->customer_number ?: $c->email])->all();
+            ->pipe(function ($rows) {
+                $flags = ProjectClients::flagNames($rows->pluck('id')->map(fn ($v) => (int) $v)->all());   // a flag shows wherever a client is picked
+
+                return $rows->map(fn ($c) => ['id' => (int) $c->id, 'name' => self::customerName($c), 'detail' => $c->customer_number ?: $c->email, 'flags' => $flags[(int) $c->id] ?? []]);
+            })->all();
     }
 
     // ------------------------------------------------------------------ starting
@@ -494,7 +498,7 @@ class ProjectService
         return $out;
     }
 
-    private static function customerName(object $c): string
+    public static function customerName(object $c): string
     {
         $person = trim(($c->first_name ?? '') . ' ' . ($c->last_name ?? ''));
 

@@ -143,3 +143,20 @@ Screens: `docs/screens/projects-history.png`, `projects-done.png`, `projects-fol
 - **Routes:** `GET`, `POST /history/{lead|customer|party|opportunity}/{id}`; `PUT`, `DELETE /history/entries/{entry}`; `POST /next/{lead|customer|opportunity}/{id}`; `PUT /next/{followUp}`; `POST /next/{followUp}/done`; `GET /follow-ups`.
 - **Tests:** `tests/Feature/ProjectsHistoryTest.php` (7); `frontend/e2e/projects-history-ui.mjs` (15 checks in a real browser).
 - **Not yet:** a history tab on a piece of work itself (entries about it show on the client's history; the client page is 3.5); history for a party has no screen yet (the directory, 3.6).
+
+### 3.5 Client page, health and flags (done)
+
+Screens: `docs/screens/projects-clients.png`, `projects-client.png`.
+
+- **Services:** `ProjectClients`, `ClientMoney`. **Controller:** `ClientController`.
+- **Clients list** (`/admin/projects/clients`, in the Projects menu, `projects.clients.view`): the customers Projects has to do with (became a client here, or has work or an opportunity), each with account manager, open work, last contact, next action, flags, what it owes and health. Filters: all or the ones I manage, by health colour, flagged. A search finds any customer, so a shop customer can be opened and turned into a client too.
+- **Open work counts only what the person may see.** A count that included confidential work would give its existence away. (Found and fixed while building this.)
+- **Client page:** health with every reason; flags with why, who and when; account manager (changed with `projects.clients.manage`; giving one makes the customer a client from that day); came from; email; phone; last contact; what it owes; its people (3.3); its work and open opportunities, which open in place; its history and next action (3.4); a new opportunity started from the page.
+- **What it owes** is read from the books: one receivables ageing report per page or list, with each client's ledger read from it. Shown to those who hold `books.view` or `projects.money.view`. When the books cannot answer, nothing is shown and nothing is guessed.
+- **Health** (seen with `projects.health.view`): green, amber or red; the worst rule decides. The rules: no contact for 30 days amber, 60 red (counted from client since when there has never been contact); a next action late is amber, 14 days late red; nothing planned next amber; a flag shown as a problem red, as a warning amber; money overdue in the books for 1 day amber, 60 red. Every number is a setting (Configuration, new Client health tab); 0 switches a rule off; red must come after amber. Someone without the money permission still sees "Money overdue for 75 days" as a reason, never the amount.
+- **Flags:** added with a reason, taken off with a reason (`projects.flags`), both logged. A flag taken off is kept, with why. Flags show on the list, the page, and in the client picker on the project form.
+- **Export** (`projects.clients.export`, F9): the list as filtered, as a spreadsheet file, with the money and health columns only for those who may see them. Logged with the row count and filters.
+- **Routes:** `GET /clients`, `GET /clients/export`, `GET`, `PUT /clients/{client}`, `POST /clients/{client}/flags`, `DELETE /clients/{client}/flags/{flag}`, `GET`, `PUT /configuration/health`.
+- **Tests:** `tests/Feature/ProjectsClientsTest.php` (7); `frontend/e2e/projects-clients-ui.mjs` (22 checks in a real browser).
+- **Not tested here:** the real Books ageing. The tests stand in for `ClientMoney`, because the test database has no ledgers; the real path calls Books' `Figures::ageing('receivables')`. Open a client with an unpaid invoice after running the script and compare with Books' receivables ageing report.
+- **Not yet:** scores out of 100 (stage 12); bills and payments on the client page (stage 4).

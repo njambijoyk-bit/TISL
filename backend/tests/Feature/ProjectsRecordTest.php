@@ -392,7 +392,7 @@ class ProjectsRecordTest extends TestCase
         $this->assertSame(['create' => true, 'confidential' => true], $o['can']);
         $this->assertTrue($o['cost_centres']);
 
-        $this->assertSame([['id' => 1, 'name' => 'Imara Sacco', 'detail' => 'C-001']], $this->getJson('/api/admin/projects/options/customers?q=imara')->json('customers'));
+        $this->assertSame([['id' => 1, 'name' => 'Imara Sacco', 'detail' => 'C-001', 'flags' => []]], $this->getJson('/api/admin/projects/options/customers?q=imara')->json('customers'));
         $this->assertSame(['Brian Kariuki'], array_column($this->getJson('/api/admin/projects/options/customers?q=brian')->json('customers'), 'name'));
         $this->assertCount(2, $this->getJson('/api/admin/projects/options/customers')->json('customers'));
     }

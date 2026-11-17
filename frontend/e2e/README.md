@@ -46,6 +46,7 @@ node e2e/projects-leads-ui.mjs                  # Projects: leads (the list, add
 node e2e/projects-pipeline-ui.mjs               # Projects: the pipeline (the board, adding an opportunity, moving and losing one, winning with and without starting the work) and its stages in Configuration (needs only the website)
 node e2e/projects-parties-ui.mjs                # Projects: contacts on a lead (roles, the main contact, removing) and the Parties tab (client contacts on it, adding a party new or known, the both-sides warning) (needs only the website)
 node e2e/projects-history-ui.mjs                # Projects: the history on a lead (logging, team only, changing one's own), next actions, done with what happened and what is next, and My follow-ups (needs only the website)
+node e2e/projects-clients-ui.mjs                # Projects: clients (the list with health, flags and what they owe, the export), a client's page (health and why, flags, account manager, work), the health rules (needs only the website)
 ```
 
 Needs Playwright (`PLAYWRIGHT_MODULE_DIR` points at the folder holding it, default `/opt/node22/lib/node_modules/`) and a Chromium (`CHROME`).

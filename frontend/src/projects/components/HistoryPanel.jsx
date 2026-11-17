@@ -103,7 +103,7 @@ export default function HistoryPanel({ type, id, onChanged }) {
       {data.entries.length === 0 && <p style={{ margin: 0, fontSize: 13.5, color: 'var(--text-secondary)' }}>Nothing written down yet.</p>}
       <div style={{ display: 'grid', gap: 2 }}>
         {data.entries.map((e) => (
-          <div key={e.id} data-entry={e.id} style={{ display: 'grid', gridTemplateColumns: '120px 1fr auto', gap: 10, padding: '8px 0', borderBottom: '1px solid var(--line)', fontSize: 13.5, alignItems: 'start' }}>
+          <div key={e.id} data-entry={e.id} style={{ display: 'grid', gridTemplateColumns: 'minmax(90px, 110px) 1fr', gap: 10, padding: '8px 0', borderBottom: '1px solid var(--line)', fontSize: 13.5, alignItems: 'start' }}>
             <span style={{ color: 'var(--text-secondary)', fontVariantNumeric: 'tabular-nums', fontSize: 12.5 }}>{when(e.happened_at)}</span>
             <span style={{ minWidth: 0 }}>
               <strong>{e.kind_name}</strong> · {e.by}{e.contact ? ` with ${e.contact.name}` : ''}
@@ -111,13 +111,13 @@ export default function HistoryPanel({ type, id, onChanged }) {
               {e.opportunity && type !== 'opportunity' && <span style={{ color: 'var(--text-secondary)' }}> · {e.opportunity.title}</span>}
               {e.team_only && <Chip style={{ marginLeft: 6 }}>Team only</Chip>}
               <span style={{ display: 'block', whiteSpace: 'pre-wrap', marginTop: 2 }}>{e.summary}</span>
-            </span>
             {e.mine && can && !mode && (
-              <span style={{ display: 'flex', gap: 4 }}>
+              <span style={{ display: 'flex', gap: 4, marginTop: 4 }}>
                 <Btn small variant="quiet" aria-label={`Change the entry of ${when(e.happened_at)}`} onClick={() => open({ edit: e }, { kind: e.kind, summary: e.summary, contact_id: e.contact?.id || '', team_only: e.team_only })}>Change</Btn>
                 <Btn small variant="quiet" aria-label={`Remove the entry of ${when(e.happened_at)}`} onClick={() => run(() => projectsAPI.removeHistory(e.id), 'Removed')}>Remove</Btn>
               </span>
             )}
+            </span>
           </div>
         ))}
       </div>

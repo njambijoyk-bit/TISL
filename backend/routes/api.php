@@ -1962,6 +1962,17 @@ Route::middleware('auth:sanctum')->group(function () {
             Route::put('/next/{followUp}', [$his, 'changeNext'])->whereNumber('followUp')->middleware('permission:projects.interactions');
             Route::post('/next/{followUp}/done', [$his, 'done'])->whereNumber('followUp')->middleware('permission:projects.interactions');
             Route::get('/follow-ups', [$his, 'mine'])->middleware('permission:projects.interactions,projects.leads.view');
+            $cli = \App\Http\Controllers\Api\Projects\ClientController::class;
+            Route::middleware('permission:projects.clients.view,projects.clients.manage')->group(function () use ($cli) {
+                Route::get('/clients', [$cli, 'index']);
+                Route::get('/clients/export', [$cli, 'export'])->middleware('permission:projects.clients.export');
+                Route::get('/clients/{client}', [$cli, 'show'])->whereNumber('client');
+                Route::put('/clients/{client}', [$cli, 'update'])->whereNumber('client')->middleware('permission:projects.clients.manage');
+                Route::post('/clients/{client}/flags', [$cli, 'addFlag'])->whereNumber('client')->middleware('permission:projects.flags');
+                Route::delete('/clients/{client}/flags/{flag}', [$cli, 'removeFlag'])->whereNumber(['client', 'flag'])->middleware('permission:projects.flags');
+            });
+            Route::get('/configuration/health', [$cli, 'health'])->middleware('permission:projects.config.view');
+            Route::put('/configuration/health', [$cli, 'saveHealth'])->middleware('permission:projects.config.manage');
             Route::get('/known', [$rel, 'known'])->middleware('permission:projects.leads.manage,projects.clients.manage,projects.parties');
             Route::get('/configuration/lists', [$rel, 'listsPage'])->middleware('permission:projects.config.view');
             Route::post('/configuration/lists/{list}', [$rel, 'addToList'])->middleware('permission:projects.config.manage');

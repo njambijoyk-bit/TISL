@@ -78,6 +78,15 @@ const projectsAPI = {
   removeParty: async (id, linkId) => (await api.delete(`/admin/projects/${id}/parties/${linkId}`)).data,
   addPartyContact: async (id, data) => (await api.post(`/admin/projects/${id}/party-contacts`, data)).data,
   removePartyContact: async (id, linkId) => (await api.delete(`/admin/projects/${id}/party-contacts/${linkId}`)).data,
+  // clients: the list answers { data, total, page, per_page, counts, ready, can }; one answers { client, managers, flag_choices }
+  clients: async (params) => (await api.get('/admin/projects/clients', { params })).data,
+  exportClients: async (params) => (await api.get('/admin/projects/clients/export', { params, responseType: 'blob' })).data,
+  client: async (id) => (await api.get(`/admin/projects/clients/${id}`)).data,
+  changeClient: async (id, data) => (await api.put(`/admin/projects/clients/${id}`, data)).data,
+  addClientFlag: async (id, data) => (await api.post(`/admin/projects/clients/${id}/flags`, data)).data,
+  removeClientFlag: async (id, flagId, note) => (await api.delete(`/admin/projects/clients/${id}/flags/${flagId}`, { data: { note } })).data,
+  healthRules: async () => (await api.get('/admin/projects/configuration/health')).data,
+  saveHealthRules: async (data) => (await api.put('/admin/projects/configuration/health', data)).data,
   // the history of a relationship and what is next: each call answers { entries, next, kinds, owners, can }
   history: async (type, id) => (await api.get(`/admin/projects/history/${type}/${id}`)).data,
   addHistory: async (type, id, data) => (await api.post(`/admin/projects/history/${type}/${id}`, data)).data,

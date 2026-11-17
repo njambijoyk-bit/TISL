@@ -6,7 +6,7 @@ import PageHeader from '../../../_shared/components/layout/PageHeader';
 import projectsAPI from '../../../_shared/api/projects';
 import { useProjectNames } from '../../lib/names';
 import { message, PRIORITY } from '../../lib/format';
-import { Btn, Field, Notice, Panel, PanelTitle, SelectInput, TextInput } from '../../components/ui';
+import { Btn, Chip, Field, Notice, Panel, PanelTitle, SelectInput, TextInput } from '../../components/ui';
 import { ExtraFieldInputs } from '../../components/ExtraFields';
 import { check } from '../../components/uiTokens';
 import ProjectKeys from '../../components/ProjectKeys';
@@ -50,7 +50,7 @@ function ClientPicker({ label, value, onChange }) {
               key={c.id} type="button" role="option" aria-selected="false" onClick={() => { onChange(c); setQ(''); setFound(null); }}
               style={{ display: 'flex', justifyContent: 'space-between', gap: 8, width: '100%', padding: '8px 10px', background: 'transparent', border: 'none', borderBottom: '1px solid var(--line)', color: 'var(--text-primary)', fontSize: 13.5, fontFamily: 'var(--font-body)', textAlign: 'left', cursor: 'pointer' }}
             >
-              <span>{c.name}</span><span style={{ color: 'var(--text-secondary)' }}>{c.detail}</span>
+              <span>{c.name}{(c.flags || []).map((f) => <Chip key={f} status="warning" style={{ marginLeft: 6 }}>{f}</Chip>)}</span><span style={{ color: 'var(--text-secondary)' }}>{c.detail}</span>
             </button>
           ))}
         </div>

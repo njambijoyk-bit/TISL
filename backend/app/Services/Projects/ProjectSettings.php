@@ -25,6 +25,8 @@ class ProjectSettings
         // security signals: how many of what, in how many minutes, and what happens then. Out of the box each only alerts.
         'security' => ['refusals' => ['on' => true, 'count' => 10, 'minutes' => 10, 'response' => 'alert'], 'lock_tries' => ['on' => true, 'count' => 5, 'minutes' => 15, 'response' => 'alert'],
             'outside_hours' => ['on' => true, 'count' => 4, 'minutes' => 30, 'response' => 'alert'], 'opening_spree' => ['on' => true, 'count' => 50, 'minutes' => 15, 'response' => 'alert'], 'cool_off_minutes' => 15],
+        // client health (stage 3): days since the last contact, days a next action is late, nothing planned, days money is overdue in the books. 0 switches a rule off.
+        'health' => ['contact_amber_days' => 30, 'contact_red_days' => 60, 'late_red_days' => 14, 'nothing_planned_amber' => true, 'overdue_amber_days' => 1, 'overdue_red_days' => 60],
         // what each serious action needs before it happens (ProjectSerious lists the actions): out of the box, nothing
         'serious' => [
             'project.purge' => ['needs' => 'none', 'on_project' => false, 'reason' => false],
@@ -178,6 +180,24 @@ class ProjectSettings
 
             return ['warn_days' => $days, 'default_hours' => $hours, 'read_outside_hours' => (bool) $v['read_outside_hours'], 'passes' => (bool) $v['passes'], 'pass_minutes' => $minutes,
                 'unlock_minutes' => (int) $v['unlock_minutes'], 'lock_tries' => (int) $v['lock_tries'], 'lock_wait_minutes' => (int) $v['lock_wait_minutes'], 'approval_hours' => (int) $v['approval_hours']];
+        }
+
+        if ($part === 'health') {
+            $out = ['nothing_planned_amber' => (bool) $v['nothing_planned_amber']];
+            foreach (['contact_amber_days', 'contact_red_days', 'late_red_days', 'overdue_amber_days', 'overdue_red_days'] as $k) {
+                $n = (int) $v[$k];
+                if ($n < 0 || $n > 3650) {
+                    throw new ProjectException('Each number of days is from 0 (off) to 3,650.');
+                }
+                $out[$k] = $n;
+            }
+            foreach ([['contact_amber_days', 'contact_red_days', 'No contact'], ['overdue_amber_days', 'overdue_red_days', 'Money overdue']] as [$a, $r, $what]) {
+                if ($out[$a] > 0 && $out[$r] > 0 && $out[$r] <= $out[$a]) {
+                    throw new ProjectException("{$what}: red must come after amber.");
+                }
+            }
+
+            return $out;
         }
 
         if ($part === 'security') {
