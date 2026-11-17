@@ -1,0 +1,147 @@
+# Projects Stage 5: Work and time (design)
+
+Status: DESIGN, written 2026-11-17 for the owner to read. Nothing here is built. Say "build" to accept the four choices at the end, or change any of them.
+
+Stages 1 to 4 built the work, who may touch it, who it is for, and its money. Stage 5 builds the doing of it: tasks, scope, key dates, changes, time, and billing that time. It also brings the three things Stage 4 left waiting: hourly billing, disbursements and write-offs.
+
+Size: large, about the size of Stage 3 and larger than Stage 4. Ten builds, one script (`261_projects_work.sql`, twelve tables), no new permissions (all twelve it uses are in the catalogue since Stage 1).
+
+## The rule this stage keeps
+
+Money stays in Books. Two places where time meets money are designed around it:
+
+1. **Rates are Books prices.** An hourly rate is a Books service package, such as service "Professional time" with packages "Partner hour 25,000" and "Associate hour 12,000" (price unit: hour). Projects only says which package a person's time is billed at. The price, its tax and its sales ledger are Books'. A client's special rate is another package.
+2. **A change's value is a Books sales order.** An approved change that alters the price opens Books' sales order form filled in (as a drafted bill does in 4.6) and the saved order is linked to the work. The agreed value, read from linked sales orders since 4.2, then includes it with nothing stored here.
+
+Projects stores minutes, shares and quantities. It never stores an amount.
+
+## In this stage
+
+### 1. Tasks
+- A task belongs to a piece of work, and optionally to a phase and a scope line. Numbered per piece of work: `M-0413-T12`.
+- Title, description, one or more people, status, priority, start and due dates, estimate (hours), billable or not (defaults from the work), checklist, subtasks to any depth.
+- Statuses: To do, Doing, Waiting, Done, Cancelled. Fixed in this stage, so boards, reports and My Work agree. Named per industry through the names table (a legal "Waiting" can read "Awaiting client").
+- Dependencies: "can start when T7 is done" (finish to start). A task cannot be marked Doing while what it waits for is open, unless the person overrides with a reason (logged).
+- On the calendar: a task with a due date writes a calendar entry for each person on it (kind `task`), through Core's CalendarService, as projects' due dates already do.
+- Notices through the Notifier: assigned to you, due tomorrow, overdue (daily command, 07:30), and when something you wait for is done.
+
+### 2. Views
+- **List**: grouped by phase or status, sortable, filters (mine, overdue, this week, status, person, phase).
+- **Board**: a column per status; drag to change status (the same checks as the button).
+- **Timeline**: bars from start to due by phase, with dependency arrows and key dates as diamonds. Read only in this stage (dragging bars is Stage 12).
+- **Saved views**: a person saves filters and grouping by name, kept in their own preferences (`project_user_prefs`, since Stage 1).
+
+### 3. Scope lines
+- The list of what is agreed: a fee schedule, a bill of quantities, deliverables, a job card (named per industry). Code, description, unit, quantity, phase.
+- A line can point at the line of the linked Books sales order it is priced by. Projects shows the price from Books; it keeps only the link.
+- Progress: quantity done (or % for a line with no unit), changed by people with `projects.scope`, each change logged. Tasks can be tied to a line.
+- Billing work done from progress (a valuation) is a choice for the owner (question 4).
+
+### 4. Key dates
+- A hearing, a filing deadline, an inspection, a handover, a limitation date. Kind (from Stage 3's lists, per industry), date and time or all day, who is responsible, phase or task it belongs to.
+- Warnings: notices so many days before (default 14, 7 and 1; per date), on the day, and when missed. On the calendar for everyone on the work.
+- Done, missed, or moved. Moving a date keeps where it was, and who moved it and why.
+- Dates worked out from other dates by rule (court rules, contract periods) wait for Stage 11.
+
+### 5. Changes (change control)
+- Anyone with `projects.changes` raises a change: what and why, and what it does: add or alter scope lines, move key dates or task dates, and whether it changes the price.
+- Draft, Submitted, Approved, Rejected, Withdrawn. Approving needs `projects.changes.approve` and follows the serious-action rules (new action "Approve a change", out of the box needs nothing). The person who raised it cannot approve it.
+- On approval its scope and date effects are applied in one step and logged. If it changes the price, Books' sales order form opens filled in for the client and the work; the saved order is linked to the change and to the work.
+- Client approval of a change waits for the client portal (Stage 9).
+
+### 6. Timers and time
+- A time entry: person, work, phase, task (optional), date, minutes, billable, note.
+- A timer: one running per person, started from a task, the work, My Work or Alt+T (the shortcut registered in Stage 1). Stopping it makes an entry. Rounded up to the company's step (setting: exact, 1, 6, 10, 15 minutes; default 6, a tenth of an hour). A timer left running stops itself at the daily cap (setting, default 10 hours) and tells the person.
+- Checked against Attendance: a warning when time logged on a day is more than Attendance says was worked, or is on a day marked absent or on leave. Setting: warn (default), refuse, or off.
+- Logging needs `projects.time.log` and a role on the work that may log time (a new project-role ability, "log time", given to Lead and Member out of the box). Logging or changing someone else's time needs `projects.time.others`, logged with a reason.
+
+### 7. Timesheets and approval
+- A week (Monday to Sunday) per person: a grid of work and task by day, with Attendance's worked hours under each day.
+- Submit the week: its entries lock. Each entry is approved or sent back by someone with `projects.time.approve` (who approves is question 1). Nobody approves their own time.
+- Approved entries are fixed. Reopening one is a serious action ("Reopen approved time").
+- Reminders through the Notifier: week not submitted by Monday 10:00 (setting), entries waiting for you to approve.
+
+### 8. Rates and hourly billing
+- **Rate card**: which Books service package a person's time is billed at. Most specific wins: this work and this person; this work and their project role; this person; their project role; the company default. Dated, so a new rate applies from a day. Set with `projects.money.rates`.
+- **Unbilled time** on the Money tab: approved, billable, not billed, by person and package, with what it comes to at Books' prices (read, not stored).
+- **Bill time**: choose up to a date (and optionally which entries). A Books sales invoice with one service line per package (quantity = hours), on the work's cost centre, posted or drafted by the Stage 4 setting, with retention and advances taken off as in 4.7. Each entry remembers the invoice; a cancelled invoice frees them.
+- **Write-offs**: write off a whole entry or part of it (minutes) with a reason, before billing. Needs `projects.money.writeoff`, then the serious-action rules (new action "Write off time"). Written-off time stays on the timesheet and in reports, marked.
+- A billing method per work: fixed or staged (Stage 4), hourly, or both. Hourly time on fixed-price work is tracked but not billed unless it is billable.
+
+### 9. Disbursements
+- A cost paid for the client (court fees, travel, a valuer) that is billed back. In Books it is an ordinary payment or purchase on the work's cost centre.
+- On the Money tab, costs on the work's cost centres can be marked "bill to the client" (`projects.money.disbursements`). Billing them adds lines to the next bill (time or stage) at the amount Books has, to the ledger chosen in Configuration ("Disbursements recovered", or back to the same expense ledger to net it off). Each remembers the invoice; written off like time.
+
+### 10. Payroll split by timesheet
+- Payroll already splits a person's pay across cost centres by their shares (Departments, `employee_cost_centres`). New setting, off by default: **split pay by timesheets**. When on, a payroll run splits each person's pay across the work they logged approved time on in that month, in proportion (question 2 says against what), and the rest by their usual shares.
+- One change in Payroll: when it posts a run, it asks Projects for the split of each person; with the setting off, or no approved time, it is exactly as today.
+
+### 11. My Work
+- Each person's home in Projects: running timer, tasks due today and overdue, this week's timesheet with a submit button, key dates coming up on their work, follow-ups (Stage 3), and things waiting for them: time to approve, changes to approve, approvals (Stage 2).
+- G then M opens it (the Stage 1 shortcut pattern).
+
+## What changes outside Projects
+
+| Where | Change | When it does anything |
+|---|---|---|
+| Payroll | When posting a run, asks Projects for each person's split | Only with "split pay by timesheets" on |
+| Books | Sales form fills in from a time bill (as from a drafted bill in 4.6); sales order form fills in from an approved change | Only when opened from Projects |
+| Calendar | New entry kinds `task` and `key_date` | Written by Projects |
+| Notifier | New types: project task, project key date, project timesheet | Sent by Projects |
+
+Not changed: Attendance (read only), Books prices and services (read only), the voucher service, Payroll's own calculation.
+
+## Waits for later
+
+Capacity and team workload (Stage 8, the team view), dragging the timeline and forecasts (Stage 12), date rules (Stage 11), client approval of changes and client-visible tasks (Stage 9), comments on tasks (Stage 6 messages), retainers and success fees (Stage 11 billing methods).
+
+## Permissions (all in the catalogue since Stage 1)
+
+`projects.tasks`, `projects.scope`, `projects.dates`, `projects.changes`, `projects.changes.approve`, `projects.time.log`, `projects.time.approve`, `projects.time.others`, `projects.money.rates`, `projects.money.writeoff`, `projects.money.disbursements`, `projects.money.bill`.
+
+New project-role abilities: `tasks` (work on tasks), `time` (log time on this work), `approve_time` (approve time on this work). Out of the box: Lead gets all three, Member gets `tasks` and `time`.
+
+New serious actions (out of the box each needs nothing): approve a change, write off time, reopen approved time.
+
+## Data: script `261_projects_work.sql` (adds only)
+
+| Table | Holds |
+|---|---|
+| `project_tasks` | A task: work, number, phase, scope line, parent, title, status, priority, dates, estimate minutes, billable |
+| `project_task_people` | Who is on a task |
+| `project_task_waits` | "Starts when that is done" between two tasks |
+| `project_task_checks` | A task's checklist |
+| `project_scope_lines` | Scope lines: code, description, unit, quantity, quantity done, phase, the Books sales order line it is priced by |
+| `project_key_dates` | Key dates: kind, when, responsible, warning days, state, moved from |
+| `project_changes` | A change: number, what and why, state, who decided, the Books sales order for its value |
+| `project_change_effects` | What a change does: scope line added or altered, date moved |
+| `project_time` | Time entries: person, work, phase, task, date, minutes, billable, state, approver, written-off minutes, the invoice it was billed on |
+| `project_timers` | The running timer, one per person |
+| `project_rates` | The rate card: who (person, project role, everyone), where (company or one work), the Books service package, from and to |
+| `project_disbursements` | Books cost lines marked to bill to the client, and the invoice they went on |
+
+Minutes, quantities and shares are stored. Amounts never are.
+
+## Builds
+
+| Build | Contents |
+|---|---|
+| 5.1 | Script 261, work settings, tasks (list, subtasks, people, checklist, statuses, dependencies), the Work tab |
+| 5.2 | Board and timeline views, saved views, tasks on the calendar, task notices |
+| 5.3 | Scope lines with progress, tied to Books sales order lines |
+| 5.4 | Key dates with warnings, on the calendar |
+| 5.5 | Changes: raise, approve, apply; value through a Books sales order |
+| 5.6 | Timers and time entries, the Attendance check, Alt+T |
+| 5.7 | Weekly timesheets, approval, reopening, reminders |
+| 5.8 | Rate card, unbilled time, billing time, write-offs |
+| 5.9 | Disbursements, and payroll split by timesheet |
+| 5.10 | My Work |
+
+Every build runs the Projects, Books and Payroll tests and the Projects browser checks.
+
+## Four choices (my recommendation first)
+
+1. **Who approves time:** the leads of the work the time is on (each piece of work's hours go to its own lead), with anyone holding `projects.time.approve` on that work as backup. The other way is the person's line manager approving their whole week.
+2. **Payroll split against what:** approved project hours divided by the hours Attendance says they worked that month, the rest by their usual shares. The other way is against hours logged in total, which puts all pay on project work for someone who logs nothing else.
+3. **A change's price:** through a Books sales order opened from the approved change, so the agreed value includes it at once. The other way is a Books quotation first, which counts only once it becomes an order.
+4. **Billing work done from scope progress (valuations, as construction does):** later, in Stage 11 with the other industry billing methods, to keep this stage to its ten builds. The other way is an eleventh build here.
