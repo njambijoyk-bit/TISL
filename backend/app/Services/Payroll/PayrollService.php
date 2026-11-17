@@ -381,11 +381,17 @@ class PayrollService
         $depts = app(DepartmentService::class);
         $onDate = $run->period_end->toDateString();
         $splits = [];
-        $cost = function (int $ledger, float $amt, $userId) use (&$costs, &$debit, $bump, $splitting, $depts, $onDate, &$splits) {
+        $fromDate = $run->period_start->toDateString();
+        $cost = function (int $ledger, float $amt, $userId) use (&$costs, &$debit, $bump, $splitting, $depts, $onDate, $fromDate, &$splits) {
             $bump($debit, $ledger, $amt);
             $split = [];
             if ($splitting) {
                 $splits[$userId] ??= ($emp = Employee::where('user_id', $userId)->first()) ? $depts->splitFor($emp, $onDate) : [];
+                // Projects: with "split pay by timesheets" on, approved project time this month takes its share first (off out of the box: nothing changes)
+                if (! isset($splits["p{$userId}"]) && \App\Services\Projects\ProjectPayrollSplit::on()) {
+                    $splits["p{$userId}"] = true;
+                    $splits[$userId] = app(\App\Services\Projects\ProjectPayrollSplit::class)->adjust((int) $userId, $fromDate, $onDate, $splits[$userId]) ?? $splits[$userId];
+                }
                 $split = $splits[$userId];
             }
             foreach ($split ? DepartmentService::allocate($amt, $split) : [[null, $amt, null]] as [$cc, $part, $loc]) {

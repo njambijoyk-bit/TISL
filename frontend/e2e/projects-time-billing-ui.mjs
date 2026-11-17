@@ -1,6 +1,6 @@
-// Browser check: rates and billing time on the Money tab (build 5.8): time to bill by person and Books package at Books' price, a person with
+// Browser check: rates, billing time and costs billed back on the Money tab (builds 5.8 and 5.9): time to bill by person and Books package at Books' price, a person with
 // no rate warned about, writing off part of an entry, billing it (posted), a drafted bill waiting and opening Books' sales form with a service
-// line, and the rate card. The API is answered by the check itself; pricing, marking and the rules are proved by the backend tests.
+// line, the rate card, and marking costs to bill back or writing them off. The API is answered by the check itself; pricing, marking and the rules are proved by the backend tests.
 // It needs only the website (npx vite --port 5177): who is signed in is stood in for too, so no server and no database are used.
 import { D, SITE, ok, finish, open } from './lib.mjs';
 
@@ -46,6 +46,15 @@ await page.route(/\/api\/admin\/projects\/413\/rates(\/\d+)?$/, (route) => {
   if (route.request().method() === 'POST') { const b = route.request().postDataJSON(); sent.push(['rate', b]); rates = [...rates, { id: 2, who: 'Associate (role)', user_id: null, project_role_id: b.project_role_id, package: P.assoc, valid_from: null, valid_to: null }]; }
   return json(route, { ready: true, rates, packages: [P.partner, P.assoc], roles: [{ id: 3, name: 'Associate' }], people: [{ id: 1, name: 'Wanjiru' }, { id: 2, name: 'Otieno' }], can: { change: true } });
 });
+let costs = [{ entry_id: 50, id: null, voucher: 'PV-0201', date: '2026-11-15', narration: 'Court filing fee', ledger: 'Court fees', amount: 3500, state: 'not_marked', write_off_reason: null },
+  { entry_id: 51, id: 2, voucher: 'PV-0202', date: '2026-11-16', narration: 'Taxi to court', ledger: 'Travel', amount: 1200, state: 'to_bill', write_off_reason: null }];
+await page.route(/\/api\/admin\/projects\/413\/disbursements(\/\d+)?$/, (route) => {
+  if (route.request().method() === 'PUT') {
+    const id = Number(route.request().url().split('/').pop()); const b = route.request().postDataJSON(); sent.push(['cost', id, b]);
+    costs = costs.map((c) => (c.entry_id !== id ? c : b.write_off ? { ...c, state: 'written_off', write_off_reason: b.reason } : { ...c, state: b.on ? 'to_bill' : 'not_marked' }));
+  }
+  return json(route, { ready: true, lines: costs, can: { mark: true, writeoff: true } });
+});
 await page.route(/\/api\/admin\/projects\/billing-stages\/31\/form$/, (route) => json(route, { bill: { stage_id: 31, customer_id: 1, customer_name: 'Imara Sacco', cost_centre_id: 9, narration: 'M-0413 Imara Sacco v. Baraka Traders: Time and costs to 24 Nov 2026', reference_no: 'M-0413', voucher_type_id: 7,
   lines: [{ type: 'service', service_id: 1, service_variant_id: 11, quantity: 6.5, label: 'Professional time · Associate hour', notes: 'Time to 24 Nov 2026' }, { type: 'custom', description: 'Disbursement: Court filing fee (PV-0201)', quantity: 1, rate: 3500, ledger_id: 4 }] } }));
 await page.route('**/api/admin/books/voucher-types**', (route) => json(route, [{ id: 7, code: 'INV', name: 'Sales Invoice', base_type: 'sales', is_active: true, has_items: true, party_kind: 'customer' }]));
@@ -81,6 +90,17 @@ await page.getByLabel('Billed at (Books package)').selectOption('11');
 await page.locator('[data-rates]').getByRole('button', { name: 'Add it' }).click();
 await page.waitForTimeout(400);
 ok('a rate for a project role is sent with its package', last('rate')[1].project_role_id === 3 && last('rate')[1].service_variant_id === 11 && last('rate')[1].user_id === null && (await page.locator('[data-rate="Associate (role)"]').count()) === 1);
+
+// ---------------------------------------------------------------- costs to bill back (5.9)
+ok('the costs on the work are listed with their amount and state', /Court filing fee\s*PV-0201 · Court fees\s*KES 3,500/.test(await text(page.locator('[data-cost="Court filing fee"]'))) && /To bill/.test(await text(page.locator('[data-cost="Taxi to court"]'))));
+await page.getByRole('button', { name: 'Bill Court filing fee to the client' }).click();
+await page.waitForTimeout(400);
+ok('marking a cost to bill back is sent', JSON.stringify(last('cost')) === JSON.stringify(['cost', 50, { on: true }]) && /To bill/.test(await text(page.locator('[data-cost="Court filing fee"]'))));
+await page.getByRole('button', { name: 'Write off Taxi to court' }).click();
+await page.getByLabel('Why it is written off').fill('We agreed not to charge travel');
+await page.locator('[data-cost="Taxi to court"]').getByRole('button', { name: 'Write off', exact: true }).click();
+await page.waitForTimeout(400);
+ok('writing off a cost sends why, and it shows written off', last('cost')[2].write_off === true && last('cost')[2].reason === 'We agreed not to charge travel' && /Written off: We agreed not to charge travel/.test(await text(page.locator('[data-cost="Taxi to court"]'))));
 
 // ---------------------------------------------------------------- drafted
 mode = 'draft';

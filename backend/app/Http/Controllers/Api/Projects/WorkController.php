@@ -268,7 +268,11 @@ class WorkController extends Controller
 
     public function settings(Request $request): JsonResponse
     {
-        return response()->json(['work' => app(ProjectSettings::class)->get('work'), 'ready' => ProjectsSetup::work(), 'can' => ['change' => $request->user()->hasPermission('projects.config.manage')]]);
+        $ledgers = \Illuminate\Support\Facades\Schema::hasTable('ledgers') && \Illuminate\Support\Facades\Schema::hasTable('ledger_groups')
+            ? \Illuminate\Support\Facades\DB::table('ledgers as l')->join('ledger_groups as g', 'g.id', '=', 'l.group_id')->whereIn('g.nature', ['income', 'expense'])->where('l.is_active', 1)->orderBy('l.name')->get(['l.id', 'l.name'])
+                ->map(fn ($l) => ['id' => (int) $l->id, 'name' => $l->name])->all() : [];
+
+        return response()->json(['work' => app(ProjectSettings::class)->get('work'), 'ready' => ProjectsSetup::work(), 'ledgers' => $ledgers, 'can' => ['change' => $request->user()->hasPermission('projects.config.manage')]]);
     }
 
     public function saveSettings(Request $request): JsonResponse

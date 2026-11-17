@@ -47,6 +47,9 @@ export default function WorkSettingsPanel() {
         <Field label="Who approves time" htmlFor="ws-approve"><SelectInput id="ws-approve" value={form.approve_by} disabled={!can} onChange={(e) => set({ approve_by: e.target.value })}>
           <option value="lead">The leads of the work it is on</option><option value="manager">The person's manager</option>
         </SelectInput></Field>
+        <Field label="Costs billed back go to" htmlFor="ws-disb" hint="Or back to each cost's own expense ledger, netting it off."><SelectInput id="ws-disb" value={form.disbursement_ledger_id} disabled={!can} onChange={(e) => set({ disbursement_ledger_id: Number(e.target.value) })}>
+          <option value={0}>Each cost's own ledger</option>{(data.ledgers ?? []).map((l) => <option key={l.id} value={l.id}>{l.name}</option>)}
+        </SelectInput></Field>
         <Field label="Key date warnings (days before)" htmlFor="ws-warn" hint="For example 14,7,1. A date can have its own."><TextInput id="ws-warn" value={form.warn_days} disabled={!can} onChange={(e) => set({ warn_days: e.target.value })} /></Field>
       </div>
       <div style={{ display: 'grid', gap: 10, marginTop: 14 }}>

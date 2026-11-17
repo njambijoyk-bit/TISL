@@ -9,6 +9,7 @@ import BillingPanel from './BillingPanel';
 import TermsPanel from './TermsPanel';
 import TimeBillingPanel from './TimeBillingPanel';
 import RatesPanel from './RatesPanel';
+import DisbursementsPanel from './DisbursementsPanel';
 
 /**
  * The Money tab (docs/PROJECTS_STAGE4_SPEC.md, build 4.2). Every figure is read from posted Books entries on this piece of work's cost centre
@@ -102,6 +103,7 @@ export default function MoneyPanel({ projectId }) {
       <TimeBillingPanel key={`tb${terms}`} projectId={projectId} currency={m.currency} onBilled={() => { load(); setTerms((n) => n + 1); }} />
       <BillingPanel key={`b${terms}`} projectId={projectId} currency={m.currency} onBilled={() => { load(); setTerms((n) => n + 1); }} />
       <TermsPanel key={`t${terms}`} projectId={projectId} currency={m.currency} onChange={() => { load(); setTerms((n) => n + 1); }} />
+      <DisbursementsPanel key={`d${terms}`} projectId={projectId} currency={m.currency} onChange={() => setTerms((n) => n + 1)} />
       <RatesPanel projectId={projectId} />
       <LedgersPanel projectId={projectId} />
     </div>
