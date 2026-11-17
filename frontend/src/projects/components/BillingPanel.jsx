@@ -12,7 +12,8 @@ const blank = () => ({ key: Math.random().toString(36).slice(2), name: '', share
 /**
  * The billing plan (docs/PROJECTS_STAGE4_SPEC.md, build 4.6): stages as shares of the agreed value, each falling due on a date, when a phase is
  * done, when the work reaches a stage, or when someone bills it. No amount is kept: each is worked out from the agreed value. Billing a stage
- * posts a sales invoice in Books, or opens Books' sales form filled in, as the money setting says.
+ * posts a sales invoice in Books, or opens Books' sales form filled in, as the money setting says. Retention and advances (build 4.7) are taken
+ * off each bill as it is billed; a stage shows what came off, and offers to try again when that could not be done then.
  */
 export default function BillingPanel({ projectId, currency, onBilled }) {
   const navigate = useNavigate();
@@ -48,6 +49,12 @@ export default function BillingPanel({ projectId, currency, onBilled }) {
     } catch (err) { setProblem(message(err, 'That stage could not be billed. Try again.')); } finally { setBusy(false); }
   };
 
+  const deduct = async (s) => {
+    setBusy(true); setProblem('');
+    try { setData((await projectsAPI.deductStage(projectId, s.id)).billing); toast.success('Taken off the bill in the books'); onBilled?.(); }
+    catch (err) { setProblem(message(err, 'That could not be taken off. Try again.')); } finally { setBusy(false); }
+  };
+
   return (
     <Panel style={{ marginTop: 16 }} data-billing>
       <PanelTitle
@@ -67,8 +74,11 @@ export default function BillingPanel({ projectId, currency, onBilled }) {
                 <td style={{ ...td, textAlign: 'right', fontVariantNumeric: 'tabular-nums' }}>{s.share}%</td>
                 <td style={td}>{when(s)}</td>
                 <td style={{ ...td, textAlign: 'right', fontVariantNumeric: 'tabular-nums' }}>{f(s.amount)}</td>
-                <td style={td}><Chip status={STATE[s.state][0]}>{STATE[s.state][1]}</Chip>{s.voucher && <span style={{ display: 'block', fontSize: 12.5, color: 'var(--text-secondary)' }}>{s.voucher.number}{s.voucher.status === 'cancelled' ? ' (cancelled)' : ''}</span>}</td>
-                <td style={{ ...td, textAlign: 'right' }}>{s.state !== 'billed' && data.can.bill && <Btn small busy={busy} aria-label={`Bill ${s.name}`} onClick={() => bill(s)}>{data.mode === 'post' ? 'Bill it' : 'Open in Books'}</Btn>}</td>
+                <td style={td}><Chip status={STATE[s.state][0]}>{STATE[s.state][1]}</Chip>{s.voucher && <span style={{ display: 'block', fontSize: 12.5, color: 'var(--text-secondary)' }}>{s.voucher.number}{s.voucher.status === 'cancelled' ? ' (cancelled)' : ''}</span>}
+                  {s.retention > 0 && <span style={{ display: 'block', fontSize: 12.5, color: 'var(--text-secondary)' }}>less {money(s.retention, currency)} retention</span>}
+                  {s.advance > 0 && <span style={{ display: 'block', fontSize: 12.5, color: 'var(--text-secondary)' }}>less {money(s.advance, currency)} advance</span>}</td>
+                <td style={{ ...td, textAlign: 'right' }}>{s.state !== 'billed' && data.can.bill && <Btn small busy={busy} aria-label={`Bill ${s.name}`} onClick={() => bill(s)}>{data.mode === 'post' ? 'Bill it' : 'Open in Books'}</Btn>}
+                  {s.owing && data.can.plan && <Btn small busy={busy} aria-label={`Take retention and advance off ${s.name}`} onClick={() => deduct(s)}>Take retention and advance off</Btn>}</td>
               </tr>
             ))}
           </tbody>

@@ -88,6 +88,8 @@ CREATE TABLE IF NOT EXISTS project_billing_stages (
     phase_id    BIGINT UNSIGNED NULL,
     stage_id    BIGINT UNSIGNED NULL,
     voucher_id  BIGINT UNSIGNED NULL,                                   -- the Books invoice (posted or draft) it became
+    retention_voucher_id BIGINT UNSIGNED NULL,                          -- the Books journal that held back retention from that invoice
+    advance_voucher_id   BIGINT UNSIGNED NULL,                          -- the Books journal that took an advance off that invoice
     sort_order  INT NOT NULL DEFAULT 0,
     created_by  BIGINT UNSIGNED NULL,
     created_at  TIMESTAMP NULL,

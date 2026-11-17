@@ -52,6 +52,7 @@ node e2e/projects-voucher-picker-ui.mjs         # Projects in Books: the project
 node e2e/projects-money-ui.mjs                  # Projects: the Money tab (agreed, billed, paid, owed, budget, spend, committed, profit, phases) as the books have them, and ledgers made from the work (needs only the website)
 node e2e/projects-client-money-ui.mjs           # Projects: client money (pooled and dedicated accounts, joint balances, receiving, paying out, asking a supervisor, the guard switch) and held money on the Money tab (needs only the website)
 node e2e/projects-billing-ui.mjs                 # Projects: billing plans on the Money tab (shares, when due, changing the plan, billing a stage) and a drafted bill opening on Books' sales form (needs only the website)
+node e2e/projects-terms-ui.mjs                   # Projects: advances and retention on the Money tab (terms, receiving an advance, releasing retention, what came off each bill) (needs only the website)
 ```
 
 Needs Playwright (`PLAYWRIGHT_MODULE_DIR` points at the folder holding it, default `/opt/node22/lib/node_modules/`) and a Chromium (`CHROME`).

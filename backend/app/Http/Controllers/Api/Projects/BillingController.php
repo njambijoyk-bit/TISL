@@ -53,6 +53,18 @@ class BillingController extends Controller
         });
     }
 
+    /** Take retention and advances off a billed stage's invoice, when that could not be done as it was billed. */
+    public function deduct(Request $request, int $project, int $stage): JsonResponse
+    {
+        return $this->guard(function () use ($request, $project, $stage) {
+            $p = $this->project($request, $project);
+            $this->needBill($request, $p);
+            $taken = $this->billing->deduct($p, $stage, $request->user());
+
+            return response()->json(['taken' => $taken, 'billing' => $this->billing->plan($p, $request->user())]);
+        });
+    }
+
     /** For the Books sales form opened from a drafted bill: what to fill it with. */
     public function form(Request $request, int $stage): JsonResponse
     {

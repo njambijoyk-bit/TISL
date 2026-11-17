@@ -45,6 +45,7 @@ class ProjectSettings
             'held.pay_out' => ['needs' => 'none', 'on_project' => false, 'reason' => false],
             'held.guard_off' => ['needs' => 'none', 'on_project' => false, 'reason' => false],
             'bill.post' => ['needs' => 'none', 'on_project' => false, 'reason' => false],
+            'retention.release' => ['needs' => 'none', 'on_project' => false, 'reason' => false],
         ],
     ];
 

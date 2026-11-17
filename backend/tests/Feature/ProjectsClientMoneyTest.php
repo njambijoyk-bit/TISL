@@ -33,7 +33,7 @@ class ProjectsClientMoneyTest extends TestCase
         $this->app->instance(\App\Services\Projects\ProjectVoucherPoster::class, new class($posted) extends \App\Services\Projects\ProjectVoucherPoster {
             public function __construct(private array &$posted) {}
 
-            public function journal(string $date, string $narration, ?string $reference, array $entries, \App\Models\User $by): int
+            public function journal(string $date, string $narration, ?string $reference, array $entries, \App\Models\User $by, array $settles = []): int
             {
                 $id = DB::table('vouchers')->insertGetId(['status' => 'posted', 'narration' => $narration, 'date' => $date]);
                 foreach ($entries as $e) {

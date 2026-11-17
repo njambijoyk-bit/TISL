@@ -6,6 +6,7 @@ import { Btn, Chip, DataTable, Notice, Panel, PanelTitle } from './ui';
 import { td, th } from './uiTokens';
 import LedgersPanel from './LedgersPanel';
 import BillingPanel from './BillingPanel';
+import TermsPanel from './TermsPanel';
 
 /**
  * The Money tab (docs/PROJECTS_STAGE4_SPEC.md, build 4.2). Every figure is read from posted Books entries on this piece of work's cost centre
@@ -29,6 +30,7 @@ const Meter = ({ part, of, warn }) => {
 export default function MoneyPanel({ projectId }) {
   const [data, setData] = useState(null);
   const [failed, setFailed] = useState('');
+  const [terms, setTerms] = useState(0);   // billing and advances change each other's figures: both are read again
   const load = useCallback(async () => {
     try { setData(await projectsAPI.money(projectId)); setFailed(''); } catch (e) { setFailed(message(e, 'The money could not be read from the books. Try again.')); }
   }, [projectId]);
@@ -95,7 +97,8 @@ export default function MoneyPanel({ projectId }) {
         </Panel>
       )}
       <p style={{ margin: '12px 0 0', fontSize: 12.5, color: 'var(--text-secondary)' }}>Read from posted vouchers on this work's cost centres, in the base currency. Cancelled vouchers are not counted.</p>
-      <BillingPanel projectId={projectId} currency={m.currency} onBilled={load} />
+      <BillingPanel key={`b${terms}`} projectId={projectId} currency={m.currency} onBilled={() => { load(); setTerms((n) => n + 1); }} />
+      <TermsPanel key={`t${terms}`} projectId={projectId} currency={m.currency} onChange={() => { load(); setTerms((n) => n + 1); }} />
       <LedgersPanel projectId={projectId} />
     </div>
   );

@@ -52,7 +52,7 @@ class ProjectBilling
             'income_chosen' => (bool) ($terms->income_ledger_id ?? null),
             'shares' => round((float) $rows->sum('share'), 4),
             'mode' => $mode,
-            'stages' => $rows->map(function ($r) use ($amounts, $vouchers, $phases, $stages, $here) {
+            'stages' => $rows->map(function ($r) use ($amounts, $vouchers, $phases, $stages, $here, $project) {
                 $v = $r->voucher_id ? ($vouchers[$r->voucher_id] ?? null) : null;
                 $billed = $v && $v->status !== 'cancelled';
                 $phase = $r->phase_id ? $phases->firstWhere('id', $r->phase_id) : null;
@@ -64,7 +64,11 @@ class ProjectBilling
                     default => true,
                 };
 
+                $taken = fn ($id) => $id ? round((float) DB::table('voucher_entries')->where('voucher_id', $id)->where('side', 'D')->sum('amount'), 2) : null;
+
                 return ['id' => (int) $r->id, 'name' => $r->name, 'share' => round((float) $r->share, 4), 'amount' => $amounts[(int) $r->id] ?? null,
+                    'retention' => $billed ? $taken($r->retention_voucher_id) : null, 'advance' => $billed ? $taken($r->advance_voucher_id) : null,
+                    'owing' => $billed && app(ProjectTerms::class)->owing($project, $r),
                     'due_kind' => $r->due_kind, 'due_on' => $r->due_on, 'phase' => $phase ? ['id' => (int) $phase->id, 'name' => $phase->name] : null, 'stage' => $target ? ['id' => (int) $target->id, 'name' => $target->name] : null,
                     'state' => $billed ? 'billed' : ($due ? 'due' : 'waiting'),
                     'voucher' => $v ? ['id' => (int) $v->id, 'number' => $v->voucher_number, 'status' => $v->status, 'date' => $v->date] : null];
@@ -130,10 +134,11 @@ class ProjectBilling
             DB::table('project_billing_stages')->where('id', $stageId)->lockForUpdate()->first();   // two people billing one stage: the second finds it billed
             $this->prepare($project, $stageId);
             $v = app(ProjectVoucherPoster::class)->sales($date ?: now()->toDateString(), $bill['customer_id'], $bill['lines'], $bill['cost_centre_id'], $bill['narration'], $bill['reference_no'], $by);
-            DB::table('project_billing_stages')->where('id', $stageId)->update(['voucher_id' => $v['id'], 'updated_at' => now()]);
+            DB::table('project_billing_stages')->where('id', $stageId)->update(['voucher_id' => $v['id'], 'retention_voucher_id' => null, 'advance_voucher_id' => null, 'updated_at' => now()]);
             ProjectLog::record((int) $project->id, $by, 'billing.billed', 'billing_stage', $stageId, null, ['stage' => $bill['stage'], 'voucher' => $v['number']]);
+            $taken = app(ProjectTerms::class)->deduct($project, $stageId, $by, $bill['amount']);   // retention held back and advances used, in the same step: all or nothing
 
-            return ['mode' => 'post', 'voucher' => $v];
+            return ['mode' => 'post', 'voucher' => $v, 'taken' => $taken];
         });
     }
 
@@ -182,7 +187,7 @@ class ProjectBilling
      * From the Books voucher form: a sales invoice saved from a drafted bill is tied to its stage, when it is on that work's cost centre (or a
      * phase's) and the stage is not billed yet. Anything else is left alone: the invoice stands as Books saved it.
      */
-    public function tie(int $stageId, int $voucherId, ?int $costCentreId): void
+    public function tie(int $stageId, int $voucherId, ?int $costCentreId, ?User $by = null): void
     {
         if (! $this->ready()) {
             return;
@@ -192,8 +197,36 @@ class ProjectBilling
         if (! $r || ! $on || $on['project_id'] !== (int) $r->project_id || in_array($stageId, $this->billedIds(collect([$r])), true)) {
             return;
         }
-        DB::table('project_billing_stages')->where('id', $stageId)->update(['voucher_id' => $voucherId, 'updated_at' => now()]);
-        ProjectLog::record((int) $r->project_id, null, 'billing.billed', 'billing_stage', $stageId, null, ['stage' => $r->name, 'voucher_id' => $voucherId, 'from' => 'books form']);
+        DB::table('project_billing_stages')->where('id', $stageId)->update(['voucher_id' => $voucherId, 'retention_voucher_id' => null, 'advance_voucher_id' => null, 'updated_at' => now()]);
+        ProjectLog::record((int) $r->project_id, $by, 'billing.billed', 'billing_stage', $stageId, null, ['stage' => $r->name, 'voucher_id' => $voucherId, 'from' => 'books form']);
+        if ($by) {
+            // retention and advances come off it now; if they cannot (no retention ledger chosen, say), the invoice stands and the Money tab offers to try again
+            try {
+                $project = DB::table('projects')->where('id', $r->project_id)->first();
+                app(ProjectTerms::class)->deduct($project, $stageId, $by, $this->stageNet($project, $stageId));
+            } catch (ProjectException $e) {
+                ProjectLog::record((int) $r->project_id, $by, 'billing.deduct_waiting', 'billing_stage', $stageId, null, ['why' => $e->getMessage()]);
+            }
+        }
+    }
+
+    /** Take retention and advances off a billed stage's invoice, when that did not happen as it was billed. @return array{retention: ?int, advance: ?int} */
+    public function deduct(object $project, int $stageId, User $by): array
+    {
+        $this->needReady();
+        if (! in_array($stageId, $this->billedIds($this->rows((int) $project->id)), true)) {
+            throw new ProjectException('This stage is not billed yet.');
+        }
+
+        return app(ProjectTerms::class)->deduct($project, $stageId, $by, $this->stageNet($project, $stageId));
+    }
+
+    /** What a stage comes to before tax, from the agreed value as it is now. */
+    private function stageNet(object $project, int $stageId): float
+    {
+        $basis = $this->basis((int) $project->id);
+
+        return $basis ? ($this->amounts($this->rows((int) $project->id), $basis['net'])[$stageId] ?? 0.0) : 0.0;
     }
 
     // ------------------------------------------------------------------ inside

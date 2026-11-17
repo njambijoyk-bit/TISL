@@ -14,8 +14,12 @@ use Illuminate\Support\Facades\DB;
  */
 class ProjectVoucherPoster
 {
-    /** @param array<int, array<string, mixed>> $entries ledger_id, side, amount, and optionally cost_centre_id, project_holding_id, narration @return int the voucher's id */
-    public function journal(string $date, string $narration, ?string $reference, array $entries, User $by): int
+    /**
+     * @param array<int, array<string, mixed>> $entries ledger_id, side, amount, and optionally cost_centre_id, project_holding_id, is_party, narration
+     * @param array<int, array{against_voucher_id: int, amount: float}> $settles open sales invoices this journal settles (Books checks the party is credited for them)
+     * @return int the voucher's id
+     */
+    public function journal(string $date, string $narration, ?string $reference, array $entries, User $by, array $settles = []): int
     {
         $type = DB::table('voucher_types')->where('base_type', 'journal')->where('is_active', 1)->orderBy('id')->value('id');
         if (! $type) {
@@ -25,7 +29,7 @@ class ProjectVoucherPoster
             return (int) app(VoucherService::class)->create([
                 'voucher_type_id' => (int) $type, 'date' => $date, 'narration' => $narration, 'reference_no' => $reference,
                 'location_id' => \App\Models\Location::default()?->id, 'entries' => $entries, 'channel' => 'projects',
-            ], $by)->id;
+            ] + ($settles ? ['settles' => $settles] : []), $by)->id;
         } catch (BooksException $e) {
             throw new ProjectException($e->getMessage());
         } catch (\Illuminate\Validation\ValidationException $e) {
