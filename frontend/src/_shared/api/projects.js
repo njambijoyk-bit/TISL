@@ -66,6 +66,18 @@ const projectsAPI = {
   addLead: async (data) => (await api.post('/admin/projects/leads', data)).data.lead,
   changeLead: async (id, data) => (await api.put(`/admin/projects/leads/${id}`, data)).data.lead,
   known: async (params) => (await api.get('/admin/projects/known', { params })).data.known,
+  // contacts under a client, a lead or a party: each call answers { contacts, roles, can }
+  contacts: async (type, id) => (await api.get(`/admin/projects/contacts/${type}/${id}`)).data,
+  addContact: async (type, id, data) => (await api.post(`/admin/projects/contacts/${type}/${id}`, data)).data,
+  changeContact: async (contactId, data) => (await api.put(`/admin/projects/contacts/${contactId}`, data)).data,
+  removeContact: async (contactId) => (await api.delete(`/admin/projects/contacts/${contactId}`)).data,
+  // other parties on a piece of work: each call answers { ready, parties, client_contacts, roles, available_contacts, can }
+  parties: async (id) => (await api.get(`/admin/projects/${id}/parties`)).data,
+  findParties: async (q) => (await api.get('/admin/projects/parties', { params: { q } })).data.parties,
+  addParty: async (id, data) => (await api.post(`/admin/projects/${id}/parties`, data)).data,
+  removeParty: async (id, linkId) => (await api.delete(`/admin/projects/${id}/parties/${linkId}`)).data,
+  addPartyContact: async (id, data) => (await api.post(`/admin/projects/${id}/party-contacts`, data)).data,
+  removePartyContact: async (id, linkId) => (await api.delete(`/admin/projects/${id}/party-contacts/${linkId}`)).data,
   // the pipeline: the board answers { stages: [{ ..., items, totals }], open, sees_all, ready, can }
   pipeline: async (params) => (await api.get('/admin/projects/pipeline', { params })).data,
   pipelineOptions: async () => (await api.get('/admin/projects/pipeline/options')).data,

@@ -20,13 +20,13 @@ class ProjectAccess
     public const PERMISSION = [
         'open' => 'projects.use', 'edit' => 'projects.edit', 'stage' => 'projects.stage', 'close' => 'projects.close', 'freeze' => 'projects.freeze',
         'confidential' => 'projects.confidential', 'phases' => 'projects.phases', 'members' => 'projects.members.manage', 'members_view' => 'projects.members.view',
-        'links' => 'projects.links', 'log' => 'projects.log.view', 'access' => 'projects.access.rules',
+        'links' => 'projects.links', 'log' => 'projects.log.view', 'access' => 'projects.access.rules', 'parties' => 'projects.parties',
     ];
 
     /** what is asked => the ability their project role must have */
     public const ROLE_ABILITY = [
         'open' => 'open', 'edit' => 'edit', 'stage' => 'stage', 'close' => 'stage', 'freeze' => 'edit', 'confidential' => 'edit', 'phases' => 'phases',
-        'members' => 'members', 'members_view' => 'open', 'links' => 'links', 'log' => 'log', 'access' => 'access',
+        'members' => 'members', 'members_view' => 'open', 'links' => 'links', 'log' => 'log', 'access' => 'access', 'parties' => 'links',   // other parties are attached like links are
     ];
 
     /** reading: what `projects.view_all` opens on a project the person is not on, and what stays possible on a frozen one */

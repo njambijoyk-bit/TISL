@@ -1943,6 +1943,16 @@ Route::middleware('auth:sanctum')->group(function () {
             Route::get('/configuration/pipeline', [$pip, 'stages'])->middleware('permission:projects.config.view');
             Route::post('/configuration/pipeline', [$pip, 'addStage'])->middleware('permission:projects.config.manage');
             Route::put('/configuration/pipeline/{stage}', [$pip, 'changeStage'])->whereNumber('stage')->middleware('permission:projects.config.manage');
+            Route::get('/contacts/{type}/{id}', [$rel, 'contacts'])->whereIn('type', ['customer', 'lead', 'party'])->whereNumber('id');
+            Route::post('/contacts/{type}/{id}', [$rel, 'addContact'])->whereIn('type', ['customer', 'lead', 'party'])->whereNumber('id');
+            Route::put('/contacts/{contact}', [$rel, 'changeContact'])->whereNumber('contact');
+            Route::delete('/contacts/{contact}', [$rel, 'changeContact'])->whereNumber('contact');
+            Route::get('/parties', [$rel, 'findParties'])->middleware('permission:projects.parties');
+            Route::get('/{project}/parties', [$rel, 'parties'])->whereNumber('project');
+            Route::post('/{project}/parties', [$rel, 'changeParties'])->whereNumber('project')->middleware('permission:projects.parties');
+            Route::delete('/{project}/parties/{link}', [$rel, 'removeParty'])->whereNumber(['project', 'link'])->middleware('permission:projects.parties');
+            Route::post('/{project}/party-contacts', [$rel, 'addPartyContact'])->whereNumber('project')->middleware('permission:projects.parties');
+            Route::delete('/{project}/party-contacts/{link}', [$rel, 'removePartyContact'])->whereNumber(['project', 'link'])->middleware('permission:projects.parties');
             Route::get('/known', [$rel, 'known'])->middleware('permission:projects.leads.manage,projects.clients.manage,projects.parties');
             Route::get('/configuration/lists', [$rel, 'listsPage'])->middleware('permission:projects.config.view');
             Route::post('/configuration/lists/{list}', [$rel, 'addToList'])->middleware('permission:projects.config.manage');

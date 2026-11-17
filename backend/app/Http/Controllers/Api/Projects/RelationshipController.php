@@ -70,6 +70,93 @@ class RelationshipController extends Controller
         return response()->json(['known' => app(ProjectDuplicates::class)->find($data, isset($data['except_type'], $data['except_id']) ? [$data['except_type'], (int) $data['except_id']] : null)]);
     }
 
+    // ------------------------------------------------------------------ contacts
+
+    public function contacts(Request $request, string $type, int $id): JsonResponse
+    {
+        return $this->guard(function () use ($request, $type, $id) {
+            $c = app(\App\Services\Projects\ProjectContacts::class);
+            $c->authorize($type, $id, $request->user(), false);
+
+            return $this->contactList($request, $type, $id);
+        });
+    }
+
+    public function addContact(Request $request, string $type, int $id): JsonResponse
+    {
+        return $this->guard(function () use ($request, $type, $id) {
+            $c = app(\App\Services\Projects\ProjectContacts::class);
+            $c->authorize($type, $id, $request->user(), true);
+            $c->add($type, $id, $request->all(), $request->user());
+
+            return $this->contactList($request, $type, $id, 201);
+        });
+    }
+
+    public function changeContact(Request $request, int $contact): JsonResponse
+    {
+        return $this->guard(function () use ($request, $contact) {
+            $c = app(\App\Services\Projects\ProjectContacts::class);
+            $row = $c->find($contact, $request->user(), true);
+            $request->isMethod('DELETE') ? $c->remove($row, $request->user()) : $c->change($row, $request->all(), $request->user());
+
+            return $this->contactList($request, $row->owner_type, (int) $row->owner_id);
+        });
+    }
+
+    private function contactList(Request $request, string $type, int $id, int $status = 200): JsonResponse
+    {
+        $user = $request->user();
+        $may = match ($type) { 'customer' => $user->hasPermission('projects.clients.manage'), 'lead' => $user->hasPermission('projects.leads.manage'), default => $user->hasPermission('projects.parties') };
+
+        return response()->json(['contacts' => app(\App\Services\Projects\ProjectContacts::class)->of($type, $id), 'roles' => $this->lists->of('contact_role', true), 'can' => ['change' => $may]], $status);
+    }
+
+    // ------------------------------------------------------------------ other parties
+
+    public function findParties(Request $request): JsonResponse
+    {
+        return response()->json(['parties' => app(\App\Services\Projects\ProjectParties::class)->search((string) $request->query('q', ''))]);
+    }
+
+    public function parties(Request $request, int $project): JsonResponse
+    {
+        return $this->guard(fn () => response()->json(app(\App\Services\Projects\ProjectParties::class)->forProject(app(\App\Services\Projects\ProjectService::class)->findFor($request->user(), $project), $request->user())));
+    }
+
+    public function removeParty(Request $request, int $project, int $link): JsonResponse
+    {
+        return $this->changeParties($request, $project, 'parties', $link);
+    }
+
+    public function addPartyContact(Request $request, int $project): JsonResponse
+    {
+        return $this->changeParties($request, $project, 'contacts');
+    }
+
+    public function removePartyContact(Request $request, int $project, int $link): JsonResponse
+    {
+        return $this->changeParties($request, $project, 'contacts', $link);
+    }
+
+    /** Put a party, or one of the client's contacts, on a project; or take one off. */
+    public function changeParties(Request $request, int $project, ?string $what = null, ?int $link = null): JsonResponse
+    {
+        return $this->guard(function () use ($request, $project, $what, $link) {
+            $p = app(\App\Services\Projects\ProjectService::class)->findFor($request->user(), $project);
+            $parties = app(\App\Services\Projects\ProjectParties::class);
+            $user = $request->user();
+            match (true) {
+                $request->isMethod('DELETE') && $what === 'contacts' => $parties->removeContact($p, (int) $link, $user),
+                $request->isMethod('DELETE') => $parties->remove($p, (int) $link, $user),
+                $what === 'contacts' => $parties->addContact($p, (int) $request->input('contact_id'), $request->input('note'), $user),
+                default => $parties->add($p, $request->all(), $user),
+            };
+
+            return response()->json($parties->forProject($p, $user), $request->isMethod('POST') ? 201 : 200);
+        });
+    }
+
     // ------------------------------------------------------------------ the lists an owner manages
 
     public function listsPage(Request $request): JsonResponse

@@ -110,3 +110,18 @@ Screens: `docs/screens/projects-pipeline.png`, `projects-pipeline-win.png`.
 - **Tests:** `tests/Feature/ProjectsPipelineTest.php` (7); `frontend/e2e/projects-pipeline-ui.mjs` (24 checks in a real browser).
 - **Not tested here:** the real customer creation. The tests stand in for `ClientMaker` with a plain row, because the test database has no currency tables; the real path calls `Customer::create()`. Win one lead by hand after running the script and check the new customer in Books.
 - **Not yet:** dragging cards between columns (moving is by the stage list on the card's panel); deleting an opportunity; a list view of the pipeline.
+
+### 3.3 Contacts and other parties (done)
+
+Screens: `docs/screens/projects-contacts.png`, `projects-parties.png`.
+
+- **Services:** `ProjectContacts`, `ProjectParties`.
+- **Contacts** under a client, a lead or a party: name, job title, email, phone, what they are there for (several, from the managed list), one main contact. The first one added is main; making another main takes it from the first; removing the main one makes another main, so there is always one while there is anyone. Who may see and change them follows what they belong to: a client's with `projects.clients.view` / `projects.clients.manage`, a lead's with seeing the lead / `projects.leads.manage`, a party's with `projects.parties`. Refusals are logged. Contacts show on the lead page now; the client page (3.5) shows a client's.
+- **Parties tab** on every piece of work, readable by anyone who can open it. Two parts:
+  - **Client contacts on this:** the client's own people to call for this piece of work, with what for. Removing a contact takes it off every piece of work.
+  - **Other parties:** anyone who is neither the client nor staff, each in a role on this piece of work. Roles offered are this industry's plus those for every industry. One party record is reused across pieces of work: typing a name finds known ones, and picking one puts it on by its record. A party can have its own contacts, and one can be named as who to talk to on this piece of work. Taking a party off does not delete the party.
+- **Both sides:** a party that is also a lead or a client carries a warning on its row ("Also a client", "A lead, owned by Njeri"). Adding a new party shows the "already known" warning as it is typed.
+- **Changing parties** asks both questions: `projects.parties`, and a project role that manages links (the new ability `parties` uses the role's `links`).
+- **Routes:** `GET`, `POST /contacts/{customer|lead|party}/{id}`; `PUT`, `DELETE /contacts/{contact}`; `GET /parties`; `GET`, `POST /{project}/parties`; `DELETE /{project}/parties/{link}`; `POST /{project}/party-contacts`; `DELETE /{project}/party-contacts/{link}`.
+- **Tests:** `tests/Feature/ProjectsContactsPartiesTest.php` (6); `frontend/e2e/projects-parties-ui.mjs` (17 checks in a real browser).
+- **Not yet:** editing a party's own details after it is added (it is shown, and found by name, but changed only through its contacts); a shortcut key for the Parties tab.

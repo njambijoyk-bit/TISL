@@ -10,6 +10,7 @@ import PhasesPanel from '../../components/PhasesPanel';
 import PeoplePanel from '../../components/PeoplePanel';
 import AccessPanel from '../../components/AccessPanel';
 import UnlockPanel from '../../components/UnlockPanel';
+import PartiesPanel from '../../components/PartiesPanel';
 import ActivityPanel from '../../components/ActivityPanel';
 import LinksPanel from '../../components/LinksPanel';
 import { hasPermission } from '../../../_shared/lib/roles';
@@ -182,7 +183,7 @@ export default function ProjectDetail() {
         {PRIORITY[p.priority] && p.priority !== 'medium' && <Chip status={PRIORITY[p.priority].status}>{PRIORITY[p.priority].label} priority</Chip>}
       </div>
       <StageBar project={p} onMove={move} busy={busy} />
-      <Tabs tabs={[{ key: 'overview', label: 'Overview' }, { key: 'phases', label: word('phase', true) }, ...(can.members_view ? [{ key: 'people', label: 'People' }, { key: 'access', label: 'Access' }] : []), { key: 'links', label: 'Links' }, ...(can.log ? [{ key: 'activity', label: 'Activity' }] : [])]} value={tab} onChange={setTab} label="Parts of this page" mark="project-key" />
+      <Tabs tabs={[{ key: 'overview', label: 'Overview' }, { key: 'phases', label: word('phase', true) }, ...(can.members_view ? [{ key: 'people', label: 'People' }, { key: 'access', label: 'Access' }] : []), { key: 'parties', label: 'Parties' }, { key: 'links', label: 'Links' }, ...(can.log ? [{ key: 'activity', label: 'Activity' }] : [])]} value={tab} onChange={setTab} label="Parts of this page" mark="project-key" />
 
       {lockedTab && <UnlockPanel key={lockedTab} projectId={p.id} area={lockedTab} label={locks[lockedTab].label} onOpened={load} />}
       {openTab && (
@@ -192,6 +193,7 @@ export default function ProjectDetail() {
         </div>
       )}
       {!lockedTab && tab === 'phases' && <PhasesPanel key={`${p.id}-${p.frozen}`} projectId={p.id} word={word} />}
+      {tab === 'parties' && <PartiesPanel key={`${p.id}-${p.frozen}`} projectId={p.id} word={word} />}
       {!lockedTab && tab === 'links' && <LinksPanel key={`${p.id}-${p.frozen}`} projectId={p.id} />}
       {!lockedTab && tab === 'activity' && <ActivityPanel fetch={fetchLog} describe={(what) => what.replace(/^Project\b/, word('project')).replace(/^Phase\b/, word('phase'))} />}
       {tab === 'access' && <AccessPanel key={`${p.id}-${p.frozen}`} projectId={p.id} word={word} onLocksChanged={load} />}
