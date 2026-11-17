@@ -1,6 +1,6 @@
-# Projects Stage 5: Work and time (being built)
+# Projects Stage 5: Work and time (built)
 
-Status: the owner said "build" on 2026-11-17, accepting the four choices at the end. What is built so far is listed under "As built"; everything else is still design.
+Status: built on 2026-11-17 and 18 in ten builds (5.1 to 5.10), accepting the four choices at the end. Each build is listed under "As built" with what changed from this design. It needs database script 261 (and 260, which gained columns too).
 
 Stages 1 to 4 built the work, who may touch it, who it is for, and its money. Stage 5 builds the doing of it: tasks, scope, key dates, changes, time, and billing that time. It also brings the three things Stage 4 left waiting: hourly billing, disbursements and write-offs.
 
@@ -150,8 +150,11 @@ Every build runs the Projects, Books and Payroll tests and the Projects browser 
 
 ### To run
 
-1. `backend/database/sql/261_projects_work.sql` (after 257 to 260). Thirteen tables, the new project-role abilities, and the five task-status words in the names table. It adds only.
+1. `backend/database/sql/260_projects_money.sql` as it is now (it gained `project_billing_stages.kind` in 5.8), then `backend/database/sql/261_projects_work.sql`: thirteen tables, the new project-role abilities, the five task-status words in the names table and the fifteen kinds of key date. Both add only, and neither has been run anywhere yet.
 2. No permission seed.
+3. New scheduled commands (already in `routes/console.php`): `projects:key-date-warnings` 07:00, `projects:task-reminders` 07:30, `projects:stop-timers` hourly, `projects:timesheet-reminders` Mondays 10:00.
+4. Outside Projects, all quiet until used: Core's calendar refresh also brings in tasks and key dates; Payroll asks Projects for a split only with "split pay by timesheets" on; Books' sales and sales order forms fill in from Projects only when opened from it.
+5. Hand checks once it is run: a task with a due date on your calendar; a key date warning the next morning; a timer stopped with Alt+T and the week submitted and approved; a Books service package on the rate card, then time billed both ways (posted, and drafted on the Books form); a cost marked and billed back; an approved change that changes the price opening Books' sales order; with "split pay by timesheets" on, a payroll run's journal split by approved time.
 
 ### 5.1 Tasks and the Work tab (done)
 
