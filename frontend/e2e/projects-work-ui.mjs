@@ -169,6 +169,6 @@ ok('a saved view can be deleted', JSON.stringify(last('unview')) === '["unview",
 manage = false;
 await page.goto(`${SITE}/e2e/harness.html?c=ProjectsApp&at=${encodeURIComponent('/admin/projects/413?tab=work&task=13')}`, { waitUntil: 'networkidle' });
 await page.locator('[data-task="M-0413-T13"]').waitFor({ timeout: 15000 });
-ok('someone the task is given to can move it but not change it or add tasks', (await page.locator('[data-moves]').count()) === 1 && (await page.getByRole('button', { name: 'Change' }).count()) === 0 && (await page.getByRole('button', { name: 'New task' }).count()) === 0);
+ok('someone the task is given to can move it but not change it or add tasks', (await page.locator('[data-moves]').count()) === 1 && (await page.getByRole('button', { name: 'Change', exact: true }).count()) === 0 && (await page.getByRole('button', { name: 'New task' }).count()) === 0);
 
 await finish(c);

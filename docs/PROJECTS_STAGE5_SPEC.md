@@ -226,3 +226,15 @@ Screens: `docs/screens/projects-change-form.png`, `docs/screens/projects-changes
 - **Routes:** `GET`, `POST /projects/{project}/changes`; `PUT /projects/{project}/changes/{change}`; `POST /projects/{project}/changes/{change}/{submit|withdraw|approve|reject}`; `GET /projects/changes/{change}/order-form` (needs `books.post`).
 - **Books:** its voucher form also fills in from an approved change and sends `project_change_id`; Books' store ties the order (one line in `BooksVoucherController::store`). Nothing else changes.
 - **Tests:** `tests/Feature/ProjectsChangesTest.php` (4); the serious-actions table now has 13 actions. All Projects, Calendar and Books-area tests pass. Browser check `e2e/projects-changes-ui.mjs` (6 checks, including the real Books form filling in); billing and voucher picker checks still pass.
+
+### 5.6 Timers and time entries (done)
+
+Screen: `docs/screens/projects-time.png`.
+
+- **Service:** `ProjectTime`; a Time part on the Work tab, a "Start a timer on it" button on a task, and a **timer bar** on every Projects page while a timer runs (what it is on, a running clock, Stop, Discard).
+- **An entry:** person, work, task (its phase comes with it) or phase, day (not ahead of today), hours or minutes (up to 24), billable (as the task says, else the company's setting, unless chosen), and a note. Minutes are **rounded up** to the company's step (default 6). Entries are drafts until the week is submitted (5.7); submitted or approved time is not changed here.
+- **The Attendance check** (setting: warn, refuse, off): time that takes a day beyond the minutes Attendance says were worked, or time on a day marked absent, leave, off or a holiday, is warned about in words, or refused. Without an Attendance record for the day, nothing is checked.
+- **Who:** logging needs `projects.time.log` and a project role that logs time (new ability `time`; Lead and Member out of the box). Logging, changing or deleting someone else's time needs `projects.time.others` and a reason (kept in the log), and only for people on the work; the entry remembers who entered it. A person sees their own time on a piece of work; those who approve time there, or may change others' time, see everyone's.
+- **The timer:** one per person; starting another stops the first (making its entry). Stopping makes an entry for the time it ran, rounded up, never more than the cap. **Alt+T** stops a running timer, or on an open piece of work starts one there (a fixed key, alongside the configurable ones). A timer left running past the cap (default 10 hours) is stopped by an hourly sweep (`projects:stop-timers`) at the cap, and the person is told (new notice type "Projects: your time and timesheets").
+- **Routes:** `GET /projects/{project}/time`; `POST /projects/time`; `PUT`, `DELETE /projects/time/{entry}`; `GET`, `POST`, `DELETE /projects/timer`; `POST /projects/timer/stop`.
+- **Tests:** `tests/Feature/ProjectsTimeTest.php` (4); all Projects tests pass. Browser check `e2e/projects-time-ui.mjs` (8 checks); the other Work-tab checks still pass (one now matches a button name exactly, since a "Changes" part exists).

@@ -4,6 +4,7 @@ import projectsAPI from '../../_shared/api/projects';
 import { day, message, PRIORITY } from '../lib/format';
 import { hm, STATUS_TONE } from '../lib/tasks';
 import { Btn, Chip, Field, Notice, Panel, PanelTitle, SelectInput, TextInput } from './ui';
+import { startTimer } from '../lib/timer';
 
 const box = { display: 'grid', gap: 10, padding: 12, borderRadius: 10, background: 'var(--surface-input)' };
 const grid = { display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(180px, 1fr))', gap: 10 };
@@ -62,6 +63,9 @@ export default function TaskPanel({ projectId, taskId, list, onChanged, onClose,
         </p>
       )}
 
+      {t.can.time && !edit && !['done', 'cancelled'].includes(t.status) && (
+        <div style={{ marginBottom: 8 }}><Btn small aria-label={`Start a timer on ${t.ref}`} onClick={() => startTimer({ project_id: projectId, task_id: t.id })}>Start a timer on it</Btn></div>
+      )}
       {t.can.work && !edit && (
         <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap', marginBottom: 12 }} data-moves>
           {Object.entries(S).filter(([k]) => k !== t.status).map(([k, label]) => <Btn key={k} small busy={busy} onClick={() => move(k)}>{k === 'done' ? 'Mark done' : k === 'cancelled' ? 'Cancel it' : label}</Btn>)}

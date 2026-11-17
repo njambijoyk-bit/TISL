@@ -6,6 +6,7 @@ import { useProjectNames } from '../lib/names';
 import useNamesStore from '../lib/names';
 import { GO, ON, onOpenProject } from '../lib/keys';
 import SeriousDialog from './SeriousDialog';
+import TimerBar from './TimerBar';
 
 /**
  * Listens for the Projects shortcut keys while a Projects page is open (build 1.9):
@@ -49,5 +50,6 @@ export default function ProjectKeys() {
     return () => window.removeEventListener('keydown', onKey, true);
   }, [pathname, navigate, user]);
 
-  return <SeriousDialog />;   // the one thing every Projects page shares besides its keys: the question before a serious action is sent for approval
+  // what every Projects page shares besides its keys: the question before a serious action is sent for approval, and the running timer (Alt+T)
+  return <><SeriousDialog /><TimerBar /></>;
 }

@@ -103,7 +103,7 @@ class ProjectTasks
             'checklist' => DB::table('project_task_checks')->where('task_id', $t->id)->orderBy('sort_order')->orderBy('id')->get()
                 ->map(fn ($c) => ['id' => (int) $c->id, 'text' => $c->text, 'done' => (bool) $c->done])->all(),
             'subtasks' => $list->where('parent_id', $t->id)->map(fn ($s) => ['id' => $s['id'], 'ref' => $s['ref'], 'title' => $s['title'], 'status' => $s['status']])->values()->all(),
-            'can' => ['manage' => $this->access->decide($user, 'tasks', $project)['allowed'], 'work' => $this->mayWork($project, $t, $user)],
+            'can' => ['manage' => $this->access->decide($user, 'tasks', $project)['allowed'], 'work' => $this->mayWork($project, $t, $user), 'time' => $this->access->decide($user, 'time', $project)['allowed']],
         ];
     }
 
