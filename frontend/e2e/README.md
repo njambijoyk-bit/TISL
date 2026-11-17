@@ -58,6 +58,7 @@ node e2e/projects-scope-ui.mjs                   # Projects: scope lines (copyin
 node e2e/projects-key-dates-ui.mjs               # Projects: key dates (how soon, adding with a time and who is responsible, moving with a reason, done, diamonds on the timeline) (needs only the website)
 node e2e/projects-changes-ui.mjs                 # Projects: changes (raising with what they do, sending, deciding, rejecting with a note, approving one that changes the price opening Books' sales order form) (needs only the website)
 node e2e/projects-time-ui.mjs                    # Projects: time on the Work tab (totals, logging, an Attendance warning, someone else's time) and the timer bar with Alt+T (needs only the website)
+node e2e/projects-timesheet-ui.mjs               # Projects: the timesheet (my week by day with Attendance, sent-back notes, submitting; approving or sending back by person) (needs only the website)
 ```
 
 Needs Playwright (`PLAYWRIGHT_MODULE_DIR` points at the folder holding it, default `/opt/node22/lib/node_modules/`) and a Chromium (`CHROME`).

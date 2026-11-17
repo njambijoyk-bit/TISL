@@ -238,3 +238,16 @@ Screen: `docs/screens/projects-time.png`.
 - **The timer:** one per person; starting another stops the first (making its entry). Stopping makes an entry for the time it ran, rounded up, never more than the cap. **Alt+T** stops a running timer, or on an open piece of work starts one there (a fixed key, alongside the configurable ones). A timer left running past the cap (default 10 hours) is stopped by an hourly sweep (`projects:stop-timers`) at the cap, and the person is told (new notice type "Projects: your time and timesheets").
 - **Routes:** `GET /projects/{project}/time`; `POST /projects/time`; `PUT`, `DELETE /projects/time/{entry}`; `GET`, `POST`, `DELETE /projects/timer`; `POST /projects/timer/stop`.
 - **Tests:** `tests/Feature/ProjectsTimeTest.php` (4); all Projects tests pass. Browser check `e2e/projects-time-ui.mjs` (8 checks); the other Work-tab checks still pass (one now matches a button name exactly, since a "Changes" part exists).
+
+### 5.7 Weekly timesheets (done)
+
+Screen: `docs/screens/projects-timesheet.png`.
+
+- **Service:** `ProjectTimesheets`; a new page, Projects → **Timesheet**, with "My week" and, for people who may approve time, "To approve".
+- **My week** (Monday to Sunday): work and task by day with totals; what Attendance says under each day, and a day with more logged than worked is flagged; the week's state (not submitted, partly, submitted, approved, some sent back); notes on sent-back entries; the week before and after. A manager, or someone who may change others' time, can read another person's week.
+- **Submitting** locks the week's draft and sent-back entries and tells whoever may approve them. Locked time is not changed (5.6 already refused it).
+- **Approving** (owner's choice 1, a setting): with "the leads of the work" (default), `projects.time.approve` and a project role on that work that approves time (new ability `approve_time`, the Lead out of the box); with "the person's manager", `projects.time.approve` and being their manager in HR (`employees.manager_id`). **Nobody approves their own time.** Entries are approved, or sent back with a note (the person is told), entry by entry or a person's whole lot; a choice that includes anything not theirs to decide stops it all.
+- **Reopening** approved time (back to sent back, with a reason) is a serious action (new "Reopen approved time"; out of the box needs nothing; the suggested set asks a supervisor on the work, with a reason). Time already on a bill cannot be reopened.
+- **Reminders** (`projects:timesheet-reminders`, Mondays at 10:00): people with time from last week or before still not submitted (when the setting is on), and people with time waiting for them to approve.
+- **Routes:** `GET /projects/timesheet` (`week`, `user_id`); `POST /projects/timesheet/submit`; `GET`, `POST /projects/timesheet/approvals` (`ids`, `step` approve or return, `note`); `POST /projects/time/{entry}/reopen`.
+- **Tests:** `tests/Feature/ProjectsTimesheetsTest.php` (4); the serious-actions table now has 14 actions. All Projects tests pass. Browser check `e2e/projects-timesheet-ui.mjs` (9 checks).

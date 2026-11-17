@@ -51,6 +51,7 @@ class ProjectSettings
             'bill.post' => ['needs' => 'none', 'on_project' => false, 'reason' => false],
             'retention.release' => ['needs' => 'none', 'on_project' => false, 'reason' => false],
             'change.approve' => ['needs' => 'none', 'on_project' => false, 'reason' => false],
+            'time.reopen' => ['needs' => 'none', 'on_project' => false, 'reason' => false],
         ],
     ];
 

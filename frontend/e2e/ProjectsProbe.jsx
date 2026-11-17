@@ -16,6 +16,7 @@ import ClientDetail from '/src/projects/pages/admin/ClientDetail.jsx';
 import ProjectsDirectory from '/src/projects/pages/admin/ProjectsDirectory.jsx';
 import VoucherForm from '/src/core/pages/admin/books/VoucherForm.jsx';
 import ProjectsClientMoney from '/src/projects/pages/admin/ProjectsClientMoney.jsx';
+import ProjectsTimesheet from '/src/projects/pages/admin/ProjectsTimesheet.jsx';
 import KeyboardShortcuts from '/src/_shared/components/common/KeyboardShortcuts.jsx';
 
 /** The Projects screens with their own addresses, so moving between them works as in the app. Starts at ?at=/admin/projects/... */
@@ -40,6 +41,7 @@ export default function ProjectsProbe() {
       <Route path="/admin/projects/directory" element={<ProjectsDirectory />} />
       <Route path="/admin/books/vouchers/new" element={<VoucherForm />} />
       <Route path="/admin/projects/client-money" element={<ProjectsClientMoney />} />
+      <Route path="/admin/projects/timesheet" element={<ProjectsTimesheet />} />
       <Route path="/admin/projects/leads/:id" element={<LeadDetail />} />
       <Route path="/admin/projects/new" element={<ProjectForm />} />
       <Route path="/admin/projects/:id" element={<ProjectDetail />} />

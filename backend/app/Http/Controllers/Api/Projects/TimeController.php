@@ -64,6 +64,52 @@ class TimeController extends Controller
         return response()->json(['timer' => null]);
     }
 
+    // ------------------------------------------------------------------ weekly timesheets (5.7)
+
+    public function week(Request $request): JsonResponse
+    {
+        return $this->guard(fn () => response()->json(app(\App\Services\Projects\ProjectTimesheets::class)->week($request->user(), $request->query('week'), $request->integer('user_id') ?: null)));
+    }
+
+    public function submit(Request $request): JsonResponse
+    {
+        return $this->guard(function () use ($request) {
+            $t = app(\App\Services\Projects\ProjectTimesheets::class);
+            $n = $t->submit($request->user(), $request->input('week'));
+
+            return response()->json(['submitted' => $n] + $t->week($request->user(), $request->input('week')));
+        });
+    }
+
+    public function approvals(Request $request): JsonResponse
+    {
+        return $this->guard(fn () => response()->json(app(\App\Services\Projects\ProjectTimesheets::class)->toApprove($request->user())));
+    }
+
+    public function decide(Request $request): JsonResponse
+    {
+        return $this->guard(function () use ($request) {
+            $t = app(\App\Services\Projects\ProjectTimesheets::class);
+            $ids = array_map('intval', (array) $request->input('ids', []));
+            $n = $request->input('step') === 'return' ? $t->sendBack($ids, (string) $request->input('note'), $request->user()) : $t->approve($ids, $request->user());
+
+            return response()->json(['done' => $n] + $t->toApprove($request->user()));
+        });
+    }
+
+    public function reopen(Request $request, int $entry): JsonResponse
+    {
+        return $this->guard(function () use ($request, $entry) {
+            $pid = (int) \Illuminate\Support\Facades\DB::table('project_time')->where('id', $entry)->value('project_id');
+            $p = $pid ? \Illuminate\Support\Facades\DB::table('projects')->where('id', $pid)->first() : null;
+            $done = app(\App\Services\Projects\ProjectSerious::class)->gate($request, 'time.reopen', $p, ['entry' => $entry], "reopen approved time on {$p?->number}");
+            app(\App\Services\Projects\ProjectTimesheets::class)->reopen($entry, (string) $request->input('reason'), $request->user());
+            $done();
+
+            return response()->json(['message' => 'Reopened.']);
+        });
+    }
+
     private function guard(callable $do): JsonResponse
     {
         try {

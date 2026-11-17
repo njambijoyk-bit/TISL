@@ -1953,6 +1953,11 @@ Route::middleware('auth:sanctum')->group(function () {
             Route::post('/time', [$tim, 'store'])->middleware('permission:projects.time.log,projects.time.others');
             Route::put('/time/{entry}', [$tim, 'update'])->whereNumber('entry')->middleware('permission:projects.time.log,projects.time.others');
             Route::delete('/time/{entry}', [$tim, 'destroy'])->whereNumber('entry')->middleware('permission:projects.time.log,projects.time.others');
+            Route::get('/timesheet', [$tim, 'week']);
+            Route::post('/timesheet/submit', [$tim, 'submit'])->middleware('permission:projects.time.log');
+            Route::get('/timesheet/approvals', [$tim, 'approvals'])->middleware('permission:projects.time.approve');
+            Route::post('/timesheet/approvals', [$tim, 'decide'])->middleware('permission:projects.time.approve');
+            Route::post('/time/{entry}/reopen', [$tim, 'reopen'])->whereNumber('entry')->middleware('permission:projects.time.approve');
             Route::get('/timer', [$tim, 'timer']);
             Route::post('/timer', [$tim, 'start'])->middleware('permission:projects.time.log');
             Route::post('/timer/stop', [$tim, 'stop'])->middleware('permission:projects.time.log');

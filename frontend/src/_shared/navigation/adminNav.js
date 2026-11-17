@@ -319,6 +319,7 @@ export const ADMIN_NAV = [
           { title: 'Leads', path: '/admin/projects/leads', perm: ['projects.leads.view', 'projects.leads.manage'] },
           { title: 'Pipeline', path: '/admin/projects/pipeline', perm: ['projects.pipeline', 'projects.leads.view'] },
           { title: 'Follow-ups', path: '/admin/projects/follow-ups', perm: ['projects.interactions', 'projects.leads.view'] },
+          { title: 'Timesheet', path: '/admin/projects/timesheet', perm: ['projects.time.log', 'projects.time.approve'] },
           { title: 'Client money', path: '/admin/projects/client-money', perm: ['projects.money.held.view', 'projects.money.held.pay'] },
           { title: 'Directory', path: '/admin/projects/directory', perm: ['projects.directory.yellow', 'projects.directory.white'] },
           { title: 'Approvals', path: '/admin/projects/approvals' },

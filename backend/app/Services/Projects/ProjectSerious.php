@@ -36,6 +36,7 @@ class ProjectSerious
         'bill.post' => 'Post a bill from a billing plan',
         'retention.release' => 'Release retention to the client',
         'change.approve' => 'Approve a change to the work',
+        'time.reopen' => 'Reopen approved time',
     ];
 
     /** A sensible set to start from, applied in one click. Out of the box every action needs nothing. */
@@ -50,6 +51,7 @@ class ProjectSerious
         'bill.post' => ['needs' => 'identity', 'on_project' => false, 'reason' => false],
         'retention.release' => ['needs' => 'supervisor', 'on_project' => true, 'reason' => true],
         'change.approve' => ['needs' => 'identity', 'on_project' => false, 'reason' => false],
+        'time.reopen' => ['needs' => 'supervisor', 'on_project' => true, 'reason' => true],
     ];
 
     private const NONE = ['needs' => 'none', 'on_project' => false, 'reason' => false];
