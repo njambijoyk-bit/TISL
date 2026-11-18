@@ -39,6 +39,7 @@ class ProjectSerious
         'time.reopen' => 'Reopen approved time',
         'time.writeoff' => 'Write off time or costs',
         'work.handover' => 'Hand over someone\'s work',
+        'case.reveal' => 'Reveal a hidden name in the casebook',
     ];
 
     /** A sensible set to start from, applied in one click. Out of the box every action needs nothing. */
@@ -56,6 +57,7 @@ class ProjectSerious
         'time.reopen' => ['needs' => 'supervisor', 'on_project' => true, 'reason' => true],
         'time.writeoff' => ['needs' => 'supervisor', 'on_project' => true, 'reason' => true],
         'work.handover' => ['needs' => 'supervisor', 'on_project' => false, 'reason' => true],
+        'case.reveal' => ['needs' => 'supervisor', 'on_project' => false, 'reason' => true],
     ];
 
     private const NONE = ['needs' => 'none', 'on_project' => false, 'reason' => false];

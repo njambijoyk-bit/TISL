@@ -2007,6 +2007,17 @@ Route::middleware('auth:sanctum')->group(function () {
             Route::get('/configuration/checklists', [$ppl, 'templates'])->middleware('permission:projects.config.view');
             Route::post('/configuration/checklists', [$ppl, 'saveTemplate'])->middleware('permission:projects.config.manage');
             Route::put('/configuration/checklists/{template}', [$ppl, 'saveTemplate'])->whereNumber('template')->middleware('permission:projects.config.manage');
+            $cb = \App\Http\Controllers\Api\Projects\CasebookController::class;
+            Route::get('/casebook', [$cb, 'index'])->middleware('permission:projects.casebook.report,projects.casebook.handle');
+            Route::post('/casebook', [$cb, 'store'])->middleware('permission:projects.casebook.report');
+            Route::get('/casebook/{case}', [$cb, 'show'])->whereNumber('case')->middleware('permission:projects.casebook.report,projects.casebook.handle');   // the reporter, or whoever it was routed to (checked inside)
+            Route::put('/casebook/{case}', [$cb, 'update'])->whereNumber('case')->middleware('permission:projects.casebook.report,projects.casebook.handle');
+            Route::post('/casebook/{case}/messages', [$cb, 'message'])->whereNumber('case')->middleware('permission:projects.casebook.report,projects.casebook.handle');
+            Route::post('/casebook/{case}/reveal', [$cb, 'reveal'])->whereNumber('case')->middleware('permission:projects.casebook.identity');
+            Route::post('/casebook/{case}/flag', [$cb, 'flag'])->whereNumber('case')->middleware('permission:projects.flags');
+            Route::get('/configuration/casebook', [$cb, 'kinds'])->middleware('permission:projects.casebook.configure');
+            Route::post('/configuration/casebook', [$cb, 'saveKind'])->middleware('permission:projects.casebook.configure');
+            Route::put('/configuration/casebook/{kind}', [$cb, 'saveKind'])->whereNumber('kind')->middleware('permission:projects.casebook.configure');
             $hand = \App\Http\Controllers\Api\Projects\HandoverController::class;
             Route::get('/handover/people', [$hand, 'people'])->middleware('permission:projects.members.manage');
             Route::get('/handover/preview', [$hand, 'preview'])->middleware('permission:projects.members.manage');

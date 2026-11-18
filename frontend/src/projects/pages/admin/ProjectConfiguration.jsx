@@ -22,6 +22,7 @@ import RatesPanel from '../../components/RatesPanel';
 import TagsPanel from '../../components/TagsPanel';
 import LinkRolesPanel from '../../components/LinkRolesPanel';
 import ChecklistTemplatesPanel from '../../components/ChecklistTemplatesPanel';
+import CasebookKindsPanel from '../../components/CasebookKindsPanel';
 import ProjectKeys from '../../components/ProjectKeys';
 
 /**
@@ -195,7 +196,7 @@ export default function ProjectConfiguration() {
   };
 
   const industryName = (key) => data?.industries.find((i) => i.key === key)?.name || key;
-  const tabs = [{ key: 'names', label: 'Industry and names' }, { key: 'industries', label: 'Industries' }, { key: 'stages', label: 'Kinds of work and stages' }, { key: 'fields', label: 'Fields' }, { key: 'roles', label: 'Project roles' }, { key: 'access', label: 'Access' }, { key: 'serious', label: 'Serious actions' }, { key: 'lists', label: 'Lists' }, { key: 'pipeline', label: 'Pipeline' }, { key: 'health', label: 'Client health' }, { key: 'directory', label: 'Directory' }, { key: 'money', label: 'Money' }, { key: 'work', label: 'Work and time' }, { key: 'tags', label: 'Conversation tags' }, { key: 'linkroles', label: 'Link roles' }, { key: 'checklists', label: 'Checklists' }, { key: 'shortcuts', label: 'Shortcuts' }, { key: 'history', label: 'History and roll back' }];
+  const tabs = [{ key: 'names', label: 'Industry and names' }, { key: 'industries', label: 'Industries' }, { key: 'stages', label: 'Kinds of work and stages' }, { key: 'fields', label: 'Fields' }, { key: 'roles', label: 'Project roles' }, { key: 'access', label: 'Access' }, { key: 'serious', label: 'Serious actions' }, { key: 'lists', label: 'Lists' }, { key: 'pipeline', label: 'Pipeline' }, { key: 'health', label: 'Client health' }, { key: 'directory', label: 'Directory' }, { key: 'money', label: 'Money' }, { key: 'work', label: 'Work and time' }, { key: 'tags', label: 'Conversation tags' }, { key: 'linkroles', label: 'Link roles' }, { key: 'checklists', label: 'Checklists' }, { key: 'casebook', label: 'Casebook' }, { key: 'shortcuts', label: 'Shortcuts' }, { key: 'history', label: 'History and roll back' }];
 
   return (
     <AdminLayout><ProjectKeys />
@@ -316,6 +317,7 @@ export default function ProjectConfiguration() {
           {tab === 'tags' && <TagsPanel />}
           {tab === 'linkroles' && <LinkRolesPanel />}
           {tab === 'checklists' && <ChecklistTemplatesPanel />}
+          {tab === 'casebook' && <CasebookKindsPanel />}
           {tab === 'shortcuts' && <ShortcutsPanel onChanged={reloadNames} />}
 
           {tab === 'history' && (

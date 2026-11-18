@@ -1,6 +1,6 @@
-# Projects Stage 8: People (being built)
+# Projects Stage 8: People (built)
 
-Status: the owner said "continue" on 2026-11-18 after Stage 7, so this design is built straight away with the four choices at the end taken as recommended (as in every stage so far). Any of them can still be changed; say which. What is built so far is listed under "As built".
+Status: built. The owner said "continue" on 2026-11-18 after Stage 7, so the four choices at the end were taken as recommended; any of them can still be changed. All five builds are listed under "As built".
 
 Stages 1 to 7 built the work, its money, the doing of it, the talking about it and its links. Stage 8 is about the people doing it: who is carrying what, what they can do, how they are growing, how they join and leave, and a safe way to raise a problem.
 
@@ -39,7 +39,7 @@ Size: medium to large. Five builds, one script, no new permissions (all seven ar
 - **Report** something (`report`): kind (out of the box: harassment, a difficult client, safety, pay, something else), what happened, when, who it is about (people or a client), and whether to **hide my name** from whoever handles it.
 - **Routing** (`configure`, owner's choice 3): each kind goes one of six ways: everyone who handles cases; a named person; the reporter's manager (and their manager when the report is about the manager); the head of a chosen department; the company owners; or someone outside, by email (a counsellor, a lawyer), through the Notifier. It is never routed to anyone the report is about.
 - **Handling** (`handle`): states (new, looking into it, action taken, closed), notes, and messages with the reporter that keep a hidden name hidden. A "difficult client" case can raise a client flag (Stage 3, with `projects.flags`).
-- **Hidden names** (owner's choice 4): revealing one needs `projects.casebook.identity` and is a serious action ("Reveal a hidden name": out of the box a supervisor and a reason). The reporter is told it happened. Every view, note and reveal is in the case's own log.
+- **Hidden names** (owner's choice 4): revealing one needs `projects.casebook.identity` and is a serious action ("Reveal a hidden name"; suggested: a supervisor and a reason). The reporter is told it happened. Every view, note and reveal is in the case's own log.
 
 ## What changes outside Projects
 
@@ -128,3 +128,25 @@ Screen: `docs/screens/projects-person.png` (the lower half).
 - **Reminders:** every morning (`projects:checklist-reminders`, 07:20), whoever does a step due today or late is reminded, once a day.
 - **Routes:** `GET`, `POST /projects/team/{user}/checklists`; `PUT /projects/checklist-items/{item}` (done); `POST /projects/checklists/{id}/cancel`; `GET`, `POST /projects/configuration/checklists`, `PUT /projects/configuration/checklists/{id}`.
 - **Tests:** `tests/Feature/ProjectsChecklistsTest.php` (3). Browser check `e2e/projects-team-ui.mjs` (now 11 checks).
+
+### 8.5 The casebook (done)
+
+Screens: `docs/screens/projects-casebook.png` (reporting), `docs/screens/projects-case.png` (a handler's view).
+
+- **Projects → Casebook** (with `projects.casebook.report` or `.handle`). **Reporting:** the kind (five to start with: harassment or bullying, a difficult client, safety, pay, something else), what happened, when, the colleagues it is about (any staff; they never see it) and a client it is about (the clients of the reporter's own work), and "Hide my name". Each report gets a number (CB-0001) and the reporter follows it there.
+- **Routing (owner's choice 3),** per kind in Configuration → Casebook (`projects.casebook.configure`): everyone who handles cases; a named person; the reporter's manager (HR's line), or the manager's manager when it is about the manager; the head of a department (HR's department manager); the company owners (whoever holds the owner-only permission to reveal a hidden name); or someone outside by email (a counsellor, a lawyer), with the name left out when it is hidden. A report never goes to anyone it is about, nor to the reporter; if nobody is left, it goes to the handlers, then the owners. Out of the box every kind goes to the handlers.
+- **Seen by:** the reporter, and the people it was routed to (plus everyone with `projects.casebook.handle` for kinds routed to the handlers or outside). Never by anyone it is about.
+- **Handling:** take it, move it through new, being looked into, action taken and closed (the reporter is told each time), write the outcome, message the reporter, or leave a note only handlers see. The reporter writes back on the same page; a hidden name stays hidden in the messages and the log ("Name hidden", "The reporter").
+- **Owner's choice 4, hidden names:** revealing needs `projects.casebook.identity` (owner-only out of the box) and is a serious action, "Reveal a hidden name in the casebook". Like every serious action it needs nothing more out of the box (Stage 2's rule); the suggested setting is a supervisor and a reason. The reporter is told who revealed it and why. (The design first said "a supervisor out of the box"; I kept Stage 2's rule instead. Say if you want it the other way.)
+- **A difficult client:** a kind marked "may raise a client flag" lets a handler with `projects.flags` raise a flag (Stage 3) on the client the report is about.
+- **Kept private:** nothing about a case is in a piece of work's log. Each case has its own add-only log: reported, sent to whom, each opening by a handler, taken, state, message, note, revealed, flag.
+- **Routes:** `GET`, `POST /projects/casebook`; `GET`, `PUT /projects/casebook/{case}`; `POST …/{case}/messages`; `POST …/{case}/reveal`; `POST …/{case}/flag`; `GET`, `POST /projects/configuration/casebook`, `PUT /projects/configuration/casebook/{kind}`.
+- **Tests:** `tests/Feature/ProjectsCasebookTest.php` (4); the serious-actions test now counts 17. Browser check `e2e/projects-casebook-ui.mjs` (7 checks).
+
+### To check by hand once script 265 is run
+
+1. In HR, give a staff member a manager and a certificate with "Runs out on" a week away; tomorrow morning both are told.
+2. Projects → Team: you see yourself and your line, with this week's hours and late tasks. Open someone.
+3. On their page, set a goal; as them, update its progress. Write a review, share it; as them, acknowledge it. Record a one-to-one with a private note; as them, check the private note is not visible.
+4. Start a leaving checklist for someone; tick "Take them off their work" and see their places end on the leaving day.
+5. Report something in the Casebook with your name hidden; as a handler, open it, write to the reporter, then reveal the name; as the reporter, see you were told.

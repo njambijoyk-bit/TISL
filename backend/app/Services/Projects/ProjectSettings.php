@@ -54,6 +54,7 @@ class ProjectSettings
             'time.reopen' => ['needs' => 'none', 'on_project' => false, 'reason' => false],
             'time.writeoff' => ['needs' => 'none', 'on_project' => false, 'reason' => false],
             'work.handover' => ['needs' => 'none', 'on_project' => false, 'reason' => false],
+            'case.reveal' => ['needs' => 'none', 'on_project' => false, 'reason' => false],   // stage 8: like every serious action, nothing out of the box (stage 2); a supervisor and a reason is the suggestion
         ],
     ];
 
