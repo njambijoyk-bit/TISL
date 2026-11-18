@@ -1,6 +1,6 @@
-# Projects Stage 7: Linking modules (being built)
+# Projects Stage 7: Linking modules (built)
 
-Status: the owner said "build" on 2026-11-18 straight after Stage 6, without a separate design review, so the four choices at the end are taken as recommended (as in every stage so far). Any of them can still be changed; say which. What is built so far is listed under "As built".
+Status: built. The owner said "build" on 2026-11-18 straight after Stage 6, without a separate design review, so the four choices at the end were taken as recommended (as in every stage so far); any of them can still be changed. All five builds are listed under "As built".
 
 Stage 1 built the registry (`ProjectLinkTypes`) with two kinds of record: Books vouchers and Events. Stage 7 makes it the way every module meets Projects: more modules register, links say what they are to the work, a module's own pages show which work a record is part of, a record can be started from the work, and taking a link off can be undone.
 
@@ -163,3 +163,21 @@ Screen: `docs/screens/projects-part-of.png`.
 - **Adding from there** needs `projects.links`, the module's own permission, and a project role that may link on the chosen work. It offers only work that is not closed, cancelled or frozen and does not already hold the record.
 - **Routes:** `GET /projects/linked` now also says whether the person may add; `GET /projects/linked/targets` (type, id, q); `POST /projects/linked` (type, id, project_id, role, note).
 - **Tests:** one more in `tests/Feature/ProjectsLinksTest.php` (now 12). Browser check `e2e/projects-part-of-ui.mjs` (4 checks).
+
+### 7.5 Starting a record from the work (done)
+
+- **Owner's choice 3:** on the Links tab, a kind of record that can be started says "Start a new one for this work:" with its forms. Each opens the module's own form, so its rules stay its own; on save the new record is linked to the work.
+- **Now:** Books quotation, sales order and purchase order (the Books form opens with the work's client, cost centre and number as the reference filled in; after saving it goes back to the work's Links tab); Events (a new event, linked on save); Tenders (a new tender, linked on save).
+- **Not yet:** support tickets and bookings have no "new" form in the staff area today; link existing ones from the Links tab.
+- **If linking fails after the record is saved** (the person lost the right to link, say), the record stays saved and the form says to link it from the work.
+- **Shown only to people who may link on the work, and not on frozen work.**
+- **Registry:** `create` returns the forms (label and address with `for_project`); `CoreLinks::type` takes the form's address for one-table types. **Frontend:** `src/_shared/lib/forWork.js` (`forWork`, `linkForWork`), one call in a form's save.
+- **Tests:** one more in `tests/Feature/ProjectsLinksTest.php` (now 13). Browser check `e2e/projects-links-ui.mjs` (now 24 checks).
+
+### To check by hand once script 264 is run
+
+1. On a piece of work's Links tab, link a quotation: it shows "Agreed value" and its state, and the total at the top. Change the quotation in Books; the total follows.
+2. Take a link off, then put it back from "Taken off".
+3. Link a support ticket, a vendor and (with the module on) a course; each shows its state.
+4. Open that ticket's own page: "Part of" names the work. Add it to a second piece of work from there.
+5. From the Links tab, "Start a new one for this work: Quotation"; the Books form has the client and cost centre; save it and you are back on the work with it linked.

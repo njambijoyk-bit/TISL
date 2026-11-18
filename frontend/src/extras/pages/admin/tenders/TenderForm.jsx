@@ -8,6 +8,7 @@ import { Field, TextInput, NumberInput, SelectInput, TextArea, CheckboxRow } fro
 import { errMsg } from '../../../../_shared/store/helpers/apiState';
 import { AdminPage, Crumbs, Heading, Loading, ErrorBanner } from '../../../components/procurement/ui';
 import { METHOD_LABELS, SUBMISSION_LABELS, GROUP_LABELS, VISIBILITY_LABELS, NOTICE_TYPE_LABELS } from '../../../components/procurement/format';
+import { linkForWork } from '../../../../_shared/lib/forWork';
 
 const BLANK = {
   title: '', description: '', notice_type: 'tender', category: 'goods', visibility: 'public', procuring_entity: '', submission_deadline: '',
@@ -63,7 +64,7 @@ export default function TenderForm() {
     if (isEdit) delete payload.tender_number;
     try {
       if (isEdit) { await tendersAPI.update(id, payload); toast.success('Tender updated'); navigate(`/admin/tenders/${id}`); }
-      else { const r = await tendersAPI.create(payload); toast.success('Tender created. Add its files next.'); navigate(`/admin/tenders/${r.id}`); }
+      else { const r = await tendersAPI.create(payload); const work = await linkForWork('tenders.tender', r.id); toast.success(work ? 'Tender created and linked to the work. Add its files next.' : 'Tender created. Add its files next.'); navigate(`/admin/tenders/${r.id}`); }
     } catch (x) {
       if (x.response?.status === 422) setErrors(x.response.data.errors || {});
       setFormError(errMsg(x, 'Failed to save tender'));

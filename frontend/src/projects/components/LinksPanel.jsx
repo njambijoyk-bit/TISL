@@ -103,6 +103,12 @@ export default function LinksPanel({ projectId }) {
         {data.groups.map((g) => (
           <Panel key={g.type} data-links={g.type}>
             <PanelTitle right={can && picking !== g.type ? <Btn small onClick={() => { setPicking(g.type); setRemoving(null); }} aria-label={`Link a ${g.label.toLowerCase()}`}>Link one</Btn> : null}>{g.plural}</PanelTitle>
+            {g.new?.length > 0 && (
+              <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap', alignItems: 'center', marginBottom: 6, fontSize: 12.5 }} data-new-links={g.type}>
+                <span style={{ color: 'var(--text-secondary)' }}>Start a new one for this work:</span>
+                {g.new.map((n) => <Link key={n.url} to={n.url} style={{ color: 'var(--color-primary-500)', fontWeight: 600, textDecoration: 'none' }}>{n.label}</Link>)}
+              </div>
+            )}
             {shown(g).length === 0 && picking !== g.type && <p style={{ margin: 0, fontSize: 13.5, color: 'var(--text-secondary)' }}>None linked{roleFilter ? ' like that' : ''}.</p>}
             {shown(g).map((i) => (
               <div key={i.id} data-link={i.title} style={{ padding: '9px 0', borderBottom: '1px solid var(--line)', fontSize: 13.5 }}>

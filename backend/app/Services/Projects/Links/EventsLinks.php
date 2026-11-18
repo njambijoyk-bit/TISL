@@ -13,6 +13,7 @@ class EventsLinks
     {
         $types->register('events.event', [
             'module' => 'events', 'label' => 'Event', 'plural' => 'Events', 'permission' => 'events.view',
+            'create' => fn (object $project): array => [['label' => 'Event', 'url' => "/admin/events/new?for_project={$project->id}"]],
             'search' => function (string $q): array {
                 if (! Schema::hasTable('events')) {
                     return [];

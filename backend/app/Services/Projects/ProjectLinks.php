@@ -38,7 +38,7 @@ class ProjectLinks
             $mine = $rows[$key] ?? collect();
             $about = $mine->isEmpty() ? [] : ($type['describe'])($mine->pluck('linked_id')->map(fn ($i) => (int) $i)->all());
             $groups[] = ['type' => $key, 'label' => $type['label'], 'plural' => $type['plural'], 'module' => $type['module'], 'value' => ! empty($type['value']),
-                'new_url' => isset($type['create']) && $this->access->decide($user, 'links', $project)['allowed'] ? ($type['create'])($project) : null,
+                'new' => isset($type['create']) && $this->access->decide($user, 'links', $project)['allowed'] && ! $project->frozen_at ? array_values(($type['create'])($project)) : [],
                 'items' => $mine->map(function ($r) use ($about, $type, $roles) {
                     $d = $about[(int) $r->linked_id] ?? null;
                     $state = $d['state'] ?? null;

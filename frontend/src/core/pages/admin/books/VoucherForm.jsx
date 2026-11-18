@@ -34,6 +34,7 @@ import LedgerPicker from '../../../components/admin/books/LedgerPicker';
 import WithSidePanel from '../../../components/admin/books/VoucherSidePanel';
 import useNarrow from '../../../components/admin/books/useNarrow';
 import { useCtrlKeys, useFKeys, voucherJumps } from '../../../components/admin/books/voucherKeys';
+import { forWork, linkForWork } from '../../../../_shared/lib/forWork';
 
 // Sales-side voucher bases sell to customers; the rest buy or adjust, so they may pick "not for sale" materials.
 const SALES_SIDE = ['quotation', 'sales_order', 'delivery_note', 'sales', 'cash_sale', 'credit_note'];
@@ -452,6 +453,14 @@ export default function VoucherForm({ api = booksAPI, mode = 'books' }) {
     else projectsAPI.changeOrderForm(changeId).then(({ order }) => { setProjectChange(order); fill(order); }).catch((e) => toast.error(errMsg(e, 'The change from Projects could not be opened')));
   }, [billStage, changeId, draftLoaded, typeId, editing, mode]);
 
+  // started from a piece of work (Projects 7.5): its client and cost centre are filled in
+  const forProject = forWork();
+  useEffect(() => {
+    if (!forProject || billStage || changeId || editing || mode !== 'books' || draftLoaded !== String(typeId)) return;
+    projectsAPI.get(forProject).then((p) => setH((x) => ({ ...x, cost_centre_id: p.cost_centre_id ?? x.cost_centre_id, reference_no: x.reference_no || p.number, customer: p.customer ? { customer_id: p.customer.id, name: p.customer.name } : x.customer })))
+      .catch(() => {});
+  }, [forProject, billStage, changeId, draftLoaded, typeId, editing, mode]);
+
   // giving an overpayment back: the Payment is prefilled from the receipt it refunds
   const refundId = params.get('refund');
   useEffect(() => {
@@ -638,7 +647,9 @@ export default function VoucherForm({ api = booksAPI, mode = 'books' }) {
       const res = editing ? await api.updateVoucher(id, payload) : await api.createVoucher(payload);
       toast.success(res.message ?? 'Saved');
       if (!editing) { clearDraft(typeId); setDraftLoaded(''); }
-      nav(viewPath(res.data.id));
+      const work = !editing && forWork() ? await linkForWork('books.voucher', res.data.id) : null;   // started from a piece of work: back to it, linked (Projects 7.5)
+      if (!editing && forWork() && !work) toast.error('Saved, but it could not be linked to the work. Link it from the work\'s Links tab.', { duration: 8000 });
+      nav(work ? `/admin/projects/${work}?tab=links` : viewPath(res.data.id));
     } catch (e) { const m = errMsg(e, 'Could not save the voucher'); setSaveErr(m); toast.error(m, { duration: 7000 }); }
     finally { setSaving(false); }
   };

@@ -20,7 +20,7 @@ namespace App\Services\Projects;
  *   states      [state => [label, status]]  how the record's own state reads; status is a named status (info, good, warning, problem), never a colour
  *   value       true when the record can be the agreed value of the work (quotations, sales orders): its amount is added up under "Agreed value"
  *   role        the link role a new link gets unless the person picks another (a key from project_link_roles), or fn (int $id): ?string
- *   create      fn (object $project): ?string   where the module's own form starts a new one for this work (it links it back on save)
+ *   create      fn (object $project): array<int, array{label: string, url: string}>   the module's own forms that start a new one for this work (each links it back on save)
  */
 class ProjectLinkTypes
 {

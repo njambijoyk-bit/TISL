@@ -21,7 +21,7 @@ const project = { id: 52, number: 'BW-0052', title: 'Karura Lodge, 12-room wing'
   customer: null, lead: { id: 1, name: 'Kamau' }, branch: null, cost_centre_id: 9, reference: null, authority: null, place: null, start_date: null, due_date: null, closing_period_ends: null, closed_at: null, confidential: false, frozen: false,
   stages: [{ id: 1, name: 'Works', state: 'open', status: 'info', required_fields: [] }], cost_centre_path: 'Projects › BW-0052', words, can: CAN };
 let groups = [
-  { type: 'books.voucher', label: 'Voucher', plural: 'Vouchers', items: [
+  { type: 'books.voucher', label: 'Voucher', plural: 'Vouchers', new: [{ label: 'Quotation', url: '/admin/books/vouchers/new?type=1&for_project=52' }, { label: 'Purchase Order', url: '/admin/books/vouchers/new?type=3&for_project=52' }], items: [
     { id: 1, linked_id: 10, title: 'Quotation QT-0231', detail: 'Karura Lodge · 2026-11-10', url: '/admin/books/vouchers/10', amount: 48600000, currency: 'KES', gone: false, note: 'The contract sum', added_by: 'Kamau', added_at: null, role: { key: 'agreed_value', name: 'Agreed value', status: 'good' }, state: { key: 'posted', label: 'Posted', status: 'good' } },
     { id: 2, linked_id: 11, title: 'Sales Invoice INV-0044', detail: 'Karura Lodge · 2026-11-12', url: '/admin/books/vouchers/11', amount: 3990000.5, currency: 'KES', gone: false, note: null, added_by: 'Amina', added_at: null }] },
   { type: 'events.event', label: 'Event', plural: 'Events', items: [{ id: 3, linked_id: 5, title: 'No longer there', detail: null, url: null, amount: null, currency: null, gone: true, note: null, added_by: 'Kamau', added_at: null }] }];
@@ -55,6 +55,7 @@ await page.getByRole('tab', { name: 'Links' }).click();
 await page.locator('[data-links="books.voucher"]').waitFor({ timeout: 15000 });
 let text = await body();
 ok('each module\'s records are grouped, with what they are and a way to open them', /Vouchers/.test(text) && (await page.getByRole('link', { name: 'Quotation QT-0231' }).getAttribute('href')) === '/admin/books/vouchers/10' && /Karura Lodge · 2026-11-10/.test(text) && /The contract sum/.test(text));
+ok('a new quotation or purchase order can be started for the work on the Books form', (await page.getByRole('link', { name: 'Quotation', exact: true }).getAttribute('href')) === '/admin/books/vouchers/new?type=1&for_project=52' && /Start a new one for this work: Quotation Purchase Order/.test(await body()));
 ok('an amount is shown with its currency and thousands separated', /KES 48,600,000/.test(text) && /KES 3,990,000\.5/.test(text));
 ok('and it is said that amounts are read from the books and not kept here', /Amounts are read from the books each time\. Nothing about money is kept here\./.test(text));
 ok('a record that has gone says so, is not a link, and can still be unlinked', /It was removed from where it lived/.test(text) && (await page.getByRole('link', { name: 'No longer there' }).count()) === 0 && (await page.getByRole('button', { name: 'Unlink No longer there' }).count()) === 1);

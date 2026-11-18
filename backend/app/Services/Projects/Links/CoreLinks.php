@@ -49,7 +49,7 @@ class CoreLinks
             ['id', 'tender_number', 'title', 'status'],
             fn ($r) => ['title' => "{$r->tender_number} · {$r->title}", 'detail' => null, 'url' => "/admin/tenders/{$r->id}", 'state' => $r->status],
             ['draft' => ['Draft', null], 'published' => ['Published', 'info'], 'closed' => ['Closed', null], 'evaluating' => ['Being evaluated', 'warning'], 'awarded' => ['Awarded', 'good'], 'cancelled' => ['Cancelled', 'problem']],
-            'related');
+            'related', '/admin/tenders/new');
 
         self::type($types, 'quotes.request', null, 'Quotation request', 'Quotation requests', 'quotes.view', 'quote_requests', ['request_number', 'request_title'], false,
             ['id', 'request_number', 'request_title', 'status'],
@@ -63,7 +63,7 @@ class CoreLinks
      * @param callable(object): array<string, mixed> $shape @param array<string, array{0: string, 1: ?string}> $states
      */
     public static function type(ProjectLinkTypes $types, string $key, ?string $module, string $label, string $plural, string $permission, string $table, array $find, bool $soft,
-        array $cols, callable $shape, array $states = [], ?string $role = null): void
+        array $cols, callable $shape, array $states = [], ?string $role = null, ?string $newPath = null): void
     {
         $base = function () use ($table, $soft) {
             $q = DB::table($table);
@@ -76,6 +76,7 @@ class CoreLinks
             return $query->get($have)->map(fn ($r) => ['id' => (int) $r->id] + $shape((object) ((array) $r + array_fill_keys($cols, null))));
         };
         $types->register($key, ['module' => $module, 'label' => $label, 'plural' => $plural, 'permission' => $permission, 'states' => $states, 'role' => $role,
+            ...($newPath ? ['create' => fn (object $project): array => [['label' => $label, 'url' => "{$newPath}?for_project={$project->id}"]]] : []),
             'search' => function (string $q) use ($table, $find, $base, $read): array {
                 if (! Schema::hasTable($table)) {
                     return [];

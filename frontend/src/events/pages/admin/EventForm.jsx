@@ -20,6 +20,7 @@ import EventSummary from '../../components/admin/EventSummary';
 import { blankEvent, blankSession, blankType, fromServer, snapshot, toServer } from '../../lib/eventForm';
 import { KINDS, PARTICIPATION } from '../../lib/eventFormat';
 import PartOfWork from '../../../_shared/components/common/PartOfWork';
+import { linkForWork } from '../../../_shared/lib/forWork';
 
 const fresh = () => ({ event: blankEvent(), sessions: [blankSession()], types: [blankType({ name: 'General' })] });
 
@@ -81,6 +82,8 @@ export default function EventForm() {
       const body = toServer(state);
       const r = id ? await eventsAPI.update(id, body) : await eventsAPI.create(body);
       toast.success(id ? 'Saved' : 'Event made. Add a picture and video, then put it on sale.');
+      const work = id ? null : await linkForWork('events.event', r.id);   // started from a piece of work: linked to it (Projects 7.5)
+      if (work) toast.success('Linked to the work');
       if (id) apply(r); else navigate(`/admin/events/${r.id}`, { replace: true });
     } catch (e) { toast.error(errMsg(e, 'Could not save the event'), { duration: 9000 }); } finally { setBusy(false); }
   };

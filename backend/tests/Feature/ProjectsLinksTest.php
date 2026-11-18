@@ -32,7 +32,7 @@ class ProjectsLinksTest extends TestCase
         Schema::create('vouchers', function ($t) { $t->id(); $t->unsignedBigInteger('voucher_type_id'); $t->string('voucher_number'); $t->string('party_name')->nullable(); $t->string('reference_no')->nullable();
             $t->date('date')->nullable(); $t->string('status')->default('posted'); $t->decimal('total_amount', 14, 2)->nullable(); $t->unsignedBigInteger('currency_id')->nullable(); });
         Schema::create('events', function ($t) { $t->id(); $t->string('title'); $t->string('venue_name')->nullable(); $t->string('status')->default('published'); $t->softDeletes(); });
-        DB::table('voucher_types')->insert([['id' => 1, 'name' => 'Quotation', 'base_type' => 'quotation'], ['id' => 2, 'name' => 'Sales Invoice', 'base_type' => 'sales']]);
+        DB::table('voucher_types')->insert([['id' => 1, 'name' => 'Quotation', 'base_type' => 'quotation'], ['id' => 2, 'name' => 'Sales Invoice', 'base_type' => 'sales'], ['id' => 3, 'name' => 'Purchase Order', 'base_type' => 'purchase_order']]);
         DB::table('currencies')->insert(['id' => 1, 'code' => 'KES']);
         DB::table('vouchers')->insert([
             ['id' => 10, 'voucher_type_id' => 1, 'voucher_number' => 'QT-0231', 'party_name' => 'Imara Sacco', 'date' => '2026-11-10', 'status' => 'posted', 'total_amount' => 1500000, 'currency_id' => 1],
@@ -249,5 +249,14 @@ class ProjectsLinksTest extends TestCase
         $this->assertFalse($this->getJson('/api/admin/projects/linked?type=events.event&id=5')->json('can_add'));
         $this->assertSame([], $this->getJson('/api/admin/projects/linked/targets?type=events.event&id=5')->json('projects'));
         $this->postJson('/api/admin/projects/linked', ['type' => 'events.event', 'id' => 5, 'project_id' => $other])->assertForbidden();
+    }
+
+    public function test_a_kind_of_record_can_be_started_from_the_work_on_its_modules_own_form(): void
+    {
+        $r = $this->getJson("/api/admin/projects/{$this->project}/links")->assertOk()->json();
+        $this->assertSame([['label' => 'Quotation', 'url' => "/admin/books/vouchers/new?type=1&for_project={$this->project}"], ['label' => 'Purchase Order', 'url' => "/admin/books/vouchers/new?type=3&for_project={$this->project}"]], $this->group($r, 'books.voucher')['new']);
+        $this->assertSame([['label' => 'Event', 'url' => "/admin/events/new?for_project={$this->project}"]], $this->group($r, 'events.event')['new']);
+        $this->grant($this->kamau, ['admin.access', 'projects.use', 'books.view', 'events.view']);
+        $this->assertSame([], $this->group($this->getJson("/api/admin/projects/{$this->project}/links")->json(), 'books.voucher')['new'], 'someone who may not link is not offered it');
     }
 }

@@ -20,6 +20,16 @@ class BooksLinks
             'states' => ['draft' => ['Draft', null], 'posted' => ['Posted', 'good'], 'approved' => ['Approved', 'good'], 'accepted' => ['Accepted', 'good'], 'declined' => ['Declined', 'problem'],
                 'cancelled' => ['Cancelled', 'problem'], 'completed' => ['Completed', 'good'], 'delivered' => ['Delivered', 'good'], 'awaiting_payment' => ['Waiting for payment', 'warning']],
             // a quotation or a sales order is the agreed value of the work; a purchase or its order is from a supplier
+            // start a quotation, sales order or purchase order for the work on the Books form; it comes back linked (build 7.5)
+            'create' => function (object $project): array {
+                if (! Schema::hasColumn('voucher_types', 'base_type')) {
+                    return [];
+                }
+
+                return DB::table('voucher_types')->whereIn('base_type', ['quotation', 'sales_order', 'purchase_order'])->when(Schema::hasColumn('voucher_types', 'is_active'), fn ($q) => $q->where('is_active', 1))
+                    ->orderByRaw("CASE base_type WHEN 'quotation' THEN 1 WHEN 'sales_order' THEN 2 ELSE 3 END")->orderBy('id')->get(['id', 'name'])
+                    ->map(fn ($t) => ['label' => $t->name, 'url' => "/admin/books/vouchers/new?type={$t->id}&for_project={$project->id}"])->all();
+            },
             'role' => function (int $id): ?string {
                 $base = Schema::hasColumn('voucher_types', 'base_type') ? DB::table('vouchers as v')->join('voucher_types as t', 't.id', '=', 'v.voucher_type_id')->where('v.id', $id)->value('t.base_type') : null;
 
