@@ -101,6 +101,12 @@ Route::get('/ping', function () {
 // ============================================
 // PUBLIC ROUTES (No Authentication Required)
 // ============================================
+// a meeting invitation's answer link (Projects build 6.6): no sign-in, the long code in the link is the key
+Route::prefix('meetings')->middleware('throttle:30,1')->group(function () {
+    Route::get('/{token}', [\App\Http\Controllers\Api\Projects\MeetingsController::class, 'publicShow'])->where('token', '[A-Za-z0-9]{32,60}');
+    Route::post('/{token}/answer', [\App\Http\Controllers\Api\Projects\MeetingsController::class, 'publicAnswer'])->where('token', '[A-Za-z0-9]{32,60}');
+    Route::get('/{token}/ics', [\App\Http\Controllers\Api\Projects\MeetingsController::class, 'publicIcs'])->where('token', '[A-Za-z0-9]{32,60}');
+});
 Route::post('/chat/guest', [ChatController::class, 'chatGuest'])
     ->middleware('throttle:10,1'); // Strict limit for guests
 
@@ -1972,6 +1978,14 @@ Route::middleware('auth:sanctum')->group(function () {
             Route::post('/{project}/threads/{thread}/messages/{message}/task', [$msg, 'makeTask'])->whereNumber('project')->whereNumber('thread')->whereNumber('message')->middleware('permission:projects.tasks');
             Route::put('/{project}/threads/{thread}/tags', [$msg, 'tag'])->whereNumber('project')->whereNumber('thread')->middleware('permission:projects.messages.internal,projects.messages.client');
             Route::get('/inbox', [$msg, 'inbox'])->middleware('permission:projects.messages.internal,projects.messages.client');
+            $meet = \App\Http\Controllers\Api\Projects\MeetingsController::class;
+            Route::get('/{project}/meetings', [$meet, 'index'])->whereNumber('project');
+            Route::post('/{project}/meetings', [$meet, 'store'])->whereNumber('project')->middleware('permission:projects.meetings');
+            Route::post('/{project}/meetings/free-time', [$meet, 'freeTime'])->whereNumber('project')->middleware('permission:projects.meetings');
+            Route::get('/{project}/meetings/{meeting}', [$meet, 'show'])->whereNumber('project')->whereNumber('meeting');
+            Route::put('/{project}/meetings/{meeting}', [$meet, 'update'])->whereNumber('project')->whereNumber('meeting')->middleware('permission:projects.meetings');
+            Route::post('/{project}/meetings/{meeting}/cancel', [$meet, 'cancel'])->whereNumber('project')->whereNumber('meeting')->middleware('permission:projects.meetings');
+            Route::post('/{project}/meetings/{meeting}/answer', [$meet, 'answer'])->whereNumber('project')->whereNumber('meeting');
             Route::get('/replies/waiting', [$msg, 'waitingReplies'])->middleware('permission:projects.messages.moderate');
             Route::post('/replies/{reply}/file', [$msg, 'fileReply'])->whereNumber('reply')->middleware('permission:projects.messages.moderate');
             Route::post('/replies/{reply}/discard', [$msg, 'discardReply'])->whereNumber('reply')->middleware('permission:projects.messages.moderate');

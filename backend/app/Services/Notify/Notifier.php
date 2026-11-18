@@ -24,6 +24,7 @@ class Notifier
     /**
      * `short` is the text for WhatsApp when the full message is too much to put there (no names, no details); `link_in_whatsapp` adds the action link to it.
      * `reply_route` [module, type, id, ref] makes the message answerable (build 6.5): an email gets a reply address with a token, a WhatsApp number is remembered.
+     * `attachments` [[name, mime, content]] go with the email only (a calendar file on a meeting invitation, build 6.6).
      * `only` limits the message to some channels (a sign-in link goes by email, never to a WhatsApp list a person sends by hand); `no_bell` keeps it out of the bell (a link that signs someone in should not sit in a list).
      *
      * @param  array{action_url?: ?string, action_text?: ?string, data?: ?array, priority?: string, subject?: ?string, email?: ?string, whatsapp?: ?string, whatsapp_source?: ?string, only?: string[], no_bell?: bool}  $o
@@ -153,6 +154,10 @@ class Notifier
         }
         if (! empty($o['reply_to']) && NotificationDelivery::hasPayload()) {   // an answerable message: replies go to this address (build 6.5)
             $d->forceFill(['payload' => ($d->payload ?? []) + ['reply_to' => $o['reply_to']]])->save();
+        }
+        if (! empty($o['attachments']) && NotificationDelivery::hasPayload()) {   // small files that go with the email: a calendar file (build 6.6)
+            $files = array_map(fn ($a) => ['name' => (string) $a['name'], 'mime' => (string) ($a['mime'] ?? 'application/octet-stream'), 'content' => base64_encode((string) $a['content'])], array_slice((array) $o['attachments'], 0, 3));
+            $d->forceFill(['payload' => ($d->payload ?? []) + ['attachments' => $files]])->save();
         }
         SendNotificationEmail::dispatch($d->id);
 

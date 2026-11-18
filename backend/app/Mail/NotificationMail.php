@@ -9,7 +9,7 @@ use Illuminate\Mail\Mailables\Envelope;
 /** A notification as an email: the company's name, the message, one button, and the company's phone and WhatsApp in the footer. */
 class NotificationMail extends BaseMail
 {
-    public function __construct(public string $subjectLine, public string $messageText, public ?string $actionUrl = null, public ?string $actionText = null, public string $greeting = 'Hello', public ?string $replyAddress = null)
+    public function __construct(public string $subjectLine, public string $messageText, public ?string $actionUrl = null, public ?string $actionText = null, public string $greeting = 'Hello', public ?string $replyAddress = null, public array $files = [])
     {
     }
 
@@ -29,6 +29,12 @@ class NotificationMail extends BaseMail
             'whatsappUrl' => $digits ? 'https://wa.me/' . $digits . '?text=' . rawurlencode('Hello ' . CompanyProfile::name() . ', about: ' . $this->subjectLine) : null,
             'actionUrl' => $this->absolute($this->actionUrl),
         ]);
+    }
+
+    /** Files that go with it (a meeting's calendar file), kept base64 in the delivery. @return array<int, \Illuminate\Mail\Mailables\Attachment> */
+    public function attachments(): array
+    {
+        return array_map(fn ($f) => \Illuminate\Mail\Mailables\Attachment::fromData(fn () => base64_decode($f['content']), $f['name'])->withMime($f['mime']), $this->files);
     }
 
     /** A link from the app is relative (/orders/12): make it a full address for an email. */

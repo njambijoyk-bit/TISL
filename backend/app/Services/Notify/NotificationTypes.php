@@ -46,6 +46,8 @@ class NotificationTypes
         'project_task' => ['Projects: tasks given to you, due, late, and what they wait for done', false, 'staff'],
         'project_key_date' => ['Projects: key dates coming up, on the day, and missed', false, 'staff'],
         'project_message' => ['Projects: messages from the team about your work', true, 'customer'],
+        'project_meeting' => ['Projects: meeting invitations, moves and cancellations, and minutes', false, 'staff'],
+        'project_meeting_invite' => ['Projects: meeting invitations, moves, cancellations and minutes for clients and other parties', true, 'customer'],
         'project_follow' => ['Projects: messages and things you follow (mentions, new messages, tasks and dates moving)', false, 'staff'],
         'project_timesheet' => ['Projects: your time and timesheets (a timer left running, weeks to submit, time to approve, time sent back)', false, 'staff'],
         'menu_bill_asked' => ['A table asked for the bill', true, 'staff'],
@@ -106,7 +108,7 @@ class NotificationTypes
      * no group, or a type not in ALL, belongs to "other".
      */
     public const GROUPS = [
-        'projects' => ['Projects: your work (tasks, dates, time, follow-ups, access, things you follow)', ['project_access', 'project_follow_up', 'project_task', 'project_key_date', 'project_follow', 'project_timesheet']],
+        'projects' => ['Projects: your work (tasks, dates, time, follow-ups, access, things you follow)', ['project_access', 'project_follow_up', 'project_task', 'project_key_date', 'project_follow', 'project_timesheet', 'project_meeting']],
         'security' => ['Security and approvals', ['project_security', 'payment_settings_changed', 'council_request', 'council_answer', 'recovery_request', 'recovery_asked_other', 'recovery_approved_other', 'recovery_started_other', 'signin_reset_asked_other', 'break_glass_used_other']],
         'sales' => ['Sales, orders and quotations', ['quotation_requested', 'preorder_delays_staff', 'preorder_cancel_requested', 'menu_order_new', 'menu_bill_asked']],
         'events' => ['Events', ['event_enquiry', 'event_refund_requested']],

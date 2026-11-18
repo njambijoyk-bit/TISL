@@ -19,6 +19,8 @@ class ProjectNotices
     public const TIMESHEET = 'project_timesheet';
     public const MESSAGE = 'project_message';
     public const FOLLOW = 'project_follow';
+    public const MEETING = 'project_meeting';
+    public const MEETING_INVITE = 'project_meeting_invite';
 
     /** @param iterable<User>|User|null $to */
     public static function tell(iterable|User|null $to, string $type, string $title, string $message, ?string $path = null, ?string $linkText = null): void

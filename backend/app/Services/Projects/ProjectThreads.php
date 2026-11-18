@@ -386,7 +386,7 @@ class ProjectThreads
     }
 
     /** @return array{client: array<int, array<string, mixed>>, others: array<int, array<string, mixed>>} */
-    private function contactsFor(object $project): array
+    public function contactsFor(object $project): array
     {
         $shape = fn ($c) => ['id' => (int) $c->id, 'name' => $c->name, 'email' => $c->email, 'phone' => $c->phone, 'reachable' => ($c->email ?? '') !== '' || ($c->phone ?? '') !== ''];
         $client = $project->customer_id ? DB::table('project_contacts')->where('owner_type', 'customer')->where('owner_id', $project->customer_id)->whereNull('deleted_at')->orderByDesc('is_main')->orderBy('name')->get()->map($shape)->all() : [];

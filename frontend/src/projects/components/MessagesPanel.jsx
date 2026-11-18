@@ -17,7 +17,7 @@ const area = { width: '100%', boxSizing: 'border-box', padding: '8px 10px', bord
  * @mentions and #tags with suggestions, /task and /time, editing for 15 minutes (or moderating), and tags on a conversation. Build 6.3 adds
  * following the work and each conversation.
  */
-export default function MessagesPanel({ projectId }) {
+export default function MessagesPanel({ projectId, onMeet }) {
   const [list, setList] = useState(null);
   const [state, setState] = useState('open');
   const [openId, setOpenId] = useState(() => Number(new URLSearchParams(window.location.search).get('thread')) || null);
@@ -51,7 +51,10 @@ export default function MessagesPanel({ projectId }) {
         await projectsAPI.logTime({ project_id: projectId, minutes: cmd.minutes, note: cmd.note || thread.subject });
         toast.success(`Logged ${hm(cmd.minutes)} on this work`); setDraft(''); setProblem(''); return;
       }
-      if (cmd?.cmd === 'meet') { toast('Meetings arrive with build 6.6.'); return; }
+      if (cmd?.cmd === 'meet') {   // the meeting form, with the conversation's people filled in
+        const people = [...new Set([thread.owner?.id, ...thread.messages.filter((m) => m.from.type === 'person').map((m) => m.from.id)].filter(Boolean))];
+        setDraft(''); onMeet?.({ title: cmd.rest || thread.subject, audience: thread.audience, contacts: thread.contacts.map((c) => c.id), people, thread_id: thread.id }); return;
+      }
       const r = await projectsAPI.postMessage(projectId, thread.id, draft, mentions.filter((m) => draft.includes(`@${m.name}`)).map((m) => m.id));
       if (cmd?.cmd === 'task') {
         const made = await projectsAPI.messageToTask(projectId, thread.id, r.thread.messages.at(-1).id);

@@ -14,6 +14,7 @@ import PartiesPanel from '../../components/PartiesPanel';
 import MoneyPanel from '../../components/MoneyPanel';
 import WorkTab from '../../components/WorkTab';
 import MessagesPanel from '../../components/MessagesPanel';
+import MeetingsPanel from '../../components/MeetingsPanel';
 import ActivityPanel from '../../components/ActivityPanel';
 import LinksPanel from '../../components/LinksPanel';
 import { hasPermission } from '../../../_shared/lib/roles';
@@ -70,6 +71,7 @@ export default function ProjectDetail() {
   const [asking, setAsking] = useState(null);   // an action waiting for "are you sure": { label, run }
   const [tab, setTab] = useState(() => new URLSearchParams(window.location.search).get('tab') || 'overview');   // a message can link straight to a tab
   const user = useAuthStore((s) => s.user);
+  const [meetPrefill, setMeetPrefill] = useState(null);   // /meet in a conversation opens the meeting form with its people
   const fetchLog = useCallback((params) => projectsAPI.log(id, params), [id]);
 
   const load = useCallback(async () => {
@@ -186,7 +188,7 @@ export default function ProjectDetail() {
         {PRIORITY[p.priority] && p.priority !== 'medium' && <Chip status={PRIORITY[p.priority].status}>{PRIORITY[p.priority].label} priority</Chip>}
       </div>
       <StageBar project={p} onMove={move} busy={busy} />
-      <Tabs tabs={[{ key: 'overview', label: 'Overview' }, { key: 'phases', label: word('phase', true) }, { key: 'work', label: 'Work' }, ...(hasPermission(user, 'projects.messages.internal') || hasPermission(user, 'projects.messages.client') ? [{ key: 'messages', label: 'Messages' }] : []), ...(can.members_view ? [{ key: 'people', label: 'People' }, { key: 'access', label: 'Access' }] : []), { key: 'parties', label: 'Parties' }, ...(can.money ? [{ key: 'money', label: 'Money' }] : []), { key: 'links', label: 'Links' }, ...(can.log ? [{ key: 'activity', label: 'Activity' }] : [])]} value={tab} onChange={setTab} label="Parts of this page" mark="project-key" />
+      <Tabs tabs={[{ key: 'overview', label: 'Overview' }, { key: 'phases', label: word('phase', true) }, { key: 'work', label: 'Work' }, ...(hasPermission(user, 'projects.messages.internal') || hasPermission(user, 'projects.messages.client') ? [{ key: 'messages', label: 'Messages' }] : []), ...(hasPermission(user, 'projects.meetings') || hasPermission(user, 'projects.messages.internal') || hasPermission(user, 'projects.messages.client') ? [{ key: 'meetings', label: 'Meetings' }] : []), ...(can.members_view ? [{ key: 'people', label: 'People' }, { key: 'access', label: 'Access' }] : []), { key: 'parties', label: 'Parties' }, ...(can.money ? [{ key: 'money', label: 'Money' }] : []), { key: 'links', label: 'Links' }, ...(can.log ? [{ key: 'activity', label: 'Activity' }] : [])]} value={tab} onChange={setTab} label="Parts of this page" mark="project-key" />
 
       {lockedTab && <UnlockPanel key={lockedTab} projectId={p.id} area={lockedTab} label={locks[lockedTab].label} onOpened={load} />}
       {openTab && (
@@ -197,7 +199,8 @@ export default function ProjectDetail() {
       )}
       {!lockedTab && tab === 'phases' && <PhasesPanel key={`${p.id}-${p.frozen}`} projectId={p.id} word={word} />}
       {!lockedTab && tab === 'work' && <WorkTab key={`${p.id}-${p.frozen}`} projectId={p.id} word={word} />}
-      {!lockedTab && tab === 'messages' && <MessagesPanel key={`${p.id}-${p.frozen}`} projectId={p.id} />}
+      {!lockedTab && tab === 'messages' && <MessagesPanel key={`${p.id}-${p.frozen}`} projectId={p.id} onMeet={(pre) => { setMeetPrefill(pre); setTab('meetings'); }} />}
+      {!lockedTab && tab === 'meetings' && <MeetingsPanel key={`${p.id}-${p.frozen}`} projectId={p.id} prefill={meetPrefill} onPrefillUsed={() => setMeetPrefill(null)} />}
       {tab === 'money' && <MoneyPanel key={p.id} projectId={p.id} />}
       {tab === 'parties' && <PartiesPanel key={`${p.id}-${p.frozen}`} projectId={p.id} word={word} />}
       {!lockedTab && tab === 'links' && <LinksPanel key={`${p.id}-${p.frozen}`} projectId={p.id} />}
