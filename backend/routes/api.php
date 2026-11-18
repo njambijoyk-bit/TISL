@@ -1968,6 +1968,12 @@ Route::middleware('auth:sanctum')->group(function () {
             Route::get('/{project}/threads/{thread}', [$msg, 'show'])->whereNumber('project')->whereNumber('thread')->middleware('permission:projects.messages.internal,projects.messages.client');
             Route::put('/{project}/threads/{thread}', [$msg, 'update'])->whereNumber('project')->whereNumber('thread')->middleware('permission:projects.messages.internal,projects.messages.client');
             Route::post('/{project}/threads/{thread}/messages', [$msg, 'post'])->whereNumber('project')->whereNumber('thread')->middleware('permission:projects.messages.internal,projects.messages.client');
+            Route::match(['put', 'delete'], '/{project}/threads/{thread}/messages/{message}', [$msg, 'editMessage'])->whereNumber('project')->whereNumber('thread')->whereNumber('message')->middleware('permission:projects.messages.internal,projects.messages.client');
+            Route::post('/{project}/threads/{thread}/messages/{message}/task', [$msg, 'makeTask'])->whereNumber('project')->whereNumber('thread')->whereNumber('message')->middleware('permission:projects.tasks');
+            Route::put('/{project}/threads/{thread}/tags', [$msg, 'tag'])->whereNumber('project')->whereNumber('thread')->middleware('permission:projects.messages.internal,projects.messages.client');
+            Route::get('/configuration/tags', [$msg, 'tags'])->middleware('permission:projects.config.view');
+            Route::post('/configuration/tags', [$msg, 'saveTag'])->middleware('permission:projects.config.manage');
+            Route::put('/configuration/tags/{tag}', [$msg, 'saveTag'])->whereNumber('tag')->middleware('permission:projects.config.manage');
             Route::get('/{project}/time', [$tim, 'index'])->whereNumber('project');
             Route::post('/time', [$tim, 'store'])->middleware('permission:projects.time.log,projects.time.others');
             Route::put('/time/{entry}', [$tim, 'update'])->whereNumber('entry')->middleware('permission:projects.time.log,projects.time.others');

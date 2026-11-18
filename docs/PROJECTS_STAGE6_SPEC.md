@@ -158,3 +158,14 @@ Screen: `docs/screens/projects-messages.png`.
 - **Read state:** per person per conversation; opening it marks it read; unread counts in the list (your own messages never count).
 - **Routes:** `GET`, `POST /projects/{project}/threads`; `GET`, `PUT /projects/{project}/threads/{thread}`; `POST /projects/{project}/threads/{thread}/messages`.
 - **Tests:** `tests/Feature/ProjectsThreadsTest.php` (3); two earlier tests now expect the new abilities. All Projects tests pass. Browser check `e2e/projects-messages-ui.mjs` (8 checks).
+
+### 6.2 Mentions, tags, typing shortcuts, editing (done)
+
+- **@mentions:** typing @ suggests the people on the work; the people chosen are sent with the message and told (notice type "Projects: messages and things you follow"). A name typed without choosing it is still found if it matches someone on the work exactly.
+- **#tags:** typing # suggests the company's tags; a #tag in a message tags the conversation. Tags can also be set with the Tags button on a conversation. The list is in Configuration → Conversation tags (name, what is typed after #, shown as one of the named statuses, offered or not). Four to start with: urgent, waiting, decision, done.
+- **/task** sends the message and makes it a task on the same work, linked back to it ("Made into a task" shows on the message). Any message can be made a task with its "Make a task" button. Needs the right to add tasks.
+- **/time 1h30 note** logs time on the work (Stage 5 rules) instead of sending anything. "1h30", "1h 30m", "90m", "1.5h" all work.
+- **/meet** says meetings arrive with build 6.6; it opens the meeting form from then.
+- **Changing and removing:** your own message for 15 minutes; after that, and anyone's, with `projects.messages.moderate`. The message says "edited"; the old text is kept in the log. Removing leaves "Removed by …". A message from a client is never changed.
+- **Routes:** `PUT`, `DELETE /projects/{project}/threads/{thread}/messages/{message}`; `POST …/messages/{message}/task`; `PUT /projects/{project}/threads/{thread}/tags`; `GET`, `POST /projects/configuration/tags`; `PUT /projects/configuration/tags/{tag}`.
+- **Tests:** `tests/Feature/ProjectsMentionsTagsTest.php` (3). Browser check `e2e/projects-messages-ui.mjs` now 17 checks.

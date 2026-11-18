@@ -59,6 +59,8 @@ class ProjectThreads
             DB::table('project_message_reads')->updateOrInsert(['thread_id' => $t->id, 'user_id' => $user->id], ['last_message_id' => $last, 'read_at' => now()]);
         }
         $owners = DB::table('users')->where('id', $t->owner_id)->pluck('name', 'id');
+        $write = $this->mayWrite($project, $t, $user);
+        $moderate = $this->access->decide($user, 'moderate', $project)['allowed'];
 
         return $this->shape($t, $owners, $this->peopleOf([(int) $t->id]), [], []) + [
             'messages' => $msgs->map(fn ($m) => [
@@ -66,7 +68,10 @@ class ProjectThreads
                 'mine' => (int) $m->user_id === (int) $user->id, 'body' => $m->removed_at ? null : $m->body, 'via' => $m->via,
                 'sent_to' => $m->sent_to ? json_decode($m->sent_to, true) : null, 'edited' => $m->edited_at !== null,
                 'removed' => $m->removed_at ? ['by' => $names[$m->removed_by] ?? 'someone', 'at' => $m->removed_at] : null, 'task_id' => $m->task_id ? (int) $m->task_id : null, 'at' => $m->created_at,
+                'can_change' => ! $m->removed_at && ! $m->contact_id && (($moderate ?? false) || ((int) $m->user_id === (int) $user->id && \Carbon\Carbon::parse($m->created_at)->gt(now()->subMinutes(15)) && $write)),
             ])->values()->all(),
+            'tag_list' => $write ? $this->tags() : [],
+            'people' => $write ? $this->members($project) : [],
             'can' => ['write' => $this->mayWrite($project, $t, $user), 'manage' => $this->mayWrite($project, $t, $user) && ((int) $t->owner_id === (int) $user->id || (int) $t->created_by === (int) $user->id || $this->access->decide($user, 'moderate', $project)['allowed'])],
         ];
     }
@@ -107,8 +112,11 @@ class ProjectThreads
         return $id;
     }
 
-    /** Write a message. In a client or others conversation it goes to the contacts through the Notifier. @return int the message's id */
-    public function post(object $project, int $threadId, string $body, User $by): int
+    /**
+     * Write a message. In a client or others conversation it goes to the contacts through the Notifier. People @mentioned (chosen from the work's
+     * people) are told; #tags in the text tag the conversation. @param int[] $mentions @return int the message's id
+     */
+    public function post(object $project, int $threadId, string $body, User $by, array $mentions = []): int
     {
         $t = $this->readable($project, $threadId, $by);
         if (! $this->mayWrite($project, $t, $by)) {
@@ -123,9 +131,98 @@ class ProjectThreads
             $sent = $this->sendOut($project, $t, $id, $body, $by);
             DB::table('project_thread_messages')->where('id', $id)->update(['sent_to' => json_encode($sent)]);
         }
+        $this->mention($project, $t, $id, $body, $mentions, $by);
+        $this->tagFromText($t, $body);
         ProjectLog::record((int) $project->id, $by, 'message.posted', 'thread', (int) $t->id, null, ['message' => $id]);
 
         return $id;
+    }
+
+    /** Change a message: your own within 15 minutes, or anyone's with `projects.messages.moderate`. The original is kept in the log. */
+    public function edit(object $project, int $threadId, int $messageId, string $body, User $by): void
+    {
+        [$t, $m] = $this->ownOrModerate($project, $threadId, $messageId, $by);
+        $body = $this->clean($body);
+        DB::table('project_thread_messages')->where('id', $m->id)->update(['body' => $body, 'edited_at' => now()]);
+        ProjectLog::record((int) $project->id, $by, 'message.edited', 'thread', (int) $t->id, ['message' => (int) $m->id, 'body' => $m->body], ['body' => $body]);
+    }
+
+    /** Remove a message: it reads "Removed by …"; the text is kept in the log. */
+    public function remove(object $project, int $threadId, int $messageId, User $by): void
+    {
+        [$t, $m] = $this->ownOrModerate($project, $threadId, $messageId, $by);
+        DB::table('project_thread_messages')->where('id', $m->id)->update(['removed_at' => now(), 'removed_by' => $by->id]);
+        ProjectLog::record((int) $project->id, $by, 'message.removed', 'thread', (int) $t->id, ['message' => (int) $m->id, 'body' => $m->body], null);
+    }
+
+    /** Turn a message into a task on the same work (the title from its first line), linked back to it. @return int the task's id */
+    public function makeTask(object $project, int $threadId, int $messageId, User $by): int
+    {
+        $t = $this->readable($project, $threadId, $by);
+        $m = DB::table('project_thread_messages')->where('id', $messageId)->where('thread_id', $t->id)->whereNull('removed_at')->first() ?? throw new ProjectException('Not found.', 404);
+        if ($m->task_id) {
+            throw new ProjectException('This message is already a task.');
+        }
+        $text = preg_replace('#^/task\s+#i', '', trim((string) $m->body));
+        $title = mb_substr(trim(strtok($text, "\n") ?: $text), 0, 200);
+        $id = app(ProjectTasks::class)->create($project, ['title' => $title, 'description' => "From the conversation \"{$t->subject}\":\n\n{$text}", 'people' => [(int) $by->id]], $by);
+        DB::table('project_thread_messages')->where('id', $m->id)->update(['task_id' => $id]);
+
+        return $id;
+    }
+
+    /** Set a conversation's tags. @param int[] $tagIds */
+    public function tag(object $project, int $threadId, array $tagIds, User $by): void
+    {
+        $t = $this->readable($project, $threadId, $by);
+        if (! $this->mayWrite($project, $t, $by)) {
+            throw new ProjectException('You may not do that here.', 403);
+        }
+        $ids = array_values(array_unique(array_map('intval', $tagIds)));
+        if (count($ids) !== DB::table('project_tags')->whereIn('id', $ids ?: [0])->where('is_active', 1)->count()) {
+            throw new ProjectException('Choose tags from the list.');
+        }
+        DB::table('project_thread_tags')->where('thread_id', $t->id)->delete();
+        foreach ($ids as $tag) {
+            DB::table('project_thread_tags')->insert(['thread_id' => $t->id, 'tag_id' => $tag]);
+        }
+        ProjectLog::record((int) $project->id, $by, 'thread.tagged', 'thread', (int) $t->id, null, ['tags' => $ids]);
+    }
+
+    /** The company's tags. @return array<int, array<string, mixed>> */
+    public function tags(bool $all = false): array
+    {
+        return DB::table('project_tags')->when(! $all, fn ($q) => $q->where('is_active', 1))->orderBy('name')->get()
+            ->map(fn ($t) => ['id' => (int) $t->id, 'key' => $t->key, 'name' => $t->name, 'status' => $t->status_token, 'is_active' => (bool) $t->is_active])->all();
+    }
+
+    /** Add or change a tag (Configuration). @param array<string, mixed> $d key, name, status, is_active */
+    public function saveTag(?int $id, array $d, User $by): void
+    {
+        $this->needReady();
+        $name = trim(preg_replace('/\s+/', ' ', (string) ($d['name'] ?? '')));
+        if ($name === '') {
+            throw new ProjectException('Give the tag a name.');
+        }
+        $key = strtolower(trim((string) ($d['key'] ?? '')) ?: preg_replace('/[^a-z0-9]+/', '-', strtolower($name)));
+        $key = trim(preg_replace('/[^a-z0-9_-]+/', '', $key), '-');
+        if ($key === '' || mb_strlen($key) > 40) {
+            throw new ProjectException('A tag is typed after # in letters, numbers and dashes.');
+        }
+        if (DB::table('project_tags')->where('key', $key)->when($id, fn ($q) => $q->where('id', '!=', $id))->exists()) {
+            throw new ProjectException("There is already a tag #{$key}.");
+        }
+        $status = in_array($d['status'] ?? null, ['info', 'good', 'warning', 'problem'], true) ? $d['status'] : null;
+        $row = ['key' => $key, 'name' => mb_substr($name, 0, 60), 'status_token' => $status, 'is_active' => array_key_exists('is_active', $d) ? ($d['is_active'] ? 1 : 0) : 1];
+        if ($id) {
+            if (! DB::table('project_tags')->where('id', $id)->exists()) {
+                throw new ProjectException('Not found.', 404);
+            }
+            DB::table('project_tags')->where('id', $id)->update($row);
+        } else {
+            DB::table('project_tags')->insert($row + ['created_by' => $by->id, 'created_at' => now()]);
+        }
+        ProjectLog::record(null, $by, $id ? 'tag.changed' : 'tag.added', 'tag', $id, null, $row);
     }
 
     /** Close or open a conversation, change who answers it, or its contacts. @param array<string, mixed> $d state, owner_id, contacts, subject */
@@ -309,9 +406,60 @@ class ProjectThreads
     {
         $l = $last[$t->id] ?? null;
 
-        return ['id' => (int) $t->id, 'subject' => $t->subject, 'audience' => $t->audience, 'state' => $t->state, 'owner' => $t->owner_id ? ['id' => (int) $t->owner_id, 'name' => $owners[$t->owner_id] ?? null] : null,
+        return ['id' => (int) $t->id, 'subject' => $t->subject, 'audience' => $t->audience, 'state' => $t->state, 'tags' => $this->tagsOf((int) $t->id), 'owner' => $t->owner_id ? ['id' => (int) $t->owner_id, 'name' => $owners[$t->owner_id] ?? null] : null,
             'contacts' => $people[$t->id] ?? [], 'unread' => (int) ($unread[$t->id] ?? 0), 'last_message_at' => $t->last_message_at,
             'last' => $l ? ['from' => $l->person ?? $l->contact, 'text' => $l->removed_at ? null : mb_substr((string) $l->body, 0, 90), 'at' => $l->created_at] : null];
+    }
+
+    /** @return array<int, array{id: int, key: string, name: string, status: ?string}> */
+    private function tagsOf(int $threadId): array
+    {
+        return DB::table('project_thread_tags as tt')->join('project_tags as g', 'g.id', '=', 'tt.tag_id')->where('tt.thread_id', $threadId)->orderBy('g.name')->get(['g.id', 'g.key', 'g.name', 'g.status_token'])
+            ->map(fn ($g) => ['id' => (int) $g->id, 'key' => $g->key, 'name' => $g->name, 'status' => $g->status_token])->all();
+    }
+
+    /** Store and tell the people mentioned: people on the work who may read this conversation, never the writer. */
+    private function mention(object $project, object $t, int $messageId, string $body, array $ids, User $by): void
+    {
+        $ids = array_values(array_unique(array_map('intval', $ids)));
+        if (! $ids) {
+            return;
+        }
+        $on = array_column($this->members($project), 'id');
+        $people = User::whereIn('id', array_intersect($ids, $on))->where('id', '!=', $by->id)->get()
+            ->filter(fn ($u) => in_array($t->audience, $this->audiences($u, $project)['read'], true));
+        foreach ($people as $u) {
+            DB::table('project_message_mentions')->insertOrIgnore(['message_id' => $messageId, 'user_id' => $u->id]);
+        }
+        ProjectNotices::tell($people, ProjectNotices::FOLLOW, "{$by->name} mentioned you on {$project->number}", "In \"{$t->subject}\":\n\n" . mb_substr($body, 0, 400),
+            "/admin/projects/{$project->id}?tab=messages&thread={$t->id}", 'Open the conversation');
+    }
+
+    /** #tags typed in a message tag the conversation, when they are on the company's list. */
+    private function tagFromText(object $t, string $body): void
+    {
+        if (! preg_match_all('/(?:^|\s)#([a-z0-9][a-z0-9_-]{0,39})\b/i', $body, $m)) {
+            return;
+        }
+        foreach (DB::table('project_tags')->whereIn('key', array_map('strtolower', $m[1]))->where('is_active', 1)->pluck('id') as $tag) {
+            DB::table('project_thread_tags')->insertOrIgnore(['thread_id' => $t->id, 'tag_id' => $tag]);
+        }
+    }
+
+    /** @return array{0: object, 1: object} the conversation and the message, when this person may change it */
+    private function ownOrModerate(object $project, int $threadId, int $messageId, User $by): array
+    {
+        $t = $this->readable($project, $threadId, $by);
+        $m = DB::table('project_thread_messages')->where('id', $messageId)->where('thread_id', $t->id)->whereNull('removed_at')->first() ?? throw new ProjectException('Not found.', 404);
+        if ($m->contact_id) {
+            throw new ProjectException('A message from a contact is kept as it came.');
+        }
+        $own = (int) $m->user_id === (int) $by->id && \Carbon\Carbon::parse($m->created_at)->gt(now()->subMinutes(15)) && $this->mayWrite($project, $t, $by);
+        if (! $own && ! $this->access->decide($by, 'moderate', $project)['allowed']) {
+            throw new ProjectException((int) $m->user_id === (int) $by->id ? 'A message can be changed for 15 minutes after it is sent. After that, ask someone who moderates messages.' : 'Only someone who moderates messages can change another person\'s.', 403);
+        }
+
+        return [$t, $m];
     }
 
     private function clean(string $body): string

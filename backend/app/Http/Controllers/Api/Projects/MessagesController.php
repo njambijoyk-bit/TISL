@@ -38,7 +38,7 @@ class MessagesController extends Controller
     {
         return $this->guard(function () use ($request, $project, $thread) {
             $p = $this->project($request, $project);
-            $this->threads->post($p, $thread, (string) $request->input('body'), $request->user());
+            $this->threads->post($p, $thread, (string) $request->input('body'), $request->user(), (array) $request->input('mentions', []));
 
             return response()->json(['thread' => $this->threads->show($p, $thread, $request->user())], 201);
         });
@@ -51,6 +51,50 @@ class MessagesController extends Controller
             $this->threads->update($p, $thread, $request->all(), $request->user());
 
             return response()->json(['thread' => $this->threads->show($p, $thread, $request->user())]);
+        });
+    }
+
+    public function editMessage(Request $request, int $project, int $thread, int $message): JsonResponse
+    {
+        return $this->guard(function () use ($request, $project, $thread, $message) {
+            $p = $this->project($request, $project);
+            $request->isMethod('delete') ? $this->threads->remove($p, $thread, $message, $request->user()) : $this->threads->edit($p, $thread, $message, (string) $request->input('body'), $request->user());
+
+            return response()->json(['thread' => $this->threads->show($p, $thread, $request->user())]);
+        });
+    }
+
+    public function makeTask(Request $request, int $project, int $thread, int $message): JsonResponse
+    {
+        return $this->guard(function () use ($request, $project, $thread, $message) {
+            $p = $this->project($request, $project);
+            $task = $this->threads->makeTask($p, $thread, $message, $request->user());
+
+            return response()->json(['task_id' => $task, 'thread' => $this->threads->show($p, $thread, $request->user())], 201);
+        });
+    }
+
+    public function tag(Request $request, int $project, int $thread): JsonResponse
+    {
+        return $this->guard(function () use ($request, $project, $thread) {
+            $p = $this->project($request, $project);
+            $this->threads->tag($p, $thread, (array) $request->input('tags', []), $request->user());
+
+            return response()->json(['thread' => $this->threads->show($p, $thread, $request->user())]);
+        });
+    }
+
+    public function tags(Request $request): JsonResponse
+    {
+        return response()->json(['tags' => $this->threads->tags(true), 'can' => ['change' => $request->user()->hasPermission('projects.config.manage')]]);
+    }
+
+    public function saveTag(Request $request, ?int $tag = null): JsonResponse
+    {
+        return $this->guard(function () use ($request, $tag) {
+            $this->threads->saveTag($tag, $request->all(), $request->user());
+
+            return $this->tags($request);
         });
     }
 
