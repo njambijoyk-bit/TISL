@@ -10,6 +10,7 @@ import { AdminPage, Crumbs, Loading, Empty, Tabs, StatusBadge, NoticeDetails, At
 import { mono, fmtDateTime, DOC_TYPE_LABELS, GROUP_LABELS, VISIBILITY_LABELS } from '../../../components/procurement/format';
 import { goToFile } from '../../../components/procurement/openDocument';
 import { AddendaPanel, AwardPanel } from './TenderAddendaAward';
+import PartOfWork from '../../../../_shared/components/common/PartOfWork';
 
 const box = { ...card, padding: 18, display: 'grid', gap: 12 };
 
@@ -217,6 +218,7 @@ export default function TenderDetail() {
             <StatusBadge status={tender.display_status || st} />
           </div>
           <p style={{ ...mono, color: colors.textMuted, margin: '4px 0 0' }}>{tender.tender_number}</p>
+          <PartOfWork type="tenders.tender" id={tender.id} />
         </div>
         <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
           <Link to={`/admin/tenders/${id}/edit`} style={{ ...btnGhost, textDecoration: 'none' }}><Pencil size={14} /> Edit</Link>

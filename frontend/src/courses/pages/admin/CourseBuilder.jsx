@@ -22,6 +22,7 @@ import CertificatesPanel from '../../components/CertificatesPanel';
 import { IntakesPanel, StudentsPanel } from '../../components/TeachingPanels';
 import { KitPanel } from '../../components/RecipeKitPanels';
 import { OfferingForm } from './CoursesOfferings';
+import PartOfWork from '../../../_shared/components/common/PartOfWork';
 
 const TONE = { published: 'ok', draft: 'warn', archived: 'neutral' };
 const fmtBytes = (n) => (n >= 1048576 ? `${(n / 1048576).toFixed(1)} MB` : `${Math.max(1, Math.round(n / 1024))} KB`);
@@ -169,6 +170,7 @@ export default function CourseBuilder() {
       <div style={{ padding: '32px 24px', maxWidth: 1000, margin: '0 auto' }} data-testid="course-builder">
         <CoursesNav here={o.title} />
         <HubHeader title={o.title} description={`${o.kind_label}${o.category ? ` · ${o.category}` : ''}${o.instructor ? ` · taught by ${o.instructor}` : ''}`} />
+        <PartOfWork type="courses.offering" id={o.id} />
         <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap', alignItems: 'center', marginBottom: 16 }}>
           <Pill tone={TONE[o.status]}>{o.status_label}</Pill>
           <button type="button" style={btnGhost} onClick={() => setEdit(true)}>Edit details</button>

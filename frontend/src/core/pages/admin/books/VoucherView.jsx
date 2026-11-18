@@ -21,6 +21,7 @@ import CreditPanel from '../../../components/admin/books/CreditPanel';
 import SystemMetadata from '../../../components/admin/books/SystemMetadata';
 import { Chip, DeliveryChip, ExportMenu } from '../../../components/admin/books/booksUi';
 import { money, today } from '../../../components/admin/books/booksFmt';
+import PartOfWork from '../../../../_shared/components/common/PartOfWork';
 
 const th = { padding: '8px 10px', fontSize: '0.65rem', fontWeight: 700, color: colors.textFaint, textAlign: 'left', whiteSpace: 'nowrap' };
 const td = { padding: '8px 10px', fontSize: '0.8rem', borderTop: `1px solid ${colors.tint(0.05)}` };
@@ -270,6 +271,7 @@ export default function VoucherView() {
               {v.date} · {v.location?.name ?? 'No branch'} · <Chip status={v.status} /> {v.fulfilment_status && <Chip status={v.fulfilment_status} />} <DeliveryChip delivery={v.delivery} />
               {v.channel && v.channel !== 'admin' && <> · via {v.channel}</>}
             </p>
+            <PartOfWork type="books.voucher" id={v.id} />
           </div>
           <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap', alignItems: 'flex-start' }}>
             <Link to={`/admin/books/edit-log?voucher=${v.id}`} style={{ ...btnGhost, textDecoration: 'none' }}><History size={14} /> Edit log</Link>

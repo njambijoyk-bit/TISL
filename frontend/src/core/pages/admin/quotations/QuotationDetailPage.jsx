@@ -10,6 +10,7 @@ import { btnPrimary, btnGhost, card, colors } from '../../../../_shared/theme/to
 import { ExportMenu } from '../../../components/admin/books/booksUi';
 import { money } from '../../../components/admin/books/booksFmt';
 import { DocChip } from './DocChip';
+import PartOfWork from '../../../../_shared/components/common/PartOfWork';
 
 const th = { padding: '8px 10px', fontSize: '0.65rem', fontWeight: 700, color: colors.textFaint, textAlign: 'left' };
 const td = { padding: '8px 10px', fontSize: '0.8rem', borderTop: `1px solid ${colors.tint(0.05)}` };
@@ -53,6 +54,7 @@ export default function QuotationDetailPage() {
               <DocChip status={cancelled ? 'withdrawn' : q.doc_status} /> {q.valid_until && <> · valid until {q.valid_until}</>}
               {order && <> · <Link to={`/admin/books/vouchers/${order.id}`}>{order.voucher_number}</Link></>}
             </p>
+            <PartOfWork type="books.voucher" id={q.id} />
           </div>
           <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap', alignItems: 'flex-start' }}>
             <ExportMenu onExport={(f) => quotationsAPI.exportQuotation(q.id, f)} />

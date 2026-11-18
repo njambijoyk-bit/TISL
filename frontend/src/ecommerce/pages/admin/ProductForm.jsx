@@ -24,6 +24,7 @@ import { canDeleteCatalogue } from '../../../_shared/lib/roles';
 import noSlash from '../../../_shared/lib/noSlash';
 import ServiceVideoField from '../../components/admin/services/ServiceVideoField';
 import ItemPinButton from '../../../campaigns/components/ItemPinButton';
+import PartOfWork from '../../../_shared/components/common/PartOfWork';
 
 // ── Shared styles ─────────────────────────────────────────────────────────────
 
@@ -722,6 +723,7 @@ export default function ProductForm() {
             <p style={{ fontSize: '0.78rem', color: 'var(--text-tertiary)', margin: 0 }}>
               {isView ? 'View product details' : isEdit ? 'Update product information' : 'Add a new product to your catalogue'}
             </p>
+            {id && <PartOfWork type="catalogue.product" id={Number(id)} />}
           </div>
 
           {/* Top actions */}

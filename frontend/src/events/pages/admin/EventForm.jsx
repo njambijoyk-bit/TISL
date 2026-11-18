@@ -19,6 +19,7 @@ import MediaPanel from '../../components/admin/MediaPanel';
 import EventSummary from '../../components/admin/EventSummary';
 import { blankEvent, blankSession, blankType, fromServer, snapshot, toServer } from '../../lib/eventForm';
 import { KINDS, PARTICIPATION } from '../../lib/eventFormat';
+import PartOfWork from '../../../_shared/components/common/PartOfWork';
 
 const fresh = () => ({ event: blankEvent(), sessions: [blankSession()], types: [blankType({ name: 'General' })] });
 
@@ -133,6 +134,7 @@ export default function EventForm() {
           <div>
             <h1 style={{ margin: '0 0 6px', fontSize: '1.5rem', fontWeight: 800, color: colors.primary, letterSpacing: '-0.02em' }}>{id ? (event.title || 'Event') : 'New event'}</h1>
             {id && <StatusBadge status={status} />}
+            {id && <PartOfWork type="events.event" id={Number(id)} />}
           </div>
           {id && <Link to={`/admin/events/${id}/plan`} style={{ ...btnGhost, textDecoration: 'none' }}>Plan</Link>}
           {id && status !== 'draft' && <Link to={`/admin/events/${id}/door`} style={{ ...btnGhost, textDecoration: 'none' }}><ScanLine size={14} /> Door</Link>}

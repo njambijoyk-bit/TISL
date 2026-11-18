@@ -15,6 +15,7 @@ import { VendorPqPanel } from '../../../../extras/components/procurement/VendorP
 import { VendorModal, PortalLoginModal } from './vendors/VendorModals';
 import { Chip, StatusChip, GroupLine } from './vendors/vendorUi';
 import { useNarrow, GROUP_LABELS } from './vendors/vendorHelpers';
+import PartOfWork from '../../../../_shared/components/common/PartOfWork';
 
 /**
  * One vendor's file: a short list to move between vendors, and everything about the selected one in tabs
@@ -101,6 +102,7 @@ export default function VendorFile() {
         <nav aria-label="Breadcrumb" style={{ fontSize: '0.78rem', marginBottom: 16, color: colors.textMuted }}>
           <Link to="/admin/vendors" style={{ color: colors.primary, fontWeight: 600, textDecoration: 'none' }}>Vendors</Link> <span aria-hidden="true">/</span> <span style={{ color: colors.text, fontWeight: 600 }}>{v?.company_name ?? '…'}</span>
         </nav>
+        {v?.id && <PartOfWork type="vendors.vendor" id={v.id} />}
 
         <div style={{ display: 'flex', gap: 22, alignItems: 'flex-start', flexDirection: narrow ? 'column' : 'row' }}>
           {!narrow && (

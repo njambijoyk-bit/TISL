@@ -15,6 +15,7 @@ import ticketsAPI from '../../../_shared/api/tickets';
 import AssignModal from '../../components/admin/AssignModal';
 import toast from 'react-hot-toast';
 import { format } from 'date-fns';
+import PartOfWork from '../../../_shared/components/common/PartOfWork';
 
 // ─── Design tokens ─────────────────────────────────────────────────────────────
 const purple   = 'var(--color-primary-500)';
@@ -156,6 +157,7 @@ export default function AdminTicketDetail() {
           <p style={{ margin: '4px 0 0', fontSize: '0.8rem', color: 'var(--text-tertiary)' }}>
             Opened {format(new Date(ticket.created_at), 'dd MMM yyyy, HH:mm')}
           </p>
+          <PartOfWork type="support.ticket" id={ticket.id} />
         </div>
         <Button size="sm" variant="ghost" icon={<Trash2 size={14} />} onClick={handleTrash}>
           Move to Trash

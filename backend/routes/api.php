@@ -2140,6 +2140,8 @@ Route::middleware('auth:sanctum')->group(function () {
             Route::get('/configuration/roles', [$mem, 'roles'])->middleware('permission:projects.config.view');
             Route::post('/configuration/roles', [$mem, 'addRole'])->middleware('permission:projects.config.roles');
             Route::put('/configuration/roles/{role}', [$mem, 'changeRole'])->whereNumber('role')->middleware('permission:projects.config.roles');
+            Route::get('/linked/targets', [$prj, 'linkTargets'])->middleware('permission:projects.links');   // build 7.4: what a module's record could be added to
+            Route::post('/linked', [$prj, 'linkFrom'])->middleware('permission:projects.links');
             Route::get('/linked', [$prj, 'linkedTo']);                                  // for another module's page: which projects a record is part of
             Route::get('/{project}/links', [$prj, 'links'])->whereNumber('project');
             Route::get('/{project}/links/find', [$prj, 'findLinkable'])->whereNumber('project')->middleware('permission:projects.links');

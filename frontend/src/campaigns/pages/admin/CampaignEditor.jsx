@@ -16,6 +16,7 @@ import AudienceRule from '../../components/AudienceRule';
 import CampaignNumbers from '../../components/CampaignNumbers';
 import PreorderOffers from '../../components/PreorderOffers';
 import { itemKey } from '../../lib/itemKey';
+import PartOfWork from '../../_shared/components/common/PartOfWork';
 
 const GOAL_LABEL = { reach: 'Reach (people seeing it)', sales: 'Sales' };
 const label = { fontSize: '0.68rem', fontWeight: 700, color: colors.textFaint, textTransform: 'uppercase', letterSpacing: '0.06em', margin: '0 0 6px' };
@@ -96,6 +97,7 @@ export default function CampaignEditor() {
       <div style={{ padding: '32px 24px', maxWidth: 1240, margin: '0 auto' }}>
         <Link to="/admin/campaigns" style={{ display: 'inline-block', margin: '0 0 10px', fontSize: '0.84rem', fontWeight: 700, color: 'var(--color-primary-500)', textDecoration: 'none' }}>‹ Campaigns</Link>
         <HubHeader title={id ? 'Campaign' : 'New campaign'} description="Choose what kind of campaign it is, name it and set when it runs. After you save, build its page below." />
+        {id && <PartOfWork type="campaigns.campaign" id={Number(id)} />}
         {c && (
           <div style={{ display: 'flex', gap: 10, alignItems: 'center', flexWrap: 'wrap', margin: '0 0 14px' }}>
             <StatusChip status={c.status} approval={c.approval_status} />

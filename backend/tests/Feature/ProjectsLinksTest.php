@@ -232,4 +232,22 @@ class ProjectsLinksTest extends TestCase
         $id = DB::table('project_links')->where('linked_id', 5)->value('id');
         $this->putJson("/api/admin/projects/{$this->project}/links/{$id}", ['role' => 'related'])->assertStatus(422)->assertJson(['message' => 'Choose what it is to the work from the list.']);
     }
+
+    public function test_from_a_modules_own_page_a_record_is_added_to_a_piece_of_work_and_shows_which_work_it_is_part_of(): void
+    {
+        $other = $this->start('Gate house');
+        $this->assertSame(['projects' => [], 'can_add' => true], $this->getJson('/api/admin/projects/linked?type=events.event&id=5')->assertOk()->json());
+        $this->assertEqualsCanonicalizing([$this->project, $other], array_column($this->getJson('/api/admin/projects/linked/targets?type=events.event&id=5')->assertOk()->json('projects'), 'id'));
+        $this->assertSame([$other], array_column($this->getJson('/api/admin/projects/linked/targets?type=events.event&id=5&q=Gate')->json('projects'), 'id'));
+        $r = $this->postJson('/api/admin/projects/linked', ['type' => 'events.event', 'id' => 5, 'project_id' => $this->project])->assertOk()->json();
+        $this->assertSame([$this->project], array_column($r['projects'], 'id'));
+        $this->assertSame([$other], array_column($this->getJson('/api/admin/projects/linked/targets?type=events.event&id=5')->json('projects'), 'id'), 'not offered twice');
+        $this->postJson('/api/admin/projects/linked', ['type' => 'events.event', 'id' => 5, 'project_id' => $this->project])->assertStatus(422);
+
+        // someone who may not see that module's records may not add them, and is not offered to
+        $this->grant($this->kamau, ['admin.access', 'projects.use', 'projects.create', 'projects.links', 'books.view']);
+        $this->assertFalse($this->getJson('/api/admin/projects/linked?type=events.event&id=5')->json('can_add'));
+        $this->assertSame([], $this->getJson('/api/admin/projects/linked/targets?type=events.event&id=5')->json('projects'));
+        $this->postJson('/api/admin/projects/linked', ['type' => 'events.event', 'id' => 5, 'project_id' => $other])->assertForbidden();
+    }
 }

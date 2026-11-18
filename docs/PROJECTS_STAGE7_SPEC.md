@@ -152,3 +152,14 @@ Screen: `docs/screens/projects-links-roles.png`.
 - **Not registered:** E-commerce promotions (a shop order is already a Books sales order, linked as a voucher), and Accommodations, Listings and Careers, which have no record page in the staff area yet. Each can register in a few lines once it has one.
 - **A module switched off** takes its kinds of record away from the Links tab (named under "Not switched on") and brings them back, links and all, when it is on again.
 - **Tests:** `tests/Feature/ProjectsModuleLinksTest.php` (2); two link tests now expect Events' second kind of record.
+
+### 7.4 "Part of" on each module's pages (done)
+
+Screen: `docs/screens/projects-part-of.png`.
+
+- **One shared strip** (`frontend/src/_shared/components/common/PartOfWork.jsx`), one line on a page: which pieces of work the record is part of, each opening that work's Links tab, and "Add to a piece of work".
+- **On these pages now:** a support ticket, a vendor's file, a tender, a Books voucher, a quotation, an event, a product, a course, a campaign. Bookings, enrolments, memberships and food orders are lists without a page of their own for one record; they can be linked from the work's Links tab.
+- **Owner's choice 2:** anyone who may see the record and may open the work sees which work it is part of; a confidential piece of work they are not on is never shown. The strip shows nothing at all when Projects is off, when the person may not use it, or when there is nothing to show and nothing they may do.
+- **Adding from there** needs `projects.links`, the module's own permission, and a project role that may link on the chosen work. It offers only work that is not closed, cancelled or frozen and does not already hold the record.
+- **Routes:** `GET /projects/linked` now also says whether the person may add; `GET /projects/linked/targets` (type, id, q); `POST /projects/linked` (type, id, project_id, role, note).
+- **Tests:** one more in `tests/Feature/ProjectsLinksTest.php` (now 12). Browser check `e2e/projects-part-of-ui.mjs` (4 checks).

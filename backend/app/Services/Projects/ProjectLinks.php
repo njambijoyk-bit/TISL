@@ -204,6 +204,31 @@ class ProjectLinks
         return $this->access->visible($q, $user)->orderBy('p.number')->get(['p.id', 'p.number', 'p.title'])->map(fn ($p) => ['id' => (int) $p->id, 'number' => $p->number, 'title' => $p->title])->all();
     }
 
+    /** From a module's own page (build 7.4): may this person add this record to a piece of work at all? */
+    public function mayAddFrom(User $user, string $typeKey): bool
+    {
+        $type = $this->types->get($typeKey);
+
+        return $type && ProjectsSetup::ready() && $this->licence->isActive('projects') && $this->moduleOn($type) && $user->hasPermission('projects.links') && $user->hasPermission($type['permission']);
+    }
+
+    /** The pieces of work this person may add the record to: ones they can see and link on, not closed, not already holding it. @return array<int, array{id: int, number: string, title: string}> */
+    public function targets(User $user, string $typeKey, int $linkedId, string $q = ''): array
+    {
+        if (! $this->mayAddFrom($user, $typeKey)) {
+            return [];
+        }
+        [$module, $linkType] = explode('.', $typeKey, 2);
+        $like = '%' . str_replace(['\\', '%', '_'], ['\\\\', '\%', '\_'], trim($q)) . '%';
+        $query = DB::table('projects as p')->whereNotIn('p.state', ['closed', 'cancelled'])->whereNull('p.frozen_at')
+            ->whereNotExists(fn ($l) => $l->from('project_links as l')->whereColumn('l.project_id', 'p.id')->where('l.module', $module)->where('l.link_type', $linkType)->where('l.linked_id', $linkedId)->whereNull('l.deleted_at'))
+            ->when(trim($q) !== '', fn ($w) => $w->where(fn ($x) => $x->where('p.number', 'like', $like)->orWhere('p.title', 'like', $like)));
+        $rows = $this->access->visible($query, $user)->orderByDesc('p.updated_at')->limit(60)->get(['p.*']);
+
+        return $rows->filter(fn ($p) => $this->access->decide($user, 'links', $p)['allowed'])->take(20)
+            ->map(fn ($p) => ['id' => (int) $p->id, 'number' => $p->number, 'title' => $p->title])->values()->all();
+    }
+
     /** @return array<string, array<string, mixed>> key => role */
     private function roleMap(): array
     {

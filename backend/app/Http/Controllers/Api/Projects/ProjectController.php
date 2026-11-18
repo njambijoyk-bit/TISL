@@ -272,7 +272,30 @@ class ProjectController extends Controller
     {
         $data = $request->validate(['type' => 'required|string|max:80', 'id' => 'required|integer']);
 
-        return response()->json(['projects' => app(ProjectLinks::class)->projectsOf($request->user(), $data['type'], (int) $data['id'])]);
+        $links = app(ProjectLinks::class);
+
+        return response()->json(['projects' => $links->projectsOf($request->user(), $data['type'], (int) $data['id']), 'can_add' => $links->mayAddFrom($request->user(), $data['type'])]);
+    }
+
+    /** From a module's own page (build 7.4): the pieces of work this record could be added to. */
+    public function linkTargets(Request $request): JsonResponse
+    {
+        $data = $request->validate(['type' => 'required|string|max:80', 'id' => 'required|integer', 'q' => 'nullable|string|max:80']);
+
+        return response()->json(['projects' => app(ProjectLinks::class)->targets($request->user(), $data['type'], (int) $data['id'], (string) ($data['q'] ?? ''))]);
+    }
+
+    /** From a module's own page: add this record to a piece of work. */
+    public function linkFrom(Request $request): JsonResponse
+    {
+        $data = $request->validate(['type' => 'required|string|max:80', 'id' => 'required|integer', 'project_id' => 'required|integer', 'role' => 'nullable|string|max:30', 'note' => 'nullable|string|max:200']);
+
+        return $this->guard(function () use ($request, $data) {
+            $p = $this->projects->findFor($request->user(), (int) $data['project_id']);
+            app(ProjectLinks::class)->add($p, $data['type'], (int) $data['id'], $data['note'] ?? null, $request->user(), $data['role'] ?? null);
+
+            return $this->linkedTo($request);
+        });
     }
 
     private function linkList(Request $request, object $p, int $status = 200): JsonResponse
