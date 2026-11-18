@@ -43,6 +43,7 @@ Schedule::command('menus:rota-plan')->dailyAt('06:10')->withoutOverlapping();   
 Schedule::command('projects:follow-up-reminders')->dailyAt('07:20')->withoutOverlapping();   // next actions on leads, clients and opportunities that are due or late
 Schedule::command('projects:task-reminders')->dailyAt('07:30')->withoutOverlapping();   // tasks due tomorrow, and tasks that became late yesterday
 Schedule::command('projects:certificate-warnings')->dailyAt('07:10')->withoutOverlapping();   // certificates on HR records running out (stage 8)
+Schedule::command('projects:checklist-reminders')->dailyAt('07:20')->withoutOverlapping();   // joining and leaving steps due or late (stage 8)
 Schedule::command('projects:key-date-warnings')->dailyAt('07:00')->withoutOverlapping();   // key dates coming up, on the day, and missed
 Schedule::command('projects:stop-timers')->hourly()->withoutOverlapping();   // timers left running past the company's cap stop themselves and tell the person
 Schedule::command('notifications:read-replies')->everyFiveMinutes()->withoutOverlapping();   // replies to messages sent with a reply address (build 6.5); nothing until a mailbox is named

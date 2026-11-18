@@ -35,6 +35,15 @@ let growth = { goals: [{ id: 1, title: 'File every bundle on time', measure: 'No
   one_to_ones: [{ id: 8, held_on: '2026-11-17', manager: 'Wanjiru', notes: 'Talked about filing.', actions: [{ text: 'Shadow the hearing', who: 3, task_id: null }], private_note: 'Ready for more.' }],
   states: { on_track: 'On track', at_risk: 'At risk', done: 'Done', dropped: 'Dropped' }, can: { manage: true, self: false } };
 await page.route('**/api/admin/projects/team/3/growth', (route) => json(route, growth));
+let checklist = { id: 4, kind: 'leaving', name: 'Leaving', on_date: '2026-11-30', state: 'open', can: { cancel: true }, items: [
+  { id: 41, text: 'Hand over their work', who: 'Kamau', due_on: '2026-11-23', late: false, done: false, done_by: null, action: 'handover', mine: true },
+  { id: 42, text: 'Take them off their work on the leaving date', who: 'Kamau', due_on: '2026-11-30', late: false, done: false, done_by: null, action: 'end_places', mine: true }] };
+await page.route('**/api/admin/projects/team/3/checklists', (route) => {
+  if (route.request().method() === 'POST') { sent.push(['start', route.request().postDataJSON()]); }
+  return json(route, { checklists: [checklist], templates: [{ id: 2, kind: 'leaving', name: 'Leaving' }] });
+});
+await page.route(/\/api\/admin\/projects\/checklist-items\/\d+$/, (route) => { const id = Number(route.request().url().match(/(\d+)$/)[1]); sent.push(['tick', id, route.request().postDataJSON()]);
+  checklist = { ...checklist, items: checklist.items.map((i) => (i.id === id ? { ...i, done: true, done_by: 'Wanjiru' } : i)) }; return json(route, { message: 'Saved', mine: [] }); });
 await page.route(/\/api\/admin\/projects\/team\/3\/(goals|reviews|one-to-ones)(\/\d+)?(\/actions\/\d+\/task)?$/, (route) => {
   const url = route.request().url(); const b = route.request().postDataJSON(); sent.push(['growth', url.replace(/.*\/team\/3\//, ''), b]);
   if (/goals$/.test(url)) growth = { ...growth, goals: [...growth.goals, { id: 2, title: b.title, measure: b.measure || null, due_on: b.due_on || null, progress: 0, state: 'on_track', set_by: 'Wanjiru' }] };
@@ -51,14 +60,20 @@ await page.screenshot({ path: D + 'projects-team.png', fullPage: true });
 await page.getByLabel('Has late tasks').click();
 await page.waitForTimeout(400);
 ok('a filter asks the server', [...sent].reverse().find((x) => x[0] === 'team')[1].late === '1' && (await page.locator('[data-person]').count()) === 1);
-await page.getByLabel('Has late tasks').click();
-await page.getByLabel('Skill').selectOption('Filing');
-await page.waitForTimeout(400);
+await Promise.all([page.waitForResponse((r) => r.url().includes('/admin/projects/team') && !r.url().includes('late=')), page.getByLabel('Has late tasks').click()]);
+await Promise.all([page.waitForResponse((r) => r.url().includes('skill=Filing')), page.getByLabel('Skill').selectOption('Filing')]);
+await page.waitForTimeout(200);
 ok('finding people by skill', [...sent].reverse().find((x) => x[0] === 'team')[1].skill === 'Filing' && (await page.locator('[data-person="Njeri"]').count()) === 1);
 await page.getByRole('link', { name: 'Njeri' }).click();
 await page.locator('[data-person-page]').waitFor({ timeout: 10000 });
 ok('a person\'s page shows their tasks, their week and their HR record', /M-0413-T4 File the bundle/.test(await text(page.locator('[data-person-tasks]'))) && /10h of 32h/.test(await text(page.locator('[data-person-week]')))
   && /First aid · Red Cross Runs out/.test(await text(page.locator('[data-certificate="First aid"]'))) && /No end date/.test(await text(page.locator('[data-certificate="Commissioner for oaths"]'))));
+await page.locator('[data-checklists]').waitFor({ timeout: 10000 });
+ok('a leaving checklist shows each step, who does it and when, with the hand-over a way in', /Leaving · leaving 30 Nov 2026 0 of 2 done/.test(await text(page.locator('[data-checklist="Leaving"]')))
+  && (await page.getByRole('link', { name: 'Hand it over' }).getAttribute('href')) === '/admin/projects/handover?from=3');
+await page.getByRole('checkbox', { name: 'Take them off their work on the leaving date' }).click();
+await page.waitForTimeout(400);
+ok('ticking a step is sent and shown', JSON.stringify([...sent].reverse().find((x) => x[0] === 'tick')) === JSON.stringify(['tick', 42, { done: true }]) && /1 of 2 done/.test(await text(page.locator('[data-checklist="Leaving"]'))));
 await page.locator('[data-growth]').waitFor({ timeout: 10000 });
 ok('goals, reviews and one-to-ones show under the person', /File every bundle on time On track By 31 Dec 2026 No late filings 40%/.test(await text(page.locator('[data-goal="File every bundle on time"]')))
   && /Shared .*Their words: Thank you\./.test(await text(page.locator('[data-review="2026, first half"]'))) && /Your private note: Ready for more\./.test(await text(page.locator('[data-one-to-one="2026-11-17"]'))));

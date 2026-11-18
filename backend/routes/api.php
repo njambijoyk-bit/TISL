@@ -2000,6 +2000,13 @@ Route::middleware('auth:sanctum')->group(function () {
             Route::post('/team/{user}/one-to-ones', [$ppl, 'oneToOne'])->whereNumber('user')->middleware('permission:projects.team.manage');
             Route::put('/team/{user}/one-to-ones/{meeting}', [$ppl, 'oneToOne'])->whereNumber(['user', 'meeting'])->middleware('permission:projects.use');
             Route::post('/team/{user}/one-to-ones/{meeting}/actions/{index}/task', [$ppl, 'actionTask'])->whereNumber(['user', 'meeting', 'index'])->middleware('permission:projects.team.manage');
+            Route::get('/team/{user}/checklists', [$ppl, 'checklists'])->whereNumber('user')->middleware('permission:projects.use');
+            Route::post('/team/{user}/checklists', [$ppl, 'startChecklist'])->whereNumber('user')->middleware('permission:projects.team.checklists');
+            Route::put('/checklist-items/{item}', [$ppl, 'tick'])->whereNumber('item')->middleware('permission:projects.use');   // whoever does the step (checked inside)
+            Route::post('/checklists/{checklist}/cancel', [$ppl, 'cancelChecklist'])->whereNumber('checklist')->middleware('permission:projects.team.checklists');
+            Route::get('/configuration/checklists', [$ppl, 'templates'])->middleware('permission:projects.config.view');
+            Route::post('/configuration/checklists', [$ppl, 'saveTemplate'])->middleware('permission:projects.config.manage');
+            Route::put('/configuration/checklists/{template}', [$ppl, 'saveTemplate'])->whereNumber('template')->middleware('permission:projects.config.manage');
             $hand = \App\Http\Controllers\Api\Projects\HandoverController::class;
             Route::get('/handover/people', [$hand, 'people'])->middleware('permission:projects.members.manage');
             Route::get('/handover/preview', [$hand, 'preview'])->middleware('permission:projects.members.manage');

@@ -33,6 +33,7 @@ class ProjectMyWork
             'follow_ups' => $this->followUps($user),
             'week' => $this->week($user),
             'waiting' => $this->waiting($user),
+            'checklist' => app(ProjectChecklists::class)->mine($user),   // joining and leaving steps that are theirs to do (stage 8)
         ];
     }
 

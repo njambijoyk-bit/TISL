@@ -8,6 +8,7 @@ import { hm } from '../../lib/tasks';
 import { Btn, Chip, Notice, Panel, PanelTitle } from '../../components/ui';
 import ProjectKeys from '../../components/ProjectKeys';
 import GrowthPanel from '../../components/GrowthPanel';
+import ChecklistsPanel from '../../components/ChecklistsPanel';
 
 const link = { color: 'var(--color-primary-500)', textDecoration: 'none', fontWeight: 600 };
 
@@ -76,6 +77,7 @@ export default function ProjectsPerson() {
           <div style={{ display: 'grid', gap: 6 }}>{p.work.map((w) => <Link key={w.id} to={`/admin/projects/${w.id}`} style={{ ...link, fontWeight: 500, fontSize: 13.5 }}>{w.number} {w.title}</Link>)}</div>
         </Panel>
       </div>
+      <ChecklistsPanel key={`c${p.id}`} userId={p.id} />
       <GrowthPanel key={p.id} userId={p.id} work={p.work} />
     </AdminLayout>
   );

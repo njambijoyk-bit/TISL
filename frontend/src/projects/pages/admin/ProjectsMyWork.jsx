@@ -52,6 +52,21 @@ export default function ProjectsMyWork() {
             {w.messages != null && <div style={{ display: 'flex', justifyContent: 'space-between' }}><Link to="/admin/projects/inbox?unread=1" style={link}>Conversations to read</Link><strong>{w.messages}</strong></div>}
           </div>
         </Panel>
+        {data.checklist?.length > 0 && (
+          <Panel data-mw-checklist>
+            <PanelTitle hint="Joining and leaving steps that are yours">Checklist steps</PanelTitle>
+            <div style={{ display: 'grid', gap: 8 }}>
+              {data.checklist.map((i) => (
+                <label key={i.id} style={{ display: 'flex', gap: 8, alignItems: 'center', fontSize: 13.5, flexWrap: 'wrap' }} data-mw-step={i.text}>
+                  <input type="checkbox" aria-label={i.text} onChange={async () => { try { const r = await projectsAPI.tickChecklist(i.id, true); toast.success(r.message); load(); } catch (e) { toast.error(message(e, 'It could not be ticked.')); } }} />
+                  <span>{i.text}</span>
+                  <span style={{ fontSize: 12, color: 'var(--text-secondary)' }}>for <Link to={`/admin/projects/team/${i.person_id}`} style={link}>{i.person}</Link></span>
+                  {i.late ? <Chip status="problem">Late</Chip> : <Chip>{day(i.due_on)}</Chip>}
+                </label>
+              ))}
+            </div>
+          </Panel>
+        )}
         <Panel data-mw-dates>
           <PanelTitle hint="On your work, the next 30 days">Key dates</PanelTitle>
           {data.dates.length === 0 && <p style={{ margin: 0, fontSize: 13.5, color: 'var(--text-secondary)' }}>Nothing coming up.</p>}

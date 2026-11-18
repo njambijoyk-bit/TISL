@@ -118,3 +118,13 @@ Screen: `docs/screens/projects-person.png` (the lower half).
 - **Routes:** `GET /projects/team/{user}/growth`; `POST`, `PUT /projects/team/{user}/goals[/{goal}]`; `POST`, `PUT /projects/team/{user}/reviews[/{review}]`; `POST`, `PUT /projects/team/{user}/one-to-ones[/{id}]`; `POST …/one-to-ones/{id}/actions/{index}/task`.
 - **Service:** `ProjectGrowth`.
 - **Tests:** `tests/Feature/ProjectsGrowthTest.php` (3). Browser check `e2e/projects-team-ui.mjs` (now 9 checks).
+
+### 8.4 Joining and leaving checklists (done)
+
+- **Templates:** Configuration → Checklists (changing them needs `projects.config.manage`). Each step says who does it (the person, their manager in HR's line, someone named, or anyone holding a permission) and when, in days from the first or leaving day (a minus number is before it). A leaving checklist always keeps "Hand over their work" and "Take them off their work on the leaving date"; they are added back if taken out. Script 265 starts with one of each.
+- **Running one** (`projects.team.checklists`, on a person's page; never your own): choose the checklist and the day. Each step becomes a to-do for whoever does it, and they are told. One open joining and one open leaving checklist per person at a time. A template changed later does not change a checklist already running.
+- **Ticking:** on the person's page, or on My Work under "Checklist steps" (each step that is yours, with whose it is and when it is due). The person a step is given to, anyone holding its permission, or anyone with `projects.team.checklists` may tick it. When the last is ticked the checklist is done and whoever started it is told.
+- **"Hand over their work"** has a "Hand it over" link that opens Stage 6's hand-over with the person filled in. **"Take them off their work"**, when ticked, ends each of their places on the leaving day (logged on each piece of work). Where they lead a piece of work their place stays and the screen names it, because a lead is handed over on the work's People tab first (Stage 2).
+- **Reminders:** every morning (`projects:checklist-reminders`, 07:20), whoever does a step due today or late is reminded, once a day.
+- **Routes:** `GET`, `POST /projects/team/{user}/checklists`; `PUT /projects/checklist-items/{item}` (done); `POST /projects/checklists/{id}/cancel`; `GET`, `POST /projects/configuration/checklists`, `PUT /projects/configuration/checklists/{id}`.
+- **Tests:** `tests/Feature/ProjectsChecklistsTest.php` (3). Browser check `e2e/projects-team-ui.mjs` (now 11 checks).
