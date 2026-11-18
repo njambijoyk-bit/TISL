@@ -65,6 +65,36 @@ class MeetingsController extends Controller
         });
     }
 
+    public function minutes(Request $request, int $project, int $meeting): JsonResponse
+    {
+        return $this->guard(function () use ($request, $project, $meeting) {
+            $p = $this->project($request, $project);
+            $this->meetings->saveMinutes($p, $meeting, $request->input('minutes'), (array) $request->input('actions', []), $request->user());
+
+            return response()->json(['meeting' => $this->meetings->show($p, $meeting, $request->user())]);
+        });
+    }
+
+    public function actionTask(Request $request, int $project, int $meeting, int $action): JsonResponse
+    {
+        return $this->guard(function () use ($request, $project, $meeting, $action) {
+            $p = $this->project($request, $project);
+            $task = $this->meetings->actionToTask($p, $meeting, $action, $request->user());
+
+            return response()->json(['task_id' => $task, 'meeting' => $this->meetings->show($p, $meeting, $request->user())], 201);
+        });
+    }
+
+    public function share(Request $request, int $project, int $meeting): JsonResponse
+    {
+        return $this->guard(function () use ($request, $project, $meeting) {
+            $p = $this->project($request, $project);
+            $this->meetings->shareMinutes($p, $meeting, $request->user());
+
+            return response()->json(['meeting' => $this->meetings->show($p, $meeting, $request->user())]);
+        });
+    }
+
     public function freeTime(Request $request, int $project): JsonResponse
     {
         return $this->guard(fn () => response()->json($this->meetings->freeTime($this->project($request, $project), (array) $request->input('people', []), (int) $request->input('minutes', 60), $request->user(),

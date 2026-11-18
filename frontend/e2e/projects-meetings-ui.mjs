@@ -1,5 +1,5 @@
-// Browser check: meetings (build 6.6). The Meetings tab: planning a client meeting with the free-time search, the invitation going out, answering,
-// who answered what, moving and cancelling; /meet in a conversation opening the form with its people; and the answer page an outside contact
+// Browser check: meetings (builds 6.6 and 6.7). The Meetings tab: planning a client meeting with the free-time search, the invitation going out, answering,
+// who answered what, moving and cancelling; minutes with action items, an item made into a task, sharing the minutes; /meet in a conversation opening the form with its people; and the answer page an outside contact
 // opens without signing in. The API is answered by the check itself; the rules are proved by the backend tests (ProjectsMeetingsTest).
 // It needs only the website (npx vite --port 5177).
 import { D, SITE, ok, finish, open } from './lib.mjs';
@@ -22,7 +22,7 @@ await page.route(/\/api\/admin\/projects\/413$/, (route) => json(route, { projec
 
 const meetings = {};
 const shape = (m) => ({ ...m, answers: { yes: m.people.filter((p) => p.answer === 'yes').length, no: m.people.filter((p) => p.answer === 'no').length, maybe: m.people.filter((p) => p.answer === 'maybe').length, pending: m.people.filter((p) => p.answer === 'pending').length },
-  my_answer: m.people.find((p) => p.type === 'person' && p.id === 1)?.answer, can: { manage: true, answer: m.state === 'planned' } });
+  my_answer: m.people.find((p) => p.type === 'person' && p.id === 1)?.answer, minutes: m.minutes ?? null, minutes_shared_at: m.minutes_shared_at ?? null, actions: m.actions ?? [], can: { manage: true, answer: m.state === 'planned' && !m.past, minutes: !!m.past && m.state !== 'cancelled', tasks: true } });
 await page.route(/\/api\/admin\/projects\/413\/meetings(\?.*)?$/, (route) => {
   if (route.request().method() === 'POST') {
     const b = route.request().postDataJSON(); sent.push(['plan', b]);
@@ -36,6 +36,13 @@ await page.route(/\/api\/admin\/projects\/413\/meetings(\?.*)?$/, (route) => {
     contacts: { client: [{ id: 7, name: 'Grace Wambua', email: 'grace@example.test', phone: null, reachable: true }, { id: 8, name: 'Peter Wambua', email: null, phone: null, reachable: false }], others: [] }, can: { plan: true } });
 });
 await page.route('**/api/admin/projects/413/meetings/free-time', (route) => { sent.push(['free', route.request().postDataJSON()]); return json(route, { slots: [{ starts_at: '2026-11-19 08:00:00', ends_at: '2026-11-19 09:00:00' }, { starts_at: '2026-11-19 11:00:00', ends_at: '2026-11-19 12:00:00' }], hours: { start: '08:00', end: '17:00', days: [1, 2, 3, 4, 5] }, away: [{ name: 'Otieno', why: 'on leave some days' }] }); });
+await page.route(/\/api\/admin\/projects\/413\/meetings\/\d+\/(minutes|share|actions\/\d+\/task)$/, (route) => {
+  const url = route.request().url(); const m = meetings[Number(url.match(/meetings\/(\d+)/)[1])]; const b = route.request().postDataJSON?.() ?? null;
+  if (/minutes$/.test(url)) { sent.push(['minutes', b]); m.minutes = b.minutes; m.state = 'held'; m.actions = b.actions.map((a, i) => ({ ...a, id: 50 + i, task: null })); }
+  else if (/share$/.test(url)) { sent.push(['share']); m.minutes_shared_at = '2026-11-19 12:30:00'; }
+  else { const aid = Number(url.match(/actions\/(\d+)/)[1]); sent.push(['task', aid]); m.actions.find((a) => a.id === aid).task = { id: 90, ref: 'M-0413-T12', status: 'todo' }; return json(route, { task_id: 90, meeting: shape(m) }, 201); }
+  return json(route, { meeting: shape(m) });
+});
 await page.route(/\/api\/admin\/projects\/413\/meetings\/\d+(\/(answer|cancel))?$/, (route) => {
   const url = route.request().url(); const id = Number(url.match(/meetings\/(\d+)/)[1]); const m = meetings[id]; const b = route.request().postDataJSON?.() ?? null;
   if (/answer$/.test(url)) { sent.push(['answer', b.answer]); m.people[0].answer = b.answer; }
@@ -81,6 +88,31 @@ page.once('dialog', (dlg) => dlg.accept('Settled'));
 await page.getByRole('button', { name: 'Cancel the meeting' }).click();
 await page.waitForTimeout(400);
 ok('cancelling asks why, and the meeting says it was cancelled', last('cancel')[1] === 'Settled' && /This meeting was cancelled\./.test(await text(open1)));
+
+// minutes, on a meeting that has taken place
+meetings[8] = { id: 8, title: 'Case review', starts_at: '2026-11-17 10:00:00', ends_at: '2026-11-17 11:00:00', minutes_long: 60, location: null, online_link: null, agenda: null, audience: 'client', state: 'planned', past: true,
+  organiser: { id: 1, name: 'Wanjiru' }, people: [{ type: 'person', id: 1, name: 'Wanjiru', answer: 'yes', organiser: true }, { type: 'person', id: 2, name: 'Otieno', answer: 'yes', organiser: false }, { type: 'contact', id: 7, name: 'Grace Wambua', answer: 'yes', organiser: false }] };
+await page.goto(`${SITE}/e2e/harness.html?c=ProjectsApp&at=${encodeURIComponent('/admin/projects/413?tab=meetings&meeting=8')}`, { waitUntil: 'networkidle' });
+await page.locator('[data-minutes]').waitFor({ timeout: 15000 });
+await page.getByRole('button', { name: 'Write the minutes' }).click();
+await page.getByLabel('Minutes', { exact: true }).fill('We rely on the delivery note.');
+await page.getByLabel('Action item 1', { exact: true }).fill("Get the driver's statement");
+await page.getByLabel('Who does action item 1').selectOption('u2');
+await page.getByLabel('Action item 1 due').fill('2026-11-26');
+await page.getByRole('button', { name: 'Add an action item' }).click();
+await page.getByLabel('Action item 2', { exact: true }).fill('Send the signed delivery note');
+await page.getByLabel('Who does action item 2').selectOption('c7');
+await page.screenshot({ path: D + 'projects-meeting-minutes.png', fullPage: true });
+await page.getByRole('button', { name: 'Save the minutes' }).click();
+await page.waitForTimeout(400);
+ok('the minutes and action items are sent, each with who and when', JSON.stringify(last('minutes')[1]) === JSON.stringify({ minutes: 'We rely on the delivery note.', actions: [{ text: "Get the driver's statement", user_id: 2, contact_id: null, due_date: '2026-11-26' }, { text: 'Send the signed delivery note', user_id: null, contact_id: 7, due_date: null }] }));
+ok('the action items show who does them', /Get the driver's statement · Otieno · by 26 Nov/.test(await text(page.locator('[data-actions]'))) && /Send the signed delivery note · Grace Wambua/.test(await text(page.locator('[data-actions]'))));
+await page.getByRole('button', { name: `Make "Get the driver's statement" a task` }).click();
+await page.waitForTimeout(400);
+ok('an action item becomes a task in one click', last('task')[1] === 50 && /Task M-0413-T12/.test(await text(page.locator(`[data-action="Get the driver's statement"]`))));
+await page.getByRole('button', { name: 'Share the minutes' }).click();
+await page.waitForTimeout(400);
+ok('sharing the minutes is sent and shown', last('share') !== undefined && /Shared 19 Nov/.test(await text(page.locator('[data-minutes]'))) && (await page.getByRole('button', { name: 'Share again' }).count()) === 1);
 
 // /meet from a conversation
 await page.route(/\/api\/admin\/projects\/413\/threads(\?.*)?$/, (route) => json(route, { ready: true, threads: [{ id: 3, subject: 'Hearing', audience: 'client', state: 'open', tags: [], owner: { id: 2, name: 'Otieno' }, contacts: [{ id: 7, name: 'Grace Wambua' }], unread: 0, last_message_at: null, last: null }], audiences: { client: 'Client' }, contacts: { client: [], others: [] }, team: [], following: null, can: { start: true } }));

@@ -1986,6 +1986,9 @@ Route::middleware('auth:sanctum')->group(function () {
             Route::put('/{project}/meetings/{meeting}', [$meet, 'update'])->whereNumber('project')->whereNumber('meeting')->middleware('permission:projects.meetings');
             Route::post('/{project}/meetings/{meeting}/cancel', [$meet, 'cancel'])->whereNumber('project')->whereNumber('meeting')->middleware('permission:projects.meetings');
             Route::post('/{project}/meetings/{meeting}/answer', [$meet, 'answer'])->whereNumber('project')->whereNumber('meeting');
+            Route::put('/{project}/meetings/{meeting}/minutes', [$meet, 'minutes'])->whereNumber('project')->whereNumber('meeting')->middleware('permission:projects.meetings');
+            Route::post('/{project}/meetings/{meeting}/actions/{action}/task', [$meet, 'actionTask'])->whereNumber('project')->whereNumber('meeting')->whereNumber('action')->middleware('permission:projects.tasks');
+            Route::post('/{project}/meetings/{meeting}/share', [$meet, 'share'])->whereNumber('project')->whereNumber('meeting')->middleware('permission:projects.meetings');
             Route::get('/replies/waiting', [$msg, 'waitingReplies'])->middleware('permission:projects.messages.moderate');
             Route::post('/replies/{reply}/file', [$msg, 'fileReply'])->whereNumber('reply')->middleware('permission:projects.messages.moderate');
             Route::post('/replies/{reply}/discard', [$msg, 'discardReply'])->whereNumber('reply')->middleware('permission:projects.messages.moderate');

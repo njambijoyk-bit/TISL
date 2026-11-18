@@ -165,6 +165,101 @@ class ProjectMeetings
         return $this->byToken($token);
     }
 
+    /**
+     * Minutes and action items (build 6.7). Saving them marks a started meeting held. Action items that already became tasks stay; the rest are
+     * replaced by what is sent. @param array<int, array{id?: int, text: string, user_id?: ?int, contact_id?: ?int, due_date?: ?string}> $actions
+     */
+    public function saveMinutes(object $project, int $id, ?string $minutes, array $actions, User $by): void
+    {
+        $m = $this->manageable($project, $id, $by);
+        if ($m->state === 'cancelled') {
+            throw new ProjectException('This meeting was cancelled.');
+        }
+        if (Carbon::parse($m->starts_at)->isFuture()) {
+            throw new ProjectException('Minutes are written once the meeting has started.');
+        }
+        $staff = DB::table('project_meeting_people')->where('meeting_id', $m->id)->whereNotNull('user_id')->pluck('user_id')->map(fn ($v) => (int) $v)->all();
+        $on = array_column($this->members($project), 'id');
+        $contacts = DB::table('project_meeting_people')->where('meeting_id', $m->id)->whereNotNull('contact_id')->pluck('contact_id')->map(fn ($v) => (int) $v)->all();
+        $clean = [];
+        foreach (array_values($actions) as $i => $a) {
+            $text = trim(preg_replace('/\s+/', ' ', (string) ($a['text'] ?? '')));
+            if ($text === '') {
+                continue;
+            }
+            $user = ! empty($a['user_id']) ? (int) $a['user_id'] : null;
+            $contact = ! empty($a['contact_id']) ? (int) $a['contact_id'] : null;
+            if ($user && ! in_array($user, array_unique(array_merge($staff, $on)), true)) {
+                throw new ProjectException('An action item is given to someone on this work.');
+            }
+            if ($contact && ! in_array($contact, $contacts, true)) {
+                throw new ProjectException('An action item for someone outside is given to one of the meeting\'s contacts.');
+            }
+            $due = ! empty($a['due_date']) ? (preg_match('/^\d{4}-\d{2}-\d{2}$/', (string) $a['due_date']) ? (string) $a['due_date'] : throw new ProjectException('Choose the day an action item is due.')) : null;
+            $clean[] = ['id' => ! empty($a['id']) ? (int) $a['id'] : null, 'text' => mb_substr($text, 0, 300), 'user_id' => $user, 'contact_id' => $user ? null : $contact, 'due_date' => $due, 'sort_order' => $i];
+        }
+        DB::transaction(function () use ($m, $minutes, $clean, $by, $project) {
+            $kept = DB::table('project_meeting_actions')->where('meeting_id', $m->id)->whereNotNull('task_id')->pluck('id')->map(fn ($v) => (int) $v)->all();
+            DB::table('project_meeting_actions')->where('meeting_id', $m->id)->whereNull('task_id')->delete();
+            foreach ($clean as $a) {
+                if ($a['id'] && in_array($a['id'], $kept, true)) {
+                    DB::table('project_meeting_actions')->where('id', $a['id'])->update(['sort_order' => $a['sort_order']]);   // already a task: the task is where it changes now
+                    continue;
+                }
+                DB::table('project_meeting_actions')->insert(['meeting_id' => $m->id] + array_diff_key($a, ['id' => 1]));
+            }
+            DB::table('project_meetings')->where('id', $m->id)->update(['minutes' => $this->text($minutes, 20000), 'state' => 'held', 'updated_at' => now()]);
+            ProjectLog::record((int) $project->id, $by, 'meeting.minutes', 'meeting', (int) $m->id, null, ['actions' => count($clean)]);
+        });
+        $this->syncCalendar((int) $m->id);
+    }
+
+    /** An action item becomes a task on the same work, given to its person, due on its day, linked back to the meeting. @return int the task's id */
+    public function actionToTask(object $project, int $id, int $actionId, User $by): int
+    {
+        $m = $this->readable($project, $id, $by);
+        $a = DB::table('project_meeting_actions')->where('id', $actionId)->where('meeting_id', $m->id)->first() ?? throw new ProjectException('Not found.', 404);
+        if ($a->task_id) {
+            throw new ProjectException('This action item is already a task.');
+        }
+        $who = $a->contact_id ? DB::table('project_contacts')->where('id', $a->contact_id)->value('name') : null;
+        $task = app(ProjectTasks::class)->create($project, ['title' => $a->text, 'due_date' => $a->due_date, 'people' => $a->user_id ? [(int) $a->user_id] : [(int) $by->id],
+            'description' => "From the meeting \"{$m->title}\" on " . Carbon::parse($m->starts_at)->format('j M Y') . '.' . ($who ? " For {$who} (outside); followed up by whoever has this task." : '')], $by);
+        DB::table('project_meeting_actions')->where('id', $a->id)->update(['task_id' => $task]);
+        ProjectLog::record((int) $project->id, $by, 'meeting.action_task', 'meeting', (int) $m->id, null, ['action' => (int) $a->id, 'task' => $task]);
+
+        return $task;
+    }
+
+    /** Send the minutes and action items to everyone invited: staff in the app, a client or others meeting's contacts through the Notifier. */
+    public function shareMinutes(object $project, int $id, User $by): void
+    {
+        $m = $this->manageable($project, $id, $by);
+        if ($m->state !== 'held' || trim((string) $m->minutes) === '') {
+            throw new ProjectException('Write the minutes first.');
+        }
+        $again = $m->minutes_shared_at !== null;
+        $actions = DB::table('project_meeting_actions as a')->leftJoin('users as u', 'u.id', '=', 'a.user_id')->leftJoin('project_contacts as c', 'c.id', '=', 'a.contact_id')
+            ->where('a.meeting_id', $m->id)->orderBy('a.sort_order')->get(['a.text', 'a.due_date', 'u.name as person', 'c.name as contact']);
+        $list = $actions->map(fn ($a) => '- ' . $a->text . (($a->person ?? $a->contact) ? ' (' . ($a->person ?? $a->contact) . ')' : '') . ($a->due_date ? ', by ' . Carbon::parse($a->due_date)->format('j M Y') : ''))->implode("\n");
+        $title = ($again ? 'Minutes, updated: ' : 'Minutes: ') . "{$m->title} · {$project->number}";
+        $body = Carbon::parse($m->starts_at)->format('l j F Y, H:i') . "\n\n" . trim((string) $m->minutes) . ($list !== '' ? "\n\nAction items:\n{$list}" : '');
+        $people = DB::table('project_meeting_people')->where('meeting_id', $m->id)->get();
+        ProjectNotices::tell(User::whereIn('id', $people->pluck('user_id')->filter()->all() ?: [0])->where('id', '!=', $by->id)->get(), ProjectNotices::MEETING, $title, $body,
+            "/admin/projects/{$project->id}?tab=meetings&meeting={$m->id}", 'Open the meeting');
+        if ($m->audience !== 'team') {
+            foreach (DB::table('project_contacts')->whereIn('id', $people->pluck('contact_id')->filter()->all() ?: [0])->whereNull('deleted_at')->get() as $c) {
+                try {
+                    app(Notifier::class)->sendToContact(['name' => $c->name, 'email' => $c->email, 'phone' => $c->phone], ProjectNotices::MEETING_INVITE, $title, "{$by->name}, {$project->number}:\n\n{$body}", ['subject' => $title, 'data' => ['project_meeting' => (int) $m->id]]);
+                } catch (\Throwable $e) {
+                    report($e);
+                }
+            }
+        }
+        DB::table('project_meetings')->where('id', $m->id)->update(['minutes_shared_at' => now()]);
+        ProjectLog::record((int) $project->id, $by, 'meeting.minutes_shared', 'meeting', (int) $m->id, null, ['again' => $again]);
+    }
+
     /** The meeting as a calendar file, for an outside person's link. */
     public function icsByToken(string $token): string
     {
@@ -283,11 +378,18 @@ class ProjectMeetings
             return $out;
         }
 
+        $actions = DB::table('project_meeting_actions as a')->leftJoin('project_work_tasks as t', 't.id', '=', 'a.task_id')->where('a.meeting_id', $m->id)->orderBy('a.sort_order')->orderBy('a.id')
+            ->get(['a.*', 't.number as task_number', 't.status as task_status']);
+
         return $out + [
             'agenda' => $m->agenda, 'thread_id' => $m->thread_id ? (int) $m->thread_id : null,
+            'minutes' => $m->minutes, 'minutes_shared_at' => $m->minutes_shared_at,
+            'actions' => $actions->map(fn ($a) => ['id' => (int) $a->id, 'text' => $a->text, 'user_id' => $a->user_id ? (int) $a->user_id : null, 'contact_id' => $a->contact_id ? (int) $a->contact_id : null,
+                'due_date' => $a->due_date, 'task' => $a->task_id ? ['id' => (int) $a->task_id, 'ref' => "{$project->number}-T{$a->task_number}", 'status' => $a->task_status] : null])->values()->all(),
             'people' => $people->map(fn ($p) => $p->user_id ? ['type' => 'person', 'id' => (int) $p->user_id, 'name' => $names[$p->user_id] ?? 'Someone', 'answer' => $p->response, 'organiser' => (int) $p->user_id === (int) $m->organiser_id]
                 : ['type' => 'contact', 'id' => (int) $p->contact_id, 'name' => $contacts[$p->contact_id] ?? 'A contact', 'answer' => $p->response, 'organiser' => false])->values()->all(),
-            'can' => ['manage' => $manage, 'answer' => $mine !== null && $m->state === 'planned' && ! Carbon::parse($m->ends_at)->isPast()],
+            'can' => ['manage' => $manage, 'answer' => $mine !== null && $m->state === 'planned' && ! Carbon::parse($m->ends_at)->isPast(),
+                'minutes' => $manage && $m->state !== 'cancelled' && ! Carbon::parse($m->starts_at)->isFuture(), 'tasks' => $this->access->decide($user, 'tasks', $project)['allowed']],
         ];
     }
 

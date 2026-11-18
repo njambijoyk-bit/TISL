@@ -16,7 +16,8 @@ const blank = (me) => ({ title: '', audience: 'team', date: '', time: '', minute
 /**
  * The Meetings tab (docs/PROJECTS_STAGE6_SPEC.md, build 6.6): meetings on a piece of work. Plan one with the free-time search (times in the next two
  * weeks when every staff attendee is free, inside company hours), invite the team and, for a client or others meeting, contacts. Staff answer
- * here; contacts answer on their own link. Moving or cancelling tells everyone. `prefill` comes from /meet in a conversation.
+ * here; contacts answer on their own link. Moving or cancelling tells everyone. `prefill` comes from /meet in a conversation. Build 6.7 adds the
+ * minutes and action items (each becomes a task in one click) and sharing the minutes with everyone invited.
  */
 export default function MeetingsPanel({ projectId, prefill = null, onPrefillUsed }) {
   const me = useAuthStore((s) => s.user?.id);
@@ -27,11 +28,12 @@ export default function MeetingsPanel({ projectId, prefill = null, onPrefillUsed
   const [free, setFree] = useState(null);
   const [problem, setProblem] = useState('');
   const [busy, setBusy] = useState('');
+  const [notes, setNotes] = useState(null);   // the minutes being written: { minutes, actions: [{ id, text, who, due_date, task }] }
 
   const load = useCallback(async () => { try { setList(await projectsAPI.meetings(projectId)); } catch (e) { setProblem(message(e, 'The meetings could not be loaded.')); } }, [projectId]);
   const loadOne = useCallback(async (id) => { try { setMeeting((await projectsAPI.meeting(projectId, id)).meeting); } catch (e) { setProblem(message(e, 'This meeting could not be opened.')); } }, [projectId]);
   useEffect(() => { load(); }, [load]);
-  useEffect(() => { if (openId) loadOne(openId); else setMeeting(null); }, [openId, loadOne]);
+  useEffect(() => { setNotes(null); if (openId) loadOne(openId); else setMeeting(null); }, [openId, loadOne]);
   useEffect(() => {
     if (prefill && list?.can.plan) { setForm({ ...blank(me), ...prefill, people: [...new Set([me, ...(prefill.people ?? [])].filter(Boolean))] }); setOpenId(null); setFree(null); onPrefillUsed?.(); }
   }, [prefill, list, me, onPrefillUsed]);
@@ -57,6 +59,16 @@ export default function MeetingsPanel({ projectId, prefill = null, onPrefillUsed
     } catch (err) { setProblem(message(err, 'The meeting could not be saved.')); } finally { setBusy(''); }
   };
   const act = async (call, done) => { try { setMeeting((await call()).meeting); toast.success(done); setProblem(''); load(); } catch (e) { setProblem(message(e, 'That could not be done.')); } };
+  const startNotes = () => setNotes({ minutes: meeting.minutes ?? '', actions: (meeting.actions.length ? meeting.actions : [{ text: '' }]).map((a) => ({ id: a.id, text: a.text, who: a.user_id ? `u${a.user_id}` : a.contact_id ? `c${a.contact_id}` : '', due_date: a.due_date ?? '', task: a.task ?? null })) });
+  const setAction = (i, k, v) => setNotes((n) => ({ ...n, actions: n.actions.map((a, j) => (j === i ? { ...a, [k]: v } : a)) }));
+  const saveNotes = async () => {
+    setBusy('notes');
+    try {
+      const actions = notes.actions.filter((a) => a.text.trim() || a.task).map((a) => ({ id: a.id, text: a.text, user_id: a.who.startsWith('u') ? Number(a.who.slice(1)) : null, contact_id: a.who.startsWith('c') ? Number(a.who.slice(1)) : null, due_date: a.due_date || null }));
+      setMeeting((await projectsAPI.saveMinutes(projectId, meeting.id, notes.minutes, actions)).meeting); setNotes(null); setProblem(''); toast.success('Minutes saved'); load();
+    } catch (e) { setProblem(message(e, 'The minutes could not be saved.')); } finally { setBusy(''); }
+  };
+  const whoName = (a) => (a.user_id ? list.team.find((u) => u.id === a.user_id)?.name : a.contact_id ? meeting.people.find((p) => p.type === 'contact' && p.id === a.contact_id)?.name : null);
   const upcoming = list.meetings.filter((m) => m.state === 'planned' && !m.past);
   const earlier = list.meetings.filter((m) => !(m.state === 'planned' && !m.past));
 
@@ -157,6 +169,56 @@ export default function MeetingsPanel({ projectId, prefill = null, onPrefillUsed
                 ))}
               </div>
             </div>
+            {(meeting.minutes || meeting.can.minutes) && (
+              <div style={{ marginTop: 16, borderTop: '1px solid var(--line)', paddingTop: 12, display: 'grid', gap: 10 }} data-minutes>
+                <div style={{ display: 'flex', justifyContent: 'space-between', gap: 8, alignItems: 'center', flexWrap: 'wrap' }}>
+                  <strong style={{ fontSize: 13.5 }}>Minutes</strong>
+                  <span style={{ display: 'flex', gap: 6, alignItems: 'center', fontSize: 12, color: 'var(--text-secondary)' }}>
+                    {meeting.minutes_shared_at && `Shared ${d(meeting.minutes_shared_at).toLocaleString('en-GB', { day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit' })}`}
+                    {meeting.can.minutes && !notes && <Btn small onClick={startNotes}>{meeting.minutes ? 'Change the minutes' : 'Write the minutes'}</Btn>}
+                    {meeting.can.minutes && !notes && meeting.minutes && <Btn small variant="primary" busy={busy === 'share'} onClick={async () => { setBusy('share'); await act(() => projectsAPI.shareMinutes(projectId, meeting.id), meeting.audience === 'team' ? 'Shared with the team' : 'Shared with everyone invited'); setBusy(''); }}>{meeting.minutes_shared_at ? 'Share again' : 'Share the minutes'}</Btn>}
+                  </span>
+                </div>
+                {notes ? (
+                  <div style={{ display: 'grid', gap: 8 }}>
+                    <textarea aria-label="Minutes" rows={5} value={notes.minutes} maxLength={20000} placeholder="What was said and decided" onChange={(e) => setNotes({ ...notes, minutes: e.target.value })} style={area} />
+                    <strong style={{ fontSize: 12.5 }}>Action items</strong>
+                    {notes.actions.map((a, i) => (
+                      <div key={a.id ?? `n${i}`} style={{ display: 'grid', gridTemplateColumns: 'minmax(160px, 1fr) minmax(130px, 180px) 150px', gap: 6, alignItems: 'center' }} data-action-row={i}>
+                        <TextInput aria-label={`Action item ${i + 1}`} value={a.text} maxLength={300} disabled={!!a.task} placeholder="What" onChange={(e) => setAction(i, 'text', e.target.value)} />
+                        <SelectInput aria-label={`Who does action item ${i + 1}`} value={a.who} disabled={!!a.task} onChange={(e) => setAction(i, 'who', e.target.value)}>
+                          <option value="">Who</option>
+                          {list.team.map((u) => <option key={`u${u.id}`} value={`u${u.id}`}>{u.name}</option>)}
+                          {meeting.people.filter((p) => p.type === 'contact').map((p) => <option key={`c${p.id}`} value={`c${p.id}`}>{p.name} (outside)</option>)}
+                        </SelectInput>
+                        <TextInput aria-label={`Action item ${i + 1} due`} type="date" value={a.due_date} disabled={!!a.task} onChange={(e) => setAction(i, 'due_date', e.target.value)} />
+                      </div>
+                    ))}
+                    <span style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
+                      <Btn small onClick={() => setNotes({ ...notes, actions: [...notes.actions, { text: '', who: '', due_date: '', task: null }] })}>Add an action item</Btn>
+                      <Btn small variant="primary" busy={busy === 'notes'} onClick={saveNotes}>Save the minutes</Btn>
+                      <Btn small onClick={() => setNotes(null)}>Cancel</Btn>
+                    </span>
+                    <span style={{ fontSize: 12, color: 'var(--text-secondary)' }}>An item that already became a task is changed on its task.</span>
+                  </div>
+                ) : (
+                  <>
+                    {meeting.minutes ? <div style={{ fontSize: 13.5, whiteSpace: 'pre-wrap' }}>{meeting.minutes}</div> : <p style={{ margin: 0, fontSize: 13, color: 'var(--text-secondary)' }}>No minutes yet.</p>}
+                    {meeting.actions.length > 0 && (
+                      <div style={{ display: 'grid', gap: 6 }} data-actions>
+                        <strong style={{ fontSize: 12.5 }}>Action items</strong>
+                        {meeting.actions.map((a) => (
+                          <div key={a.id} data-action={a.text} style={{ display: 'flex', justifyContent: 'space-between', gap: 8, alignItems: 'center', flexWrap: 'wrap', fontSize: 13.5 }}>
+                            <span>{a.text}{whoName(a) ? ` · ${whoName(a)}` : ''}{a.due_date ? ` · by ${d(a.due_date).toLocaleDateString('en-GB', { day: 'numeric', month: 'short' })}` : ''}</span>
+                            {a.task ? <Chip status="good">Task {a.task.ref}</Chip> : meeting.can.tasks && <Btn small aria-label={`Make "${a.text}" a task`} onClick={() => act(() => projectsAPI.actionToTask(projectId, meeting.id, a.id), 'Made into a task')}>Make it a task</Btn>}
+                          </div>
+                        ))}
+                      </div>
+                    )}
+                  </>
+                )}
+              </div>
+            )}
             {meeting.can.manage && meeting.state === 'planned' && (
               <div style={{ display: 'flex', gap: 8, marginTop: 14, flexWrap: 'wrap' }}>
                 <Btn small onClick={() => { setForm({ id: meeting.id, title: meeting.title, audience: meeting.audience, date: meeting.starts_at.slice(0, 10), time: meeting.starts_at.slice(11, 16), minutes: meeting.minutes_long, location: meeting.location ?? '', online_link: meeting.online_link ?? '', agenda: meeting.agenda ?? '', people: meeting.people.filter((p) => p.type === 'person').map((p) => p.id), contacts: [] }); setFree(null); }}>Move or change it</Btn>

@@ -226,3 +226,13 @@ Screens: `docs/screens/projects-meeting-plan.png` (planning, with the free-time 
 - **Routes:** `GET`, `POST /projects/{project}/meetings`; `POST …/meetings/free-time`; `GET`, `PUT …/meetings/{meeting}`; `POST …/meetings/{meeting}/cancel`; `POST …/meetings/{meeting}/answer`. Without signing in (30 a minute): `GET /meetings/{code}`, `POST /meetings/{code}/answer`, `GET /meetings/{code}/ics`.
 - **Services:** `ProjectMeetings`, `ProjectFreeTime`; Core `Calendar\IcsInvite`.
 - **Tests:** `tests/Feature/ProjectsMeetingsTest.php` (5). Browser check `e2e/projects-meetings-ui.mjs` (12 checks).
+
+### 6.7 Minutes and action items (done)
+
+Screen: `docs/screens/projects-meeting-minutes.png`.
+
+- **Minutes:** once a meeting has started, its organiser (or someone who may change the work or moderate) writes the minutes (what was said and decided) and the action items: what, who (someone on the work, or one of the meeting's contacts, marked "outside") and by when. Saving marks the meeting held (its calendar entries too). They can be changed later; an item that already became a task stays as it is, and is changed on its task.
+- **Each action item becomes a task in one click** ("Make it a task"; needs `projects.tasks`): on the same work, titled as the item, given to its person (an item for someone outside goes to whoever makes the task, who follows it up), due on its day, and its description says which meeting it came from. The item then shows its task's reference. One item, one task.
+- **Sharing the minutes:** "Share the minutes" sends the minutes and the action items to everyone invited: the team on the bell (and as they chose), and for a client or others meeting, the contacts through the Notifier. A team meeting's minutes never leave the team. Sharing again says "Minutes, updated". When they were shared shows on the meeting, and every save and share is in the log.
+- **Routes:** `PUT /projects/{project}/meetings/{meeting}/minutes`, `POST …/meetings/{meeting}/actions/{action}/task`, `POST …/meetings/{meeting}/share`.
+- **Tests:** two more in `tests/Feature/ProjectsMeetingsTest.php` (now 7). Browser check `e2e/projects-meetings-ui.mjs` (now 16 checks).

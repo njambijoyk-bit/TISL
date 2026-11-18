@@ -9,7 +9,7 @@ use Illuminate\Support\Facades\Schema;
 use Laravel\Sanctum\Sanctum;
 use Tests\TestCase;
 
-/** Projects, build 6.6 (docs/PROJECTS_STAGE6_SPEC.md): meetings, free-time search, calendar entries, invitations and answers. */
+/** Projects, builds 6.6 and 6.7 (docs/PROJECTS_STAGE6_SPEC.md): meetings, free-time search, calendar entries, invitations and answers; minutes, action items into tasks, sharing the minutes. */
 class ProjectsMeetingsTest extends TestCase
 {
     use Concerns\CreatesProjectsWorld;
@@ -51,7 +51,7 @@ class ProjectsMeetingsTest extends TestCase
                 return ['notification' => null, 'channels' => ['email'], 'skipped' => [], 'staff_list' => false];
             }
         });
-        $this->kamau = $this->staff('Kamau', ['projects.use', 'projects.create', 'projects.meetings', 'projects.messages.internal', 'projects.messages.client']);
+        $this->kamau = $this->staff('Kamau', ['projects.use', 'projects.create', 'projects.meetings', 'projects.tasks', 'projects.messages.internal', 'projects.messages.client']);
         $this->njeri = $this->staff('Njeri', ['projects.use', 'projects.messages.internal', 'projects.messages.client']);
         Sanctum::actingAs($this->kamau, ['*']);
         $this->project = (int) $this->postJson('/api/admin/projects', ['type_id' => DB::table('project_types')->where('industry_key', 'general')->value('id'), 'title' => 'Imara v Baraka', 'customer_id' => 1])->json('project.id');
@@ -166,5 +166,58 @@ class ProjectsMeetingsTest extends TestCase
         $this->postJson($this->url(), ['title' => 'x', 'date' => '2026-11-19', 'time' => '11:00', 'audience' => 'team'])->assertForbidden();
         $this->assertSame(['Defence strategy'], array_column($this->getJson($this->url())->assertOk()->json('meetings'), 'title'), 'people on the work see its team meetings');
         $this->postJson($this->url("/{$m['id']}/cancel"))->assertForbidden();
+    }
+
+    public function test_minutes_and_action_items_are_kept_on_the_meeting_and_each_item_becomes_a_task_once(): void
+    {
+        $m = $this->plan();
+        $this->putJson($this->url("/{$m['id']}/minutes"), ['minutes' => 'Too early', 'actions' => []])->assertStatus(422)->assertJson(['message' => 'Minutes are written once the meeting has started.']);
+        Carbon::setTestNow('2026-11-19 12:10:00');
+        $r = $this->putJson($this->url("/{$m['id']}/minutes"), ['minutes' => "We rely on the delivery note.\nDecision: no settlement offer yet.", 'actions' => [
+            ['text' => 'Get the driver\'s statement', 'user_id' => $this->njeri->id, 'due_date' => '2026-11-26'],
+            ['text' => 'Send the signed delivery note', 'contact_id' => $this->grace, 'due_date' => '2026-11-24'],
+            ['text' => '   '],
+        ]])->assertOk()->json('meeting');
+        $this->assertSame(['held', 2], [$r['state'], count($r['actions'])]);
+        $this->assertSame('held', DB::table('calendar_entries')->where('source_id', $m['id'])->where('user_id', $this->kamau->id)->value('status'));
+        $this->putJson($this->url("/{$m['id']}/minutes"), ['minutes' => 'x', 'actions' => [['text' => 'y', 'user_id' => 9999]]])->assertStatus(422);
+
+        $a = $r['actions'][0];
+        $t = $this->postJson($this->url("/{$m['id']}/actions/{$a['id']}/task"))->assertCreated()->json();
+        $task = DB::table('project_work_tasks')->find($t['task_id']);
+        $this->assertSame(["Get the driver's statement", '2026-11-26'], [$task->title, $task->due_date]);
+        $this->assertStringContainsString('From the meeting "Defence strategy" on 19 Nov 2026.', $task->description);
+        $this->assertSame([$this->njeri->id], DB::table('project_task_people')->where('task_id', $task->id)->pluck('user_id')->map(fn ($v) => (int) $v)->all(), 'given to its person');
+        $this->assertSame(DB::table('projects')->where('id', $this->project)->value('number') . '-T1', $t['meeting']['actions'][0]['task']['ref']);
+        $this->postJson($this->url("/{$m['id']}/actions/{$a['id']}/task"))->assertStatus(422);
+
+        // saving again keeps the item that became a task, and replaces the rest
+        $again = $this->putJson($this->url("/{$m['id']}/minutes"), ['minutes' => 'Updated.', 'actions' => [['id' => $a['id'], 'text' => 'changed here, ignored'], ['text' => 'Book the court room', 'user_id' => $this->kamau->id]]])->assertOk()->json('meeting.actions');
+        $this->assertSame([["Get the driver's statement", true], ['Book the court room', false]], array_map(fn ($x) => [$x['text'], $x['task'] !== null], $again));
+    }
+
+    public function test_sharing_the_minutes_sends_them_to_the_team_and_a_client_meetings_contacts(): void
+    {
+        $m = $this->plan();
+        Carbon::setTestNow('2026-11-19 12:10:00');
+        $this->postJson($this->url("/{$m['id']}/share"))->assertStatus(422)->assertJson(['message' => 'Write the minutes first.']);
+        $this->putJson($this->url("/{$m['id']}/minutes"), ['minutes' => 'We rely on the delivery note.', 'actions' => [['text' => 'Send the signed delivery note', 'contact_id' => $this->grace, 'due_date' => '2026-11-24']]])->assertOk();
+        $this->told = [];
+        $this->out = [];
+        $this->postJson($this->url("/{$m['id']}/share"))->assertOk()->assertJsonPath('meeting.minutes_shared_at', '2026-11-19 12:10:00');
+        $number = DB::table('projects')->where('id', $this->project)->value('number');
+        $this->assertSame([['Njeri', "Minutes: Defence strategy · {$number}"]], $this->told);
+        $this->assertSame(['Grace Wambua', 'project_meeting_invite', "Minutes: Defence strategy · {$number}"], [$this->out[0]['to'], $this->out[0]['type'], $this->out[0]['title']]);
+        $this->assertStringContainsString("Action items:\n- Send the signed delivery note (Grace Wambua), by 24 Nov 2026", $this->out[0]['message']);
+        $this->out = [];
+        $this->postJson($this->url("/{$m['id']}/share"))->assertOk();
+        $this->assertStringStartsWith('Minutes, updated:', $this->out[0]['title']);
+
+        // a team meeting's minutes never leave the team
+        $team = $this->plan(['audience' => 'team', 'contacts' => [], 'date' => '2026-11-19', 'time' => '08:00']);
+        $this->putJson($this->url("/{$team['id']}/minutes"), ['minutes' => 'Inside only.', 'actions' => []])->assertOk();
+        $this->out = [];
+        $this->postJson($this->url("/{$team['id']}/share"))->assertOk();
+        $this->assertSame([], $this->out);
     }
 }
