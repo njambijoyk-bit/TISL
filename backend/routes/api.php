@@ -1991,7 +1991,15 @@ Route::middleware('auth:sanctum')->group(function () {
             Route::post('/{project}/meetings/{meeting}/share', [$meet, 'share'])->whereNumber('project')->whereNumber('meeting')->middleware('permission:projects.meetings');
             $ppl = \App\Http\Controllers\Api\Projects\PeopleController::class;
             Route::get('/team', [$ppl, 'team'])->middleware('permission:projects.team.view');
-            Route::get('/team/{user}', [$ppl, 'person'])->whereNumber('user')->middleware('permission:projects.team.view');
+            Route::get('/team/{user}', [$ppl, 'person'])->whereNumber('user')->middleware('permission:projects.use');   // their own page needs only Projects; anyone else's needs the team view (checked inside)
+            Route::get('/team/{user}/growth', [$ppl, 'growth'])->whereNumber('user')->middleware('permission:projects.use');   // the person themselves, or a manager above them with projects.team.manage (checked inside)
+            Route::post('/team/{user}/goals', [$ppl, 'goal'])->whereNumber('user')->middleware('permission:projects.use');
+            Route::put('/team/{user}/goals/{goal}', [$ppl, 'goal'])->whereNumber(['user', 'goal'])->middleware('permission:projects.use');
+            Route::post('/team/{user}/reviews', [$ppl, 'review'])->whereNumber('user')->middleware('permission:projects.team.manage');
+            Route::put('/team/{user}/reviews/{review}', [$ppl, 'review'])->whereNumber(['user', 'review'])->middleware('permission:projects.use');
+            Route::post('/team/{user}/one-to-ones', [$ppl, 'oneToOne'])->whereNumber('user')->middleware('permission:projects.team.manage');
+            Route::put('/team/{user}/one-to-ones/{meeting}', [$ppl, 'oneToOne'])->whereNumber(['user', 'meeting'])->middleware('permission:projects.use');
+            Route::post('/team/{user}/one-to-ones/{meeting}/actions/{index}/task', [$ppl, 'actionTask'])->whereNumber(['user', 'meeting', 'index'])->middleware('permission:projects.team.manage');
             $hand = \App\Http\Controllers\Api\Projects\HandoverController::class;
             Route::get('/handover/people', [$hand, 'people'])->middleware('permission:projects.members.manage');
             Route::get('/handover/preview', [$hand, 'preview'])->middleware('permission:projects.members.manage');

@@ -26,6 +26,7 @@ class ProjectMyWork
         return [
             'ready' => true,
             'today' => $today,
+            'me' => (int) $user->id,   // for the link to their own page (stage 8)
             'timer' => app(ProjectTime::class)->timer($user),
             'tasks' => $this->tasks($user, $today),
             'dates' => $this->dates($user),

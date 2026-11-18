@@ -1,4 +1,4 @@
-// Browser check: the team view and a person's page (build 8.1). Who is carrying what this week, the filters going to the server, and one
+// Browser check: the team view and a person's page (build 8.1), with goals, reviews and one-to-ones (8.3). Who is carrying what this week, the filters going to the server, and one
 // person's tasks, week and HR record. The API is answered by the check itself; who may see whom is proved by ProjectsTeamViewTest.
 // It needs only the website (npx vite --port 5177).
 import { D, SITE, ok, finish, open } from './lib.mjs';
@@ -30,6 +30,18 @@ await page.route('**/api/admin/projects/team/3', (route) => json(route, { person
   days: ['2026-11-16', '2026-11-17', '2026-11-18', '2026-11-19', '2026-11-20', '2026-11-21', '2026-11-22'].map((d, i) => ({ date: d, minutes: [240, 360, 0, 0, 0, 0, 0][i] })),
   certificates: [{ name: 'First aid', issuer: 'Red Cross', date: '2024-12-01', expires_on: '2026-12-01' }, { name: 'Commissioner for oaths', issuer: null, date: null, expires_on: null }], can: { manage: true, checklists: false } } }));
 
+let growth = { goals: [{ id: 1, title: 'File every bundle on time', measure: 'No late filings', due_on: '2026-12-31', progress: 40, state: 'on_track', set_by: 'Wanjiru' }],
+  reviews: [{ id: 5, period: '2026, first half', body: 'Careful and quick.', written_by: 'Wanjiru', shared_at: '2026-07-01', acknowledged_at: null, comment: 'Thank you.' }],
+  one_to_ones: [{ id: 8, held_on: '2026-11-17', manager: 'Wanjiru', notes: 'Talked about filing.', actions: [{ text: 'Shadow the hearing', who: 3, task_id: null }], private_note: 'Ready for more.' }],
+  states: { on_track: 'On track', at_risk: 'At risk', done: 'Done', dropped: 'Dropped' }, can: { manage: true, self: false } };
+await page.route('**/api/admin/projects/team/3/growth', (route) => json(route, growth));
+await page.route(/\/api\/admin\/projects\/team\/3\/(goals|reviews|one-to-ones)(\/\d+)?(\/actions\/\d+\/task)?$/, (route) => {
+  const url = route.request().url(); const b = route.request().postDataJSON(); sent.push(['growth', url.replace(/.*\/team\/3\//, ''), b]);
+  if (/goals$/.test(url)) growth = { ...growth, goals: [...growth.goals, { id: 2, title: b.title, measure: b.measure || null, due_on: b.due_on || null, progress: 0, state: 'on_track', set_by: 'Wanjiru' }] };
+  else if (/goals\/1$/.test(url)) growth = { ...growth, goals: growth.goals.map((x) => (x.id === 1 ? { ...x, ...b } : x)) };
+  else if (/task$/.test(url)) growth = { ...growth, one_to_ones: [{ ...growth.one_to_ones[0], actions: [{ ...growth.one_to_ones[0].actions[0], task_id: 77 }] }] };
+  return json(route, growth, /task$/.test(url) ? 201 : 200);
+});
 await page.goto(`${SITE}/e2e/harness.html?c=ProjectsApp&at=${encodeURIComponent('/admin/projects/team')}`, { waitUntil: 'networkidle' });
 await page.addStyleTag({ content: '#root{max-width:1150px!important}' });
 await page.locator('[data-person="Kamau"]').waitFor({ timeout: 15000 });
@@ -47,6 +59,22 @@ await page.getByRole('link', { name: 'Njeri' }).click();
 await page.locator('[data-person-page]').waitFor({ timeout: 10000 });
 ok('a person\'s page shows their tasks, their week and their HR record', /M-0413-T4 File the bundle/.test(await text(page.locator('[data-person-tasks]'))) && /10h of 32h/.test(await text(page.locator('[data-person-week]')))
   && /First aid · Red Cross Runs out/.test(await text(page.locator('[data-certificate="First aid"]'))) && /No end date/.test(await text(page.locator('[data-certificate="Commissioner for oaths"]'))));
+await page.locator('[data-growth]').waitFor({ timeout: 10000 });
+ok('goals, reviews and one-to-ones show under the person', /File every bundle on time On track By 31 Dec 2026 No late filings 40%/.test(await text(page.locator('[data-goal="File every bundle on time"]')))
+  && /Shared .*Their words: Thank you\./.test(await text(page.locator('[data-review="2026, first half"]'))) && /Your private note: Ready for more\./.test(await text(page.locator('[data-one-to-one="2026-11-17"]'))));
+await page.getByRole('button', { name: 'Set a goal' }).click();
+await page.getByLabel('Goal', { exact: true }).fill('Lead a small matter');
+await page.getByLabel('By', { exact: true }).fill('2027-03-31');
+await page.getByRole('button', { name: 'Set it' }).click();
+await page.waitForTimeout(400);
+ok('a manager sets a goal', JSON.stringify([...sent].reverse().find((x) => x[0] === 'growth').slice(1)) === JSON.stringify(['goals', { title: 'Lead a small matter', measure: '', due_on: '2027-03-31' }]) && (await page.locator('[data-goal="Lead a small matter"]').count()) === 1);
+await page.getByLabel('How far along File every bundle on time is').selectOption('70');
+await page.waitForTimeout(400);
+ok('progress is updated', JSON.stringify([...sent].reverse().find((x) => x[0] === 'growth').slice(1)) === JSON.stringify(['goals/1', { progress: 70 }]));
+await page.getByRole('button', { name: 'Make it a task' }).click();
+await page.locator('[data-one-to-one="2026-11-17"]').getByRole('button', { name: 'Make it a task' }).click();
+await page.waitForTimeout(400);
+ok('an action point becomes a task on one of their pieces of work', JSON.stringify([...sent].reverse().find((x) => x[0] === 'growth').slice(1)) === JSON.stringify(['one-to-ones/8/actions/0/task', { project_id: 413 }]) && /A task/.test(await text(page.locator('[data-one-to-one="2026-11-17"]'))));
 await page.screenshot({ path: D + 'projects-person.png', fullPage: true });
 
 await finish(c);

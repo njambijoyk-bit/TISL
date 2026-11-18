@@ -25,7 +25,8 @@ export default function ProjectsMyWork() {
   const load = useCallback(async () => { try { setData(await projectsAPI.myWork()); setProblem(''); } catch (e) { setProblem(message(e, 'My Work could not be loaded. Try again.')); } }, []);
   useEffect(() => { load(); window.addEventListener(TIMER_CHANGED, load); return () => window.removeEventListener(TIMER_CHANGED, load); }, [load]);
 
-  const header = <PageHeader title="My Work" subtitle="What is yours to do in Projects" actions={<Btn onClick={() => navigate('/admin/projects')}>Close</Btn>} />;
+  const myId = data?.me;
+  const header = <PageHeader title="My Work" subtitle="What is yours to do in Projects" actions={<>{myId && <Btn onClick={() => navigate(`/admin/projects/team/${myId}`)}>My goals and reviews</Btn>}<Btn onClick={() => navigate('/admin/projects')}>Close</Btn></>} />;
   if (problem) return <AdminLayout><ProjectKeys />{header}<Notice status="problem">{problem}</Notice></AdminLayout>;
   if (!data) return <AdminLayout><ProjectKeys />{header}</AdminLayout>;
   if (!data.ready) return <AdminLayout><ProjectKeys />{header}<Notice status="warning">My Work needs database script 261.</Notice></AdminLayout>;

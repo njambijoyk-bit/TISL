@@ -106,3 +106,15 @@ Screens: `docs/screens/projects-team.png`, `docs/screens/projects-person.png`.
 - **Seen in Projects:** the team view marks people with a certificate running out within 60 days; a person's page lists each with its date (warning within 60 days, problem once it has run out).
 - **Find by skill:** the team view's skill filter (8.1), and the People tab's invite list now shows each person's skills beside their name.
 - **Tests:** two more in `tests/Feature/ProjectsTeamViewTest.php` (now 4).
+
+### 8.3 Goals, reviews and one-to-ones (done)
+
+Screen: `docs/screens/projects-person.png` (the lower half).
+
+- **Where:** under a person's page. Seen by the person (from My Work: "My goals and reviews"; their own page needs only `projects.use`) and by anyone above them in HR's manager line who holds `projects.team.manage`. Anyone else is told "not found". None of it is in a piece of work's log or any export; each row keeps who wrote it and when.
+- **Goals:** the manager sets them (what, how it is measured, by when). The person updates only how far along each is (0 to 100%) and how it is going (on track, at risk, done, dropped); their manager is told.
+- **Reviews:** the manager writes a draft (the person does not see it) and shares it; the person is told, reads it, adds their own words and acknowledges it; the writer is told. An acknowledged review is not changed again; a new one is written instead.
+- **One-to-ones (owner's choice 2):** the manager records the day, shared notes and action points; the person is told and can add to the shared notes. Each of them may keep a private note on it that only they see. An action point becomes a task on one of the person's pieces of work in one click, given to them.
+- **Routes:** `GET /projects/team/{user}/growth`; `POST`, `PUT /projects/team/{user}/goals[/{goal}]`; `POST`, `PUT /projects/team/{user}/reviews[/{review}]`; `POST`, `PUT /projects/team/{user}/one-to-ones[/{id}]`; `POST …/one-to-ones/{id}/actions/{index}/task`.
+- **Service:** `ProjectGrowth`.
+- **Tests:** `tests/Feature/ProjectsGrowthTest.php` (3). Browser check `e2e/projects-team-ui.mjs` (now 9 checks).

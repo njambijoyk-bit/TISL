@@ -7,12 +7,13 @@ import { day, message } from '../../lib/format';
 import { hm } from '../../lib/tasks';
 import { Btn, Chip, Notice, Panel, PanelTitle } from '../../components/ui';
 import ProjectKeys from '../../components/ProjectKeys';
+import GrowthPanel from '../../components/GrowthPanel';
 
 const link = { color: 'var(--color-primary-500)', textDecoration: 'none', fontWeight: 600 };
 
 /**
  * One person (docs/PROJECTS_STAGE8_SPEC.md, build 8.1): their tasks, this week's time by day, what HR says about them (skills, certificates),
- * and the work they are on. Later builds add their goals, reviews, one-to-ones and checklists below.
+ * and the work they are on. Build 8.3 adds their goals, reviews and one-to-ones below, for the person and the managers above them.
  */
 export default function ProjectsPerson() {
   const { id } = useParams();
@@ -21,7 +22,7 @@ export default function ProjectsPerson() {
   const [problem, setProblem] = useState('');
   const load = useCallback(async () => { try { setP((await projectsAPI.teamPerson(id)).person); setProblem(''); } catch (e) { setProblem(message(e, 'This person could not be opened.')); } }, [id]);
   useEffect(() => { load(); }, [load]);
-  const header = <PageHeader title={p ? p.name : 'Person'} subtitle={p ? [p.job_title, p.department].filter(Boolean).join(' · ') : ''} actions={<Btn onClick={() => navigate('/admin/projects/team')}>Team</Btn>} />;
+  const header = <PageHeader title={p ? p.name : 'Person'} subtitle={p ? [p.job_title, p.department].filter(Boolean).join(' · ') : ''} actions={<Btn onClick={() => navigate(p?.me ? '/admin/projects/my-work' : '/admin/projects/team')}>{p?.me ? 'My Work' : 'Team'}</Btn>} />;
   if (problem) return <AdminLayout><ProjectKeys />{header}<Notice status="problem">{problem}</Notice></AdminLayout>;
   if (!p) return <AdminLayout><ProjectKeys />{header}</AdminLayout>;
   const max = Math.max(60, ...p.days.map((x) => x.minutes));
@@ -75,6 +76,7 @@ export default function ProjectsPerson() {
           <div style={{ display: 'grid', gap: 6 }}>{p.work.map((w) => <Link key={w.id} to={`/admin/projects/${w.id}`} style={{ ...link, fontWeight: 500, fontSize: 13.5 }}>{w.number} {w.title}</Link>)}</div>
         </Panel>
       </div>
+      <GrowthPanel key={p.id} userId={p.id} work={p.work} />
     </AdminLayout>
   );
 }

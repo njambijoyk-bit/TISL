@@ -46,7 +46,7 @@ class ProjectTeam
     /** One person in detail. @return array<string, mixed> */
     public function person(User $viewer, int $userId): array
     {
-        if (! in_array($userId, $this->visibleIds($viewer), true)) {
+        if ($userId !== (int) $viewer->id && (! $viewer->hasPermission('projects.team.view') || ! in_array($userId, $this->visibleIds($viewer), true))) {
             throw new ProjectException('Not found.', 404);
         }
         [$from, $to] = $this->week();
