@@ -105,6 +105,8 @@ class ProjectMyWork
         }
         $approvals = ProjectsSetup::controlRoom() && $user->hasPermission('projects.approve') ? count(app(ProjectApprovals::class)->page($user)['waiting'] ?? []) : 0;
 
-        return ['time' => $time, 'changes' => $changes, 'approvals' => $approvals];
+        $messages = $user->hasPermission('projects.messages.internal') || $user->hasPermission('projects.messages.client') ? app(ProjectInbox::class)->count($user) : 0;
+
+        return ['time' => $time, 'changes' => $changes, 'approvals' => $approvals, 'messages' => $messages];
     }
 }

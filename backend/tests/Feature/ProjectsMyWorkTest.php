@@ -46,7 +46,7 @@ class ProjectsMyWorkTest extends TestCase
         $this->assertSame(["{$number}-T1", 'To do'], [$m['tasks']['late'][0]['ref'], $m['tasks']['late'][0]['status_name']]);
         $this->assertSame([['Site inspection', 4, true]], array_map(fn ($d) => [$d['title'], $d['days'], $d['mine']], $m['dates']), 'within 30 days only');
         $this->assertSame([90, 'open', true], [$m['week']['minutes'], $m['week']['state'], $m['week']['can_submit']]);
-        $this->assertSame(['time' => 1, 'changes' => 1, 'approvals' => 0], $m['waiting']);
+        $this->assertSame(['time' => 1, 'changes' => 1, 'approvals' => 0, 'messages' => 0], $m['waiting']);
         $this->assertSame($p, $m['timer']['project_id']);
 
         // work in the trash drops out

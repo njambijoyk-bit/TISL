@@ -1971,6 +1971,9 @@ Route::middleware('auth:sanctum')->group(function () {
             Route::match(['put', 'delete'], '/{project}/threads/{thread}/messages/{message}', [$msg, 'editMessage'])->whereNumber('project')->whereNumber('thread')->whereNumber('message')->middleware('permission:projects.messages.internal,projects.messages.client');
             Route::post('/{project}/threads/{thread}/messages/{message}/task', [$msg, 'makeTask'])->whereNumber('project')->whereNumber('thread')->whereNumber('message')->middleware('permission:projects.tasks');
             Route::put('/{project}/threads/{thread}/tags', [$msg, 'tag'])->whereNumber('project')->whereNumber('thread')->middleware('permission:projects.messages.internal,projects.messages.client');
+            Route::get('/inbox', [$msg, 'inbox'])->middleware('permission:projects.messages.internal,projects.messages.client');
+            Route::get('/inbox/count', [$msg, 'inboxCount'])->middleware('permission:projects.messages.internal,projects.messages.client');
+            Route::put('/{project}/follow', [$msg, 'follow'])->whereNumber('project');
             Route::get('/configuration/tags', [$msg, 'tags'])->middleware('permission:projects.config.view');
             Route::post('/configuration/tags', [$msg, 'saveTag'])->middleware('permission:projects.config.manage');
             Route::put('/configuration/tags/{tag}', [$msg, 'saveTag'])->whereNumber('tag')->middleware('permission:projects.config.manage');

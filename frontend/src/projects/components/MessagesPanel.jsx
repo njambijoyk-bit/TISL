@@ -5,6 +5,7 @@ import { message } from '../lib/format';
 import { command, complete, typing } from '../lib/composer';
 import { hm } from '../lib/tasks';
 import { Btn, Chip, Field, Notice, Panel, SelectInput, TextInput } from './ui';
+import FollowButton from './FollowButton';
 
 const TONE = { team: 'neutral', client: 'info', others: 'warning' };
 const when = (at) => { if (!at) return ''; const d = new Date(at.replace(' ', 'T')); return d.toLocaleString('en-GB', { weekday: 'short', day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit' }); };
@@ -13,7 +14,8 @@ const area = { width: '100%', boxSizing: 'border-box', padding: '8px 10px', bord
 /**
  * The Messages tab (docs/PROJECTS_STAGE6_SPEC.md, build 6.1): conversations on a piece of work with the team, the client or other parties.
  * A message in a client or others conversation goes to its contacts through the Notifier; what was sent where shows under it. Build 6.2 adds
- * @mentions and #tags with suggestions, /task and /time, editing for 15 minutes (or moderating), and tags on a conversation.
+ * @mentions and #tags with suggestions, /task and /time, editing for 15 minutes (or moderating), and tags on a conversation. Build 6.3 adds
+ * following the work and each conversation.
  */
 export default function MessagesPanel({ projectId }) {
   const [list, setList] = useState(null);
@@ -82,6 +84,7 @@ export default function MessagesPanel({ projectId }) {
     <div style={{ display: 'grid', gridTemplateColumns: 'minmax(220px, 280px) minmax(0, 1fr)', gap: 14, alignItems: 'start' }} data-messages>
       <div style={{ display: 'grid', gap: 8 }}>
         {list.can.start && !starting && <Btn variant="primary" small onClick={() => { setStarting({ subject: '', audience: Object.keys(list.audiences)[0] ?? 'team', contacts: [], owner_id: '', body: '' }); setProblem(''); }}>New conversation</Btn>}
+        {list.following && <FollowButton what="this work" state={list.following} onChange={async (on) => setList({ ...list, following: (await projectsAPI.follow(projectId, 'project', projectId, on)).following })} />}
         <SelectInput aria-label="Which conversations" value={state} onChange={(e) => setState(e.target.value)}><option value="open">Open</option><option value="closed">Closed</option><option value="all">All</option></SelectInput>
         {list.threads.length === 0 && <p style={{ margin: 0, fontSize: 13, color: 'var(--text-secondary)' }}>No conversations{state === 'open' ? ' open' : ''}.</p>}
         {list.threads.map((t) => (
@@ -131,7 +134,10 @@ export default function MessagesPanel({ projectId }) {
                 {thread.tags.map((g) => <Chip key={g.id} status={g.status ?? 'neutral'}>#{g.key}</Chip>)}
                 {thread.can.write && <Btn small variant="quiet" aria-expanded={tagging} onClick={() => setTagging(!tagging)}>Tags</Btn>}
               </span>
+              <span style={{ display: 'flex', gap: 6 }}>
+              {thread.following && <FollowButton what="this conversation" state={thread.following} onChange={async (on) => setThread({ ...thread, following: (await projectsAPI.follow(projectId, 'thread', thread.id, on)).following })} />}
               {thread.can.write && <Btn small variant="quiet" onClick={async () => { try { setThread((await projectsAPI.changeThread(projectId, thread.id, { state: thread.state === 'open' ? 'closed' : 'open' })).thread); load(); } catch (e) { setProblem(message(e, 'It could not be changed.')); } }}>{thread.state === 'open' ? 'Close it' : 'Open it again'}</Btn>}
+              </span>
             </div>
             {tagging && (
               <div role="group" aria-label="Tags on this conversation" style={{ display: 'flex', gap: 6, flexWrap: 'wrap', marginBottom: 10 }} data-tag-editor>

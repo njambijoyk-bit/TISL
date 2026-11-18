@@ -23,7 +23,11 @@ class WorkController extends Controller
 
     public function show(Request $request, int $project, int $task): JsonResponse
     {
-        return $this->guard(fn () => response()->json(['task' => $this->tasks->show($this->project($request, $project), $task, $request->user())]));
+        return $this->guard(function () use ($request, $project, $task) {
+            $p = $this->project($request, $project);
+
+            return response()->json(['task' => $this->tasks->show($p, $task, $request->user()) + ['following' => app(\App\Services\Projects\ProjectFollows::class)->state($request->user(), $p, 'task', $task)]]);
+        });
     }
 
     public function store(Request $request, int $project): JsonResponse

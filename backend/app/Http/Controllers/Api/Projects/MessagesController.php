@@ -4,12 +4,14 @@ namespace App\Http\Controllers\Api\Projects;
 
 use App\Http\Controllers\Controller;
 use App\Services\Projects\ProjectException;
+use App\Services\Projects\ProjectFollows;
+use App\Services\Projects\ProjectInbox;
 use App\Services\Projects\ProjectService;
 use App\Services\Projects\ProjectThreads;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 
-/** Messages, meetings, working together (stage 6): conversations on a piece of work. Later builds add the inbox, meetings and handing over. */
+/** Messages, meetings, working together (stage 6): conversations on a piece of work, the inbox and following. Later builds add meetings and handing over. */
 class MessagesController extends Controller
 {
     public function __construct(private ProjectThreads $threads) {}
@@ -96,6 +98,23 @@ class MessagesController extends Controller
 
             return $this->tags($request);
         });
+    }
+
+    public function inbox(Request $request): JsonResponse
+    {
+        return response()->json(app(ProjectInbox::class)->page($request->user(), $request->only(['state', 'unread', 'mentions', 'mine', 'tag', 'project_id', 'audience'])));
+    }
+
+    public function inboxCount(Request $request): JsonResponse
+    {
+        return response()->json(['unread' => app(ProjectInbox::class)->count($request->user())]);
+    }
+
+    /** Follow or stop following the work, one of its conversations or one of its tasks. */
+    public function follow(Request $request, int $project): JsonResponse
+    {
+        return $this->guard(fn () => response()->json(['following' => app(ProjectFollows::class)->set($request->user(), $this->project($request, $project),
+            (string) $request->input('type'), (int) $request->input('id'), (bool) $request->input('on'))]));
     }
 
     private function project(Request $request, int $id): object

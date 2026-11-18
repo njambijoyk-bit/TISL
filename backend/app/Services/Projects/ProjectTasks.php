@@ -193,6 +193,10 @@ class ProjectTasks
         if ($status === 'done') {
             $this->tellWaiting($project, $t, $by);
         }
+        $names = $this->statusNames($project);
+        app(ProjectFollows::class)->tell($project, 'task', (int) $t->id, "{$project->number}-T{$t->number} is now " . mb_strtolower($names[$status] ?? $status),
+            "{$by->name} moved {$t->title} from " . mb_strtolower($names[$t->status] ?? $t->status) . ' to ' . mb_strtolower($names[$status] ?? $status) . ($reason ? ". Why: {$reason}" : '.'),
+            "/admin/projects/{$project->id}?tab=work&task={$t->id}", 'Open the task', [(int) $by->id]);
     }
 
     public function delete(object $project, int $taskId, User $by): int

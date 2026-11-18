@@ -48,6 +48,7 @@ export default function ProjectsMyWork() {
             <div style={{ display: 'flex', justifyContent: 'space-between' }}><Link to="/admin/projects/timesheet?view=approve" style={link}>Time to approve</Link><strong>{w.time}</strong></div>
             <div style={{ display: 'flex', justifyContent: 'space-between' }}><span>Changes to decide on</span><strong>{w.changes}</strong></div>
             <div style={{ display: 'flex', justifyContent: 'space-between' }}><Link to="/admin/projects/approvals" style={link}>Approvals</Link><strong>{w.approvals}</strong></div>
+            {w.messages != null && <div style={{ display: 'flex', justifyContent: 'space-between' }}><Link to="/admin/projects/inbox?unread=1" style={link}>Conversations to read</Link><strong>{w.messages}</strong></div>}
           </div>
         </Panel>
         <Panel data-mw-dates>

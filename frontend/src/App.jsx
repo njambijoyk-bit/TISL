@@ -279,6 +279,7 @@ const ProjectsDirectory  = lazy(() => import('./projects/pages/admin/ProjectsDir
 const ProjectsClientMoney = lazy(() => import('./projects/pages/admin/ProjectsClientMoney'));
 const ProjectsTimesheet = lazy(() => import('./projects/pages/admin/ProjectsTimesheet'));
 const ProjectsMyWork = lazy(() => import('./projects/pages/admin/ProjectsMyWork'));
+const ProjectsInbox = lazy(() => import('./projects/pages/admin/ProjectsInbox'));
 const ProjectConfiguration = lazy(() => import('./projects/pages/admin/ProjectConfiguration'));
 const UsersPage          = lazy(() => import('./core/pages/admin/users/Users'));
 const UserDetail         = lazy(() => import('./core/pages/admin/users/UserDetail'));
@@ -1441,6 +1442,7 @@ function App() {
               <Route path="/admin/projects/client-money" element={<ProtectedRoute requireAdmin permission="projects.money.held.view,projects.money.held.pay"><ModuleRoute module="projects" redirectTo="/admin"><ProjectsClientMoney /></ModuleRoute></ProtectedRoute>} />
               <Route path="/admin/projects/timesheet" element={<ProtectedRoute requireAdmin permission="projects.time.log,projects.time.approve"><ModuleRoute module="projects" redirectTo="/admin"><ProjectsTimesheet /></ModuleRoute></ProtectedRoute>} />
               <Route path="/admin/projects/my-work" element={<ProtectedRoute requireAdmin permission="projects.use"><ModuleRoute module="projects" redirectTo="/admin"><ProjectsMyWork /></ModuleRoute></ProtectedRoute>} />
+              <Route path="/admin/projects/inbox" element={<ProtectedRoute requireAdmin permission="projects.use"><ModuleRoute module="projects" redirectTo="/admin"><ProjectsInbox /></ModuleRoute></ProtectedRoute>} />
               <Route path="/admin/projects/security" element={<ProtectedRoute requireAdmin permission="projects.security.view"><ModuleRoute module="projects" redirectTo="/admin"><ProjectsSecurity /></ModuleRoute></ProtectedRoute>} />
               <Route path="/admin/projects/log" element={<ProtectedRoute requireAdmin permission="projects.log.view"><ModuleRoute module="projects" redirectTo="/admin"><ProjectsLog /></ModuleRoute></ProtectedRoute>} />
               <Route path="/admin/projects/trash" element={<ProtectedRoute requireAdmin permission="projects.delete"><ModuleRoute module="projects" redirectTo="/admin"><ProjectsTrash /></ModuleRoute></ProtectedRoute>} />

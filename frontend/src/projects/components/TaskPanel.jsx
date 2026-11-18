@@ -4,6 +4,7 @@ import projectsAPI from '../../_shared/api/projects';
 import { day, message, PRIORITY } from '../lib/format';
 import { hm, STATUS_TONE } from '../lib/tasks';
 import { Btn, Chip, Field, Notice, Panel, PanelTitle, SelectInput, TextInput } from './ui';
+import FollowButton from './FollowButton';
 import { startTimer } from '../lib/timer';
 
 const box = { display: 'grid', gap: 10, padding: 12, borderRadius: 10, background: 'var(--surface-input)' };
@@ -44,7 +45,7 @@ export default function TaskPanel({ projectId, taskId, list, onChanged, onClose,
 
   return (
     <Panel style={{ marginTop: 16 }} data-task={t.ref}>
-      <PanelTitle hint={`${t.ref}${t.phase_id ? ` · ${list.phases.find((p) => p.id === t.phase_id)?.name ?? ''}` : ''}`} right={<Btn small onClick={onClose}>Close</Btn>}>{t.title}</PanelTitle>
+      <PanelTitle hint={`${t.ref}${t.phase_id ? ` · ${list.phases.find((p) => p.id === t.phase_id)?.name ?? ''}` : ''}`} right={<span style={{ display: 'flex', gap: 6 }}>{t.following && <FollowButton what="this task" state={t.following} onChange={async (on) => setT({ ...t, following: (await projectsAPI.follow(projectId, 'task', t.id, on)).following })} />}<Btn small onClick={onClose}>Close</Btn></span>}>{t.title}</PanelTitle>
 
       <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap', alignItems: 'center', marginBottom: 12 }}>
         <Chip status={STATUS_TONE[t.status]}>{S[t.status]}</Chip>

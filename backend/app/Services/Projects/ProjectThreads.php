@@ -8,7 +8,7 @@ use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\DB;
 
 /**
- * Conversations on a piece of work (docs/PROJECTS_STAGE6_SPEC.md, build 6.1).
+ * Conversations on a piece of work (docs/PROJECTS_STAGE6_SPEC.md, builds 6.1 to 6.3).
  *
  * Three audiences: the team only (`projects.messages.internal`), the client's chosen contacts (`projects.messages.client`), and other parties'
  * chosen contacts (the same permission; owner's choice 2 keeps client and parties apart). Reading needs the audience's permission and the right to
@@ -43,6 +43,7 @@ class ProjectThreads
             'audiences' => array_intersect_key(self::AUDIENCES, array_flip($may['write'])),
             'contacts' => $may['write'] ? $this->contactsFor($project) : ['client' => [], 'others' => []],
             'team' => $may['write'] ? $this->members($project) : [],
+            'following' => app(ProjectFollows::class)->state($user, $project, 'project', (int) $project->id),
             'can' => ['start' => (bool) $may['write']],
         ];
     }
@@ -70,6 +71,7 @@ class ProjectThreads
                 'removed' => $m->removed_at ? ['by' => $names[$m->removed_by] ?? 'someone', 'at' => $m->removed_at] : null, 'task_id' => $m->task_id ? (int) $m->task_id : null, 'at' => $m->created_at,
                 'can_change' => ! $m->removed_at && ! $m->contact_id && (($moderate ?? false) || ((int) $m->user_id === (int) $user->id && \Carbon\Carbon::parse($m->created_at)->gt(now()->subMinutes(15)) && $write)),
             ])->values()->all(),
+            'following' => app(ProjectFollows::class)->state($user, $project, 'thread', (int) $t->id),
             'tag_list' => $write ? $this->tags() : [],
             'people' => $write ? $this->members($project) : [],
             'can' => ['write' => $this->mayWrite($project, $t, $user), 'manage' => $this->mayWrite($project, $t, $user) && ((int) $t->owner_id === (int) $user->id || (int) $t->created_by === (int) $user->id || $this->access->decide($user, 'moderate', $project)['allowed'])],
@@ -131,8 +133,14 @@ class ProjectThreads
             $sent = $this->sendOut($project, $t, $id, $body, $by);
             DB::table('project_thread_messages')->where('id', $id)->update(['sent_to' => json_encode($sent)]);
         }
-        $this->mention($project, $t, $id, $body, $mentions, $by);
+        foreach ($this->members($project) as $m) {   // a name typed in full without choosing it from the suggestions
+            if (mb_stripos($body, '@' . $m['name']) !== false) {
+                $mentions[] = $m['id'];
+            }
+        }
+        $told = $this->mention($project, $t, $id, $body, $mentions, $by);
         $this->tagFromText($t, $body);
+        $this->tellFollowers($project, $t, "{$by->name} wrote", $body, array_merge([(int) $by->id], $told));
         ProjectLog::record((int) $project->id, $by, 'message.posted', 'thread', (int) $t->id, null, ['message' => $id]);
 
         return $id;
@@ -308,6 +316,24 @@ class ProjectThreads
         return ['read' => $read, 'write' => $write];
     }
 
+    /** The conversation, when this person may read it (for following and the inbox). */
+    public function readableBy(object $project, int $threadId, User $user): object
+    {
+        return $this->readable($project, $threadId, $user);
+    }
+
+    /** One conversation's line in a list (the inbox uses it). @return array<string, mixed> */
+    public function summary(object $t, $owners, array $unread, array $last): array
+    {
+        return $this->shape($t, $owners, $this->peopleOf([(int) $t->id]), $unread, $last);
+    }
+
+    /** @param int[] $ids @return array<int, object> */
+    public function lastOf(array $ids): array
+    {
+        return $this->lastMessages($ids);
+    }
+
     // ------------------------------------------------------------------ inside
 
     /** To each contact in the conversation, through the Notifier. @return array<int, array{contact: string, channels: string[]}> */
@@ -419,11 +445,12 @@ class ProjectThreads
     }
 
     /** Store and tell the people mentioned: people on the work who may read this conversation, never the writer. */
-    private function mention(object $project, object $t, int $messageId, string $body, array $ids, User $by): void
+    /** @return int[] the people told */
+    private function mention(object $project, object $t, int $messageId, string $body, array $ids, User $by): array
     {
         $ids = array_values(array_unique(array_map('intval', $ids)));
         if (! $ids) {
-            return;
+            return [];
         }
         $on = array_column($this->members($project), 'id');
         $people = User::whereIn('id', array_intersect($ids, $on))->where('id', '!=', $by->id)->get()
@@ -433,6 +460,15 @@ class ProjectThreads
         }
         ProjectNotices::tell($people, ProjectNotices::FOLLOW, "{$by->name} mentioned you on {$project->number}", "In \"{$t->subject}\":\n\n" . mb_substr($body, 0, 400),
             "/admin/projects/{$project->id}?tab=messages&thread={$t->id}", 'Open the conversation');
+
+        return $people->pluck('id')->map(fn ($v) => (int) $v)->values()->all();
+    }
+
+    /** Everyone following the conversation or its work, who may read it, except the people given. A reply that came in uses it too (build 6.5). @param int[] $except */
+    public function tellFollowers(object $project, object $t, string $who, string $body, array $except): void
+    {
+        app(ProjectFollows::class)->tell($project, 'thread', (int) $t->id, "{$who} in \"{$t->subject}\" · {$project->number}", mb_substr($body, 0, 400),
+            "/admin/projects/{$project->id}?tab=messages&thread={$t->id}", 'Open the conversation', $except, fn (User $u) => in_array($t->audience, $this->audiences($u, $project)['read'], true));
     }
 
     /** #tags typed in a message tag the conversation, when they are on the company's list. */

@@ -106,6 +106,9 @@ class ProjectKeyDates
         DB::table('project_key_dates')->where('id', $k->id)->update($row);
         ProjectLog::record((int) $project->id, $by, 'key_date.moved', 'key_date', (int) $k->id, ['when' => $k->starts_at], ['when' => $when], ProjectLog::DONE, $reason);
         $this->sync((int) $k->id);
+        $fmt = fn ($v, $all) => Carbon::parse($v)->format($all ? 'j M Y' : 'j M Y H:i');
+        app(ProjectFollows::class)->tell($project, 'project', (int) $project->id, "{$k->title} moved · {$project->number}",
+            "{$by->name} moved it from {$fmt($k->starts_at, $k->all_day)} to {$fmt($when, $allDay)}. Why: {$reason}", "/admin/projects/{$project->id}?tab=work&part=dates", 'Open the key dates', [(int) $by->id]);
     }
 
     public function done(object $project, int $id, bool $done, User $by): void

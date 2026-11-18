@@ -169,3 +169,15 @@ Screen: `docs/screens/projects-messages.png`.
 - **Changing and removing:** your own message for 15 minutes; after that, and anyone's, with `projects.messages.moderate`. The message says "edited"; the old text is kept in the log. Removing leaves "Removed by …". A message from a client is never changed.
 - **Routes:** `PUT`, `DELETE /projects/{project}/threads/{thread}/messages/{message}`; `POST …/messages/{message}/task`; `PUT /projects/{project}/threads/{thread}/tags`; `GET`, `POST /projects/configuration/tags`; `PUT /projects/configuration/tags/{tag}`.
 - **Tests:** `tests/Feature/ProjectsMentionsTagsTest.php` (3). Browser check `e2e/projects-messages-ui.mjs` now 17 checks.
+
+### 6.3 The inbox, following, message notices (done)
+
+Screen: `docs/screens/projects-inbox.png`.
+
+- **Inbox:** Projects → Inbox (G then I; the letter is a setting like the others). Every conversation on the work the person is on (an active member whose role may open it) in the audiences their permissions allow, newest first. With `projects.inbox.all` (and `projects.view_all`), every conversation on work they may see. Views: everything, unread, mentions, mine to answer, each with its count; filters: open or closed, piece of work, audience, tag. The filters are kept in the address. A line opens its conversation on its work.
+- **Counts:** unread conversations show in the inbox views and in My Work's "Waiting for you" ("Conversations to read"). **Not done:** a number on the Projects menu entry. The menu has no place for counts today; adding one is a change to the shared navigation for every module, so it waits until one is wanted there.
+- **Following:** a Follow button on the Messages tab (the whole work), on each conversation and on each task. People follow on their own: a conversation's owner, whoever started it, wrote in it or was mentioned; a task's people and whoever made it. Anyone can stop (kept as "muted"), or follow something more. Pressing Follow on something you follow on your own just removes the "stopped" mark.
+- **Notices** (type "Projects: messages and things you follow"): a new message tells the conversation's followers and the work's followers who may read that conversation, except the writer and anyone just told by a mention. A task moving tells its followers and the work's followers (with the reason, when one was given). A key date moving tells the work's followers, with where it moved from and why. Nobody who may no longer open the work, and no inactive or suspended account, is told.
+- **Routes:** `GET /projects/inbox`, `GET /projects/inbox/count`, `PUT /projects/{project}/follow` (type project, thread or task; id; on).
+- **Services:** `ProjectInbox`, `ProjectFollows`.
+- **Tests:** `tests/Feature/ProjectsInboxFollowTest.php` (3); My Work's test now expects the conversation count. Browser check `e2e/projects-inbox-ui.mjs` (9 checks).
