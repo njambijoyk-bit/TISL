@@ -113,6 +113,7 @@ class ProjectService
         $out['words'] = array_map(fn ($n) => ['name' => $n['name'], 'plural' => $n['plural']], $this->names()->names($industry));
         $out['fields'] = app(ProjectShape::class)->valuesFor($project, $user);
         $out['can'] = $this->access->abilities($user, $project);
+        $out['links_count'] = (int) DB::table('project_links')->where('project_id', $project->id)->whereNull('deleted_at')->count();   // for the Overview (stage 7); what each is shows on the Links tab
         $out['locks'] = app(ProjectLocks::class)->stateFor($project, $user);   // which parts are behind a password here, and which this person has open
 
         return $out;

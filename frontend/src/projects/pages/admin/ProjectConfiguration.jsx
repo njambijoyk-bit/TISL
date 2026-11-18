@@ -20,6 +20,7 @@ import MoneySettingsPanel from '../../components/MoneySettingsPanel';
 import WorkSettingsPanel from '../../components/WorkSettingsPanel';
 import RatesPanel from '../../components/RatesPanel';
 import TagsPanel from '../../components/TagsPanel';
+import LinkRolesPanel from '../../components/LinkRolesPanel';
 import ProjectKeys from '../../components/ProjectKeys';
 
 /**
@@ -193,7 +194,7 @@ export default function ProjectConfiguration() {
   };
 
   const industryName = (key) => data?.industries.find((i) => i.key === key)?.name || key;
-  const tabs = [{ key: 'names', label: 'Industry and names' }, { key: 'industries', label: 'Industries' }, { key: 'stages', label: 'Kinds of work and stages' }, { key: 'fields', label: 'Fields' }, { key: 'roles', label: 'Project roles' }, { key: 'access', label: 'Access' }, { key: 'serious', label: 'Serious actions' }, { key: 'lists', label: 'Lists' }, { key: 'pipeline', label: 'Pipeline' }, { key: 'health', label: 'Client health' }, { key: 'directory', label: 'Directory' }, { key: 'money', label: 'Money' }, { key: 'work', label: 'Work and time' }, { key: 'tags', label: 'Conversation tags' }, { key: 'shortcuts', label: 'Shortcuts' }, { key: 'history', label: 'History and roll back' }];
+  const tabs = [{ key: 'names', label: 'Industry and names' }, { key: 'industries', label: 'Industries' }, { key: 'stages', label: 'Kinds of work and stages' }, { key: 'fields', label: 'Fields' }, { key: 'roles', label: 'Project roles' }, { key: 'access', label: 'Access' }, { key: 'serious', label: 'Serious actions' }, { key: 'lists', label: 'Lists' }, { key: 'pipeline', label: 'Pipeline' }, { key: 'health', label: 'Client health' }, { key: 'directory', label: 'Directory' }, { key: 'money', label: 'Money' }, { key: 'work', label: 'Work and time' }, { key: 'tags', label: 'Conversation tags' }, { key: 'linkroles', label: 'Link roles' }, { key: 'shortcuts', label: 'Shortcuts' }, { key: 'history', label: 'History and roll back' }];
 
   return (
     <AdminLayout><ProjectKeys />
@@ -312,6 +313,7 @@ export default function ProjectConfiguration() {
           {tab === 'money' && <><MoneySettingsPanel /><RatesPanel /></>}
           {tab === 'work' && <WorkSettingsPanel />}
           {tab === 'tags' && <TagsPanel />}
+          {tab === 'linkroles' && <LinkRolesPanel />}
           {tab === 'shortcuts' && <ShortcutsPanel onChanged={reloadNames} />}
 
           {tab === 'history' && (

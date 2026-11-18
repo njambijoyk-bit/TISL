@@ -27,12 +27,12 @@ class ProjectsLinksTest extends TestCase
     {
         parent::setUp();
         $this->createProjectsWorld();
-        Schema::create('voucher_types', function ($t) { $t->id(); $t->string('name'); });
+        Schema::create('voucher_types', function ($t) { $t->id(); $t->string('name'); $t->string('base_type')->nullable(); });
         Schema::create('currencies', function ($t) { $t->id(); $t->string('code'); });
         Schema::create('vouchers', function ($t) { $t->id(); $t->unsignedBigInteger('voucher_type_id'); $t->string('voucher_number'); $t->string('party_name')->nullable(); $t->string('reference_no')->nullable();
             $t->date('date')->nullable(); $t->string('status')->default('posted'); $t->decimal('total_amount', 14, 2)->nullable(); $t->unsignedBigInteger('currency_id')->nullable(); });
         Schema::create('events', function ($t) { $t->id(); $t->string('title'); $t->string('venue_name')->nullable(); $t->string('status')->default('published'); $t->softDeletes(); });
-        DB::table('voucher_types')->insert([['id' => 1, 'name' => 'Quotation'], ['id' => 2, 'name' => 'Sales Invoice']]);
+        DB::table('voucher_types')->insert([['id' => 1, 'name' => 'Quotation', 'base_type' => 'quotation'], ['id' => 2, 'name' => 'Sales Invoice', 'base_type' => 'sales']]);
         DB::table('currencies')->insert(['id' => 1, 'code' => 'KES']);
         DB::table('vouchers')->insert([
             ['id' => 10, 'voucher_type_id' => 1, 'voucher_number' => 'QT-0231', 'party_name' => 'Imara Sacco', 'date' => '2026-11-10', 'status' => 'posted', 'total_amount' => 1500000, 'currency_id' => 1],
@@ -184,5 +184,52 @@ class ProjectsLinksTest extends TestCase
 
         $this->expectException(\InvalidArgumentException::class);
         app(ProjectLinkTypes::class)->register('nonsense', ['label' => 'X', 'plural' => 'Xs', 'permission' => 'p', 'search' => fn () => [], 'describe' => fn () => []]);
+    }
+
+    public function test_a_link_says_what_it_is_to_the_work_and_the_agreed_value_is_added_up_from_the_books(): void
+    {
+        $r = $this->link('books.voucher', 10)->assertCreated()->json();
+        $q = $this->group($r, 'books.voucher')['items'][0];
+        $this->assertSame(['agreed_value', 'Posted', 'good'], [$q['role']['key'], $q['state']['label'], $q['state']['status']], 'a quotation is the agreed value on its own; its state is read from the books');
+        $r = $this->link('books.voucher', 11)->assertCreated()->json();
+        $this->assertNull(collect($this->group($r, 'books.voucher')['items'])->firstWhere('linked_id', 11)['role']);
+        $this->assertSame([['currency' => 'KES', 'amount' => 1500000]], $r['agreed']);
+        $this->assertSame(['Agreed value', 'Supplier', 'Deliverable', 'Related'], array_column($r['roles'], 'name'));
+
+        $inv = collect($this->group($r, 'books.voucher')['items'])->firstWhere('linked_id', 11)['id'];
+        $r = $this->putJson("/api/admin/projects/{$this->project}/links/{$inv}", ['role' => 'agreed_value', 'note' => 'Phase two'])->assertOk()->json();
+        $this->assertSame([['currency' => 'KES', 'amount' => 1980000]], $r['agreed'], 'both count; the amounts are the books\' own');
+        DB::table('vouchers')->where('id', 11)->update(['total_amount' => 500000]);
+        $this->assertSame(2000000, (int) $this->getJson("/api/admin/projects/{$this->project}/links")->json('agreed.0.amount'));
+        $this->putJson("/api/admin/projects/{$this->project}/links/{$inv}", ['role' => 'nonsense'])->assertStatus(422);
+        $this->assertSame(['old' => ['role' => null, 'note' => null], 'new' => ['role' => 'agreed_value', 'note' => 'Phase two']], ['old' => json_decode(DB::table('project_log')->where('action', 'link.changed')->value('old_values'), true), 'new' => json_decode(DB::table('project_log')->where('action', 'link.changed')->value('new_values'), true)]);
+        $this->assertSame(2, $this->getJson("/api/admin/projects/{$this->project}")->json('project.links_count'));
+    }
+
+    public function test_a_link_taken_off_can_be_put_back_and_the_record_is_never_touched(): void
+    {
+        $id = $this->link('events.event', 5)->assertCreated()->json('groups.1.items.0.id') ?? DB::table('project_links')->where('linked_id', 5)->value('id');
+        $r = $this->deleteJson("/api/admin/projects/{$this->project}/links/{$id}")->assertOk()->json();
+        $this->assertSame([['what' => 'Event', 'title' => 'Wing opening night', 'removed_by' => 'Kamau']], array_map(fn ($x) => array_intersect_key($x, ['what' => 1, 'title' => 1, 'removed_by' => 1]), $r['removed']));
+        $this->assertSame(1, DB::table('events')->where('id', 5)->count());
+        $r = $this->postJson("/api/admin/projects/{$this->project}/links/{$id}/restore")->assertOk()->json();
+        $this->assertSame(['Wing opening night'], array_column($this->group($r, 'events.event')['items'], 'title'));
+        $this->assertSame([], $r['removed']);
+        $this->postJson("/api/admin/projects/{$this->project}/links/{$id}/restore")->assertNotFound();
+        $this->assertSame(1, DB::table('project_log')->where('action', 'link.restored')->count());
+    }
+
+    public function test_link_roles_are_a_company_list_in_configuration(): void
+    {
+        $this->grant($this->kamau, ['admin.access', ...self::LEAD, 'projects.config.view', 'projects.config.manage']);
+        $this->postJson('/api/admin/projects/configuration/link-roles', ['name' => 'Subcontract', 'status' => 'info'])->assertOk();
+        $roles = $this->getJson('/api/admin/projects/configuration/link-roles')->assertOk()->json('roles');
+        $this->assertSame('subcontract', collect($roles)->firstWhere('name', 'Subcontract')['key']);
+        $this->postJson('/api/admin/projects/configuration/link-roles', ['name' => 'Subcontract'])->assertStatus(422);
+        $related = collect($roles)->firstWhere('key', 'related')['id'];
+        $this->putJson("/api/admin/projects/configuration/link-roles/{$related}", ['name' => 'Related', 'is_active' => false])->assertOk();
+        $this->link('events.event', 5)->assertCreated();
+        $id = DB::table('project_links')->where('linked_id', 5)->value('id');
+        $this->putJson("/api/admin/projects/{$this->project}/links/{$id}", ['role' => 'related'])->assertStatus(422)->assertJson(['message' => 'Choose what it is to the work from the list.']);
     }
 }

@@ -22,22 +22,31 @@ const project = { id: 52, number: 'BW-0052', title: 'Karura Lodge, 12-room wing'
   stages: [{ id: 1, name: 'Works', state: 'open', status: 'info', required_fields: [] }], cost_centre_path: 'Projects › BW-0052', words, can: CAN };
 let groups = [
   { type: 'books.voucher', label: 'Voucher', plural: 'Vouchers', items: [
-    { id: 1, linked_id: 10, title: 'Quotation QT-0231', detail: 'Karura Lodge · 2026-11-10', url: '/admin/books/vouchers/10', amount: 48600000, currency: 'KES', gone: false, note: 'The contract sum', added_by: 'Kamau', added_at: null },
+    { id: 1, linked_id: 10, title: 'Quotation QT-0231', detail: 'Karura Lodge · 2026-11-10', url: '/admin/books/vouchers/10', amount: 48600000, currency: 'KES', gone: false, note: 'The contract sum', added_by: 'Kamau', added_at: null, role: { key: 'agreed_value', name: 'Agreed value', status: 'good' }, state: { key: 'posted', label: 'Posted', status: 'good' } },
     { id: 2, linked_id: 11, title: 'Sales Invoice INV-0044', detail: 'Karura Lodge · 2026-11-12', url: '/admin/books/vouchers/11', amount: 3990000.5, currency: 'KES', gone: false, note: null, added_by: 'Amina', added_at: null }] },
   { type: 'events.event', label: 'Event', plural: 'Events', items: [{ id: 3, linked_id: 5, title: 'No longer there', detail: null, url: null, amount: null, currency: null, gone: true, note: null, added_by: 'Kamau', added_at: null }] }];
 let extra = { hidden: 0, off: [] };
 let canLinks = true;
-const answer = () => ({ groups, ...extra, can: { links: canLinks } });
+let removed = [];
+const roles = [{ id: 1, key: 'agreed_value', name: 'Agreed value', status: 'good' }, { id: 2, key: 'supplier', name: 'Supplier', status: 'info' }, { id: 4, key: 'related', name: 'Related', status: null }];
+const agreed = () => { const t = groups.flatMap((g) => g.items).filter((i) => i.role?.key === 'agreed_value' && i.amount != null).reduce((n, i) => n + i.amount, 0); return t ? [{ currency: 'KES', amount: t }] : []; };
+const answer = () => ({ groups, ...extra, roles, removed, agreed: agreed(), can: { links: canLinks } });
 
 await page.route('**/api/admin/projects/names', (route) => json(route, { ready: true, industry: 'construction', company_industry: 'construction', names: words }));
 await page.route(/\/api\/admin\/projects\/\d+$/, (route) => json(route, { project }));
 await page.route(/\/api\/admin\/projects\/\d+\/links\/find(\?.*)?$/, (route) => { const q = Object.fromEntries(new URL(route.request().url()).searchParams); sent.push(['find', q]);
   return json(route, { found: q.q === 'zzz' ? [] : q.type === 'events.event' ? [{ id: 6, title: 'Wing opening night', detail: 'Karura Lodge · Published' }] : [{ id: 12, title: 'Purchase PUR-0090', detail: 'Bamburi Cement · 2026-11-13' }] }); });
+await page.route(/\/api\/admin\/projects\/\d+\/links\/\d+\/restore$/, (route) => {
+  const id = Number(route.request().url().match(/links\/(\d+)\/restore$/)[1]); sent.push(['restore', id]);
+  const r = removed.find((x) => x.id === id); removed = removed.filter((x) => x.id !== id);
+  groups = groups.map((g) => (g.type === 'books.voucher' ? { ...g, items: [...g.items, r.item] } : g)); return json(route, answer());
+});
 await page.route(/\/api\/admin\/projects\/\d+\/links(\/\d+)?$/, (route) => {
   const method = route.request().method(); const id = Number((route.request().url().match(/links\/(\d+)$/) || [])[1]);
+  if (method === 'PUT') { const b = route.request().postDataJSON(); sent.push(['change', id, b]); groups = groups.map((g) => ({ ...g, items: g.items.map((i) => (i.id === id ? { ...i, role: roles.find((r) => r.key === b.role) ?? null } : i)) })); }
   if (method === 'POST') { const b = route.request().postDataJSON(); sent.push(['add', b]); if (b.linked_id === 12) return json(route, { message: 'It is already linked.' }, 422);
     groups = groups.map((g) => (g.type === b.type ? { ...g, items: [...g.items, { id: 9, linked_id: b.linked_id, title: 'Wing opening night', detail: 'Karura Lodge · Published', url: '/admin/events/6', amount: null, currency: null, gone: false, note: b.note, added_by: 'Kamau', added_at: null }] } : g)); }
-  if (method === 'DELETE') { sent.push(['remove', id]); groups = groups.map((g) => ({ ...g, items: g.items.filter((i) => i.id !== id) })); }
+  if (method === 'DELETE') { sent.push(['remove', id]); const item = groups.flatMap((g) => g.items).find((i) => i.id === id); removed = [{ id, what: 'Voucher', title: item.title, removed_by: 'Kamau', gone: false, item }, ...removed]; groups = groups.map((g) => ({ ...g, items: g.items.filter((i) => i.id !== id) })); }
   return json(route, answer(), method === 'POST' ? 201 : 200);
 });
 
@@ -78,6 +87,18 @@ await page.getByRole('button', { name: 'Unlink Sales Invoice INV-0044' }).click(
 await page.getByRole('button', { name: 'Yes, take it off' }).click();
 await page.locator('[data-link="Sales Invoice INV-0044"]').waitFor({ state: 'detached', timeout: 5000 });
 ok('saying yes sends it', JSON.stringify(last('remove')) === JSON.stringify(['remove', 2]));
+ok('a link taken off is listed under "Taken off"', /Taken off .*Voucher: Sales Invoice INV-0044 · taken off by Kamau/.test(await body()));
+await page.getByRole('button', { name: 'Put back Sales Invoice INV-0044' }).click();
+await page.locator('[data-link="Sales Invoice INV-0044"]').waitFor({ timeout: 5000 });
+ok('it can be put back', JSON.stringify(last('restore')) === JSON.stringify(['restore', 2]) && (await page.locator('[data-links-removed]').count()) === 0);
+ok('each link shows what it is to the work and the record\'s own state; the agreed value is added up', /Agreed value Posted/.test(await page.locator('[data-link="Quotation QT-0231"]').innerText().then((t) => t.replace(/\s+/g, ' '))) && /Agreed value: KES 48,600,000 read from the books now/.test(await body()));
+await page.getByLabel('What Sales Invoice INV-0044 is to the work').selectOption('agreed_value');
+await page.waitForTimeout(400);
+ok('marking another as agreed value is sent and the total follows', JSON.stringify(last('change')) === JSON.stringify(['change', 2, { role: 'agreed_value' }]) && /Agreed value: KES 52,590,000\.5/.test(await body()));
+await page.getByLabel('Show', { exact: true }).selectOption('supplier');
+ok('the links can be filtered by what they are', /None linked like that\./.test(await body()) && (await page.locator('[data-link="Quotation QT-0231"]').count()) === 0);
+await page.getByLabel('Show', { exact: true }).selectOption('');
+await page.screenshot({ path: D + 'projects-links-roles.png', fullPage: true });
 
 groups = [groups[0]];
 extra = { hidden: 2, off: ['Events'] };

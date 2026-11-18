@@ -213,11 +213,11 @@ class ProjectController extends Controller
 
     public function addLink(Request $request, int $project): JsonResponse
     {
-        $data = $request->validate(['type' => 'required|string|max:80', 'linked_id' => 'required|integer', 'note' => 'nullable|string|max:200']);
+        $data = $request->validate(['type' => 'required|string|max:80', 'linked_id' => 'required|integer', 'note' => 'nullable|string|max:200', 'role' => 'nullable|string|max:30']);
 
         return $this->guard(function () use ($request, $project, $data) {
             $p = $this->projects->findFor($request->user(), $project);
-            app(ProjectLinks::class)->add($p, $data['type'], (int) $data['linked_id'], $data['note'] ?? null, $request->user());
+            app(ProjectLinks::class)->add($p, $data['type'], (int) $data['linked_id'], $data['note'] ?? null, $request->user(), $data['role'] ?? null);
 
             return $this->linkList($request, $p, 201);
         });
@@ -230,6 +230,40 @@ class ProjectController extends Controller
             app(ProjectLinks::class)->remove($p, $link, $request->user());
 
             return $this->linkList($request, $p);
+        });
+    }
+
+    public function changeLink(Request $request, int $project, int $link): JsonResponse
+    {
+        return $this->guard(function () use ($request, $project, $link) {
+            $p = $this->projects->findFor($request->user(), $project);
+            app(ProjectLinks::class)->change($p, $link, $request->only(['role', 'note']), $request->user());
+
+            return $this->linkList($request, $p);
+        });
+    }
+
+    public function restoreLink(Request $request, int $project, int $link): JsonResponse
+    {
+        return $this->guard(function () use ($request, $project, $link) {
+            $p = $this->projects->findFor($request->user(), $project);
+            app(ProjectLinks::class)->restore($p, $link, $request->user());
+
+            return $this->linkList($request, $p);
+        });
+    }
+
+    public function linkRoles(Request $request): JsonResponse
+    {
+        return response()->json(['roles' => app(ProjectLinks::class)->roles(true), 'can' => ['change' => $request->user()->hasPermission('projects.config.manage')]]);
+    }
+
+    public function saveLinkRole(Request $request, ?int $role = null): JsonResponse
+    {
+        return $this->guard(function () use ($request, $role) {
+            app(ProjectLinks::class)->saveRole($role, $request->all(), $request->user());
+
+            return $this->linkRoles($request);
         });
     }
 

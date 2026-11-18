@@ -14,8 +14,13 @@ namespace App\Services\Projects;
  *   label       one of them ("Voucher"), plural ("Vouchers")
  *   permission  what a person must hold to see and pick these records
  *   search      fn (string $q): array<int, array{id: int, title: string, detail: ?string}>     what can be picked
- *   describe    fn (int[] $ids): array<int, array{title: string, detail: ?string, url: ?string, amount?: ?float, currency?: ?string}>
+ *   describe    fn (int[] $ids): array<int, array{title: string, detail: ?string, url: ?string, amount?: ?float, currency?: ?string, state?: ?string}>
  *               (an amount is READ from the module that owns it, every time; Projects never keeps one)
+ * Optional (stage 7):
+ *   states      [state => [label, status]]  how the record's own state reads; status is a named status (info, good, warning, problem), never a colour
+ *   value       true when the record can be the agreed value of the work (quotations, sales orders): its amount is added up under "Agreed value"
+ *   role        the link role a new link gets unless the person picks another (a key from project_link_roles), or fn (int $id): ?string
+ *   create      fn (object $project): ?string   where the module's own form starts a new one for this work (it links it back on save)
  */
 class ProjectLinkTypes
 {

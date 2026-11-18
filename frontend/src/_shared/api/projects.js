@@ -28,6 +28,10 @@ const projectsAPI = {
   findLinkable: async (id, type, q) => (await api.get(`/admin/projects/${id}/links/find`, { params: { type, q } })).data.found,
   addLink: async (id, data) => (await api.post(`/admin/projects/${id}/links`, data)).data,
   removeLink: async (id, linkId) => (await api.delete(`/admin/projects/${id}/links/${linkId}`)).data,
+  changeLink: async (id, linkId, data) => (await api.put(`/admin/projects/${id}/links/${linkId}`, data)).data,
+  restoreLink: async (id, linkId) => (await api.post(`/admin/projects/${id}/links/${linkId}/restore`)).data,
+  linkRoles: async () => (await api.get('/admin/projects/configuration/link-roles')).data,
+  saveLinkRole: async (id, data) => (id ? await api.put(`/admin/projects/configuration/link-roles/${id}`, data) : await api.post('/admin/projects/configuration/link-roles', data)).data,
   linkedTo: async (type, id) => (await api.get('/admin/projects/linked', { params: { type, id } })).data.projects,
 
   // the log and the trash

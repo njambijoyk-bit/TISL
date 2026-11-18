@@ -52,6 +52,12 @@ class ProjectsSetup
     }
 
     /** Look again at the next call (a test or a script creates the tables). */
+    /** Script 264: link roles (stage 7). */
+    public static function links(): bool
+    {
+        return self::once('links', fn () => self::ready() && Schema::hasTable('project_link_roles') && Schema::hasColumn('project_links', 'role_key'));
+    }
+
     public static function forget(): void
     {
         foreach (['ready', 'control_room', 'relationships', 'money', 'work', 'messages'] as $k) {

@@ -2145,6 +2145,11 @@ Route::middleware('auth:sanctum')->group(function () {
             Route::get('/{project}/links/find', [$prj, 'findLinkable'])->whereNumber('project')->middleware('permission:projects.links');
             Route::post('/{project}/links', [$prj, 'addLink'])->whereNumber('project')->middleware('permission:projects.links');
             Route::delete('/{project}/links/{link}', [$prj, 'removeLink'])->whereNumber(['project', 'link'])->middleware('permission:projects.links');
+            Route::put('/{project}/links/{link}', [$prj, 'changeLink'])->whereNumber(['project', 'link'])->middleware('permission:projects.links');
+            Route::post('/{project}/links/{link}/restore', [$prj, 'restoreLink'])->whereNumber(['project', 'link'])->middleware('permission:projects.links');
+            Route::get('/configuration/link-roles', [$prj, 'linkRoles'])->middleware('permission:projects.config.view');
+            Route::post('/configuration/link-roles', [$prj, 'saveLinkRole'])->middleware('permission:projects.config.manage');
+            Route::put('/configuration/link-roles/{role}', [$prj, 'saveLinkRole'])->whereNumber('role')->middleware('permission:projects.config.manage');
             Route::get('/{project}/phases', [$prj, 'phases'])->whereNumber('project');
             Route::post('/{project}/phases', [$prj, 'addPhase'])->whereNumber('project')->middleware('permission:projects.phases');
             Route::put('/{project}/phases/{phase}', [$prj, 'changePhase'])->whereNumber(['project', 'phase'])->middleware('permission:projects.phases');

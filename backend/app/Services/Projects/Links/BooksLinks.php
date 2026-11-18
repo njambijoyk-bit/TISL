@@ -16,7 +16,15 @@ class BooksLinks
     public static function register(ProjectLinkTypes $types): void
     {
         $types->register('books.voucher', [
-            'module' => null, 'label' => 'Voucher', 'plural' => 'Vouchers', 'permission' => 'books.view',
+            'module' => null, 'label' => 'Voucher', 'plural' => 'Vouchers', 'permission' => 'books.view', 'value' => true,
+            'states' => ['draft' => ['Draft', null], 'posted' => ['Posted', 'good'], 'approved' => ['Approved', 'good'], 'accepted' => ['Accepted', 'good'], 'declined' => ['Declined', 'problem'],
+                'cancelled' => ['Cancelled', 'problem'], 'completed' => ['Completed', 'good'], 'delivered' => ['Delivered', 'good'], 'awaiting_payment' => ['Waiting for payment', 'warning']],
+            // a quotation or a sales order is the agreed value of the work; a purchase or its order is from a supplier
+            'role' => function (int $id): ?string {
+                $base = Schema::hasColumn('voucher_types', 'base_type') ? DB::table('vouchers as v')->join('voucher_types as t', 't.id', '=', 'v.voucher_type_id')->where('v.id', $id)->value('t.base_type') : null;
+
+                return match ($base) { 'quotation', 'sales_order' => 'agreed_value', 'purchase', 'purchase_order' => 'supplier', default => null };
+            },
             'search' => function (string $q): array {
                 if (! Schema::hasTable('vouchers')) {
                     return [];
@@ -40,6 +48,6 @@ class BooksLinks
             ->addSelect('v.id', 'v.voucher_number', 'v.party_name', 'v.date', 'v.status', 'v.total_amount')->get()
             ->map(fn ($v) => ['id' => (int) $v->id, 'title' => trim(($v->type_name ?? 'Voucher') . ' ' . $v->voucher_number),
                 'detail' => implode(' · ', array_filter([$v->party_name, $v->date ? substr((string) $v->date, 0, 10) : null, $v->status === 'cancelled' ? 'Cancelled' : null])) ?: null,
-                'url' => '/admin/books/vouchers/' . $v->id, 'amount' => $v->total_amount === null ? null : (float) $v->total_amount, 'currency' => $v->currency_code ?? null]);
+                'url' => '/admin/books/vouchers/' . $v->id, 'amount' => $v->total_amount === null ? null : (float) $v->total_amount, 'currency' => $v->currency_code ?? null, 'state' => $v->status ?: null]);
     }
 }

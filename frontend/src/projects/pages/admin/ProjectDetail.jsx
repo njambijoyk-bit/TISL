@@ -235,6 +235,7 @@ export default function ProjectDetail() {
           {p.cost_centre_path
             ? <Row label="Cost centre">{p.cost_centre_path}</Row>
             : <p style={{ margin: 0, fontSize: 13.5, color: 'var(--text-secondary)' }}>It has no cost centre: the books had none when it was started.</p>}
+          {p.links_count != null && <Row label="Linked records"><Btn small variant="quiet" style={{ padding: 0 }} data-overview-links onClick={() => setTab('links')}>{p.links_count === 0 ? 'None yet' : `${p.links_count} from other modules`}</Btn></Row>}
         </Panel>
       </div>
       )}
