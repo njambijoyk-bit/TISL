@@ -29,6 +29,7 @@ class AdminRoutesNeedAPermissionTest extends TestCase
         'api/admin/petty-cash' => 'PettyCashService: a till spends its own float; top-up and the float need books.pettycash',
         'api/admin/calendar' => 'CalendarService: your own calendar; the team calendar needs calendar.team',
         'api/admin/my-payslips' => 'only ever the signed-in person\'s own payslips',
+        'api/admin/notifications/my-channels' => 'only ever the signed-in person\'s own choice of how they hear (StaffChannels)',
         'api/admin/currencies' => 'read-only lookup every screen needs (changes need currency.manage)',
         'api/admin/activity-feed' => 'ActivityFeedService shows each person only the feeds their permissions open',
         'api/admin/codes/scan' => 'CodeResolvers: each code type names the permission a scan needs',
