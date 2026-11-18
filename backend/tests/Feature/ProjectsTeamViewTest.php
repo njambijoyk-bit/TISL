@@ -44,4 +44,35 @@ class ProjectsTeamViewTest extends ProjectsTeamTest
         Sanctum::actingAs($this->njeri, ['*']);
         $this->getJson('/api/admin/projects/team')->assertForbidden();
     }
+
+    public function test_certificates_running_out_tell_the_person_and_their_manager_once_at_each_mark(): void
+    {
+        $told = [];
+        $this->app->instance(\App\Services\Notify\Notifier::class, new class($told) extends \App\Services\Notify\Notifier {
+            public function __construct(private array &$told) {}
+
+            public function send(\Illuminate\Database\Eloquent\Model $to, string $type, string $title, string $message, array $o = []): array
+            {
+                $this->told[] = [$to->name, $type, $title];
+
+                return ['notification' => null, 'channels' => [], 'skipped' => [], 'staff_list' => false];
+            }
+        });
+        $c = app(\App\Services\Projects\ProjectCertificates::class);
+        $this->assertSame(0, $c->warn(\Carbon\Carbon::parse('2026-11-18')), '13 days left: no mark');
+        $this->assertSame(1, $c->warn(\Carbon\Carbon::parse('2026-11-24')));
+        $this->assertSame([['Njeri', 'project_people', 'First aid runs out in 7 days'], ['Kamau', 'project_people', 'Njeri: First aid runs out in 7 days']], $told, 'her manager is Kamau');
+        $told = [];
+        $c->warn(\Carbon\Carbon::parse('2026-12-01'));
+        $this->assertSame('First aid runs out today', $told[0][2]);
+        $this->assertSame('projects', \App\Services\Notify\NotificationTypes::groupOf('project_people'));
+    }
+
+    public function test_the_invite_list_shows_each_persons_skills(): void
+    {
+        $p = (int) $this->postJson('/api/admin/projects', ['type_id' => DB::table('project_types')->where('industry_key', 'general')->value('id'), 'title' => 'Another'])->json('project.id');
+        $this->grant($this->wanjiru, ['admin.access', 'projects.use', 'projects.create', 'projects.tasks', 'projects.team.view', 'projects.team.manage', 'projects.members.view', 'projects.members.manage']);
+        $c = collect($this->getJson("/api/admin/projects/{$p}/members")->assertOk()->json('candidates'));
+        $this->assertSame(['Drafting', 'Court work'], $c->firstWhere('name', 'Kamau')['skills']);
+    }
 }

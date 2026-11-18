@@ -98,3 +98,11 @@ Screens: `docs/screens/projects-team.png`, `docs/screens/projects-person.png`.
 - **A person's page:** their open tasks by due date, this week's time by day, skills and certificates from HR (with when each runs out, once HR has the date: 8.2), and the work they are on. Someone not in the viewer's line is "not found".
 - **Routes:** `GET /projects/team`, `GET /projects/team/{user}`.
 - **Tests:** `tests/Feature/ProjectsTeamViewTest.php` (2, on a shared world in `ProjectsTeamTest`). Browser check `e2e/projects-team-ui.mjs` (5 checks).
+
+### 8.2 Skills and certificates (done)
+
+- **HR, owner's choice 1:** adding a certificate on an employee's page now takes "Runs out on" (optional, not before the date obtained), and the certificate list shows "Runs out" or "Ran out" with the date. Nothing else in HR changed, and certificates already there carry on as before.
+- **Warnings:** every morning (`projects:certificate-warnings`, 07:10) the person and their manager (HR's line) are told when a certificate has 60, 30 or 7 days left, and on the day it runs out. The days are exact, so each warning goes once. New notice type "Projects: people", in the Projects group of the staff channel choices.
+- **Seen in Projects:** the team view marks people with a certificate running out within 60 days; a person's page lists each with its date (warning within 60 days, problem once it has run out).
+- **Find by skill:** the team view's skill filter (8.1), and the People tab's invite list now shows each person's skills beside their name.
+- **Tests:** two more in `tests/Feature/ProjectsTeamViewTest.php` (now 4).

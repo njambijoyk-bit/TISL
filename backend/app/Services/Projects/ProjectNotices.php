@@ -20,6 +20,8 @@ class ProjectNotices
     public const MESSAGE = 'project_message';
     public const FOLLOW = 'project_follow';
     public const MEETING = 'project_meeting';
+    public const PEOPLE = 'project_people';
+    public const CASEBOOK = 'project_casebook';
     public const MEETING_INVITE = 'project_meeting_invite';
 
     /** @param iterable<User>|User|null $to */

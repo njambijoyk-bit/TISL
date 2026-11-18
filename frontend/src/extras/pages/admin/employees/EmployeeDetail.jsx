@@ -147,7 +147,7 @@ export default function EmployeeDetail() {
   const [newSkill, setNewSkill]               = useState('');
 
   const [showCertModal, setShowCertModal] = useState(false);
-  const [newCert, setNewCert] = useState({ name: '', issuer: '', date: '' });
+  const [newCert, setNewCert] = useState({ name: '', issuer: '', date: '', expires_on: '' });
 
   const [editingTermDate, setEditingTermDate] = useState(false);
   const [termDate, setTermDate]               = useState('');
@@ -217,7 +217,7 @@ export default function EmployeeDetail() {
     try {
       await employeesApi.addCertification(id, newCert);
       toast.success('Certification added');
-      setNewCert({ name: '', issuer: '', date: '' });
+      setNewCert({ name: '', issuer: '', date: '', expires_on: '' });
       setShowCertModal(false);
       fetchEmployee();
     } catch { toast.error('Failed to add certification'); }
@@ -604,6 +604,7 @@ export default function EmployeeDetail() {
                             <p style={{ fontSize: '0.82rem', fontWeight: 600, color: 'var(--text-primary)', margin: '0 0 1px' }}>{cert.name || cert}</p>
                             {cert.issuer && <p style={{ fontSize: '0.72rem', color: 'var(--text-tertiary)', margin: '0 0 1px' }}>{cert.issuer}</p>}
                             {cert.date && <p style={{ fontSize: '0.65rem', color: 'var(--text-tertiary)', margin: 0 }}>{fmtDate(cert.date)}</p>}
+                            {cert.expires_on && <p style={{ fontSize: '0.65rem', color: cert.expires_on < new Date().toISOString().slice(0, 10) ? 'var(--status-danger, var(--text-primary))' : 'var(--text-tertiary)', margin: 0, fontWeight: 600 }}>{cert.expires_on < new Date().toISOString().slice(0, 10) ? 'Ran out' : 'Runs out'} {fmtDate(cert.expires_on)}</p>}
                           </div>
                         </div>
                         <button onClick={() => handleRemoveCertification(i)} style={{ background: 'none', border: 'none', cursor: 'pointer', padding: 2, color: 'var(--text-tertiary)', display: 'flex', alignItems: 'center', flexShrink: 0 }}
@@ -682,7 +683,7 @@ export default function EmployeeDetail() {
       )}
 
       {showCertModal && (
-        <Modal onClose={() => { setShowCertModal(false); setNewCert({ name: '', issuer: '', date: '' }); }} title="Add Certification" icon={<GraduationCap size={16} style={{ color: 'var(--color-primary-600)' }} />} iconBg="color-mix(in srgb, var(--color-primary-500) 10%, transparent)">
+        <Modal onClose={() => { setShowCertModal(false); setNewCert({ name: '', issuer: '', date: '', expires_on: '' }); }} title="Add Certification" icon={<GraduationCap size={16} style={{ color: 'var(--color-primary-600)' }} />} iconBg="color-mix(in srgb, var(--color-primary-500) 10%, transparent)">
           <div style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
             <div>
               <label style={{ fontSize: '0.72rem', fontWeight: 700, color: 'var(--text-secondary)', display: 'block', marginBottom: 6 }}>Certification Name *</label>
@@ -696,8 +697,12 @@ export default function EmployeeDetail() {
               <label style={{ fontSize: '0.72rem', fontWeight: 700, color: 'var(--text-secondary)', display: 'block', marginBottom: 6 }}>Date Obtained</label>
               <input type="date" value={newCert.date} onChange={e => setNewCert(p => ({ ...p, date: e.target.value }))} style={inputStyle} onFocus={iFocus} onBlur={iBlur} />
             </div>
+            <div>
+              <label style={{ fontSize: '0.72rem', fontWeight: 700, color: 'var(--text-secondary)', display: 'block', marginBottom: 6 }}>Runs Out On (optional)</label>
+              <input type="date" aria-label="Runs out on" value={newCert.expires_on} min={newCert.date || undefined} onChange={e => setNewCert(p => ({ ...p, expires_on: e.target.value }))} style={inputStyle} onFocus={iFocus} onBlur={iBlur} />
+            </div>
             <div style={{ display: 'flex', gap: 10 }}>
-              <button onClick={() => { setShowCertModal(false); setNewCert({ name: '', issuer: '', date: '' }); }} style={{ flex: 1, padding: '9px 0', borderRadius: 9, border: '1.5px solid var(--line)', background: 'none', fontSize: '0.82rem', fontWeight: 600, color: 'var(--text-secondary)', cursor: 'pointer', fontFamily: 'inherit' }}>Cancel</button>
+              <button onClick={() => { setShowCertModal(false); setNewCert({ name: '', issuer: '', date: '', expires_on: '' }); }} style={{ flex: 1, padding: '9px 0', borderRadius: 9, border: '1.5px solid var(--line)', background: 'none', fontSize: '0.82rem', fontWeight: 600, color: 'var(--text-secondary)', cursor: 'pointer', fontFamily: 'inherit' }}>Cancel</button>
               <button onClick={handleAddCertification} disabled={actionLoading} style={{ flex: 1, padding: '9px 0', borderRadius: 9, border: 'none', fontSize: '0.82rem', fontWeight: 700, cursor: 'pointer', fontFamily: 'inherit', background: 'linear-gradient(135deg,var(--color-primary-500),var(--color-primary-600))', color: 'white', opacity: actionLoading ? 0.6 : 1 }}>
                 {actionLoading ? 'Adding…' : 'Add Certification'}
               </button>

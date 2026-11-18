@@ -782,6 +782,7 @@ class EmployeeController extends Controller
             'name'   => 'required|string|max:255',
             'issuer' => 'nullable|string|max:255',
             'date'   => 'nullable|date',
+            'expires_on' => 'nullable|date|after_or_equal:date',   // when it runs out (Projects build 8.2 warns the person and their manager)
         ]);
 
         if ($validator->fails()) {
@@ -795,6 +796,7 @@ class EmployeeController extends Controller
             'name'   => $request->name,
             'issuer' => $request->issuer,
             'date'   => $request->date,
+            'expires_on' => $request->expires_on,
         ]);
 
         $employee->update(['certifications' => $certifications]);

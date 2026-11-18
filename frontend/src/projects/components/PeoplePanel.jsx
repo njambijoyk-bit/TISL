@@ -69,7 +69,7 @@ export default function PeoplePanel({ projectId, word, onTransferred }) {
           <Field label="Person" htmlFor="member-person">
             <SelectInput id="member-person" value={form.user_id} onChange={(e) => setForm({ ...form, user_id: e.target.value })} required>
               <option value="">Choose…</option>
-              {data.candidates.map((u) => <option key={u.id} value={u.id}>{u.name}</option>)}
+              {data.candidates.map((u) => <option key={u.id} value={u.id}>{u.name}{u.skills?.length ? ` · ${u.skills.join(', ')}` : ''}</option>)}
             </SelectInput>
           </Field>
           <Field label="As" htmlFor="member-role">

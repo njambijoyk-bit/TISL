@@ -163,7 +163,9 @@ class ProjectMembers
     {
         $taken = DB::table('project_members')->where('project_id', $project->id)->whereIn('status', ['active', 'invited'])->pluck('user_id')->all();
 
-        return app(\App\Services\Notify\Staff::class)->holding('projects.use')->reject(fn ($u) => in_array($u->id, $taken))->map(fn ($u) => ['id' => (int) $u->id, 'name' => $u->name])->sortBy('name')->values()->all();
+        $team = app(ProjectTeam::class);   // each with their skills from HR, to find the right person (stage 8)
+
+        return app(\App\Services\Notify\Staff::class)->holding('projects.use')->reject(fn ($u) => in_array($u->id, $taken))->map(fn ($u) => ['id' => (int) $u->id, 'name' => $u->name, 'skills' => $team->hr((int) $u->id)['skills']])->sortBy('name')->values()->all();
     }
 
     // ------------------------------------------------------------------ inside
