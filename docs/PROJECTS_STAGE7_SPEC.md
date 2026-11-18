@@ -29,7 +29,6 @@ Registered from Core (no licence needed), each behind its own permission:
 | Support ticket | `tickets.manage` |
 | Booking (a resource booked) | the bookings permission |
 | Product or service | `catalogue.view` |
-| Stock item | `stock.view` |
 | Vendor, and a vendor's order | `vendors.view` |
 | Tender | `tenders.view` |
 | Customer quotation request | `quotes.view` |
@@ -113,3 +112,23 @@ Screen: `docs/screens/projects-links-roles.png`.
 - **Every change of role or note and every putting back is in the log.**
 - **Routes:** `PUT /projects/{project}/links/{link}` (role, note), `POST /projects/{project}/links/{link}/restore`, `GET`, `POST /projects/configuration/link-roles`, `PUT /projects/configuration/link-roles/{role}`.
 - **Tests:** three more in `tests/Feature/ProjectsLinksTest.php` (now 11). Browser check `e2e/projects-links-ui.mjs` (now 23 checks).
+
+### 7.2 Core records (done)
+
+- **Registered from Core** (`Links\CoreLinks`), each behind its own permission, each showing its own state:
+
+| Record | Seen with | Usual role | Opens |
+|---|---|---|---|
+| Support ticket | `tickets.manage` | Related | the ticket |
+| Booking | `bookings.manage` | Related | Bookings, on that booking |
+| Product or service | `catalogue.view` | Deliverable | the product |
+| Vendor | `vendors.view` | Supplier | the vendor's file |
+| Vendor order (with its total, read from the order) | `vendors.view` | Supplier | the vendor's file |
+| Tender (comes with the Extras module) | `tenders.view` | Related | the tender |
+| Quotation request | `quotes.view` | Related | the request |
+
+- **Stock items are products** in TISL, so "Product or service" covers them; there is no separate stock-item link.
+- **A supplier's order is never added into the agreed value**, even with an amount: only links marked "Agreed value" are.
+- **Nothing new on screen:** the Links tab shows a group for each kind the person may see. Someone without a module's permission is not offered it and is told only how many links they cannot see.
+- **One small builder** (`CoreLinks::type`) registers a record over one table in a few lines; the paid modules in 7.3 use it too.
+- **Tests:** `tests/Feature/ProjectsCoreLinksTest.php` (2).
