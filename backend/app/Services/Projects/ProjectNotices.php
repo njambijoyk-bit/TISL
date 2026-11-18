@@ -17,6 +17,8 @@ class ProjectNotices
     public const TASK = 'project_task';
     public const KEY_DATE = 'project_key_date';
     public const TIMESHEET = 'project_timesheet';
+    public const MESSAGE = 'project_message';
+    public const FOLLOW = 'project_follow';
 
     /** @param iterable<User>|User|null $to */
     public static function tell(iterable|User|null $to, string $type, string $title, string $message, ?string $path = null, ?string $linkText = null): void

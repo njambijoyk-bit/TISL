@@ -61,6 +61,7 @@ node e2e/projects-time-ui.mjs                    # Projects: time on the Work ta
 node e2e/projects-timesheet-ui.mjs               # Projects: the timesheet (my week by day with Attendance, sent-back notes, submitting; approving or sending back by person) (needs only the website)
 node e2e/projects-time-billing-ui.mjs            # Projects: time and costs to bill at Books' prices, no-rate warning, writing off, billing posted or drafted (Books form with a service line), the rate card (needs only the website)
 node e2e/projects-my-work-ui.mjs                 # Projects: My Work (the week and timer, what waits, key dates, tasks by when, follow-ups, submitting) and G then M (needs only the website)
+node e2e/projects-messages-ui.mjs                # Projects: the Messages tab (conversations, unread, what was sent where, replies that came in, writing, starting a client conversation, closing) (needs only the website)
 ```
 
 Needs Playwright (`PLAYWRIGHT_MODULE_DIR` points at the folder holding it, default `/opt/node22/lib/node_modules/`) and a Chromium (`CHROME`).

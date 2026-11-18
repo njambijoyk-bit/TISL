@@ -1,6 +1,6 @@
-# Projects Stage 6: Messages, meetings, working together (design)
+# Projects Stage 6: Messages, meetings, working together (being built)
 
-Status: DESIGN, written 2026-11-18 for the owner to read. Nothing here is built. Say "build" to accept the four choices at the end, or change any of them.
+Status: the owner said "build" on 2026-11-18, accepting the four choices at the end. What is built so far is listed under "As built"; everything else is still design.
 
 Stages 1 to 5 built the work, its people, its money and the doing of it. Stage 6 builds the talking about it: conversations on each piece of work (inside the team, with the client, with other parties), one inbox across all of them, meetings with minutes, following things, and handing someone's work over.
 
@@ -106,7 +106,7 @@ Plus the company's defaults and locks in the existing notification settings.
 |---|---|
 | `project_threads` | A conversation: work, subject, audience, owner, open or closed, last message |
 | `project_thread_people` | Contacts in a client or others conversation |
-| `project_messages` | Messages: conversation, from (a person or a contact), text, how it came (app, email, WhatsApp), edited, removed |
+| `project_thread_messages` | Messages: conversation, from (a person or a contact), text, how it came (app, email, WhatsApp), edited, removed |
 | `project_message_mentions` | Who a message mentions |
 | `project_message_reads` | How far each person has read each conversation |
 | `project_tags`, `project_thread_tags` | The company's tags, and which conversations carry them |
@@ -136,3 +136,25 @@ Every build runs the Projects, Notifier and Calendar tests and the Projects brow
 2. **Who sees a client conversation:** the team and the client's chosen contacts only; other parties get their own "Others" conversations, so nothing meant for the client reaches the other side by mistake. The other way: one conversation can mix client and party contacts.
 3. **Staff channel choices:** each person chooses per group of notices, from the company's default, and the company can lock a group. The other way: the company decides for everyone, per group, and staff cannot change it.
 4. **Handing over someone else's work:** a serious action (out of the box it needs nothing, and the company can ask for a supervisor or identity in Configuration). The other way: just the permission.
+
+## As built
+
+### To run
+
+1. `backend/database/sql/262_notify_staff_and_replies.sql` (Core; three tables) and `backend/database/sql/263_projects_messages.sql` (after 257 to 261; eleven tables, the new project-role abilities and four starting tags). Both add only.
+2. No permission seed.
+
+### 6.1 Conversations (done)
+
+Screen: `docs/screens/projects-messages.png`.
+
+- **The messages table is `project_thread_messages`, not `project_messages`:** the old Projects module had a `project_messages` table (script 256 drops it), so the new one has a name that can never meet it.
+- **Scripts 262 and 263** make all of the stage's tables now (fourteen in all), so each is run once.
+- **Service:** `ProjectThreads`. **Tab:** Messages, shown to people with either message permission.
+- **Audiences:** team (`projects.messages.internal`), client and others (`projects.messages.client`). Reading needs the audience's permission and the right to open the work; writing also needs a project role that may talk (new ability `talk`, Lead and Member) and work that is not frozen. Someone without the client permission does not see client or others conversations at all.
+- **Owner's choice 2:** a client conversation takes only the client's contacts (Stage 3); other parties' contacts (of parties linked to the work) go in "Others" conversations. A contact with no email and no phone cannot be chosen.
+- **Sending:** each message the team writes in a client or others conversation goes to every contact in it through `Notifier::sendToContact` (new notice type "Projects: messages from the team about your work", essential, so a client who chose "essential only" still gets it), with the conversation's subject and the work's number. What went to whom and by which channels is kept on the message and shown under it.
+- **Owner, open or closed:** each conversation has a person on the work who answers it; closing hides it from the open list; a new message opens it again. Subject, owner and contacts can be changed.
+- **Read state:** per person per conversation; opening it marks it read; unread counts in the list (your own messages never count).
+- **Routes:** `GET`, `POST /projects/{project}/threads`; `GET`, `PUT /projects/{project}/threads/{thread}`; `POST /projects/{project}/threads/{thread}/messages`.
+- **Tests:** `tests/Feature/ProjectsThreadsTest.php` (3); two earlier tests now expect the new abilities. All Projects tests pass. Browser check `e2e/projects-messages-ui.mjs` (8 checks).

@@ -23,6 +23,7 @@ class ProjectAccess
         'links' => 'projects.links', 'log' => 'projects.log.view', 'access' => 'projects.access.rules', 'parties' => 'projects.parties', 'money' => 'projects.money.view',
         'tasks' => 'projects.tasks', 'time' => 'projects.time.log', 'approve_time' => 'projects.time.approve', 'scope' => 'projects.scope', 'dates' => 'projects.dates',
         'changes' => 'projects.changes', 'changes_approve' => 'projects.changes.approve',
+        'talk_team' => 'projects.messages.internal', 'talk_client' => 'projects.messages.client', 'moderate' => 'projects.messages.moderate', 'meet' => 'projects.meetings',
     ];
 
     /** what is asked => the ability their project role must have */
@@ -31,6 +32,7 @@ class ProjectAccess
         'members' => 'members', 'members_view' => 'open', 'links' => 'links', 'log' => 'log', 'access' => 'access', 'parties' => 'links',   // other parties are attached like links are
         'money' => 'money', 'tasks' => 'tasks', 'time' => 'time', 'approve_time' => 'approve_time', 'scope' => 'tasks', 'dates' => 'tasks',   // scope lines and key dates are kept by whoever works the tasks
         'changes' => 'tasks', 'changes_approve' => 'edit',   // anyone working the tasks raises a change; deciding on one is for those who may change the work
+        'talk_team' => 'talk', 'talk_client' => 'talk', 'moderate' => 'talk', 'meet' => 'meet',
     ];
 
     /** reading: what `projects.view_all` opens on a project the person is not on, and what stays possible on a frozen one */

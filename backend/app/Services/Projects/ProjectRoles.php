@@ -26,6 +26,8 @@ class ProjectRoles
         'tasks' => 'Add, change and assign its tasks',
         'time' => 'Log time on it',
         'approve_time' => 'Approve time logged on it',
+        'talk' => 'Write in its conversations',
+        'meet' => 'Plan its meetings',
         'open_shared' => 'See only what is shared with them (for clients and guests)',
     ];
 

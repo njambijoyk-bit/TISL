@@ -45,6 +45,8 @@ class NotificationTypes
         'project_follow_up' => ['Projects: next actions due and given to you', false, 'staff'],
         'project_task' => ['Projects: tasks given to you, due, late, and what they wait for done', false, 'staff'],
         'project_key_date' => ['Projects: key dates coming up, on the day, and missed', false, 'staff'],
+        'project_message' => ['Projects: messages from the team about your work', true, 'customer'],
+        'project_follow' => ['Projects: messages and things you follow (mentions, new messages, tasks and dates moving)', false, 'staff'],
         'project_timesheet' => ['Projects: your time and timesheets (a timer left running, weeks to submit, time to approve, time sent back)', false, 'staff'],
         'menu_bill_asked' => ['A table asked for the bill', true, 'staff'],
         'menu_cert_expiring' => ['A chef\'s certificate is running out', true, 'staff'],

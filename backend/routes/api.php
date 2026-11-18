@@ -1926,6 +1926,7 @@ Route::middleware('auth:sanctum')->group(function () {
             $ter = \App\Http\Controllers\Api\Projects\TermsController::class;
             $wrk = \App\Http\Controllers\Api\Projects\WorkController::class;
             $tim = \App\Http\Controllers\Api\Projects\TimeController::class;
+            $msg = \App\Http\Controllers\Api\Projects\MessagesController::class;
             Route::get('/client-money', [$hel, 'index'])->middleware('permission:projects.money.held.view,projects.money.held.pay');
             Route::post('/client-money/accounts', [$hel, 'openAccount'])->middleware('permission:projects.money.held.pay');
             Route::post('/client-money/accounts/{account}/balances', [$hel, 'openBalance'])->whereNumber('account')->middleware('permission:projects.money.held.pay');
@@ -1962,6 +1963,11 @@ Route::middleware('auth:sanctum')->group(function () {
             Route::get('/saved-views/{place}', [$wrk, 'views'])->where('place', '[a-z]+');
             Route::post('/saved-views/{place}', [$wrk, 'saveView'])->where('place', '[a-z]+');
             Route::delete('/saved-views/{place}/{view}', [$wrk, 'deleteView'])->where('place', '[a-z]+')->whereNumber('view');
+            Route::get('/{project}/threads', [$msg, 'index'])->whereNumber('project')->middleware('permission:projects.messages.internal,projects.messages.client');
+            Route::post('/{project}/threads', [$msg, 'start'])->whereNumber('project')->middleware('permission:projects.messages.internal,projects.messages.client');
+            Route::get('/{project}/threads/{thread}', [$msg, 'show'])->whereNumber('project')->whereNumber('thread')->middleware('permission:projects.messages.internal,projects.messages.client');
+            Route::put('/{project}/threads/{thread}', [$msg, 'update'])->whereNumber('project')->whereNumber('thread')->middleware('permission:projects.messages.internal,projects.messages.client');
+            Route::post('/{project}/threads/{thread}/messages', [$msg, 'post'])->whereNumber('project')->whereNumber('thread')->middleware('permission:projects.messages.internal,projects.messages.client');
             Route::get('/{project}/time', [$tim, 'index'])->whereNumber('project');
             Route::post('/time', [$tim, 'store'])->middleware('permission:projects.time.log,projects.time.others');
             Route::put('/time/{entry}', [$tim, 'update'])->whereNumber('entry')->middleware('permission:projects.time.log,projects.time.others');

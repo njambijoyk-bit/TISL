@@ -45,10 +45,16 @@ class ProjectsSetup
         return self::once('work', fn () => self::ready() && Schema::hasTable('project_work_tasks') && Schema::hasTable('project_time'));
     }
 
+    /** Stage 6 (script 263): conversations, tags, following and meetings. */
+    public static function messages(): bool
+    {
+        return self::once('messages', fn () => self::ready() && Schema::hasTable('project_threads') && Schema::hasTable('project_meetings'));
+    }
+
     /** Look again at the next call (a test or a script creates the tables). */
     public static function forget(): void
     {
-        foreach (['ready', 'control_room', 'relationships', 'money', 'work'] as $k) {
+        foreach (['ready', 'control_room', 'relationships', 'money', 'work', 'messages'] as $k) {
             app()->offsetUnset(self::KEY . $k);
         }
     }

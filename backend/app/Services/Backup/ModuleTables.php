@@ -81,7 +81,7 @@ final class ModuleTables
             'tickets', 'ticket_replies',
             'content_pages', 'content_sections', 'component_layouts',
             'policies', 'policy_acceptances', 'policy_change_logs',
-            'notifications', 'notification_settings', 'notification_setting_versions', 'notification_setting_logs', 'notification_deliveries', 'payment_settings', 'payment_setting_versions', 'payment_setting_logs', 'code_settings', 'code_sequences', 'code_aliases', 'code_prints', 'stock_watches', 'stock_watch_runs', 'customer_reminder_prefs', 'cart_reminders', 'price_watch_marks', 'price_drop_notices',
+            'notifications', 'notification_settings', 'notification_setting_versions', 'notification_setting_logs', 'notification_deliveries', 'notification_staff_prefs', 'notification_reply_routes', 'notification_inbound', 'payment_settings', 'payment_setting_versions', 'payment_setting_logs', 'code_settings', 'code_sequences', 'code_aliases', 'code_prints', 'stock_watches', 'stock_watch_runs', 'customer_reminder_prefs', 'cart_reminders', 'price_watch_marks', 'price_drop_notices',
             // Themes / appearance
             'colourings', 'icon_styles', 'appearance_fonts', 'user_appearance_preferences',
             // Mimi AI
@@ -148,6 +148,8 @@ final class ModuleTables
             'project_client_accounts', 'project_client_holdings', 'project_client_holding_owners', 'project_billing_stages', 'project_money_terms', 'project_ledgers',   // stage 4 (script 260)
             'project_work_tasks', 'project_task_people', 'project_task_waits', 'project_task_checks', 'project_scope_lines', 'project_key_dates', 'project_changes', 'project_change_effects',
             'project_time', 'project_timers', 'project_rates', 'project_disbursements', 'project_saved_views',   // stage 5 (script 261)
+            'project_threads', 'project_thread_people', 'project_thread_messages', 'project_message_mentions', 'project_message_reads', 'project_tags', 'project_thread_tags', 'project_follows',
+            'project_meetings', 'project_meeting_people', 'project_meeting_actions',   // stage 6 (script 263)
         ],
         'listings'       => [/* built later */],
         'campaigns'      => ['campaigns', 'campaign_sections', 'campaign_items', 'campaign_events',
