@@ -1,6 +1,7 @@
 import SignedInDevices from '../../components/account/SignedInDevices';
 import PasskeyManager from '../../components/account/PasskeyManager';
 import SealPhraseCard from '../../components/account/SealPhraseCard';
+import MyChannels from '../../components/account/MyChannels';
 import { useState, useEffect, useRef } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
 import {
@@ -202,6 +203,7 @@ export default function AdminProfile() {
     { key: 'calendar',    label: 'My Calendar', icon: CalendarCheck },
     { key: 'employee',    label: 'Employee Record', icon: UserCheck },
     { key: 'security',    label: 'Security',  icon: Key },
+    { key: 'hearing',     label: 'How I hear', icon: Bell },
   ];
 
   // ── Render ─────────────────────────────────────────────────────────────────
@@ -400,6 +402,7 @@ export default function AdminProfile() {
 
             {/* ── MY CALENDAR TAB ── */}
             {activeTab === 'calendar' && <MyCalendar embedded />}
+            {activeTab === 'hearing' && <MyChannels />}
 
             {activeTab === 'employee' && (
               <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>

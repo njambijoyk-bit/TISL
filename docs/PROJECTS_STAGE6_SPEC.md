@@ -181,3 +181,16 @@ Screen: `docs/screens/projects-inbox.png`.
 - **Routes:** `GET /projects/inbox`, `GET /projects/inbox/count`, `PUT /projects/{project}/follow` (type project, thread or task; id; on).
 - **Services:** `ProjectInbox`, `ProjectFollows`.
 - **Tests:** `tests/Feature/ProjectsInboxFollowTest.php` (3); My Work's test now expects the conversation count. Browser check `e2e/projects-inbox-ui.mjs` (9 checks).
+
+### 6.4 Core: staff choose their channels (done)
+
+Screens: `docs/screens/notify-my-channels.png` (a staff member's own page), `docs/screens/notify-staff-tab.png` (the company's defaults and locks).
+
+- **Groups of notices** (`NotificationTypes::GROUPS`): Projects (your work), Security and approvals, Sales/orders/quotations, Events, Suppliers and the kitchen, and Everything else (any staff type not listed, and any type added later).
+- **Each staff member** chooses per group in their profile, new tab "How I hear": bell only, bell and email, or bell and WhatsApp, or "as the company sets it". WhatsApp goes to the phone on their staff profile, the way the company sends WhatsApp now (by hand from the list, or through Meta or Twilio); it cannot be chosen without a phone, or while the company does not send WhatsApp.
+- **The company** sets each group's default and can lock it: Settings → Notifications → "How staff hear" (kept in the general settings, with its history and rollback like the rest). A lock wins over a choice made before it.
+- **Until anyone chooses anything, every group is bell and email: exactly as before.**
+- **How it is applied:** the ChannelResolver reads the choice. Bell only drops the email (logged as "staff_choice"). WhatsApp goes instead of email; if WhatsApp cannot be used (switched off, no phone, a type the company keeps to email), the email goes instead so nothing is lost. A type the company switched off is still bell only. Messages that need a colleague now (a second person to approve) still also go to WhatsApp as before.
+- **One more place reads it:** an old-style bell row that names email (made before the Notifier) no longer emails someone who chose bell only for its group.
+- **Routes:** `GET`, `PUT /admin/notifications/my-channels` (anyone with the admin area; only their own). The company's side is the existing `PUT /admin/notifications/settings/general` with `staff_groups`.
+- **Tests:** `tests/Feature/NotifyStaffChannelsTest.php` (4), `tests/Unit/NotifyStaffModeResolverTest.php` (4). All Notifier and Projects tests pass. Browser check `e2e/notify-staff-channels-ui.mjs` (7 checks).

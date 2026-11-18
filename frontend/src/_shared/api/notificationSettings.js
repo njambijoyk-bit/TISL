@@ -19,6 +19,9 @@ const notificationSettingsAPI = {
   whatsapp: (params = {}) => api.get('/admin/notifications/whatsapp', { params }).then((r) => r.data),
   markSent: (id) => api.post(`/admin/notifications/deliveries/${id}/mark-sent`).then((r) => r.data),
   skip: (id, why) => api.post(`/admin/notifications/deliveries/${id}/skip`, { why: why || undefined }).then((r) => r.data),
+  /** a staff member's own choice of how they hear, per group of notices (build 6.4) */
+  myChannels: () => api.get('/admin/notifications/my-channels').then((r) => r.data),
+  saveMyChannels: (choices) => api.put('/admin/notifications/my-channels', { choices }).then((r) => r.data),
   retry: (id) => api.post(`/admin/notifications/deliveries/${id}/retry`).then((r) => r.data),
 };
 

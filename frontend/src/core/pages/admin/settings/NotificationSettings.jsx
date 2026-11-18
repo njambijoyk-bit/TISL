@@ -15,6 +15,7 @@ import DeliveryTab from '../../../components/admin/notifications/DeliveryTab';
 import HealthBanner from '../../../components/admin/notifications/HealthBanner';
 import StockAlertsTab from '../../../components/admin/notifications/StockAlertsTab';
 import HistoryTab from '../../../components/admin/notifications/HistoryTab';
+import StaffTab from '../../../components/admin/notifications/StaffTab';
 import { colors } from '../../../../_shared/theme/tokens';
 
 const TABS = [
@@ -23,6 +24,7 @@ const TABS = [
   { id: 'whatsappapi', label: 'WhatsApp API' },
   { id: 'general', label: 'General' },
   { id: 'types', label: 'Messages' },
+  { id: 'staff', label: 'How staff hear' },
   { id: 'stock', label: 'Stock alerts' },
   { id: 'log', label: 'Delivery log' },
   { id: 'history', label: 'History & rollback' },
@@ -57,6 +59,7 @@ export default function NotificationSettings() {
         {tab === 'whatsappapi' && <WhatsAppApiTab key={`w${data.current_version.whatsapp?.id ?? 0}`} data={data} canEdit={can.settings} canSend={can.send || can.settings} onChanged={load} />}
         {tab === 'general' && <GeneralTab key={`g${data.current_version.general?.id ?? 0}`} data={data} canEdit={can.settings} onChanged={load} />}
         {tab === 'types' && <TypesTab key={`t${data.current_version.types?.id ?? 0}`} data={data} canEdit={can.settings} onChanged={load} />}
+        {tab === 'staff' && data.staff_groups && <StaffTab key={`s${data.current_version.general?.id ?? 0}`} data={data} canEdit={can.settings} onChanged={load} />}
         {tab === 'stock' && <StockAlertsTab canSend={can.send} />}
         {tab === 'log' && <DeliveryTab canSend={can.send} />}
         {tab === 'history' && <HistoryTab canEdit={can.settings} canPurge={can.purge} onChanged={load} />}

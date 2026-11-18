@@ -2289,6 +2289,8 @@ Route::middleware('auth:sanctum')->group(function () {
 
         Route::prefix('notifications')->group(function () {   // the notification system: settings (email, later WhatsApp), their history, the log of every action, the delivery log
             $c = \App\Http\Controllers\Api\NotificationSettingsController::class;
+            Route::get('/my-channels', [\App\Http\Controllers\Api\StaffChannelsController::class, 'show']);   // every staff member's own choice (build 6.4)
+            Route::put('/my-channels', [\App\Http\Controllers\Api\StaffChannelsController::class, 'update']);
             Route::get('/settings',                                    [$c, 'show'])->middleware('permission:notifications.view,notifications.settings');
             Route::put('/settings/{part}',                             [$c, 'update'])->middleware('permission:notifications.settings');
             Route::post('/settings/email/test',                        [$c, 'testEmail'])->middleware('permission:notifications.send,notifications.settings')->middleware('throttle:10,1');

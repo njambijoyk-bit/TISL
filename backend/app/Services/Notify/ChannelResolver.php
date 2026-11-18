@@ -7,7 +7,7 @@ namespace App\Services\Notify;
  *
  * $company  the general settings: default_mode, email_enabled, whatsapp_enabled, whatsapp_number_sources, essential_only_default
  * $rule     this type's company rule: enabled (bool), channels (null = any)
- * $person   kind customer|staff|other, staff_whatsapp (true: this message may also go to a colleague's WhatsApp), has_account, email, whatsapp (number), whatsapp_source profile|checkout|null, mode (null = company default), essential_only (null = company default)
+ * $person   kind customer|staff|other, staff_mode (staff: bell|email|whatsapp, null = email as always), staff_whatsapp (true: this message may also go to a colleague's WhatsApp), has_account, email, whatsapp (number), whatsapp_source profile|checkout|null, mode (null = company default), essential_only (null = company default)
  *
  * @return array{channels: string[], skipped: array<string,string>, staff_list: bool}
  */
@@ -28,12 +28,21 @@ class ChannelResolver
         $wa = $this->whatsappOk($company, $person);
 
         if (($person['kind'] ?? 'other') !== 'customer') {
-            // staff and other accounts: email when allowed and possible; no personal preferences
-            if (in_array('email', $allowed, true)) {
+            // staff and other accounts: email when allowed and possible, unless a staff member chose otherwise for this group (StaffChannels)
+            $staffMode = $person['staff_mode'] ?? 'email';
+            if ($staffMode === 'whatsapp' && in_array('whatsapp', $allowed, true) && $wa === true) {
+                $channels[] = 'whatsapp';
+                $skipped['email'] = 'staff_choice';
+            } elseif ($staffMode === 'bell') {
+                $skipped['email'] = 'staff_choice';
+            } elseif (in_array('email', $allowed, true)) {
+                if ($staffMode === 'whatsapp') {
+                    $skipped['whatsapp'] = in_array('whatsapp', $allowed, true) ? $wa : 'type_channels';   // WhatsApp could not be used: email instead, so nothing is lost
+                }
                 $email === true ? $channels[] = 'email' : $skipped['email'] = $email;
             }
             // a message that needs a colleague now (a second person to approve) may also go to their WhatsApp
-            if (! empty($person['staff_whatsapp']) && in_array('whatsapp', $allowed, true)) {
+            if (! empty($person['staff_whatsapp']) && in_array('whatsapp', $allowed, true) && ! in_array('whatsapp', $channels, true)) {
                 $wa === true ? $channels[] = 'whatsapp' : $skipped['whatsapp'] = $wa;
             }
 

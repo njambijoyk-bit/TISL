@@ -59,6 +59,8 @@ class NotificationSettingsController extends Controller
             'ready' => NotifySettings::ready(),
             'whatsapp_waiting' => NotifySettings::ready() ? NotificationDelivery::where('channel', 'whatsapp')->where('status', 'to_send')->count() : 0,
             'types' => collect(NotificationTypes::ALL)->map(fn ($t, $k) => ['key' => $k, 'label' => $t[0], 'essential' => $t[1], 'audience' => $t[2]])->values(),
+            'staff_groups' => collect(NotificationTypes::GROUPS)->map(fn ($g, $k) => ['key' => $k, 'label' => $g[0], 'types' => array_map(fn ($t) => NotificationTypes::label($t), $g[1])])->values(),
+            'staff_modes' => \App\Services\Notify\StaffChannels::MODES,
             'whatsapp_api' => ['providers' => WhatsAppProviders::ALL, 'automatic' => app(WhatsAppProviders::class)->automatic(),
                 'webhooks' => ['meta' => WhatsAppProviders::callbackUrl('meta'), 'twilio' => WhatsAppProviders::callbackUrl('twilio')],
                 'types_ready' => collect($this->settings->get('types')['rules'] ?? [])->filter(fn ($r) => ! empty($r['template']) && ($r['enabled'] ?? true))->count()],

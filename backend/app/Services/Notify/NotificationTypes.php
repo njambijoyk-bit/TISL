@@ -101,6 +101,30 @@ class NotificationTypes
      */
     public const STAFF_WHATSAPP = ['council_request', 'recovery_request'];
 
+    /**
+     * The groups staff choose their channels by (docs/PROJECTS_STAGE6_SPEC.md, build 6.4): group => [label, the staff types in it]. A staff type in
+     * no group, or a type not in ALL, belongs to "other".
+     */
+    public const GROUPS = [
+        'projects' => ['Projects: your work (tasks, dates, time, follow-ups, access, things you follow)', ['project_access', 'project_follow_up', 'project_task', 'project_key_date', 'project_follow', 'project_timesheet']],
+        'security' => ['Security and approvals', ['project_security', 'payment_settings_changed', 'council_request', 'council_answer', 'recovery_request', 'recovery_asked_other', 'recovery_approved_other', 'recovery_started_other', 'signin_reset_asked_other', 'break_glass_used_other']],
+        'sales' => ['Sales, orders and quotations', ['quotation_requested', 'preorder_delays_staff', 'preorder_cancel_requested', 'menu_order_new', 'menu_bill_asked']],
+        'events' => ['Events', ['event_enquiry', 'event_refund_requested']],
+        'suppliers' => ['Suppliers and the kitchen', ['prequalification_expiring_staff', 'menu_cert_expiring']],
+        'other' => ['Everything else', []],
+    ];
+
+    public static function groupOf(string $type): string
+    {
+        foreach (self::GROUPS as $g => [, $types]) {
+            if (in_array($type, $types, true)) {
+                return $g;
+            }
+        }
+
+        return 'other';
+    }
+
     /** @return string[] */
     public static function keys(): array
     {

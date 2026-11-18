@@ -32,7 +32,10 @@ class Notifier
     {
         try {
             $r = $this->recipients->for($to, array_intersect_key($o, array_flip(['email', 'whatsapp', 'whatsapp_source'])));
-            if (in_array($type, NotificationTypes::STAFF_WHATSAPP, true) && $r['person']['kind'] !== 'customer') {   // a colleague who is needed now: their staff profile's phone
+            if ($r['person']['kind'] === 'staff' && $to instanceof User) {   // how this colleague chose to hear about this group of notices (build 6.4)
+                $r['person']['staff_mode'] = app(StaffChannels::class)->modeFor($to, $type);
+            }
+            if ((in_array($type, NotificationTypes::STAFF_WHATSAPP, true) || ($r['person']['staff_mode'] ?? null) === 'whatsapp') && $r['person']['kind'] !== 'customer') {   // a colleague who is needed now, or who chose WhatsApp: their staff profile's phone
                 $phone = trim((string) ($to->phone ?? ''));
                 $r['person'] = ['staff_whatsapp' => true, 'whatsapp' => $phone !== '' ? $phone : null, 'whatsapp_source' => $phone !== '' ? 'profile' : null] + $r['person'];
             }
@@ -116,6 +119,9 @@ class Notifier
                 return;
             }
             $who = $n->notifiable;
+            if ($who instanceof User && rescue(fn () => $who->isStaff(), false, false) && app(StaffChannels::class)->modeFor($who, (string) $n->type) === 'bell') {
+                return;   // a colleague who chose the bell only for this group (build 6.4)
+            }
             $email = $who?->email ?? $who?->customer?->email ?? null;
             if (! filter_var($email, FILTER_VALIDATE_EMAIL)) {
                 $this->record($n, $who, $n->type, 'email', 'skipped', null, $n->title, $n->message, 'no_email');
