@@ -166,6 +166,8 @@ const projectsAPI = {
   shareMinutes: async (projectId, id) => (await api.post(`/admin/projects/${projectId}/meetings/${id}/share`)).data,
   publicMeeting: async (token) => (await api.get(`/meetings/${token}`)).data,
   answerPublicMeeting: async (token, answer) => (await api.post(`/meetings/${token}/answer`, { answer })).data,
+  team: async (params = {}) => (await api.get('/admin/projects/team', { params })).data,
+  teamPerson: async (id) => (await api.get(`/admin/projects/team/${id}`)).data,
   handoverPeople: async () => (await api.get('/admin/projects/handover/people')).data,
   handoverPreview: async (params) => (await api.get('/admin/projects/handover/preview', { params })).data,
   handOver: async (data) => (await api.post('/admin/projects/handover', data)).data,

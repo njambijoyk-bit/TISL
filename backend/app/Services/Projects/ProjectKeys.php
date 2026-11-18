@@ -23,6 +23,7 @@ class ProjectKeys
         'go_config' => ['go', 'Configuration', 'C'],
         'go_mywork' => ['go', 'My Work', 'M'],
         'go_inbox' => ['go', 'The inbox', 'I'],
+        'go_team' => ['go', 'The team', 'E'],
         'act_edit' => ['on', 'Edit it', 'E'],
         'act_hold' => ['on', 'Put it on hold, or resume it', 'H'],
         'act_next' => ['on', 'Move it to the next stage', 'F'],

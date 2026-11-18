@@ -58,6 +58,12 @@ class ProjectsSetup
         return self::once('links', fn () => self::ready() && Schema::hasTable('project_link_roles') && Schema::hasColumn('project_links', 'role_key'));
     }
 
+    /** Script 265: people (stage 8). */
+    public static function people(): bool
+    {
+        return self::once('people', fn () => self::ready() && Schema::hasTable('project_goals') && Schema::hasTable('project_cases'));
+    }
+
     public static function forget(): void
     {
         foreach (['ready', 'control_room', 'relationships', 'money', 'work', 'messages'] as $k) {

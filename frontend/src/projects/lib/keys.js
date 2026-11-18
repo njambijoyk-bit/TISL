@@ -12,6 +12,7 @@ export const GO = [
   { key: 'go_config', what: 'Configuration', path: '/admin/projects/configuration', perm: 'projects.config.view' },
   { key: 'go_mywork', what: 'My Work', path: '/admin/projects/my-work', perm: 'projects.use' },
   { key: 'go_inbox', what: 'the inbox', path: '/admin/projects/inbox', perm: 'projects.use' },
+  { key: 'go_team', what: 'the team', path: '/admin/projects/team', perm: 'projects.team.view' },
 ];
 
 /** On an open piece of work: each presses the control that carries this mark, if it is on the screen. */

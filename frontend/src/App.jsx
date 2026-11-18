@@ -282,6 +282,8 @@ const ProjectsTimesheet = lazy(() => import('./projects/pages/admin/ProjectsTime
 const ProjectsMyWork = lazy(() => import('./projects/pages/admin/ProjectsMyWork'));
 const ProjectsInbox = lazy(() => import('./projects/pages/admin/ProjectsInbox'));
 const ProjectsHandover = lazy(() => import('./projects/pages/admin/ProjectsHandover'));
+const ProjectsTeam = lazy(() => import('./projects/pages/admin/ProjectsTeam'));
+const ProjectsPerson = lazy(() => import('./projects/pages/admin/ProjectsPerson'));
 const ProjectConfiguration = lazy(() => import('./projects/pages/admin/ProjectConfiguration'));
 const UsersPage          = lazy(() => import('./core/pages/admin/users/Users'));
 const UserDetail         = lazy(() => import('./core/pages/admin/users/UserDetail'));
@@ -1446,6 +1448,8 @@ function App() {
               <Route path="/admin/projects/timesheet" element={<ProtectedRoute requireAdmin permission="projects.time.log,projects.time.approve"><ModuleRoute module="projects" redirectTo="/admin"><ProjectsTimesheet /></ModuleRoute></ProtectedRoute>} />
               <Route path="/admin/projects/my-work" element={<ProtectedRoute requireAdmin permission="projects.use"><ModuleRoute module="projects" redirectTo="/admin"><ProjectsMyWork /></ModuleRoute></ProtectedRoute>} />
               <Route path="/admin/projects/inbox" element={<ProtectedRoute requireAdmin permission="projects.use"><ModuleRoute module="projects" redirectTo="/admin"><ProjectsInbox /></ModuleRoute></ProtectedRoute>} />
+              <Route path="/admin/projects/team" element={<ProtectedRoute requireAdmin permission="projects.team.view"><ModuleRoute module="projects" redirectTo="/admin"><ProjectsTeam /></ModuleRoute></ProtectedRoute>} />
+              <Route path="/admin/projects/team/:id" element={<ProtectedRoute requireAdmin permission="projects.team.view"><ModuleRoute module="projects" redirectTo="/admin"><ProjectsPerson /></ModuleRoute></ProtectedRoute>} />
               <Route path="/admin/projects/handover" element={<ProtectedRoute requireAdmin permission="projects.members.manage"><ModuleRoute module="projects" redirectTo="/admin"><ProjectsHandover /></ModuleRoute></ProtectedRoute>} />
               <Route path="/admin/projects/security" element={<ProtectedRoute requireAdmin permission="projects.security.view"><ModuleRoute module="projects" redirectTo="/admin"><ProjectsSecurity /></ModuleRoute></ProtectedRoute>} />
               <Route path="/admin/projects/log" element={<ProtectedRoute requireAdmin permission="projects.log.view"><ModuleRoute module="projects" redirectTo="/admin"><ProjectsLog /></ModuleRoute></ProtectedRoute>} />

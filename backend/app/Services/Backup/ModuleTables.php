@@ -149,6 +149,8 @@ final class ModuleTables
             'project_work_tasks', 'project_task_people', 'project_task_waits', 'project_task_checks', 'project_scope_lines', 'project_key_dates', 'project_changes', 'project_change_effects',
             'project_time', 'project_timers', 'project_rates', 'project_disbursements', 'project_saved_views',   // stage 5 (script 261)
             'project_threads', 'project_thread_people', 'project_thread_messages', 'project_message_mentions', 'project_message_reads', 'project_tags', 'project_thread_tags', 'project_follows', 'project_link_roles',
+            'project_goals', 'project_reviews', 'project_one_to_ones', 'project_one_to_one_private', 'project_checklist_templates', 'project_checklist_steps', 'project_checklists', 'project_checklist_items',
+            'project_case_kinds', 'project_cases', 'project_case_subjects', 'project_case_messages', 'project_case_log',
             'project_meetings', 'project_meeting_people', 'project_meeting_actions',   // stage 6 (script 263)
         ],
         'listings'       => [/* built later */],

@@ -1989,6 +1989,9 @@ Route::middleware('auth:sanctum')->group(function () {
             Route::put('/{project}/meetings/{meeting}/minutes', [$meet, 'minutes'])->whereNumber('project')->whereNumber('meeting')->middleware('permission:projects.meetings');
             Route::post('/{project}/meetings/{meeting}/actions/{action}/task', [$meet, 'actionTask'])->whereNumber('project')->whereNumber('meeting')->whereNumber('action')->middleware('permission:projects.tasks');
             Route::post('/{project}/meetings/{meeting}/share', [$meet, 'share'])->whereNumber('project')->whereNumber('meeting')->middleware('permission:projects.meetings');
+            $ppl = \App\Http\Controllers\Api\Projects\PeopleController::class;
+            Route::get('/team', [$ppl, 'team'])->middleware('permission:projects.team.view');
+            Route::get('/team/{user}', [$ppl, 'person'])->whereNumber('user')->middleware('permission:projects.team.view');
             $hand = \App\Http\Controllers\Api\Projects\HandoverController::class;
             Route::get('/handover/people', [$hand, 'people'])->middleware('permission:projects.members.manage');
             Route::get('/handover/preview', [$hand, 'preview'])->middleware('permission:projects.members.manage');
