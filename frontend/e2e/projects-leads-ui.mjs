@@ -116,7 +116,7 @@ ok('a lead someone may not see reads as not there', true);
 
 // ---------------------------------------------------------------- the lists
 await go('/admin/projects/configuration');
-await page.getByRole('tab', { name: 'Lists' }).click();
+await page.getByRole('tab', { name: 'Lists', exact: true }).click();
 await page.locator('[data-row="Website"]').waitFor({ timeout: 15000 });
 ok('the Lists tab shows the six lists and the rows of the first', (await page.getByRole('group', { name: 'Which list' }).getByRole('button').count()) === 6 && (await page.locator('[data-row]').count()) === 2);
 await page.getByLabel('Add to this list').fill('Website');
