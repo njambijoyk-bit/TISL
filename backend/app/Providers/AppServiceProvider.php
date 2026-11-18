@@ -56,6 +56,7 @@ class AppServiceProvider extends ServiceProvider
             \App\Services\Projects\Links\BooksLinks::register($types);
             \App\Services\Projects\Links\EventsLinks::register($types);
             \App\Services\Projects\Links\CoreLinks::register($types);   // tickets, bookings, products, vendors and their orders, tenders, quotation requests (stage 7)
+            \App\Services\Projects\Links\ModuleLinks::register($types);   // campaigns, courses, memberships, event bookings, food orders: each while its module is on (stage 7)
         });
         $this->app->singleton(\App\Services\Codes\CodeResolvers::class);   // modules register what their signed codes mean
         $this->app->singleton(\App\Services\Memberships\MembershipBenefits::class);

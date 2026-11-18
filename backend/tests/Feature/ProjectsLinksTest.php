@@ -118,7 +118,7 @@ class ProjectsLinksTest extends TestCase
         $r = $this->getJson("/api/admin/projects/{$this->project}/links")->assertOk()->json();
         $this->assertSame(['books.voucher'], array_column($r['groups'], 'type'));
         $this->assertSame(1, $r['hidden']);
-        $this->assertSame(['Events'], $r['off']);
+        $this->assertSame(['Events', 'Event bookings'], $r['off']);
         $this->link('events.event', 5)->assertNotFound();
         $this->getJson("/api/admin/projects/{$this->project}/links/find?type=events.event")->assertNotFound();
         $this->assertSame(2, DB::table('project_links')->whereNull('deleted_at')->count(), 'nothing was removed');
@@ -137,7 +137,7 @@ class ProjectsLinksTest extends TestCase
         DB::table('project_members')->insert(['project_id' => $this->project, 'user_id' => $njeri->id, 'project_role_id' => DB::table('project_roles')->where('key', 'member')->value('id'), 'status' => 'active']);
         Sanctum::actingAs($njeri, ['*']);
         $r = $this->getJson("/api/admin/projects/{$this->project}/links")->assertOk()->json();
-        $this->assertSame(['events.event'], array_column($r['groups'], 'type'));
+        $this->assertSame(['events.event', 'events.booking'], array_column($r['groups'], 'type'));
         $this->assertSame(1, $r['hidden'], 'she is told something is there that she may not see, and nothing about it');
         $this->getJson("/api/admin/projects/{$this->project}/links/find?type=books.voucher")->assertForbidden();
         $this->link('books.voucher', 11)->assertForbidden();

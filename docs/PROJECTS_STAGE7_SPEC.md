@@ -132,3 +132,23 @@ Screen: `docs/screens/projects-links-roles.png`.
 - **Nothing new on screen:** the Links tab shows a group for each kind the person may see. Someone without a module's permission is not offered it and is told only how many links they cannot see.
 - **One small builder** (`CoreLinks::type`) registers a record over one table in a few lines; the paid modules in 7.3 use it too.
 - **Tests:** `tests/Feature/ProjectsCoreLinksTest.php` (2).
+
+### 7.3 Paid modules (done)
+
+- **Registered** (`Links\ModuleLinks`), each only while its module is licensed and on, and only for people with that module's permission:
+
+| Module | Record | Seen with | Usual role | Opens |
+|---|---|---|---|---|
+| Campaigns | Campaign (draft, waiting for approval, live, paused, archived) | `campaigns.build` | Deliverable | the campaign |
+| Courses | Course | `courses.view` | Deliverable | the course |
+| Courses | Course intake | `courses.view` | Deliverable | its course |
+| Courses | Enrolment (with the student and course) | `courses.enrol` | Related | Enrolments, on it |
+| Memberships | Membership (member, plan, paid to) | `memberships.view` | Related | Members, on it |
+| Memberships | Membership plan | `memberships.view` | Deliverable | Memberships |
+| Events | Event booking, a venue or vendor (Events itself since Stage 1) | `events.view` | Supplier | the event's plan |
+| Menus | Food order (a site lunch, catering) | `menus.view` | Related | Food orders, on it |
+
+- **Each shows the module's own state words**, read each time (a membership whose payment is late says so).
+- **Not registered:** E-commerce promotions (a shop order is already a Books sales order, linked as a voucher), and Accommodations, Listings and Careers, which have no record page in the staff area yet. Each can register in a few lines once it has one.
+- **A module switched off** takes its kinds of record away from the Links tab (named under "Not switched on") and brings them back, links and all, when it is on again.
+- **Tests:** `tests/Feature/ProjectsModuleLinksTest.php` (2); two link tests now expect Events' second kind of record.
