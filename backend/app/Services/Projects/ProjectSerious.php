@@ -38,6 +38,7 @@ class ProjectSerious
         'change.approve' => 'Approve a change to the work',
         'time.reopen' => 'Reopen approved time',
         'time.writeoff' => 'Write off time or costs',
+        'work.handover' => 'Hand over someone\'s work',
     ];
 
     /** A sensible set to start from, applied in one click. Out of the box every action needs nothing. */
@@ -54,6 +55,7 @@ class ProjectSerious
         'change.approve' => ['needs' => 'identity', 'on_project' => false, 'reason' => false],
         'time.reopen' => ['needs' => 'supervisor', 'on_project' => true, 'reason' => true],
         'time.writeoff' => ['needs' => 'supervisor', 'on_project' => true, 'reason' => true],
+        'work.handover' => ['needs' => 'supervisor', 'on_project' => false, 'reason' => true],
     ];
 
     private const NONE = ['needs' => 'none', 'on_project' => false, 'reason' => false];

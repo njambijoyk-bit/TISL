@@ -53,6 +53,7 @@ class ProjectSettings
             'change.approve' => ['needs' => 'none', 'on_project' => false, 'reason' => false],
             'time.reopen' => ['needs' => 'none', 'on_project' => false, 'reason' => false],
             'time.writeoff' => ['needs' => 'none', 'on_project' => false, 'reason' => false],
+            'work.handover' => ['needs' => 'none', 'on_project' => false, 'reason' => false],
         ],
     ];
 

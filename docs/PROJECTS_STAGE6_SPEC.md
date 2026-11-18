@@ -1,6 +1,6 @@
-# Projects Stage 6: Messages, meetings, working together (being built)
+# Projects Stage 6: Messages, meetings, working together (built)
 
-Status: the owner said "build" on 2026-11-18, accepting the four choices at the end. What is built so far is listed under "As built"; everything else is still design.
+Status: built. The owner said "build" on 2026-11-18, accepting the four choices at the end; all eight builds are done and listed under "As built".
 
 Stages 1 to 5 built the work, its people, its money and the doing of it. Stage 6 builds the talking about it: conversations on each piece of work (inside the team, with the client, with other parties), one inbox across all of them, meetings with minutes, following things, and handing someone's work over.
 
@@ -143,6 +143,17 @@ Every build runs the Projects, Notifier and Calendar tests and the Projects brow
 
 1. `backend/database/sql/262_notify_staff_and_replies.sql` (Core; three tables) and `backend/database/sql/263_projects_messages.sql` (after 257 to 261; eleven tables, the new project-role abilities and four starting tags). Both add only.
 2. No permission seed.
+3. Nothing else to set up for the stage to work. For replies by email, name a replies mailbox in Settings → Notifications → Email (6.5); for WhatsApp replies, the Meta or Twilio webhook already set up for delivery statuses is enough.
+
+### To check by hand once the scripts are run
+
+1. On a piece of work, open Messages, start a team conversation, @mention someone and add #urgent; they get a notice and it shows in their Inbox under Mentions.
+2. Start a client conversation with a client contact who has your own email; the message arrives. With a replies mailbox named, reply to it, press "Read it now", and see the reply in the conversation.
+3. Type `/time 30m checking` in a conversation, then look at your timesheet.
+4. In your profile, "How I hear", set Projects to bell only; then get a task given to you: bell, no email.
+5. Plan a client meeting with "Find a time everyone is free"; it lands on the team's calendars; the contact's email has a calendar file and an answer link that works without signing in.
+6. After it starts, write minutes with an action item, make it a task, share the minutes.
+7. Hand someone's open work on one piece of work to a colleague who is on it; both are told, and it shows in the work's Activity.
 
 ### 6.1 Conversations (done)
 
@@ -236,3 +247,17 @@ Screen: `docs/screens/projects-meeting-minutes.png`.
 - **Sharing the minutes:** "Share the minutes" sends the minutes and the action items to everyone invited: the team on the bell (and as they chose), and for a client or others meeting, the contacts through the Notifier. A team meeting's minutes never leave the team. Sharing again says "Minutes, updated". When they were shared shows on the meeting, and every save and share is in the log.
 - **Routes:** `PUT /projects/{project}/meetings/{meeting}/minutes`, `POST …/meetings/{meeting}/actions/{action}/task`, `POST …/meetings/{meeting}/share`.
 - **Tests:** two more in `tests/Feature/ProjectsMeetingsTest.php` (now 7). Browser check `e2e/projects-meetings-ui.mjs` (now 16 checks).
+
+### 6.8 Handing work over (done)
+
+Screen: `docs/screens/projects-handover.png`.
+
+- **Page:** Projects → Hand over work (needs `projects.members.manage`), and a "Hand over" link on each active person on a piece of work's People tab, which opens it with that person and that work filled in.
+- **What moves:** their open tasks (finished and cancelled ones stay as the record; if the new person is already on a task, the old one just comes off it), key dates they are responsible for (open or missed), conversations they answer (open), meetings they organise (planned, not yet over; the new organiser is added and marked coming), and their open follow-ups on the work's client (stage 3; listed once even when several pieces of work share the client). Everything is chosen to begin with; untick what stays.
+- **On one piece of work, or all their work.** The new person must be on each piece of work: where they are not, that work's items stay, unticked, with "… is not on this work. Add them first." If anything chosen cannot move, nothing moves.
+- **Who may:** `projects.members.manage`, and on each piece of work a project role that manages members (the Lead out of the box). **Owner's choice 4:** handing over someone else's work is a serious action, "Hand over someone's work" (out of the box it needs nothing; Configuration can ask for identity or a supervisor, suggested: a supervisor, with a reason). Handing over your own work is not.
+- **Both people are told** (notice type "Projects: tasks…", so it follows their channel choice), and each piece of work's log says who handed what to whom, with counts by kind. Calendars follow: task, key date and meeting entries move to the new person.
+- **Leading a piece of work** is still handed over on its People tab ("Transfer", stage 2).
+- **Routes:** `GET /projects/handover/people`, `GET /projects/handover/preview` (from, to, project_id), `POST /projects/handover` (from, to, project_id, items).
+- **Service:** `ProjectHandover`.
+- **Tests:** `tests/Feature/ProjectsHandoverTest.php` (4); the serious-actions test now counts 16. Browser check `e2e/projects-handover-ui.mjs` (5 checks).

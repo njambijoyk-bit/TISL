@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useState } from 'react';
+import { Link } from 'react-router-dom';
 import toast from 'react-hot-toast';
 import projectsAPI from '../../_shared/api/projects';
 import { day, message } from '../lib/format';
@@ -133,7 +134,7 @@ export default function PeoplePanel({ projectId, word, onTransferred }) {
                   </td>
                   <td style={td}><Chip status={lapsed ? 'warning' : status}>{lapsed ? 'Outside its dates' : label}</Chip>{m.status === 'invited' && m.invited_by && <div style={{ fontSize: 12, color: 'var(--text-secondary)', marginTop: 2 }}>by {m.invited_by}</div>}</td>
                   <td style={{ ...td, color: 'var(--text-secondary)', whiteSpace: 'nowrap' }}>{m.starts_at || m.ends_at ? `${day(m.starts_at) || 'Now'} to ${day(m.ends_at) || 'no end'}` : 'No end date'}</td>
-                  {can && <td style={{ ...td, textAlign: 'right' }}>{!m.is_lead && <Btn small variant="quiet" aria-label={`${m.status === 'invited' ? 'Withdraw the invitation to' : 'Remove'} ${m.name}`} onClick={() => setMode({ remove: m })}>{m.status === 'invited' ? 'Withdraw' : 'Remove'}</Btn>}</td>}
+                  {can && <td style={{ ...td, textAlign: 'right', whiteSpace: 'nowrap' }}>{m.status === 'active' && <Link to={`/admin/projects/handover?from=${m.user_id}&project=${projectId}`} aria-label={`Hand over ${m.name}'s work`} style={{ fontSize: 12.5, color: 'var(--color-primary-500)', textDecoration: 'none', fontWeight: 600, marginRight: 8 }}>Hand over</Link>}{!m.is_lead && <Btn small variant="quiet" aria-label={`${m.status === 'invited' ? 'Withdraw the invitation to' : 'Remove'} ${m.name}`} onClick={() => setMode({ remove: m })}>{m.status === 'invited' ? 'Withdraw' : 'Remove'}</Btn>}</td>}
                 </tr>
               );
             })}

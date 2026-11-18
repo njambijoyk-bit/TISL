@@ -321,6 +321,7 @@ export const ADMIN_NAV = [
           { title: 'Follow-ups', path: '/admin/projects/follow-ups', perm: ['projects.interactions', 'projects.leads.view'] },
           { title: 'My Work', path: '/admin/projects/my-work', perm: ['projects.use'] },
           { title: 'Inbox', path: '/admin/projects/inbox', perm: ['projects.messages.internal', 'projects.messages.client'] },
+          { title: 'Hand over work', path: '/admin/projects/handover', perm: ['projects.members.manage'] },
           { title: 'Timesheet', path: '/admin/projects/timesheet', perm: ['projects.time.log', 'projects.time.approve'] },
           { title: 'Client money', path: '/admin/projects/client-money', perm: ['projects.money.held.view', 'projects.money.held.pay'] },
           { title: 'Directory', path: '/admin/projects/directory', perm: ['projects.directory.yellow', 'projects.directory.white'] },
