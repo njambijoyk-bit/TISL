@@ -117,6 +117,28 @@ class MessagesController extends Controller
             (string) $request->input('type'), (int) $request->input('id'), (bool) $request->input('on'))]));
     }
 
+    /** Replies nothing could match (build 6.5), with the conversations their sender is in. */
+    public function waitingReplies(Request $request): JsonResponse
+    {
+        return response()->json(app(\App\Services\Projects\ProjectReplyFiler::class)->waiting($request->user()));
+    }
+
+    public function fileReply(Request $request, int $reply): JsonResponse
+    {
+        return $this->guard(function () use ($request, $reply) {
+            app(\App\Services\Projects\ProjectReplyFiler::class)->fileByHand($request->user(), $reply, (int) $request->input('thread_id'), (int) $request->input('contact_id'));
+
+            return $this->waitingReplies($request);
+        });
+    }
+
+    public function discardReply(Request $request, int $reply): JsonResponse
+    {
+        app(\App\Services\Notify\Replies\InboundReplies::class)->discard($reply, $request->user(), $request->input('note'));
+
+        return $this->waitingReplies($request);
+    }
+
     private function project(Request $request, int $id): object
     {
         return app(ProjectService::class)->findFor($request->user(), $id);

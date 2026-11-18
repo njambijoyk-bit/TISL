@@ -343,7 +343,8 @@ class ProjectThreads
         $contacts = DB::table('project_thread_people as tp')->join('project_contacts as c', 'c.id', '=', 'tp.contact_id')->where('tp.thread_id', $t->id)->whereNull('c.deleted_at')->get(['c.id', 'c.name', 'c.email', 'c.phone']);
         foreach ($contacts as $c) {
             $r = app(Notifier::class)->sendToContact(['name' => $c->name, 'email' => $c->email, 'phone' => $c->phone], ProjectNotices::MESSAGE, "{$t->subject} · {$project->number}",
-                "{$by->name}:\n\n{$body}", ['subject' => "{$t->subject} [{$project->number}]", 'data' => ['project_thread' => (int) $t->id, 'project_message' => $messageId, 'contact' => (int) $c->id]]);
+                "{$by->name}:\n\n{$body}", ['subject' => "{$t->subject} [{$project->number}]", 'data' => ['project_thread' => (int) $t->id, 'project_message' => $messageId, 'contact' => (int) $c->id],
+                    'reply_route' => ['module' => 'projects', 'type' => 'thread', 'id' => (int) $t->id, 'ref' => (int) $c->id]]);   // answerable: the reply comes back into this conversation (build 6.5)
             $out[] = ['contact' => $c->name, 'channels' => array_values(array_diff($r['channels'] ?? [], ['database']))];
         }
 

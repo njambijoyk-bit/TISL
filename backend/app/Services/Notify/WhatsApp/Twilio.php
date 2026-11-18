@@ -98,4 +98,17 @@ class Twilio implements WhatsAppProvider
 
         return [['id' => (string) $sid, 'status' => $st, 'error' => $st === 'failed' ? (string) ($payload['ErrorMessage'] ?? ('error ' . ($payload['ErrorCode'] ?? 'unknown'))) : null]];
     }
+
+    public function incoming(array $payload): array
+    {
+        $sid = $payload['MessageSid'] ?? $payload['SmsSid'] ?? null;
+        $status = strtolower((string) ($payload['SmsStatus'] ?? $payload['MessageStatus'] ?? ''));
+        if (! $sid || $status !== 'received' || empty($payload['From'])) {
+            return [];
+        }
+        $body = trim((string) ($payload['Body'] ?? ''));
+
+        return [['id' => (string) $sid, 'from' => preg_replace('/\D+/', '', (string) $payload['From']), 'name' => $payload['ProfileName'] ?? null,
+            'body' => $body !== '' ? $body : ((int) ($payload['NumMedia'] ?? 0) > 0 ? '(a picture or file that is not text)' : ''), 'at' => null]];
+    }
 }

@@ -1,4 +1,4 @@
-// Browser check: the inbox (build 6.3): conversations across all the person's work with unread counts, the views (unread, mentions, mine to
+// Browser check: the inbox (builds 6.3 and 6.5): conversations across all the person's work with unread counts, the views (unread, mentions, mine to
 // answer) with their totals, the filters going to the server and into the address, and a line opening its conversation; then following the
 // work and a conversation from the Messages tab. The API is answered by the check itself; who sees what and who is told are proved by the
 // backend tests. It needs only the website (npx vite --port 5177).
@@ -21,6 +21,15 @@ const all = [
   row({ id: 1, subject: 'Defence draft for review', audience: 'client', contacts: [{ id: 7, name: 'Grace Wambua' }], unread: 2, mentioned: true, tags: [{ id: 1, key: 'urgent', name: 'Urgent', status: 'problem' }], project: { id: 413, number: 'M-0413', title: 'Imara Sacco v. Baraka Traders' }, last_message_at: '2026-11-18 09:40:00', last: { from: 'Grace Wambua', text: 'Paragraph 14 should say the 3rd.' } }),
   row({ id: 5, subject: 'Paint colours', audience: 'team', mine: true, project: { id: 420, number: 'J-0420', title: 'Office fit-out' }, last_message_at: '2026-11-17 16:00:00', last: { from: 'Otieno', text: 'Grey or white?' } }),
 ];
+let waiting = [
+  { id: 31, channel: 'email', from: 'grace@example.test', from_name: 'Grace Wambua', subject: 'Did you get my letter?', body: 'I posted it on Monday.', received_at: '2026-11-18 08:10:00', note: 'No reply address it answers was found in it.', matches: [{ thread_id: 1, label: 'M-0413 · Defence draft for review', contact_id: 7, contact: 'Grace Wambua' }] },
+  { id: 32, channel: 'whatsapp', from: '+254799999999', from_name: null, subject: null, body: 'Win a prize', received_at: '2026-11-18 08:20:00', note: 'Nothing open wrote to this number.', matches: [] },
+];
+await page.route('**/api/admin/projects/replies/waiting', (route) => json(route, { ready: true, replies: waiting }));
+await page.route(/\/api\/admin\/projects\/replies\/\d+\/(file|discard)$/, (route) => {
+  const [, id, act] = route.request().url().match(/replies\/(\d+)\/(file|discard)$/); sent.push([act, Number(id), route.request().postDataJSON()]);
+  waiting = waiting.filter((w) => w.id !== Number(id)); return json(route, { ready: true, replies: waiting });
+});
 await page.route(/\/api\/admin\/projects\/inbox(\?.*)?$/, (route) => {
   const q = Object.fromEntries(new URL(route.request().url()).searchParams); sent.push(['inbox', q]);
   let threads = all;
@@ -30,7 +39,7 @@ await page.route(/\/api\/admin\/projects\/inbox(\?.*)?$/, (route) => {
   if (q.project_id) threads = threads.filter((t) => String(t.project.id) === q.project_id);
   if (q.tag) threads = threads.filter((t) => t.tags.some((g) => g.key === q.tag));
   return json(route, { ready: true, threads, totals: { unread: 1, mentions: 1, mine: 1 }, audiences: { team: 'Team', client: 'Client', others: 'Others' }, tags: [{ id: 1, key: 'urgent', name: 'Urgent' }],
-    projects: [{ id: 413, label: 'M-0413 Imara Sacco v. Baraka Traders' }, { id: 420, label: 'J-0420 Office fit-out' }], all: false });
+    projects: [{ id: 413, label: 'M-0413 Imara Sacco v. Baraka Traders' }, { id: 420, label: 'J-0420 Office fit-out' }], all: false, waiting_replies: waiting.length });
 });
 
 await page.goto(`${SITE}/e2e/harness.html?c=ProjectsApp&at=${encodeURIComponent('/admin/projects/inbox')}`, { waitUntil: 'networkidle' });
@@ -52,6 +61,19 @@ await page.getByLabel('Piece of work').selectOption('420');
 await page.waitForTimeout(400);
 ok('filtering by piece of work asks the server', last('inbox')[1].project_id === '420' && (await text(page.locator('[data-inbox]'))).includes('Paint colours'));
 ok('a line opens its conversation on its work', (await page.locator('[data-inbox-thread="Paint colours"]').getAttribute('href')) === '/admin/projects/420?tab=messages&thread=5');
+
+// replies waiting (a moderator)
+await page.getByRole('tab', { name: 'Replies waiting · 2' }).click();
+await page.locator('[data-waiting-replies]').waitFor({ timeout: 5000 });
+ok('replies nothing could match wait, with why and the conversations their sender is in', /Email Grace Wambua · grace@example\.test .*Did you get my letter\? I posted it on Monday\. Why it waits: No reply address it answers was found in it\./.test(await text(page.locator('[data-reply="31"]'))) && /No conversation has this sender/.test(await text(page.locator('[data-reply="32"]'))));
+await page.screenshot({ path: D + 'projects-replies-waiting.png', fullPage: true });
+await page.getByLabel('File reply 31 into').selectOption('1:7');
+await page.locator('[data-reply="31"]').getByRole('button', { name: 'File it' }).click();
+await page.waitForTimeout(400);
+ok('filing one sends the conversation and who it is from', JSON.stringify(last('file')) === JSON.stringify(['file', 31, { thread_id: 1, contact_id: 7 }]) && (await page.locator('[data-reply="31"]').count()) === 0);
+await page.locator('[data-reply="32"]').getByRole('button', { name: 'Throw it away' }).click();
+await page.waitForTimeout(400);
+ok('throwing one away is sent and the list empties', last('discard')[1] === 32 && /Nothing is waiting\./.test(await text(page.locator('[data-waiting-replies]'))));
 
 // following, from the Messages tab
 await page.route(/\/api\/admin\/projects\/413$/, (route) => json(route, { project: { id: 413, number: 'M-0413', title: 'Imara Sacco v. Baraka Traders', description: null, industry: { key: 'legal', name: 'Legal' }, type: { id: 1, name: 'Litigation' }, stage: { id: 1, name: 'Opening', status: 'info' }, state: 'open', priority: 'medium',

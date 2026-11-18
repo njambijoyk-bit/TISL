@@ -29,7 +29,7 @@ class NotifySettings
     public const ENCRYPTED = ['email', 'whatsapp'];
     /** Dot paths of the values that are secrets, per part. */
     public const SECRETS = [
-        'email' => ['password'],
+        'email' => ['password', 'imap_password'],
         'whatsapp' => ['meta.access_token', 'meta.app_secret', 'meta.verify_token', 'twilio.auth_token'],
     ];
     public const DEFAULTS = [
@@ -38,14 +38,15 @@ class NotifySettings
             'cart_reminders_enabled' => false, 'cart_reminder_after_hours' => 24, 'cart_reminder_count' => 1, 'price_drop_enabled' => false, 'price_drop_min_percent' => 5,
             'staff_groups' => []],   // build 6.4: group => {mode: bell|email|whatsapp, locked}; an absent group is email and unlocked
         'types' => ['rules' => []],
-        'email' => ['driver' => 'smtp', 'host' => '', 'port' => 587, 'encryption' => 'tls', 'username' => '', 'password' => '', 'from_name' => '', 'from_address' => '', 'reply_to' => '', 'copy_to' => ''],
+        'email' => ['driver' => 'smtp', 'host' => '', 'port' => 587, 'encryption' => 'tls', 'username' => '', 'password' => '', 'from_name' => '', 'from_address' => '', 'reply_to' => '', 'copy_to' => '',
+            'replies_address' => '', 'imap_host' => '', 'imap_port' => 993, 'imap_encryption' => 'ssl', 'imap_username' => '', 'imap_password' => ''],   // build 6.5: the mailbox replies come back to
         'whatsapp' => ['provider' => null, 'auto' => false, 'language' => 'en',
             'meta' => ['phone_number_id' => '', 'business_account_id' => '', 'access_token' => '', 'app_secret' => '', 'verify_token' => ''],
             'twilio' => ['account_sid' => '', 'auth_token' => '', 'from' => '', 'messaging_service_sid' => '']],
     ];
     /** What a field is called on screen, for the history in words. */
     private const LABELS = ['default_mode' => 'default mode', 'email_enabled' => 'email on/off', 'whatsapp_enabled' => 'WhatsApp on/off', 'whatsapp_number_sources' => 'which numbers count',
-        'essential_only_default' => 'essential only (default)', 'back_in_stock_enabled' => 'back-in-stock alerts on/off', 'back_in_stock_mode' => 'back-in-stock who is told', 'back_in_stock_hold_hours' => 'back-in-stock hold (hours)', 'cart_reminders_enabled' => 'cart reminders on/off', 'cart_reminder_after_hours' => 'cart reminder after (hours)', 'cart_reminder_count' => 'cart reminders per cart', 'price_drop_enabled' => 'price-drop alerts on/off', 'price_drop_min_percent' => 'price-drop minimum (%)', 'staff_groups' => 'how staff hear (defaults and locks)', 'from_name' => 'sender name', 'from_address' => 'sender address', 'reply_to' => 'reply-to', 'copy_to' => 'copy-to',
+        'essential_only_default' => 'essential only (default)', 'back_in_stock_enabled' => 'back-in-stock alerts on/off', 'back_in_stock_mode' => 'back-in-stock who is told', 'back_in_stock_hold_hours' => 'back-in-stock hold (hours)', 'cart_reminders_enabled' => 'cart reminders on/off', 'cart_reminder_after_hours' => 'cart reminder after (hours)', 'cart_reminder_count' => 'cart reminders per cart', 'price_drop_enabled' => 'price-drop alerts on/off', 'price_drop_min_percent' => 'price-drop minimum (%)', 'staff_groups' => 'how staff hear (defaults and locks)', 'from_name' => 'sender name', 'from_address' => 'sender address', 'reply_to' => 'reply-to', 'copy_to' => 'copy-to', 'replies_address' => 'replies mailbox', 'imap_host' => 'replies mail server', 'imap_port' => 'replies port', 'imap_encryption' => 'replies security', 'imap_username' => 'replies user name', 'imap_password' => 'replies password',
         'rules' => 'type rules', 'phone_number_id' => 'phone number ID', 'business_account_id' => 'business account ID', 'account_sid' => 'account SID', 'messaging_service_sid' => 'messaging service'];
 
     private static ?array $cache = null;
@@ -168,7 +169,7 @@ class NotifySettings
 
         $test = null;
         $tested = null;
-        if ($tester && in_array($part, self::ENCRYPTED, true) && $this->worthTesting($part, $candidate)) {
+        if ($tester && in_array($part, self::ENCRYPTED, true) && $this->worthTesting($part, $candidate, $old)) {
             $test = $tester($candidate);
             $tested = (bool) ($test['ok'] ?? false);
             if (! $tested && ! $anyway) {
@@ -184,10 +185,16 @@ class NotifySettings
         return ['version' => $version, 'changed' => $changed, 'unchanged' => false, 'test' => $test];
     }
 
-    /** Is there anything to test: email needs a host; whatsapp needs a provider and its keys. */
-    private function worthTesting(string $part, array $c): bool
+    /** Is there anything to test: email needs a host, and a change to how mail is sent (the replies mailbox alone is not tested here); whatsapp needs a provider and its keys. */
+    private function worthTesting(string $part, array $c, array $old = []): bool
     {
-        return $part === 'email' ? ($c['host'] ?? '') !== '' : (($c['provider'] ?? null) !== null);   // whatsapp: only once a provider is chosen
+        if ($part === 'email') {
+            $sending = ['host', 'port', 'encryption', 'username', 'password', 'from_address', 'driver'];
+
+            return ($c['host'] ?? '') !== '' && (! $old || array_intersect_key($c, array_flip($sending)) != array_intersect_key($old, array_flip($sending)));
+        }
+
+        return ($c['provider'] ?? null) !== null;   // whatsapp: only once a provider is chosen
     }
 
     /** Back to the server's own settings (.env) for email, or to nothing for whatsapp. A version like any other, so it can be rolled back. */
@@ -213,7 +220,9 @@ class NotifySettings
             'types' => ['rules' => 'sometimes|array', 'rules.*.enabled' => 'sometimes|boolean', 'rules.*.channels' => 'nullable|array', 'rules.*.channels.*' => 'in:email,whatsapp', 'rules.*.template' => 'nullable|string|max:120', 'rules.*.variables' => 'nullable|array|max:10', 'rules.*.variables.*' => 'in:name,title,message,company,link'],
             'email' => ['driver' => 'sometimes|in:smtp', 'host' => 'sometimes|nullable|string|max:190', 'port' => 'sometimes|integer|between:1,65535', 'encryption' => 'sometimes|in:tls,ssl,none',
                 'username' => 'sometimes|nullable|string|max:190', 'password' => 'sometimes|nullable|string|max:300', 'from_name' => 'sometimes|nullable|string|max:120',
-                'from_address' => 'sometimes|nullable|email|max:190', 'reply_to' => 'sometimes|nullable|email|max:190', 'copy_to' => 'sometimes|nullable|email|max:190'],
+                'from_address' => 'sometimes|nullable|email|max:190', 'reply_to' => 'sometimes|nullable|email|max:190', 'copy_to' => 'sometimes|nullable|email|max:190',
+                'replies_address' => 'sometimes|nullable|email|max:190', 'imap_host' => 'sometimes|nullable|string|max:190', 'imap_port' => 'sometimes|integer|between:1,65535', 'imap_encryption' => 'sometimes|in:ssl,tls,none',
+                'imap_username' => 'sometimes|nullable|string|max:190', 'imap_password' => 'sometimes|nullable|string|max:300'],
             'whatsapp' => ['provider' => 'sometimes|nullable|in:meta,twilio', 'auto' => 'sometimes|boolean', 'language' => 'sometimes|string|max:10',
                 'meta' => 'sometimes|array', 'meta.*' => 'nullable|string|max:400', 'twilio' => 'sometimes|array', 'twilio.*' => 'nullable|string|max:400'],
         };

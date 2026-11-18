@@ -9,13 +9,13 @@ use Illuminate\Mail\Mailables\Envelope;
 /** A notification as an email: the company's name, the message, one button, and the company's phone and WhatsApp in the footer. */
 class NotificationMail extends BaseMail
 {
-    public function __construct(public string $subjectLine, public string $messageText, public ?string $actionUrl = null, public ?string $actionText = null, public string $greeting = 'Hello')
+    public function __construct(public string $subjectLine, public string $messageText, public ?string $actionUrl = null, public ?string $actionText = null, public string $greeting = 'Hello', public ?string $replyAddress = null)
     {
     }
 
     public function envelope(): Envelope
     {
-        $replyTo = config('mail.reply_to_address') ?: CompanyProfile::defaultEmail();
+        $replyTo = $this->replyAddress ?: (config('mail.reply_to_address') ?: CompanyProfile::defaultEmail());   // an answerable message replies to its own address (build 6.5)
 
         return new Envelope(subject: $this->subjectLine, replyTo: $replyTo ? [new \Illuminate\Mail\Mailables\Address($replyTo, CompanyProfile::name())] : []);
     }

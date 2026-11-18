@@ -5,6 +5,7 @@ import notificationSettingsAPI from '../../../../_shared/api/notificationSetting
 import { errMsg } from '../../../../_shared/store/helpers/apiState';
 import { Field, TextInput, SelectInput, FormGrid } from '../ui/Form';
 import SecretField from './SecretField';
+import RepliesMailbox from './RepliesMailbox';
 import { btnPrimary, btnGhost, card, colors } from '../../../../_shared/theme/tokens';
 
 const PRESETS = [
@@ -115,6 +116,7 @@ export default function EmailTab({ data, canEdit, canSend, onChanged }) {
           "Test and save" sends a real email to {`you`} through these settings first. If it fails, nothing changes. Messages are {data.server.queue === 'sync' ? 'sent straight away' : 'queued and sent by the background worker'}.
         </p>
       </div>
+      <RepliesMailbox data={data} canEdit={canEdit} onChanged={onChanged} />
     </div>
   );
 }

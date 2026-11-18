@@ -118,6 +118,7 @@ class AppServiceProvider extends ServiceProvider
     public function boot(): void
     {
         \App\Services\Security\RateLimits::register();   // throttle:sign-in and the other named doors
+        \App\Services\Notify\Replies\InboundReplies::register('projects', \App\Services\Projects\ProjectReplyFiler::class);   // replies to Projects conversations come back into them (build 6.5)
         \Laravel\Sanctum\Sanctum::authenticateAccessTokensUsing(fn ($token, bool $valid) => \App\Services\Security\SessionGate::allows($token, $valid));   // a suspended account's open sessions stop working at once
         // Mail goes out from the company's default email address (Books → Settings → Company), under the company's name.
         if (! $this->app->runningInConsole() || ! $this->app->runningUnitTests()) {

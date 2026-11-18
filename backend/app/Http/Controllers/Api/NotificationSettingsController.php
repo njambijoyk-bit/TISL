@@ -61,6 +61,7 @@ class NotificationSettingsController extends Controller
             'types' => collect(NotificationTypes::ALL)->map(fn ($t, $k) => ['key' => $k, 'label' => $t[0], 'essential' => $t[1], 'audience' => $t[2]])->values(),
             'staff_groups' => collect(NotificationTypes::GROUPS)->map(fn ($g, $k) => ['key' => $k, 'label' => $g[0], 'types' => array_map(fn ($t) => NotificationTypes::label($t), $g[1])])->values(),
             'staff_modes' => \App\Services\Notify\StaffChannels::MODES,
+            'replies' => ['ready' => \App\Services\Notify\Replies\InboundReplies::ready(), 'configured' => app(\App\Services\Notify\Replies\ReplyMailboxReader::class)->configured(), 'last' => \Illuminate\Support\Facades\Cache::get(\App\Services\Notify\Replies\ReplyMailboxReader::LAST)],
             'whatsapp_api' => ['providers' => WhatsAppProviders::ALL, 'automatic' => app(WhatsAppProviders::class)->automatic(),
                 'webhooks' => ['meta' => WhatsAppProviders::callbackUrl('meta'), 'twilio' => WhatsAppProviders::callbackUrl('twilio')],
                 'types_ready' => collect($this->settings->get('types')['rules'] ?? [])->filter(fn ($r) => ! empty($r['template']) && ($r['enabled'] ?? true))->count()],
@@ -236,5 +237,13 @@ class NotificationSettingsController extends Controller
 
             return response()->json(['message' => 'Skipped.']);
         });
+    }
+
+    /** Read the replies mailbox now, instead of waiting for the next five minutes (build 6.5). */
+    public function readReplies(): JsonResponse
+    {
+        $r = app(\App\Services\Notify\Replies\ReplyMailboxReader::class)->run();
+
+        return response()->json(['result' => $r, 'message' => $r['error'] ? "The mailbox could not be read: {$r['error']}" : "Read {$r['read']}: {$r['filed']} filed, {$r['waiting']} waiting."], $r['error'] ? 422 : 200);
     }
 }

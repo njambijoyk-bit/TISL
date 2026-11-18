@@ -23,6 +23,7 @@ class Notifier
 
     /**
      * `short` is the text for WhatsApp when the full message is too much to put there (no names, no details); `link_in_whatsapp` adds the action link to it.
+     * `reply_route` [module, type, id, ref] makes the message answerable (build 6.5): an email gets a reply address with a token, a WhatsApp number is remembered.
      * `only` limits the message to some channels (a sign-in link goes by email, never to a WhatsApp list a person sends by hand); `no_bell` keeps it out of the bell (a link that signs someone in should not sit in a list).
      *
      * @param  array{action_url?: ?string, action_text?: ?string, data?: ?array, priority?: string, subject?: ?string, email?: ?string, whatsapp?: ?string, whatsapp_source?: ?string, only?: string[], no_bell?: bool}  $o
@@ -82,6 +83,16 @@ class Notifier
                 'priority' => $o['priority'] ?? (NotificationTypes::isEssential($type) ? 'high' : 'normal'), 'sent_at' => now()]);
         }
         $subject = $o['subject'] ?? $title;
+        $route = ! empty($o['reply_route']) && Replies\InboundReplies::ready() ? $o['reply_route'] : null;
+        if ($route && in_array('email', $plan['channels'], true)) {
+            $address = app(Replies\InboundReplies::class)->address(app(Replies\InboundReplies::class)->route($route['module'], $route['type'], (int) $route['id'], 'email', (string) $r['person']['email'], isset($route['ref']) ? (string) $route['ref'] : null));
+            if ($address) {
+                $o['reply_to'] = $address;
+            }
+        }
+        if ($route && in_array('whatsapp', $plan['channels'], true) && ($digits = CompanyProfile::waDigits((string) $r['person']['whatsapp']))) {
+            app(Replies\InboundReplies::class)->route($route['module'], $route['type'], (int) $route['id'], 'whatsapp', '+' . $digits, isset($route['ref']) ? (string) $route['ref'] : null);
+        }
         if (in_array('email', $plan['channels'], true)) {
             $this->queueEmail($bell, $r['bell'] ?? $to, $type, (string) $r['person']['email'], $subject, $message, $o);
         }
@@ -139,6 +150,9 @@ class Notifier
         $d = $this->record($bell, $to, $type, 'email', 'queued', $address, $subject, $body);
         if (! $bell && ! empty($o['action_url']) && NotificationDelivery::hasPayload()) {   // no bell row to carry the button (a guest, or the bell switched off): the delivery keeps it
             $d->forceFill(['payload' => ['action_url' => $o['action_url'], 'action_text' => $o['action_text'] ?? null]])->save();
+        }
+        if (! empty($o['reply_to']) && NotificationDelivery::hasPayload()) {   // an answerable message: replies go to this address (build 6.5)
+            $d->forceFill(['payload' => ($d->payload ?? []) + ['reply_to' => $o['reply_to']]])->save();
         }
         SendNotificationEmail::dispatch($d->id);
 

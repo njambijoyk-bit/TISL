@@ -10,7 +10,7 @@ use Illuminate\Http\Request;
 use Illuminate\Http\Response;
 
 /**
- * What WhatsApp tells us about messages we sent (sent, delivered, read, failed). Public by nature, so nothing is believed until the provider's signature checks
+ * What WhatsApp tells us about messages we sent (sent, delivered, read, failed), and messages people send us (build 6.5). Public by nature, so nothing is believed until the provider's signature checks
  * out against the keys saved on the Notifications screen; a call that does not check out changes nothing and is answered 403.
  */
 class WhatsAppWebhookController extends Controller
@@ -37,8 +37,21 @@ class WhatsAppWebhookController extends Controller
         foreach ($p->statuses((array) $request->json()->all()) as $s) {
             $this->notifier->applyStatus($s['id'], $s['status'], $s['error']);
         }
+        $this->incoming($p->incoming((array) $request->json()->all()));
 
         return response('ok', 200);
+    }
+
+    /** Messages people sent us: filed into the open conversation that wrote to that number, or kept waiting (build 6.5). */
+    private function incoming(array $messages): void
+    {
+        foreach ($messages as $m) {
+            try {
+                app(\App\Services\Notify\Replies\InboundReplies::class)->receive(['channel' => 'whatsapp', 'external_id' => $m['id'], 'from' => $m['from'], 'from_name' => $m['name'], 'body' => $m['body'], 'received_at' => $m['at']]);
+            } catch (\Throwable $e) {
+                report($e);   // a reply that cannot be kept must not make the provider send the statuses again
+            }
+        }
     }
 
     public function twilio(Request $request): Response
@@ -51,6 +64,7 @@ class WhatsAppWebhookController extends Controller
         foreach ($p->statuses($request->post()) as $s) {
             $this->notifier->applyStatus($s['id'], $s['status'], $s['error']);
         }
+        $this->incoming($p->incoming($request->post()));
 
         return response('ok', 200);
     }

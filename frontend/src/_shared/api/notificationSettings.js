@@ -9,6 +9,8 @@ const notificationSettingsAPI = {
   testEmail: (to) => api.post('/admin/notifications/settings/email/test', { to: to || undefined }).then((r) => r.data),
   /** one real template message through the saved WhatsApp keys */
   testWhatsApp: (body) => api.post('/admin/notifications/settings/whatsapp/test', body).then((r) => r.data),
+  /** read the replies mailbox now (build 6.5) */
+  readReplies: () => api.post('/admin/notifications/settings/replies/read').then((r) => r.data),
   reset: (part) => api.post(`/admin/notifications/settings/${part}/reset`).then((r) => r.data),
   versions: (part) => api.get(`/admin/notifications/settings/${part}/versions`).then((r) => r.data),
   rollback: (part, id) => api.post(`/admin/notifications/settings/${part}/versions/${id}/rollback`).then((r) => r.data),

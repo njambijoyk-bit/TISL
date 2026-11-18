@@ -86,4 +86,24 @@ class MetaCloud implements WhatsAppProvider
 
         return $out;
     }
+
+    public function incoming(array $payload): array
+    {
+        $out = [];
+        foreach ($payload['entry'] ?? [] as $entry) {
+            foreach ($entry['changes'] ?? [] as $change) {
+                $names = collect($change['value']['contacts'] ?? [])->mapWithKeys(fn ($c) => [(string) ($c['wa_id'] ?? '') => $c['profile']['name'] ?? null]);
+                foreach ($change['value']['messages'] ?? [] as $m) {
+                    $body = (string) ($m['text']['body'] ?? $m['button']['text'] ?? $m['interactive']['button_reply']['title'] ?? '');
+                    if (empty($m['id']) || empty($m['from'])) {
+                        continue;
+                    }
+                    $out[] = ['id' => (string) $m['id'], 'from' => preg_replace('/\D+/', '', (string) $m['from']), 'name' => $names[(string) $m['from']] ?? null,
+                        'body' => $body !== '' ? $body : '(' . ($m['type'] ?? 'a message') . ' that is not text)', 'at' => isset($m['timestamp']) ? date('Y-m-d H:i:s', (int) $m['timestamp']) : null];
+                }
+            }
+        }
+
+        return $out;
+    }
 }

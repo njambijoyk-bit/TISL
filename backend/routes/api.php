@@ -1972,6 +1972,9 @@ Route::middleware('auth:sanctum')->group(function () {
             Route::post('/{project}/threads/{thread}/messages/{message}/task', [$msg, 'makeTask'])->whereNumber('project')->whereNumber('thread')->whereNumber('message')->middleware('permission:projects.tasks');
             Route::put('/{project}/threads/{thread}/tags', [$msg, 'tag'])->whereNumber('project')->whereNumber('thread')->middleware('permission:projects.messages.internal,projects.messages.client');
             Route::get('/inbox', [$msg, 'inbox'])->middleware('permission:projects.messages.internal,projects.messages.client');
+            Route::get('/replies/waiting', [$msg, 'waitingReplies'])->middleware('permission:projects.messages.moderate');
+            Route::post('/replies/{reply}/file', [$msg, 'fileReply'])->whereNumber('reply')->middleware('permission:projects.messages.moderate');
+            Route::post('/replies/{reply}/discard', [$msg, 'discardReply'])->whereNumber('reply')->middleware('permission:projects.messages.moderate');
             Route::get('/inbox/count', [$msg, 'inboxCount'])->middleware('permission:projects.messages.internal,projects.messages.client');
             Route::put('/{project}/follow', [$msg, 'follow'])->whereNumber('project');
             Route::get('/configuration/tags', [$msg, 'tags'])->middleware('permission:projects.config.view');
@@ -2294,6 +2297,7 @@ Route::middleware('auth:sanctum')->group(function () {
             Route::get('/settings',                                    [$c, 'show'])->middleware('permission:notifications.view,notifications.settings');
             Route::put('/settings/{part}',                             [$c, 'update'])->middleware('permission:notifications.settings');
             Route::post('/settings/email/test',                        [$c, 'testEmail'])->middleware('permission:notifications.send,notifications.settings')->middleware('throttle:10,1');
+            Route::post('/settings/replies/read',                      [$c, 'readReplies'])->middleware('permission:notifications.settings')->middleware('throttle:10,1');
             Route::post('/settings/whatsapp/test',                     [$c, 'testWhatsApp'])->middleware('permission:notifications.send,notifications.settings')->middleware('throttle:10,1');
             Route::post('/settings/purge-keys',                        [$c, 'purgeKeys'])->middleware('permission:notifications.keys.purge');
             Route::post('/settings/{part}/reset',                      [$c, 'reset'])->middleware('permission:notifications.settings');

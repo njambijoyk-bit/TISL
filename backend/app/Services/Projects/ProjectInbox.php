@@ -50,6 +50,7 @@ class ProjectInbox
             'tags' => $threads->tags(),
             'projects' => $this->projects($user),
             'all' => $user->hasPermission('projects.inbox.all'),
+            'waiting_replies' => $user->hasPermission('projects.messages.moderate') && \App\Services\Notify\Replies\InboundReplies::ready() ? \Illuminate\Support\Facades\DB::table('notification_inbound')->where('state', 'waiting')->count() : null,
         ];
     }
 

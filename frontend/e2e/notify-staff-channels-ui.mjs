@@ -1,4 +1,4 @@
-// Browser check: how staff hear about things (build 6.4). A staff member's own page: groups of notices, the company's default, choosing bell only,
+// Browser check: how staff hear about things (build 6.4), and the replies mailbox (build 6.5). A staff member's own page: groups of notices, the company's default, choosing bell only,
 // WhatsApp unavailable without a phone, a locked group; then the company's "How staff hear" tab in Notifications settings: defaults and locks
 // saved in the general settings. The API is answered by the check itself; the rules are proved by the backend tests (NotifyStaffChannelsTest).
 // It needs only the website (npx vite --port 5177).
@@ -55,5 +55,25 @@ await page.getByRole('button', { name: 'Save' }).click();
 await page.waitForTimeout(400);
 ok('defaults and locks are saved in the general settings', JSON.stringify(last('general')[1]) === JSON.stringify({ staff_groups: { projects: { mode: 'bell', locked: true }, security: { mode: 'email', locked: true } } }));
 await page.screenshot({ path: D + 'notify-staff-tab.png', fullPage: true });
+
+// the replies mailbox, on the Email tab
+general.staff_groups = {};
+const base = settings();
+await page.unroute('**/api/admin/notifications/settings');
+await page.route('**/api/admin/notifications/settings', (route) => json(route, { ...base, parts: { ...base.parts, email: { host: 'smtp.imara.test', port: 587, encryption: 'tls', username: 'u', password: { set: true, hint: '••••' }, from_name: '', from_address: '', reply_to: '', copy_to: '', replies_address: 'replies@imara.test', imap_host: 'imap.imara.test', imap_port: 993, imap_encryption: 'ssl', imap_username: 'replies@imara.test', imap_password: { set: true, hint: '••••' } } },
+  saved: { email: true }, current_version: { ...base.current_version, email: { id: 4 } }, server: { queue: 'database' }, replies: { ready: true, configured: true, last: { at: '2026-11-18T09:55:00Z', read: 3, filed: 2, waiting: 1, error: null } } }));
+await page.route('**/api/admin/notifications/settings/email', (route) => { sent.push(['email', route.request().postDataJSON()]); return json(route, { message: 'Saved.' }); });
+await page.route('**/api/admin/notifications/settings/replies/read', (route) => { sent.push(['read']); return json(route, { message: 'Read 1: 1 filed, 0 waiting.', result: { read: 1, filed: 1, waiting: 0, error: null } }); });
+await page.goto(`${SITE}/e2e/harness.html?c=NotificationSettings&tab=email`, { waitUntil: 'networkidle' });
+await page.locator('[data-replies-mailbox]').waitFor({ timeout: 15000 });
+ok('the replies mailbox shows its settings and how the last read went', (await page.getByLabel('Replies mailbox address').inputValue()) === 'replies@imara.test' && /3 read, 2 filed, 1 waiting\./.test(await text(page.locator('[data-replies-last]'))));
+await page.getByLabel('Mailbox port').fill('995');
+await page.getByRole('button', { name: 'Save the mailbox' }).click();
+await page.waitForTimeout(400);
+ok('saving the mailbox sends only its fields, and leaves the password as it is', JSON.stringify(last('email')[1]) === JSON.stringify({ replies_address: 'replies@imara.test', imap_host: 'imap.imara.test', imap_port: 995, imap_encryption: 'ssl', imap_username: 'replies@imara.test', clear: [] }));
+await page.getByRole('button', { name: 'Read it now' }).click();
+await page.waitForTimeout(400);
+ok('it can be read now', last('read') !== undefined);
+await page.locator('[data-replies-mailbox]').screenshot({ path: D + 'notify-replies-mailbox.png' });
 
 await finish(c);

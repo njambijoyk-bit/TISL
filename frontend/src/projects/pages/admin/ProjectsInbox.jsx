@@ -6,6 +6,7 @@ import projectsAPI from '../../../_shared/api/projects';
 import { message } from '../../lib/format';
 import { Btn, Chip, Notice, Panel, SelectInput } from '../../components/ui';
 import ProjectKeys from '../../components/ProjectKeys';
+import WaitingReplies from '../../components/WaitingReplies';
 
 const TONE = { team: 'neutral', client: 'info', others: 'warning' };
 const VIEWS = [['', 'Everything'], ['unread', 'Unread'], ['mentions', 'Mentions'], ['mine', 'Mine to answer']];
@@ -21,6 +22,7 @@ export default function ProjectsInbox() {
   const [params, setParams] = useSearchParams();
   const [data, setData] = useState(null);
   const [problem, setProblem] = useState('');
+  const waiting = params.get('waiting') === '1';
   const view = VIEWS.find(([k]) => k && params.get(k))?.[0] ?? '';
   const f = { state: params.get('state') ?? 'open', tag: params.get('tag') ?? '', project_id: params.get('project_id') ?? '', audience: params.get('audience') ?? '' };
   const query = params.toString();
@@ -33,7 +35,7 @@ export default function ProjectsInbox() {
     Object.entries(changes).forEach(([k, v]) => (v ? next.set(k, v) : next.delete(k)));
     setParams(next, { replace: true });
   };
-  const pickView = (k) => set({ unread: k === 'unread' ? '1' : '', mentions: k === 'mentions' ? '1' : '', mine: k === 'mine' ? '1' : '' });
+  const pickView = (k) => set({ unread: k === 'unread' ? '1' : '', mentions: k === 'mentions' ? '1' : '', mine: k === 'mine' ? '1' : '', waiting: k === 'waiting' ? '1' : '' });
 
   const header = <PageHeader title="Inbox" subtitle={data?.all ? 'Every conversation on the work you can see' : 'Every conversation on your work'} actions={<Btn onClick={() => navigate('/admin/projects')}>Close</Btn>} />;
   if (problem) return <AdminLayout><ProjectKeys />{header}<Notice status="problem">{problem}</Notice></AdminLayout>;
@@ -46,11 +48,13 @@ export default function ProjectsInbox() {
       {header}
       <div role="tablist" aria-label="Which conversations" style={{ display: 'flex', gap: 6, flexWrap: 'wrap', marginBottom: 12 }}>
         {VIEWS.map(([k, label]) => (
-          <Btn key={k || 'all'} small role="tab" aria-selected={view === k} variant={view === k ? 'primary' : 'plain'} onClick={() => pickView(k)}>
+          <Btn key={k || 'all'} small role="tab" aria-selected={!waiting && view === k} variant={!waiting && view === k ? 'primary' : 'plain'} onClick={() => pickView(k)}>
             {label}{k && total[k] > 0 ? ` · ${total[k]}` : ''}
           </Btn>
         ))}
+        {data.waiting_replies != null && <Btn small role="tab" aria-selected={waiting} variant={waiting ? 'primary' : 'plain'} onClick={() => pickView('waiting')}>Replies waiting{data.waiting_replies ? ` · ${data.waiting_replies}` : ''}</Btn>}
       </div>
+      {waiting ? <WaitingReplies onChanged={load} /> : <>
       <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap', marginBottom: 14 }}>
         <SelectInput aria-label="Open or closed" value={f.state} onChange={(e) => set({ state: e.target.value === 'open' ? '' : e.target.value })} style={{ width: 'auto' }}>
           <option value="open">Open</option><option value="closed">Closed</option><option value="all">Open and closed</option>
@@ -90,6 +94,7 @@ export default function ProjectsInbox() {
           </Link>
         ))}
       </Panel>
+      </>}
     </AdminLayout>
   );
 }

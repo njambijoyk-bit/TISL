@@ -26,4 +26,7 @@ interface WhatsAppProvider
 
     /** The delivery statuses a callback carries. @return array<int, array{id: string, status: string, error: ?string}> status is sent | delivered | read | failed */
     public function statuses(array $payload): array;
+
+    /** Messages people sent us (build 6.5). @return array<int, array{id: string, from: string, name: ?string, body: string, at: ?string}> from is the number's digits */
+    public function incoming(array $payload): array;
 }
