@@ -3,6 +3,7 @@
 namespace App\Http\Controllers\Api\Projects;
 
 use App\Http\Controllers\Controller;
+use App\Services\Projects\ProjectDocTemplates;
 use App\Services\Projects\ProjectException;
 use App\Services\Projects\ProjectFiles;
 use App\Services\Projects\ProjectService;
@@ -99,6 +100,45 @@ class FilesController extends Controller
             };
 
             return response()->json($this->files->page($p, $request->user()));
+        });
+    }
+
+    public function templatesFor(Request $request, int $project): JsonResponse
+    {
+        return $this->guard(function () use ($request, $project) {
+            $p = $this->project($request, $project);
+
+            return response()->json(['templates' => array_map(fn ($t) => ['id' => $t['id'], 'name' => $t['name']], app(ProjectDocTemplates::class)->list(false, $p->industry_key))]);
+        });
+    }
+
+    public function preview(Request $request, int $project, int $template): JsonResponse
+    {
+        return $this->guard(fn () => response()->json(app(ProjectDocTemplates::class)->preview($this->project($request, $project), $template, $request->user())));
+    }
+
+    public function make(Request $request, int $project, int $template): JsonResponse
+    {
+        return $this->guard(function () use ($request, $project, $template) {
+            $p = $this->project($request, $project);
+            $id = app(ProjectDocTemplates::class)->make($p, $template, $request->input('folder_id') ? (int) $request->input('folder_id') : null, $request->user(), $request->input('name'));
+
+            return response()->json(['file_id' => $id] + $this->files->page($p, $request->user()), 201);
+        });
+    }
+
+    public function templates(Request $request): JsonResponse
+    {
+        return $this->guard(fn () => response()->json(['templates' => app(ProjectDocTemplates::class)->list(true), 'fields' => app(ProjectDocTemplates::class)->catalogue(),
+            'industries' => app(\App\Services\Projects\ProjectNames::class)->industries(true), 'can' => ['change' => $request->user()->hasPermission('projects.templates')]]));
+    }
+
+    public function saveTemplate(Request $request, ?int $template = null): JsonResponse
+    {
+        return $this->guard(function () use ($request, $template) {
+            app(ProjectDocTemplates::class)->save($template, $request->all(), $request->user());
+
+            return $this->templates($request);
         });
     }
 

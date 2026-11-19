@@ -100,3 +100,14 @@ Screen: `docs/screens/projects-files.png`.
 - **Every add, version, change, share, removal and putting back is in the work's log;** downloads and previews are in the vault's own record.
 - **Routes:** `GET`, `POST /projects/{project}/files`; `GET`, `POST …/files/{file}/versions`; `GET …/files/{file}/download` (version, inline); `PUT …/files/{file}` (name, folder, runs out, or shared); `DELETE …/files/{file}`; `POST …/files/{file}/restore`; `POST /projects/{project}/folders`; `PUT`, `DELETE …/folders/{folder}`.
 - **Tests:** `tests/Feature/ProjectsFilesTest.php` (3, on `ProjectsFilesTestCase`, which makes the vault's tables). Browser check `e2e/projects-files-ui.mjs` (8 checks). It caught that the shared API client sends JSON unless told otherwise; uploads now go as real file uploads.
+
+### 9.2 Documents from templates (done)
+
+Screen: `docs/screens/projects-make-document.png`.
+
+- **Templates:** Configuration → Templates (writing them needs `projects.templates`): a name, which industry (or every one) and the text, with fill-in fields in double braces. Pressing a field in the list puts it where the cursor is. A field that is not known is refused when saving, naming it, so a letter never goes out with a hole nobody noticed. A template can be switched off.
+- **Fields:** the work (number, name, kind, stage, start and expected end, place, reference, authority, description), the client (name, email, phone), the client's main contact (name, email), the lead (name, email), the people on the work, whoever makes the document, the company (name, email, phone), today, and any extra field on the work by its key (`{{field.plot_number}}`).
+- **Making a document** (Files tab → "Make a document"; needs the right to keep the work's files): choose a template, see it filled from the work, named "template and number" (changeable); fields with nothing in them on this work are named and left empty. "Make it" keeps it on the work's files (in the folder that is open) as a PDF, marked "made from a template", with versions like any other file.
+- **Filled as the maker sees the work:** a sensitive extra field they may not see stays empty. The template's own words are kept as written (never read as markup).
+- **Routes:** `GET /projects/{project}/templates`; `POST …/templates/{template}/preview`; `POST …/templates/{template}/make` (folder, name); `GET`, `POST /projects/configuration/templates`, `PUT /projects/configuration/templates/{id}`.
+- **Tests:** `tests/Feature/ProjectsDocTemplatesTest.php` (3). Browser check `e2e/projects-files-ui.mjs` (now 10 checks).

@@ -1,4 +1,4 @@
-// Browser check: the Files tab (build 9.1). Folders, files with their versions, team only or shared, adding a file (sent as a real upload),
+// Browser check: the Files tab (build 9.1), and making a document from a template (9.2). Folders, files with their versions, team only or shared, adding a file (sent as a real upload),
 // sharing, moving, a new version, removing and putting back. The API is answered by the check itself; the vault, the versions and who may do
 // what are proved by ProjectsFilesTest. It needs only the website (npx vite --port 5177).
 import { D, SITE, ok, finish, open } from './lib.mjs';
@@ -35,6 +35,9 @@ await page.route(/\/api\/admin\/projects\/413\/files\/\d+(\/(versions|restore))?
   const b = route.request().postDataJSON(); sent.push(['change', id, b]); files = files.map((f) => (f.id === id ? { ...f, ...b } : f)); return json(route, answer(false));
 });
 
+await page.route('**/api/admin/projects/413/templates', (route) => json(route, { templates: [{ id: 3, name: 'Engagement letter' }] }));
+await page.route('**/api/admin/projects/413/templates/3/preview', (route) => json(route, { html: '<p>Dear Grace Wambua,</p><p>Re: Imara v Baraka</p>', missing: ['project.place'], name: 'Engagement letter M-0413' }));
+await page.route('**/api/admin/projects/413/templates/3/make', (route) => { sent.push(['make', route.request().postDataJSON()]); files = [...files, file({ id: 13, name: 'Engagement letter M-0413.pdf', source: 'template' })]; return json(route, { file_id: 13, ...answer(false) }, 201); });
 await page.goto(`${SITE}/e2e/harness.html?c=ProjectsApp&at=${encodeURIComponent('/admin/projects/413?tab=files')}`, { waitUntil: 'networkidle' });
 await page.addStyleTag({ content: '#root{max-width:1150px!important}' });
 await page.locator('[data-files]').waitFor({ timeout: 15000 });
@@ -63,5 +66,16 @@ await page.getByRole('button', { name: 'Removed files' }).click();
 await page.locator('[data-file="Engagement letter.pdf"]').getByRole('button', { name: 'Put it back' }).click();
 await page.waitForTimeout(300);
 ok('it can be put back', JSON.stringify(last('restore')) === JSON.stringify(['restore', 11]));
+
+await page.getByRole('button', { name: 'Back to the files' }).click().catch(() => {});
+await page.getByRole('button', { name: 'All files' }).click();
+await page.getByRole('button', { name: 'Make a document' }).click();
+await page.locator('[data-make-document] iframe').waitFor({ timeout: 5000 });
+ok('a template is shown filled from the work, naming what is missing', (await page.getByLabel('Name of the file').inputValue()) === 'Engagement letter M-0413' && /Nothing on this work for: project\.place/.test(await text(page.locator('[data-make-document]')))
+  && /Dear Grace Wambua/.test(await page.frameLocator('[data-make-document] iframe').locator('body').innerText()));
+await page.screenshot({ path: D + 'projects-make-document.png', fullPage: true });
+await page.getByRole('button', { name: 'Make it' }).click();
+await page.waitForTimeout(400);
+ok('making it keeps it on the files', JSON.stringify(last('make')[1]) === JSON.stringify({ folder_id: null, name: 'Engagement letter M-0413' }) && /made from a template/.test(await text(page.locator('[data-file="Engagement letter M-0413.pdf"]'))));
 
 await finish(c);

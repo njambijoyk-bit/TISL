@@ -3,6 +3,7 @@ import toast from 'react-hot-toast';
 import projectsAPI from '../../_shared/api/projects';
 import { day, message } from '../lib/format';
 import { Btn, Chip, Notice, Panel, SelectInput, TextInput } from './ui';
+import MakeDocument from './MakeDocument';
 
 const size = (b) => (b >= 1048576 ? `${(b / 1048576).toFixed(1)} MB` : b >= 1024 ? `${Math.round(b / 1024)} KB` : `${b} B`);
 
@@ -10,13 +11,14 @@ const size = (b) => (b >= 1048576 ? `${(b / 1048576).toFixed(1)} MB` : b >= 1024
  * The Files tab (docs/PROJECTS_STAGE9_SPEC.md, build 9.1): folders on the work, files with their versions, team-only or shared with the client.
  * The bytes live in the Core vault; this tab shows what Projects says about each file. Downloads go through the signed-in session.
  */
-export default function FilesPanel({ projectId, onMake }) {
+export default function FilesPanel({ projectId }) {
   const [data, setData] = useState(null);
   const [folder, setFolder] = useState(null);
   const [removed, setRemoved] = useState(false);
   const [open, setOpen] = useState(null);   // a file's details: { id, versions }
   const [problem, setProblem] = useState('');
   const [busy, setBusy] = useState('');
+  const [making, setMaking] = useState(false);
   const picker = useRef(null);
   const versionPicker = useRef(null);
   const load = useCallback(async () => { try { setData(await projectsAPI.files(projectId, { removed: removed ? 1 : 0 })); setProblem(''); } catch (e) { setProblem(message(e, 'The files could not be loaded.')); } }, [projectId, removed]);
@@ -58,7 +60,7 @@ export default function FilesPanel({ projectId, onMake }) {
           {data.can.manage && !removed && <>
             <Btn small variant="primary" busy={busy === 'upload'} onClick={() => picker.current?.click()}>Add files</Btn>
             <Btn small onClick={() => { const n = window.prompt('Folder name'); if (n) run(() => projectsAPI.addFolder(projectId, n, folder), 'Folder added'); }}>New folder</Btn>
-            {onMake && <Btn small onClick={() => onMake(folder)}>Make a document</Btn>}
+            <Btn small onClick={() => setMaking(true)}>Make a document</Btn>
           </>}
           {data.can.manage && <Btn small variant="quiet" aria-pressed={removed} onClick={() => setRemoved(!removed)}>{removed ? 'Back to the files' : 'Removed files'}</Btn>}
         </span>
@@ -66,6 +68,7 @@ export default function FilesPanel({ projectId, onMake }) {
         <input ref={versionPicker} type="file" hidden aria-label="Choose the new version" onChange={async (e) => { const f = e.target.files[0]; e.target.value = ''; if (f && open) { const note = window.prompt('What changed? (optional)') ?? ''; if (await run(() => projectsAPI.fileVersion(projectId, open.id, f, note), 'New version added')) showVersions({ id: open.id }); } }} />
       </div>
       {problem && <Notice status="problem" style={{ marginBottom: 10 }}>{problem}</Notice>}
+      {making && <MakeDocument projectId={projectId} folderId={folder} onClose={() => setMaking(false)} onMade={(r) => { setData(r); setMaking(false); }} />}
       {!removed && subfolders.map((f) => (
         <div key={f.id} data-folder={f.name} style={{ display: 'flex', justifyContent: 'space-between', gap: 8, padding: '8px 0', borderBottom: '1px solid var(--line)', fontSize: 13.5 }}>
           <button type="button" onClick={() => setFolder(f.id)} style={{ background: 'none', border: 0, padding: 0, cursor: 'pointer', font: 'inherit', color: 'var(--text-primary)', fontWeight: 600 }}>▸ {f.name}</button>

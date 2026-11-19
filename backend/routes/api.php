@@ -2016,6 +2016,12 @@ Route::middleware('auth:sanctum')->group(function () {
             Route::put('/{project}/files/{file}', [$fl, 'change'])->whereNumber(['project', 'file'])->middleware('permission:projects.files.manage,projects.files.share');
             Route::delete('/{project}/files/{file}', [$fl, 'remove'])->whereNumber(['project', 'file'])->middleware('permission:projects.files.manage');
             Route::post('/{project}/files/{file}/restore', [$fl, 'restore'])->whereNumber(['project', 'file'])->middleware('permission:projects.files.manage');
+            Route::get('/{project}/templates', [$fl, 'templatesFor'])->whereNumber('project')->middleware('permission:projects.files.manage');
+            Route::post('/{project}/templates/{template}/preview', [$fl, 'preview'])->whereNumber(['project', 'template'])->middleware('permission:projects.files.manage');
+            Route::post('/{project}/templates/{template}/make', [$fl, 'make'])->whereNumber(['project', 'template'])->middleware('permission:projects.files.manage');
+            Route::get('/configuration/templates', [$fl, 'templates'])->middleware('permission:projects.templates,projects.config.view');
+            Route::post('/configuration/templates', [$fl, 'saveTemplate'])->middleware('permission:projects.templates');
+            Route::put('/configuration/templates/{template}', [$fl, 'saveTemplate'])->whereNumber('template')->middleware('permission:projects.templates');
             Route::post('/{project}/folders', [$fl, 'folder'])->whereNumber('project')->middleware('permission:projects.files.manage');
             Route::match(['put', 'delete'], '/{project}/folders/{folder}', [$fl, 'folder'])->whereNumber(['project', 'folder'])->middleware('permission:projects.files.manage');
             $cb = \App\Http\Controllers\Api\Projects\CasebookController::class;
