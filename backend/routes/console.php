@@ -45,6 +45,7 @@ Schedule::command('projects:task-reminders')->dailyAt('07:30')->withoutOverlappi
 Schedule::command('projects:certificate-warnings')->dailyAt('07:10')->withoutOverlapping();   // certificates on HR records running out (stage 8)
 Schedule::command('projects:checklist-reminders')->dailyAt('07:20')->withoutOverlapping();   // joining and leaving steps due or late (stage 8)
 Schedule::command('projects:request-reminders')->dailyAt('07:30')->withoutOverlapping();   // files and sign-offs asked for, due or late (stage 9)
+Schedule::command('projects:file-expiry-warnings')->dailyAt('07:40')->withoutOverlapping();   // files on the work running out (stage 9)
 Schedule::command('projects:key-date-warnings')->dailyAt('07:00')->withoutOverlapping();   // key dates coming up, on the day, and missed
 Schedule::command('projects:stop-timers')->hourly()->withoutOverlapping();   // timers left running past the company's cap stop themselves and tell the person
 Schedule::command('notifications:read-replies')->everyFiveMinutes()->withoutOverlapping();   // replies to messages sent with a reply address (build 6.5); nothing until a mailbox is named

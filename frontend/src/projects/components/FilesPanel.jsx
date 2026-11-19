@@ -5,6 +5,7 @@ import { day, message } from '../lib/format';
 import { Btn, Chip, Notice, Panel, SelectInput, TextInput } from './ui';
 import MakeDocument from './MakeDocument';
 import RequestsPanel from './RequestsPanel';
+import RegistersPanel from './RegistersPanel';
 
 const size = (b) => (b >= 1048576 ? `${(b / 1048576).toFixed(1)} MB` : b >= 1024 ? `${Math.round(b / 1024)} KB` : `${b} B`);
 
@@ -21,6 +22,7 @@ export default function FilesPanel({ projectId }) {
   const [busy, setBusy] = useState('');
   const [making, setMaking] = useState(false);
   const [askOn, setAskOn] = useState(null);
+  const [view, setView] = useState('files');
   const picker = useRef(null);
   const versionPicker = useRef(null);
   const load = useCallback(async () => { try { setData(await projectsAPI.files(projectId, { removed: removed ? 1 : 0 })); setProblem(''); } catch (e) { setProblem(message(e, 'The files could not be loaded.')); } }, [projectId, removed]);
@@ -50,7 +52,15 @@ export default function FilesPanel({ projectId }) {
   const subfolders = data.folders.filter((f) => (f.parent_id ?? null) === folder);
   const files = removed ? data.files : data.files.filter((f) => (f.folder_id ?? null) === folder);
 
+  const switcher = (
+    <div role="tablist" aria-label="Files or registers" style={{ display: 'flex', gap: 6, marginBottom: 12 }}>
+      {[['files', 'Files'], ['registers', 'Registers']].map(([k, l]) => <Btn key={k} small role="tab" aria-selected={view === k} variant={view === k ? 'primary' : 'plain'} onClick={() => setView(k)}>{l}</Btn>)}
+    </div>
+  );
+  if (view === 'registers') return <div>{switcher}<RegistersPanel projectId={projectId} files={data.files} /></div>;
+
   return (
+    <div>{switcher}
     <Panel data-files onDragOver={(e) => { if (data.can.manage && !removed) e.preventDefault(); }} onDrop={(e) => { if (!data.can.manage || removed) return; e.preventDefault(); send([...e.dataTransfer.files]); }}>
       <div style={{ display: 'flex', justifyContent: 'space-between', gap: 8, flexWrap: 'wrap', alignItems: 'center', marginBottom: 12 }}>
         <nav aria-label="Folders" style={{ display: 'flex', gap: 6, alignItems: 'center', fontSize: 13.5, flexWrap: 'wrap' }}>
@@ -128,5 +138,6 @@ export default function FilesPanel({ projectId }) {
         </div>
       ))}
     </Panel>
+    </div>
   );
 }

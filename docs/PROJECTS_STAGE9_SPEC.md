@@ -124,3 +124,14 @@ Screen: `docs/screens/projects-request-answer.png` (the page an outsider answers
 - **Reminders:** every morning (`projects:request-reminders`, 07:30) whoever was asked for something due today or late is reminded, once a day.
 - **Routes:** `GET`, `POST /projects/{project}/requests`; `POST …/requests/{id}/answer`; `POST …/requests/{id}/cancel`. Without signing in (30 a minute): `GET /requests/{code}`, `GET /requests/{code}/file`, `POST /requests/{code}/answer`.
 - **Tests:** `tests/Feature/ProjectsFileRequestsTest.php` (3). Browser check `e2e/projects-files-ui.mjs` (now 15 checks).
+
+### 9.4 Registers and expiry (done)
+
+Screen: `docs/screens/projects-registers.png`.
+
+- **Registers** (Files tab → Registers): start one from a register kind; each line has a number (unique in its register), a title, a revision, a status from the kind's list, and a file on the work. Lines can be changed and removed (`projects.files.manage` and a project role that keeps files); everyone who may see the files may see the registers.
+- **The revision moves on by itself** when the line's file gets a new version: A to B, Z to AA, 1 to 2, 09 to 10, P01 to P02, C3 to C4; an empty revision becomes A; anything else gets ".1".
+- **Register kinds:** Configuration → Registers: a name and its statuses (comma separated); switched off or on. Three to start with: drawings (for information, for comment, for construction, superseded), documents (draft, issued, signed, superseded), permits (applied for, granted, expired, refused).
+- **Expiry:** any file may carry the day it runs out (9.1). Every morning (`projects:file-expiry-warnings`, 07:40) the lead and whoever added it are told when it is within 60, 30 or 7 days, and on the day, once at each mark (a missed morning still warns once). A new date starts the warnings again. The Files tab marks files running out or run out.
+- **Routes:** `GET`, `POST /projects/{project}/registers`; `POST …/registers/{register}/lines`; `PUT`, `DELETE …/registers/{register}/lines/{line}`; `GET`, `POST /projects/configuration/registers`, `PUT /projects/configuration/registers/{id}`.
+- **Tests:** `tests/Feature/ProjectsRegistersTest.php` (3). Browser check `e2e/projects-files-ui.mjs` (now 17 checks).

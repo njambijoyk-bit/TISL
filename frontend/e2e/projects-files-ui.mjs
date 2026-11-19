@@ -1,4 +1,4 @@
-// Browser check: the Files tab (build 9.1), making a document from a template (9.2), and asking for files and sign-off with the outsider's page (9.3). Folders, files with their versions, team only or shared, adding a file (sent as a real upload),
+// Browser check: the Files tab (build 9.1), making a document from a template (9.2), asking for files and sign-off with the outsider's page (9.3), and registers (9.4). Folders, files with their versions, team only or shared, adding a file (sent as a real upload),
 // sharing, moving, a new version, removing and putting back. The API is answered by the check itself; the vault, the versions and who may do
 // what are proved by ProjectsFilesTest. It needs only the website (npx vite --port 5177).
 import { D, SITE, ok, finish, open } from './lib.mjs';
@@ -95,6 +95,24 @@ await page.screenshot({ path: D + 'projects-make-document.png', fullPage: true }
 await page.getByRole('button', { name: 'Make it' }).click();
 await page.waitForTimeout(400);
 ok('making it keeps it on the files', JSON.stringify(last('make')[1]) === JSON.stringify({ folder_id: null, name: 'Engagement letter M-0413' }) && /made from a template/.test(await text(page.locator('[data-file="Engagement letter M-0413.pdf"]'))));
+
+// registers
+let registers = [{ id: 2, name: 'Drawing register', kind: 'Drawing register', statuses: ['For information', 'For comment', 'For construction', 'Superseded'], lines: [{ id: 30, number: 'A-101', title: 'Ground floor plan', revision: 'B', status: 'For comment', file: { id: 10, name: 'Plaint.pdf' }, updated_at: null }] }];
+const regAnswer = () => ({ registers, kinds: [{ id: 1, key: 'drawings', name: 'Drawing register', statuses: [], is_active: true }], can: { change: true } });
+await page.route('**/api/admin/projects/413/registers', (route) => json(route, regAnswer()));
+await page.route('**/api/admin/projects/413/registers/2/lines', (route) => { const b = route.request().postDataJSON(); sent.push(['line', b]); registers = [{ ...registers[0], lines: [...registers[0].lines, { id: 31, ...b, file: null }] }]; return json(route, regAnswer()); });
+await page.goto(`${SITE}/e2e/harness.html?c=ProjectsApp&at=${encodeURIComponent('/admin/projects/413?tab=files')}`, { waitUntil: 'networkidle' });
+await page.getByRole('tab', { name: 'Registers' }).click();
+await page.locator('[data-register="Drawing register"]').waitFor({ timeout: 10000 });
+ok('a register lists its lines with revision, status and file', /A-101 Ground floor plan B For comment Plaint\.pdf/.test(await text(page.locator('[data-line="A-101"]'))));
+await page.getByRole('button', { name: 'Add a line' }).click();
+await page.getByLabel('Number', { exact: true }).fill('A-102');
+await page.getByLabel('Title', { exact: true }).fill('First floor plan');
+await page.getByLabel('Status', { exact: true }).selectOption('For information');
+await page.getByRole('button', { name: 'Save', exact: true }).click();
+await page.waitForTimeout(300);
+ok('a new line is sent with its status from the kind', JSON.stringify(last('line')[1]) === JSON.stringify({ number: 'A-102', title: 'First floor plan', revision: '', status: 'For information', file_id: null }) && (await page.locator('[data-line="A-102"]').count()) === 1);
+await page.screenshot({ path: D + 'projects-registers.png', fullPage: true });
 
 // the outsider's page
 let pub = { kind: 'signoff', what: 'Sign off the contract', due_on: null, state: 'open', project: 'M-0413 Imara v Baraka', company: 'Imara Advocates', who: 'Grace Wambua', file: { name: 'Contract.pdf', version: 2 }, answer: null };

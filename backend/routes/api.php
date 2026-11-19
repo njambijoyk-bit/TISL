@@ -2028,6 +2028,13 @@ Route::middleware('auth:sanctum')->group(function () {
             Route::get('/configuration/templates', [$fl, 'templates'])->middleware('permission:projects.templates,projects.config.view');
             Route::post('/configuration/templates', [$fl, 'saveTemplate'])->middleware('permission:projects.templates');
             Route::put('/configuration/templates/{template}', [$fl, 'saveTemplate'])->whereNumber('template')->middleware('permission:projects.templates');
+            Route::get('/{project}/registers', [$fl, 'registers'])->whereNumber('project')->middleware('permission:projects.files.view');
+            Route::post('/{project}/registers', [$fl, 'addRegister'])->whereNumber('project')->middleware('permission:projects.files.manage');
+            Route::post('/{project}/registers/{register}/lines', [$fl, 'registerLine'])->whereNumber(['project', 'register'])->middleware('permission:projects.files.manage');
+            Route::match(['put', 'delete'], '/{project}/registers/{register}/lines/{line}', [$fl, 'registerLine'])->whereNumber(['project', 'register', 'line'])->middleware('permission:projects.files.manage');
+            Route::get('/configuration/registers', [$fl, 'registerKinds'])->middleware('permission:projects.config.view');
+            Route::post('/configuration/registers', [$fl, 'saveRegisterKind'])->middleware('permission:projects.config.manage');
+            Route::put('/configuration/registers/{kind}', [$fl, 'saveRegisterKind'])->whereNumber('kind')->middleware('permission:projects.config.manage');
             $rq = \App\Http\Controllers\Api\Projects\RequestsController::class;
             Route::get('/{project}/requests', [$rq, 'index'])->whereNumber('project')->middleware('permission:projects.files.view');
             Route::post('/{project}/requests', [$rq, 'store'])->whereNumber('project')->middleware('permission:projects.files.sign');

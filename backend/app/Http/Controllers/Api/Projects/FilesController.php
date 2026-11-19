@@ -6,6 +6,7 @@ use App\Http\Controllers\Controller;
 use App\Services\Projects\ProjectDocTemplates;
 use App\Services\Projects\ProjectException;
 use App\Services\Projects\ProjectFiles;
+use App\Services\Projects\ProjectRegisters;
 use App\Services\Projects\ProjectService;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
@@ -124,6 +125,46 @@ class FilesController extends Controller
             $id = app(ProjectDocTemplates::class)->make($p, $template, $request->input('folder_id') ? (int) $request->input('folder_id') : null, $request->user(), $request->input('name'));
 
             return response()->json(['file_id' => $id] + $this->files->page($p, $request->user()), 201);
+        });
+    }
+
+    public function registers(Request $request, int $project): JsonResponse
+    {
+        return $this->guard(fn () => response()->json(app(ProjectRegisters::class)->forProject($this->project($request, $project), $request->user())));
+    }
+
+    public function addRegister(Request $request, int $project): JsonResponse
+    {
+        return $this->guard(function () use ($request, $project) {
+            $p = $this->project($request, $project);
+            app(ProjectRegisters::class)->addRegister($p, (int) $request->input('kind_id'), $request->input('name'), $request->user());
+
+            return response()->json(app(ProjectRegisters::class)->forProject($p, $request->user()), 201);
+        });
+    }
+
+    public function registerLine(Request $request, int $project, int $register, ?int $line = null): JsonResponse
+    {
+        return $this->guard(function () use ($request, $project, $register, $line) {
+            $p = $this->project($request, $project);
+            $request->isMethod('delete') ? app(ProjectRegisters::class)->removeLine($p, $register, (int) $line, $request->user())
+                : app(ProjectRegisters::class)->saveLine($p, $register, $line, $request->only(['number', 'title', 'revision', 'status', 'file_id']), $request->user());
+
+            return response()->json(app(ProjectRegisters::class)->forProject($p, $request->user()));
+        });
+    }
+
+    public function registerKinds(Request $request): JsonResponse
+    {
+        return $this->guard(fn () => response()->json(['kinds' => app(ProjectRegisters::class)->kinds(true), 'can' => ['change' => $request->user()->hasPermission('projects.config.manage')]]));
+    }
+
+    public function saveRegisterKind(Request $request, ?int $kind = null): JsonResponse
+    {
+        return $this->guard(function () use ($request, $kind) {
+            app(ProjectRegisters::class)->saveKind($kind, $request->all(), $request->user());
+
+            return $this->registerKinds($request);
         });
     }
 

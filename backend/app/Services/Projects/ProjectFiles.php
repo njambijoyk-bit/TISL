@@ -134,6 +134,7 @@ class ProjectFiles
             $doc->forceFill(['file_path' => $stored, 'file_size' => $size, 'version_count' => $n, 'mime_type' => $mime, 'original_filename' => $original])->save();
         });
         DB::table('project_files')->where('id', $f->id)->update(['updated_at' => now()]);
+        app(ProjectRegisters::class)->versionAdded((int) $f->id);   // a register line holding this file moves its revision on
         $this->vaultLog($byId, 'upload', (int) $doc->id, ['module' => 'projects', 'version' => $n]);
         ProjectLog::record((int) $project->id, $by instanceof User ? $by : null, 'file.version', 'file', (int) $f->id, null, ['name' => $f->name, 'version' => $n]);
 
