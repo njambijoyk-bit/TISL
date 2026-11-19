@@ -2007,6 +2007,17 @@ Route::middleware('auth:sanctum')->group(function () {
             Route::get('/configuration/checklists', [$ppl, 'templates'])->middleware('permission:projects.config.view');
             Route::post('/configuration/checklists', [$ppl, 'saveTemplate'])->middleware('permission:projects.config.manage');
             Route::put('/configuration/checklists/{template}', [$ppl, 'saveTemplate'])->whereNumber('template')->middleware('permission:projects.config.manage');
+            $fl = \App\Http\Controllers\Api\Projects\FilesController::class;
+            Route::get('/{project}/files', [$fl, 'index'])->whereNumber('project')->middleware('permission:projects.files.view');
+            Route::post('/{project}/files', [$fl, 'upload'])->whereNumber('project')->middleware('permission:projects.files.manage');
+            Route::get('/{project}/files/{file}/versions', [$fl, 'versions'])->whereNumber(['project', 'file'])->middleware('permission:projects.files.view');
+            Route::post('/{project}/files/{file}/versions', [$fl, 'version'])->whereNumber(['project', 'file'])->middleware('permission:projects.files.manage');
+            Route::get('/{project}/files/{file}/download', [$fl, 'download'])->whereNumber(['project', 'file'])->middleware('permission:projects.files.view');
+            Route::put('/{project}/files/{file}', [$fl, 'change'])->whereNumber(['project', 'file'])->middleware('permission:projects.files.manage,projects.files.share');
+            Route::delete('/{project}/files/{file}', [$fl, 'remove'])->whereNumber(['project', 'file'])->middleware('permission:projects.files.manage');
+            Route::post('/{project}/files/{file}/restore', [$fl, 'restore'])->whereNumber(['project', 'file'])->middleware('permission:projects.files.manage');
+            Route::post('/{project}/folders', [$fl, 'folder'])->whereNumber('project')->middleware('permission:projects.files.manage');
+            Route::match(['put', 'delete'], '/{project}/folders/{folder}', [$fl, 'folder'])->whereNumber(['project', 'folder'])->middleware('permission:projects.files.manage');
             $cb = \App\Http\Controllers\Api\Projects\CasebookController::class;
             Route::get('/casebook', [$cb, 'index'])->middleware('permission:projects.casebook.report,projects.casebook.handle');
             Route::post('/casebook', [$cb, 'store'])->middleware('permission:projects.casebook.report');

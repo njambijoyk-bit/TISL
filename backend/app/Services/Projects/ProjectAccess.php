@@ -24,6 +24,7 @@ class ProjectAccess
         'tasks' => 'projects.tasks', 'time' => 'projects.time.log', 'approve_time' => 'projects.time.approve', 'scope' => 'projects.scope', 'dates' => 'projects.dates',
         'changes' => 'projects.changes', 'changes_approve' => 'projects.changes.approve',
         'talk_team' => 'projects.messages.internal', 'talk_client' => 'projects.messages.client', 'moderate' => 'projects.messages.moderate', 'meet' => 'projects.meetings',
+        'files_view' => 'projects.files.view', 'files' => 'projects.files.manage', 'files_share' => 'projects.files.share', 'files_sign' => 'projects.files.sign', 'guests' => 'projects.guests',
     ];
 
     /** what is asked => the ability their project role must have */
@@ -33,10 +34,11 @@ class ProjectAccess
         'money' => 'money', 'tasks' => 'tasks', 'time' => 'time', 'approve_time' => 'approve_time', 'scope' => 'tasks', 'dates' => 'tasks',   // scope lines and key dates are kept by whoever works the tasks
         'changes' => 'tasks', 'changes_approve' => 'edit',   // anyone working the tasks raises a change; deciding on one is for those who may change the work
         'talk_team' => 'talk', 'talk_client' => 'talk', 'moderate' => 'talk', 'meet' => 'meet',
+        'files_view' => 'open', 'files' => 'files', 'files_share' => 'files', 'files_sign' => 'files', 'guests' => 'files',   // stage 9: whoever keeps the work's files
     ];
 
     /** reading: what `projects.view_all` opens on a project the person is not on, and what stays possible on a frozen one */
-    private const READING = ['open', 'members_view', 'log', 'money'];
+    private const READING = ['open', 'members_view', 'log', 'money', 'files_view'];
 
     /** The abilities this person's project role gives them on a project (none when they are not on it now). @return string[] */
     public function roleAbilities(User $user, int $projectId): array

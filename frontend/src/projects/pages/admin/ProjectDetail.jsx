@@ -15,6 +15,7 @@ import MoneyPanel from '../../components/MoneyPanel';
 import WorkTab from '../../components/WorkTab';
 import MessagesPanel from '../../components/MessagesPanel';
 import MeetingsPanel from '../../components/MeetingsPanel';
+import FilesPanel from '../../components/FilesPanel';
 import ActivityPanel from '../../components/ActivityPanel';
 import LinksPanel from '../../components/LinksPanel';
 import { hasPermission } from '../../../_shared/lib/roles';
@@ -188,7 +189,7 @@ export default function ProjectDetail() {
         {PRIORITY[p.priority] && p.priority !== 'medium' && <Chip status={PRIORITY[p.priority].status}>{PRIORITY[p.priority].label} priority</Chip>}
       </div>
       <StageBar project={p} onMove={move} busy={busy} />
-      <Tabs tabs={[{ key: 'overview', label: 'Overview' }, { key: 'phases', label: word('phase', true) }, { key: 'work', label: 'Work' }, ...(hasPermission(user, 'projects.messages.internal') || hasPermission(user, 'projects.messages.client') ? [{ key: 'messages', label: 'Messages' }] : []), ...(hasPermission(user, 'projects.meetings') || hasPermission(user, 'projects.messages.internal') || hasPermission(user, 'projects.messages.client') ? [{ key: 'meetings', label: 'Meetings' }] : []), ...(can.members_view ? [{ key: 'people', label: 'People' }, { key: 'access', label: 'Access' }] : []), { key: 'parties', label: 'Parties' }, ...(can.money ? [{ key: 'money', label: 'Money' }] : []), { key: 'links', label: 'Links' }, ...(can.log ? [{ key: 'activity', label: 'Activity' }] : [])]} value={tab} onChange={setTab} label="Parts of this page" mark="project-key" />
+      <Tabs tabs={[{ key: 'overview', label: 'Overview' }, { key: 'phases', label: word('phase', true) }, { key: 'work', label: 'Work' }, ...(hasPermission(user, 'projects.messages.internal') || hasPermission(user, 'projects.messages.client') ? [{ key: 'messages', label: 'Messages' }] : []), ...(hasPermission(user, 'projects.files.view') ? [{ key: 'files', label: 'Files' }] : []), ...(hasPermission(user, 'projects.meetings') || hasPermission(user, 'projects.messages.internal') || hasPermission(user, 'projects.messages.client') ? [{ key: 'meetings', label: 'Meetings' }] : []), ...(can.members_view ? [{ key: 'people', label: 'People' }, { key: 'access', label: 'Access' }] : []), { key: 'parties', label: 'Parties' }, ...(can.money ? [{ key: 'money', label: 'Money' }] : []), { key: 'links', label: 'Links' }, ...(can.log ? [{ key: 'activity', label: 'Activity' }] : [])]} value={tab} onChange={setTab} label="Parts of this page" mark="project-key" />
 
       {lockedTab && <UnlockPanel key={lockedTab} projectId={p.id} area={lockedTab} label={locks[lockedTab].label} onOpened={load} />}
       {openTab && (
@@ -200,6 +201,7 @@ export default function ProjectDetail() {
       {!lockedTab && tab === 'phases' && <PhasesPanel key={`${p.id}-${p.frozen}`} projectId={p.id} word={word} />}
       {!lockedTab && tab === 'work' && <WorkTab key={`${p.id}-${p.frozen}`} projectId={p.id} word={word} />}
       {!lockedTab && tab === 'messages' && <MessagesPanel key={`${p.id}-${p.frozen}`} projectId={p.id} onMeet={(pre) => { setMeetPrefill(pre); setTab('meetings'); }} />}
+      {!lockedTab && tab === 'files' && <FilesPanel key={`${p.id}-${p.frozen}`} projectId={p.id} />}
       {!lockedTab && tab === 'meetings' && <MeetingsPanel key={`${p.id}-${p.frozen}`} projectId={p.id} prefill={meetPrefill} onPrefillUsed={() => setMeetPrefill(null)} />}
       {tab === 'money' && <MoneyPanel key={p.id} projectId={p.id} />}
       {tab === 'parties' && <PartiesPanel key={`${p.id}-${p.frozen}`} projectId={p.id} word={word} />}

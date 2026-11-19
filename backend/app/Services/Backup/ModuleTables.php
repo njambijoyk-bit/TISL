@@ -151,6 +151,7 @@ final class ModuleTables
             'project_threads', 'project_thread_people', 'project_thread_messages', 'project_message_mentions', 'project_message_reads', 'project_tags', 'project_thread_tags', 'project_follows', 'project_link_roles',
             'project_goals', 'project_reviews', 'project_one_to_ones', 'project_one_to_one_private', 'project_checklist_templates', 'project_checklist_steps', 'project_checklists', 'project_checklist_items',
             'project_case_kinds', 'project_cases', 'project_case_subjects', 'project_case_messages', 'project_case_log',
+            'project_folders', 'project_files', 'project_doc_templates', 'project_file_requests', 'project_register_kinds', 'project_registers', 'project_register_lines', 'project_guest_links', 'project_guest_visits',
             'project_meetings', 'project_meeting_people', 'project_meeting_actions',   // stage 6 (script 263)
         ],
         'listings'       => [/* built later */],

@@ -48,7 +48,7 @@ trait CreatesProjectsWorld
                 return User::all()->filter(fn ($u) => in_array($permission, $this->test->permsOf($u->id), true))->values();
             }
         });
-        $this->runSqlScripts('257_projects_foundation.sql', '258_projects_control_room.sql', '259_projects_relationships.sql', '260_projects_money.sql', '261_projects_work.sql', '262_notify_staff_and_replies.sql', '263_projects_messages.sql', '264_projects_links_more.sql', '265_projects_people.sql');
+        $this->runSqlScripts('257_projects_foundation.sql', '258_projects_control_room.sql', '259_projects_relationships.sql', '260_projects_money.sql', '261_projects_work.sql', '262_notify_staff_and_replies.sql', '263_projects_messages.sql', '264_projects_links_more.sql', '265_projects_people.sql', '266_projects_documents.sql');
         if (! \Illuminate\Support\Facades\Schema::hasColumn('project_links', 'role_key')) {   // script 264 adds it inside a guard procedure, which the runner does not read
             \Illuminate\Support\Facades\Schema::table('project_links', fn ($t) => $t->string('role_key', 30)->nullable());
         }
@@ -59,6 +59,7 @@ trait CreatesProjectsWorld
         $this->runProjectStarterRows('263_projects_messages.sql');
         $this->runProjectStarterRows('264_projects_links_more.sql');
         $this->runProjectStarterRows('265_projects_people.sql');
+        $this->runProjectStarterRows('266_projects_documents.sql');
         $this->runProjectStarterRows('258_projects_control_room.sql');
         ProjectsSetup::forget();
         \App\Services\Books\ClientMoneyGuard::forget();

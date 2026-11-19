@@ -64,9 +64,15 @@ class ProjectsSetup
         return self::once('people', fn () => self::ready() && Schema::hasTable('project_goals') && Schema::hasTable('project_cases'));
     }
 
+    /** Script 266 and the vault: documents and portals (stage 9). */
+    public static function documents(): bool
+    {
+        return self::once('documents', fn () => self::ready() && Schema::hasTable('project_files') && Schema::hasTable('vault_documents'));
+    }
+
     public static function forget(): void
     {
-        foreach (['ready', 'control_room', 'relationships', 'money', 'work', 'messages'] as $k) {
+        foreach (['ready', 'control_room', 'relationships', 'money', 'work', 'messages', 'links', 'people', 'documents'] as $k) {
             app()->offsetUnset(self::KEY . $k);
         }
     }
