@@ -190,7 +190,8 @@ const CoursesEnrolments = lazy(() => import('./courses/pages/admin/CoursesEnrolm
 const ChefsPublicPage    = lazy(() => import('./menus/pages/public/ChefsPage'));
 const MenusFloor         = lazy(() => import('./menus/pages/admin/MenusFloor'));
 const MenuTablePage      = lazy(() => import('./menus/pages/public/TablePage'));
-const MeetingAnswer      = lazy(() => import('./projects/pages/public/MeetingAnswer'));   // a meeting invitation's answer link: no sign-in
+const MeetingAnswer      = lazy(() => import('./projects/pages/public/MeetingAnswer'));
+const RequestAnswer      = lazy(() => import('./projects/pages/public/RequestAnswer'));   // a file or sign-off asked of someone outside: no sign-in   // a meeting invitation's answer link: no sign-in
 const MenusTill          = lazy(() => import('./menus/pages/admin/MenusTill'));
 const MenusKitchen       = lazy(() => import('./menus/pages/admin/MenusKitchen'));
 const MenusOrders        = lazy(() => import('./menus/pages/admin/MenusOrders'));
@@ -610,6 +611,7 @@ function App() {
  <Route path="/kiosk/:token" element={<ModuleRoute module="menus"><KioskPage /></ModuleRoute>} />
  <Route path="/menu/table/:qr" element={<ModuleRoute module="menus"><MenuTablePage /></ModuleRoute>} />
  <Route path="/meeting/:token" element={<MeetingAnswer />} />
+ <Route path="/request/:token" element={<RequestAnswer />} />
             <Route path="/menu/order/:token" element={<ModuleRoute module="menus"><MenuOrderTrack /></ModuleRoute>} />
             <Route path="/menu/plans" element={<ModuleRoute module="menus"><PlansPage /></ModuleRoute>} />
             <Route path="/menu/plan/:token" element={<ModuleRoute module="menus"><PlanManagePage /></ModuleRoute>} />

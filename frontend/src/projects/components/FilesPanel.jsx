@@ -4,6 +4,7 @@ import projectsAPI from '../../_shared/api/projects';
 import { day, message } from '../lib/format';
 import { Btn, Chip, Notice, Panel, SelectInput, TextInput } from './ui';
 import MakeDocument from './MakeDocument';
+import RequestsPanel from './RequestsPanel';
 
 const size = (b) => (b >= 1048576 ? `${(b / 1048576).toFixed(1)} MB` : b >= 1024 ? `${Math.round(b / 1024)} KB` : `${b} B`);
 
@@ -19,6 +20,7 @@ export default function FilesPanel({ projectId }) {
   const [problem, setProblem] = useState('');
   const [busy, setBusy] = useState('');
   const [making, setMaking] = useState(false);
+  const [askOn, setAskOn] = useState(null);
   const picker = useRef(null);
   const versionPicker = useRef(null);
   const load = useCallback(async () => { try { setData(await projectsAPI.files(projectId, { removed: removed ? 1 : 0 })); setProblem(''); } catch (e) { setProblem(message(e, 'The files could not be loaded.')); } }, [projectId, removed]);
@@ -68,6 +70,7 @@ export default function FilesPanel({ projectId }) {
         <input ref={versionPicker} type="file" hidden aria-label="Choose the new version" onChange={async (e) => { const f = e.target.files[0]; e.target.value = ''; if (f && open) { const note = window.prompt('What changed? (optional)') ?? ''; if (await run(() => projectsAPI.fileVersion(projectId, open.id, f, note), 'New version added')) showVersions({ id: open.id }); } }} />
       </div>
       {problem && <Notice status="problem" style={{ marginBottom: 10 }}>{problem}</Notice>}
+      {!removed && <RequestsPanel key={data.files.length} projectId={projectId} files={data.files} ask={askOn} onAsked={() => setAskOn(null)} onChanged={load} />}
       {making && <MakeDocument projectId={projectId} folderId={folder} onClose={() => setMaking(false)} onMade={(r) => { setData(r); setMaking(false); }} />}
       {!removed && subfolders.map((f) => (
         <div key={f.id} data-folder={f.name} style={{ display: 'flex', justifyContent: 'space-between', gap: 8, padding: '8px 0', borderBottom: '1px solid var(--line)', fontSize: 13.5 }}>
@@ -103,6 +106,7 @@ export default function FilesPanel({ projectId }) {
                 {data.can.share && <Btn small variant={f.shared ? 'plain' : 'primary'} onClick={() => run(() => projectsAPI.changeFile(projectId, f.id, { shared: !f.shared }), f.shared ? 'Now team only' : 'Shared with the client')}>{f.shared ? 'Stop sharing' : 'Share with the client'}</Btn>}
                 {data.can.manage && <>
                   <Btn small onClick={() => versionPicker.current?.click()}>Add a new version</Btn>
+                  {data.can.sign && <Btn small onClick={() => setAskOn({ id: f.id, name: f.name })}>Ask for sign-off</Btn>}
                   <Btn small variant="quiet" onClick={() => { const n = window.prompt('New name', f.name); if (n) run(() => projectsAPI.changeFile(projectId, f.id, { name: n }), 'Renamed'); }}>Rename</Btn>
                   <SelectInput aria-label={`Move ${f.name}`} value={f.folder_id ?? ''} onChange={(e) => run(() => projectsAPI.changeFile(projectId, f.id, { folder_id: e.target.value ? Number(e.target.value) : null }), 'Moved')} style={{ width: 'auto', fontSize: 12.5, padding: '3px 6px' }}>
                     <option value="">At the top</option>{data.folders.map((x) => <option key={x.id} value={x.id}>{x.name}</option>)}

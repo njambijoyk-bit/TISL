@@ -48,6 +48,7 @@ class NotificationTypes
         'project_message' => ['Projects: messages from the team about your work', true, 'customer'],
         'project_people' => ['Projects: people (certificates running out, checklist steps, goals, reviews and one-to-ones)', false, 'staff'],
         'project_casebook' => ['Projects: casebook reports and their answers', true, 'staff'],
+        'project_request' => ['Projects: a file or a sign-off asked of you', true, 'customer'],
         'project_meeting' => ['Projects: meeting invitations, moves and cancellations, and minutes', false, 'staff'],
         'project_meeting_invite' => ['Projects: meeting invitations, moves, cancellations and minutes for clients and other parties', true, 'customer'],
         'project_follow' => ['Projects: messages and things you follow (mentions, new messages, tasks and dates moving)', false, 'staff'],

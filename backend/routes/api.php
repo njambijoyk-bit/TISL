@@ -101,6 +101,12 @@ Route::get('/ping', function () {
 // ============================================
 // PUBLIC ROUTES (No Authentication Required)
 // ============================================
+// a file or sign-off asked of someone outside (Projects build 9.3): no sign-in, the long code in the link is the key
+Route::prefix('requests')->middleware('throttle:30,1')->group(function () {
+    Route::get('/{token}', [\App\Http\Controllers\Api\Projects\RequestsController::class, 'publicShow'])->where('token', '[A-Za-z0-9]{40,60}');
+    Route::get('/{token}/file', [\App\Http\Controllers\Api\Projects\RequestsController::class, 'publicFile'])->where('token', '[A-Za-z0-9]{40,60}');
+    Route::post('/{token}/answer', [\App\Http\Controllers\Api\Projects\RequestsController::class, 'publicAnswer'])->where('token', '[A-Za-z0-9]{40,60}');
+});
 // a meeting invitation's answer link (Projects build 6.6): no sign-in, the long code in the link is the key
 Route::prefix('meetings')->middleware('throttle:30,1')->group(function () {
     Route::get('/{token}', [\App\Http\Controllers\Api\Projects\MeetingsController::class, 'publicShow'])->where('token', '[A-Za-z0-9]{32,60}');
@@ -2022,6 +2028,11 @@ Route::middleware('auth:sanctum')->group(function () {
             Route::get('/configuration/templates', [$fl, 'templates'])->middleware('permission:projects.templates,projects.config.view');
             Route::post('/configuration/templates', [$fl, 'saveTemplate'])->middleware('permission:projects.templates');
             Route::put('/configuration/templates/{template}', [$fl, 'saveTemplate'])->whereNumber('template')->middleware('permission:projects.templates');
+            $rq = \App\Http\Controllers\Api\Projects\RequestsController::class;
+            Route::get('/{project}/requests', [$rq, 'index'])->whereNumber('project')->middleware('permission:projects.files.view');
+            Route::post('/{project}/requests', [$rq, 'store'])->whereNumber('project')->middleware('permission:projects.files.sign');
+            Route::post('/{project}/requests/{req}/answer', [$rq, 'answer'])->whereNumber(['project', 'req'])->middleware('permission:projects.files.view');   // only by whoever was asked (checked inside)
+            Route::post('/{project}/requests/{req}/cancel', [$rq, 'cancel'])->whereNumber(['project', 'req'])->middleware('permission:projects.files.sign');
             Route::post('/{project}/folders', [$fl, 'folder'])->whereNumber('project')->middleware('permission:projects.files.manage');
             Route::match(['put', 'delete'], '/{project}/folders/{folder}', [$fl, 'folder'])->whereNumber(['project', 'folder'])->middleware('permission:projects.files.manage');
             $cb = \App\Http\Controllers\Api\Projects\CasebookController::class;

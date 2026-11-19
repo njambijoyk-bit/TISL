@@ -1,4 +1,4 @@
-// Browser check: the Files tab (build 9.1), and making a document from a template (9.2). Folders, files with their versions, team only or shared, adding a file (sent as a real upload),
+// Browser check: the Files tab (build 9.1), making a document from a template (9.2), and asking for files and sign-off with the outsider's page (9.3). Folders, files with their versions, team only or shared, adding a file (sent as a real upload),
 // sharing, moving, a new version, removing and putting back. The API is answered by the check itself; the vault, the versions and who may do
 // what are proved by ProjectsFilesTest. It needs only the website (npx vite --port 5177).
 import { D, SITE, ok, finish, open } from './lib.mjs';
@@ -38,9 +38,17 @@ await page.route(/\/api\/admin\/projects\/413\/files\/\d+(\/(versions|restore))?
 await page.route('**/api/admin/projects/413/templates', (route) => json(route, { templates: [{ id: 3, name: 'Engagement letter' }] }));
 await page.route('**/api/admin/projects/413/templates/3/preview', (route) => json(route, { html: '<p>Dear Grace Wambua,</p><p>Re: Imara v Baraka</p>', missing: ['project.place'], name: 'Engagement letter M-0413' }));
 await page.route('**/api/admin/projects/413/templates/3/make', (route) => { sent.push(['make', route.request().postDataJSON()]); files = [...files, file({ id: 13, name: 'Engagement letter M-0413.pdf', source: 'template' })]; return json(route, { file_id: 13, ...answer(false) }, 201); });
+let requests = [{ id: 5, kind: 'file', what: 'A copy of the title deed', state: 'open', due_on: '2026-12-01', late: false, of: 'Grace Wambua', outside: true, asked_by: 'Kamau', file: null, version: null, newer: false, answer: null, mine: false }];
+const reqAnswer = () => ({ requests, can: { ask: true }, people: [{ id: 1, name: 'Kamau' }, { id: 2, name: 'Njeri' }], contacts: [{ id: 7, name: 'Grace Wambua', email: 'grace@example.test' }] });
+await page.route('**/api/admin/projects/413/requests', (route) => {
+  if (route.request().method() === 'POST') { const b = route.request().postDataJSON(); sent.push(['ask', b]); requests = [{ id: 6, kind: b.kind, what: b.what, state: 'open', due_on: b.due_on, late: false, of: 'Grace Wambua', outside: true, asked_by: 'Kamau', file: { id: b.file_id, name: 'Plaint.pdf' }, version: 2, newer: false, answer: null, mine: false }, ...requests]; return json(route, reqAnswer(), 201); }
+  return json(route, reqAnswer());
+});
 await page.goto(`${SITE}/e2e/harness.html?c=ProjectsApp&at=${encodeURIComponent('/admin/projects/413?tab=files')}`, { waitUntil: 'networkidle' });
 await page.addStyleTag({ content: '#root{max-width:1150px!important}' });
 await page.locator('[data-files]').waitFor({ timeout: 15000 });
+await page.locator('[data-requests]').waitFor({ timeout: 10000 });
+ok('requests show what was asked of whom, by when, and that it is waiting', /File A copy of the title deed of Grace Wambua \(by email\) · by 01 Dec 2026 Waiting/.test(await text(page.locator('[data-request="A copy of the title deed"]'))));
 ok('folders and files at the top, each saying who sees it and when it runs out', (await page.locator('[data-folder="Pleadings"]').count()) === 1 && /Engagement letter\.pdf Team only Runs out 01 Dec 2026 239 KB · Kamau/.test(await text(page.locator('[data-file="Engagement letter.pdf"]'))));
 await page.locator('[data-folder="Pleadings"]').getByRole('button', { name: '▸ Pleadings' }).click();
 ok('opening a folder shows its files', /Plaint\.pdf Shared with the client 2 versions/.test(await text(page.locator('[data-file="Plaint.pdf"]'))) && (await page.locator('[data-file="Engagement letter.pdf"]').count()) === 0);
@@ -67,7 +75,17 @@ await page.locator('[data-file="Engagement letter.pdf"]').getByRole('button', { 
 await page.waitForTimeout(300);
 ok('it can be put back', JSON.stringify(last('restore')) === JSON.stringify(['restore', 11]));
 
-await page.getByRole('button', { name: 'Back to the files' }).click().catch(() => {});
+await page.getByRole('button', { name: 'Back to the files' }).click();
+await page.getByRole('button', { name: 'All files' }).click();
+await page.locator('[data-folder="Pleadings"]').getByRole('button', { name: '▸ Pleadings' }).click();
+await page.locator('[data-file="Plaint.pdf"]').getByRole('button', { name: 'More' }).click();
+await page.getByRole('button', { name: 'Ask for sign-off' }).click();
+await page.locator('[data-request-form]').waitFor({ timeout: 5000 });
+ok('asking for sign-off from a file fills in the file', (await page.getByLabel('What', { exact: true }).inputValue()) === 'signoff' && (await page.getByLabel('Say what').inputValue()) === 'Sign off Plaint.pdf');
+await page.getByLabel('Of whom').selectOption('c:7');
+await page.getByRole('button', { name: 'Ask', exact: true }).click();
+await page.waitForTimeout(400);
+ok('the sign-off is asked of the contact on that file', JSON.stringify(last('ask')[1]) === JSON.stringify({ kind: 'signoff', what: 'Sign off Plaint.pdf', due_on: null, file_id: 10, contact_id: 7 }) && /Sign-off Sign off Plaint\.pdf of Grace Wambua \(by email\) · Plaint\.pdf, version 2/.test(await text(page.locator('[data-requests]'))));
 await page.getByRole('button', { name: 'All files' }).click();
 await page.getByRole('button', { name: 'Make a document' }).click();
 await page.locator('[data-make-document] iframe').waitFor({ timeout: 5000 });
@@ -77,5 +95,19 @@ await page.screenshot({ path: D + 'projects-make-document.png', fullPage: true }
 await page.getByRole('button', { name: 'Make it' }).click();
 await page.waitForTimeout(400);
 ok('making it keeps it on the files', JSON.stringify(last('make')[1]) === JSON.stringify({ folder_id: null, name: 'Engagement letter M-0413' }) && /made from a template/.test(await text(page.locator('[data-file="Engagement letter M-0413.pdf"]'))));
+
+// the outsider's page
+let pub = { kind: 'signoff', what: 'Sign off the contract', due_on: null, state: 'open', project: 'M-0413 Imara v Baraka', company: 'Imara Advocates', who: 'Grace Wambua', file: { name: 'Contract.pdf', version: 2 }, answer: null };
+const token = 'a'.repeat(48);
+await page.route(`**/api/requests/${token}`, (route) => json(route, pub));
+await page.route(`**/api/requests/${token}/answer`, (route) => { sent.push(['public', route.request().headers()['content-type']]); pub = { ...pub, state: 'done', answer: { name: 'Grace Wambua', note: null, at: '2026-11-19 10:00:00' } }; return json(route, pub); });
+await page.goto(`${SITE}/e2e/harness.html?c=ProjectsApp&at=${encodeURIComponent(`/request/${token}`)}`, { waitUntil: 'networkidle' });
+await page.locator('[data-request-answer]').waitFor({ timeout: 10000 });
+ok('the outsider sees what is asked and the exact version to open', /Imara Advocates · M-0413 Imara v Baraka Sign off the contract Open Contract\.pdf \(version 2\)/.test(await text(page.locator('[data-request-answer]'))) && (await page.getByRole('link', { name: /Open Contract/ }).getAttribute('href')).endsWith(`/requests/${token}/file`));
+await page.getByLabel('Type your full name to sign').fill('Grace Wambua');
+await page.getByRole('button', { name: 'Approve' }).click();
+await page.waitForTimeout(400);
+ok('approving sends it and thanks them', /^multipart\/form-data/.test(last('public')[1]) && /Signed off by Grace Wambua\. Thank you\./.test(await text(page.locator('[data-request-answer]'))));
+await page.screenshot({ path: D + 'projects-request-answer.png', fullPage: true });
 
 await finish(c);

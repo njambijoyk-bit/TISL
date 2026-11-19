@@ -111,3 +111,16 @@ Screen: `docs/screens/projects-make-document.png`.
 - **Filled as the maker sees the work:** a sensitive extra field they may not see stays empty. The template's own words are kept as written (never read as markup).
 - **Routes:** `GET /projects/{project}/templates`; `POST …/templates/{template}/preview`; `POST …/templates/{template}/make` (folder, name); `GET`, `POST /projects/configuration/templates`, `PUT /projects/configuration/templates/{id}`.
 - **Tests:** `tests/Feature/ProjectsDocTemplatesTest.php` (3). Browser check `e2e/projects-files-ui.mjs` (now 10 checks).
+
+### 9.3 Asking for files and sign-off (done)
+
+Screen: `docs/screens/projects-request-answer.png` (the page an outsider answers on).
+
+- **Requests,** at the top of the Files tab: what was asked, of whom, by when, for which file and version, waiting, done, declined or cancelled, and the answer (who, when, their note).
+- **Asking** (`projects.files.sign` and a project role that keeps files): a file or a sign-off, of someone on the work (told in the app, answered on the Files tab) or of a client or party contact with an email address (emailed a link, new notice type "Projects: a file or a sign-off asked of you", essential). "Ask for sign-off" on a file fills the file in. A file asked for can say which folder it goes into.
+- **Answering:** a file sent back lands in the work's files (marked as come from a request). A sign-off needs the person's typed full name; declining also needs a note. The time and their internet address are kept with the exact version (owner's choice 2). Whoever asked is told.
+- **One exact version:** a sign-off is on the version that was current when it was asked. If the file gets a new version before it is answered, answering is refused ("A new sign-off is needed"); after it is answered, the request says "The file has changed since".
+- **The outsider's page** (`/request/<code>`, no sign-in; the long code is the key): what is asked, by when, the file to open (that exact version), and "Send it", or "Approve" and "Decline".
+- **Reminders:** every morning (`projects:request-reminders`, 07:30) whoever was asked for something due today or late is reminded, once a day.
+- **Routes:** `GET`, `POST /projects/{project}/requests`; `POST …/requests/{id}/answer`; `POST …/requests/{id}/cancel`. Without signing in (30 a minute): `GET /requests/{code}`, `GET /requests/{code}/file`, `POST /requests/{code}/answer`.
+- **Tests:** `tests/Feature/ProjectsFileRequestsTest.php` (3). Browser check `e2e/projects-files-ui.mjs` (now 15 checks).

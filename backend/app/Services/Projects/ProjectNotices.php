@@ -22,6 +22,7 @@ class ProjectNotices
     public const MEETING = 'project_meeting';
     public const PEOPLE = 'project_people';
     public const CASEBOOK = 'project_casebook';
+    public const REQUEST = 'project_request';
     public const MEETING_INVITE = 'project_meeting_invite';
 
     /** @param iterable<User>|User|null $to */

@@ -20,6 +20,7 @@ import ProjectsTimesheet from '/src/projects/pages/admin/ProjectsTimesheet.jsx';
 import ProjectsMyWork from '/src/projects/pages/admin/ProjectsMyWork.jsx';
 import ProjectsInbox from '/src/projects/pages/admin/ProjectsInbox.jsx';
 import MeetingAnswer from '/src/projects/pages/public/MeetingAnswer.jsx';
+import RequestAnswer from '/src/projects/pages/public/RequestAnswer.jsx';
 import ProjectsHandover from '/src/projects/pages/admin/ProjectsHandover.jsx';
 import ProjectsTeam from '/src/projects/pages/admin/ProjectsTeam.jsx';
 import ProjectsPerson from '/src/projects/pages/admin/ProjectsPerson.jsx';
@@ -53,6 +54,7 @@ export default function ProjectsProbe() {
       <Route path="/admin/projects/my-work" element={<ProjectsMyWork />} />
       <Route path="/admin/projects/inbox" element={<ProjectsInbox />} />
       <Route path="/meeting/:token" element={<MeetingAnswer />} />
+      <Route path="/request/:token" element={<RequestAnswer />} />
       <Route path="/admin/projects/handover" element={<ProjectsHandover />} />
       <Route path="/admin/projects/team" element={<ProjectsTeam />} />
       <Route path="/admin/projects/team/:id" element={<ProjectsPerson />} />

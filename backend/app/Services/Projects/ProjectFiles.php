@@ -90,6 +90,17 @@ class ProjectFiles
         return $this->store($project, $file->getRealPath(), $name ?? $file->getClientOriginalName(), (string) ($file->getMimeType() ?: 'application/octet-stream'), $folder?->id, $by, $source);
     }
 
+    /** A file that arrives answering a request (the caller has checked the request is open and theirs). @return int */
+    public function receive(object $project, UploadedFile $file, ?int $folderId, ?int $byUserId, string $source): int
+    {
+        $this->needReady();
+        if ($file->getSize() > self::MAX_KB * 1024) {
+            throw new ProjectException('A file can be up to 50 MB.');
+        }
+
+        return $this->store($project, $file->getRealPath(), $file->getClientOriginalName(), (string) ($file->getMimeType() ?: 'application/octet-stream'), $folderId, $byUserId, $source);
+    }
+
     /** Keep bytes made here (a document from a template) as a file on the work. @return int */
     public function storeContent(object $project, string $content, string $name, string $mime, ?int $folderId, User $by, string $source): int
     {
