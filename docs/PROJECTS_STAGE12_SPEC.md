@@ -1,6 +1,6 @@
-# Projects Stage 12: Insights and rules (plan, waiting for "go")
+# Projects Stage 12: Insights and rules (being built)
 
-Status: a plan for the owner to read first (asked for on 2026-11-20 after Stage 11). Nothing is built yet. The four choices at the end are my recommendations; say which to change, then "go".
+Status: the owner read the plan (also as a page, "Projects Stage 12") and said "go" on 2026-11-20, so the four choices at the end are taken as recommended; any of them can still be changed. What is built so far is listed under "As built".
 
 Stages 1 to 11 built everything a piece of work is and does, for fifteen industries. Stage 12 is the last: it tells you how the work is going, and lets the module act on its own where you ask it to. It measures what is already there (tasks, dates, time, snags, the books), sets targets, shows scorecards for each piece of work and each person, forecasts what is coming, runs your own "when this happens, do that" rules, and teaches Mimi about Projects.
 
@@ -95,3 +95,24 @@ Every build runs the Projects tests and the Projects browser checks. At the end,
 2. **Health** of a piece of work is its worst KPI: one red makes it red. The other way: a weighted score out of 100.
 3. **Rules** tell, make tasks and dates, follow and tag, and never take serious actions, touch Books or delete. The other way: rules may also move a work's stage (still never serious actions or money).
 4. **Mimi's weekly updates** are drafts the lead reads and sends; confidential work stays out of the AI unless switched on. The other way: updates sent to clients automatically, or no AI drafting at all.
+
+## As built
+
+### To run
+
+1. `backend/database/sql/269_projects_insights.sql` (after 268). Six tables, starter KPIs for every industry, and four starter rules switched off. Adds only.
+2. No permission seed.
+
+### 12.1 Measures and KPIs (done)
+
+Screen: `docs/screens/projects-kpis.png`.
+
+- **The measure library** (code, `ProjectMeasures`): 26 measures, each with its unit and what it is about.
+  - *A piece of work:* tasks done on time %, tasks overdue, key dates met %, days behind the expected end (from its pace: tasks done in the last four weeks against those left), scope done %, changes raised, snags open, snags closed on time %, inspections passed %, daily record signed % (working days in the last four weeks), hours logged, billable %, unbilled hours, first reply to the client (hours), requests answered on time %; and from Books: budget used %, margin %, billed % of the agreed value.
+  - *A person:* utilisation % (hours logged against company hours on working days less leave and days off, from Attendance), billable %, tasks done on time %, timesheets in on time % (sent by the following Tuesday), hours logged.
+  - *The company:* win rate %, days from lead to win, opportunities open.
+  - A measure with nothing to work from answers "not measured yet", never zero. Money measures are worked out from Books when asked; nothing is kept.
+- **KPIs** (Configuration → KPIs and rules, `projects.kpis` to change): a measure, a green and an amber target, where it applies (every industry, one industry, or one kind of work; measures about people or the company apply everywhere), whether the client sees it, on or off. Amber must be on the right side of green (lower is better for overdue tasks, days behind, budget used, reply hours). Targets are numbers in the measure's unit, never amounts.
+- **Starter KPIs:** for every industry, tasks on time, key dates met (the client sees it), days behind; for people, utilisation, tasks on time, timesheets on time; for the company, win rate and days to win; and per industry, for example Legal billable hours and reply time, Construction inspections passed and snags on time (the client sees both), site diary signed and budget used, Healthcare care reviews held on time.
+- **Routes:** `GET`, `POST /projects/configuration/kpis`, `PUT …/kpis/{kpi}`.
+- **Tests:** `tests/Feature/ProjectsKpisTest.php` (3, including the measures worked out on a real work and person). Browser check `e2e/projects-insights-ui.mjs` (4 checks).

@@ -30,6 +30,7 @@ import InspectionKindsPanel from '../../components/InspectionKindsPanel';
 import WorkTemplatesPanel from '../../components/WorkTemplatesPanel';
 import OpeningQuestionsPanel from '../../components/OpeningQuestionsPanel';
 import DateRulesPanel from '../../components/DateRulesPanel';
+import KpisPanel from '../../components/KpisPanel';
 import ProjectKeys from '../../components/ProjectKeys';
 
 /**
@@ -203,7 +204,7 @@ export default function ProjectConfiguration() {
   };
 
   const industryName = (key) => data?.industries.find((i) => i.key === key)?.name || key;
-  const tabs = [{ key: 'names', label: 'Industry and names' }, { key: 'industries', label: 'Industries' }, { key: 'stages', label: 'Kinds of work and stages' }, { key: 'fields', label: 'Fields' }, { key: 'roles', label: 'Project roles' }, { key: 'access', label: 'Access' }, { key: 'serious', label: 'Serious actions' }, { key: 'lists', label: 'Lists' }, { key: 'pipeline', label: 'Pipeline' }, { key: 'health', label: 'Client health' }, { key: 'directory', label: 'Directory' }, { key: 'money', label: 'Money' }, { key: 'work', label: 'Work and time' }, { key: 'tags', label: 'Conversation tags' }, { key: 'linkroles', label: 'Link roles' }, { key: 'checklists', label: 'Checklists' }, { key: 'casebook', label: 'Casebook' }, { key: 'templates', label: 'Templates' }, { key: 'registers', label: 'Registers' }, { key: 'site', label: 'Site' }, { key: 'shortcuts', label: 'Shortcuts' }, { key: 'history', label: 'History and roll back' }];
+  const tabs = [{ key: 'names', label: 'Industry and names' }, { key: 'industries', label: 'Industries' }, { key: 'stages', label: 'Kinds of work and stages' }, { key: 'fields', label: 'Fields' }, { key: 'roles', label: 'Project roles' }, { key: 'access', label: 'Access' }, { key: 'serious', label: 'Serious actions' }, { key: 'lists', label: 'Lists' }, { key: 'pipeline', label: 'Pipeline' }, { key: 'health', label: 'Client health' }, { key: 'directory', label: 'Directory' }, { key: 'money', label: 'Money' }, { key: 'work', label: 'Work and time' }, { key: 'tags', label: 'Conversation tags' }, { key: 'linkroles', label: 'Link roles' }, { key: 'checklists', label: 'Checklists' }, { key: 'casebook', label: 'Casebook' }, { key: 'templates', label: 'Templates' }, { key: 'registers', label: 'Registers' }, { key: 'site', label: 'Site' }, { key: 'insights', label: 'KPIs and rules' }, { key: 'shortcuts', label: 'Shortcuts' }, { key: 'history', label: 'History and roll back' }];
 
   return (
     <AdminLayout><ProjectKeys />
@@ -328,6 +329,7 @@ export default function ProjectConfiguration() {
           {tab === 'casebook' && <CasebookKindsPanel />}
           {tab === 'templates' && <TemplatesPanel />}
           {tab === 'registers' && <RegisterKindsPanel />}
+          {tab === 'insights' && <div style={{ display: 'grid', gap: 14 }}><KpisPanel /></div>}
           {tab === 'site' && <div style={{ display: 'grid', gap: 14 }}><SiteSettingsPanel /><InspectionKindsPanel /></div>}
           {tab === 'shortcuts' && <ShortcutsPanel onChanged={reloadNames} />}
 

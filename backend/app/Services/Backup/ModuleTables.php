@@ -155,6 +155,7 @@ final class ModuleTables
             'project_site', 'project_material_plans', 'project_material_requests', 'project_stock_jobs', 'project_plant_bookings', 'project_plant_hires', 'project_subcontracts', 'project_sub_claims',
             'project_daily_records', 'project_daily_lines', 'project_inspection_kinds', 'project_inspections', 'project_inspection_answers', 'project_snags',
             'project_type_settings', 'project_work_templates', 'project_template_items', 'project_opening_questions', 'project_opening_checks', 'project_date_rules', 'project_rule_dates',
+            'project_kpis', 'project_kpi_snapshots', 'project_pipeline_odds', 'project_rules', 'project_rule_runs', 'project_updates',
             'project_meetings', 'project_meeting_people', 'project_meeting_actions',   // stage 6 (script 263)
         ],
         'listings'       => [/* built later */],
