@@ -87,6 +87,142 @@ class ProjectKpis
 
     // ---------------------------------------------------------------- working it out
 
+    // ---------------------------------------------------------------- scorecards (12.2)
+
+    /** A piece of work's scorecard: each KPI now, its last eight weeks, and the health. Money figures only for those who see the money. @return array<string, mixed> */
+    public function scorecard(object $project, User $user): array
+    {
+        $this->access->authorize($user, 'open', $project);
+        if (! self::ready()) {
+            return ['ready' => false];
+        }
+        $money = $this->access->decide($user, 'money', $project)['allowed'];
+        $kpis = $this->forWork($project);
+        $weeks = $this->weeks(8);
+        $history = DB::table('project_kpi_snapshots')->where('subject_type', 'work')->where('subject_id', $project->id)->whereIn('week', $weeks)->get()->groupBy('kpi_id');
+        $rows = $kpis->map(function ($k) use ($project, $money, $weeks, $history) {
+            $r = $this->evaluate($k, 'work', $project);
+            $books = ProjectMeasures::MEASURES[$k->measure][4];
+            $past = ($history[$k->id] ?? collect())->keyBy(fn ($h) => substr((string) $h->week, 0, 10));
+
+            return $this->shape($k) + ['status' => $r['status'], 'value' => $books && ! $money ? null : $r['value'], 'detail' => $books && ! $money ? 'The figure is for those who see the work\'s money.' : $r['detail'],
+                'weeks' => array_map(fn ($w) => $past[$w]->status ?? null, $weeks)];
+        })->values()->all();
+
+        return ['ready' => true, 'health' => self::worst(array_column($rows, 'status')), 'kpis' => $rows, 'weeks' => $weeks, 'can' => ['change' => $user->hasPermission('projects.kpis')]];
+    }
+
+    /** What the client sees on the portal: the KPIs marked so, never a money one. @return array<int, array<string, mixed>> */
+    public function forClient(object $project): array
+    {
+        if (! self::ready()) {
+            return [];
+        }
+
+        return $this->forWork($project)->filter(fn ($k) => $k->client_sees && ! ProjectMeasures::MEASURES[$k->measure][4])
+            ->map(fn ($k) => ['name' => $k->name, 'unit' => ProjectMeasures::MEASURES[$k->measure][1]] + array_intersect_key($this->evaluate($k, 'work', $project), ['value' => 1, 'status' => 1]))->values()->all();
+    }
+
+    /** Health of many works from their latest snapshot (for the list). @return array<int, string> project id => good|warn|bad|none */
+    public function healthOf(array $ids): array
+    {
+        if (! self::ready() || ! $ids) {
+            return [];
+        }
+        $latest = DB::table('project_kpi_snapshots')->where('subject_type', 'work')->whereIn('subject_id', $ids)->max('week');
+        if (! $latest) {
+            return [];
+        }
+        $out = [];
+        foreach (DB::table('project_kpi_snapshots')->where('subject_type', 'work')->whereIn('subject_id', $ids)->where('week', $latest)->get(['subject_id', 'status'])->groupBy('subject_id') as $id => $rows) {
+            $out[(int) $id] = self::worst($rows->pluck('status')->all());
+        }
+
+        return $out;
+    }
+
+    /** Works whose latest health is this one (the list's filter). @return int[] */
+    public function worksWithHealth(string $health): array
+    {
+        if (! self::ready()) {
+            return [];
+        }
+        $latest = DB::table('project_kpi_snapshots')->where('subject_type', 'work')->max('week');
+        if (! $latest) {
+            return [];
+        }
+        $by = DB::table('project_kpi_snapshots')->where('subject_type', 'work')->where('week', $latest)->get(['subject_id', 'status'])->groupBy('subject_id');
+
+        return $by->filter(fn ($rows) => self::worst($rows->pluck('status')->all()) === $health)->keys()->map(fn ($v) => (int) $v)->all();
+    }
+
+    /**
+     * Every morning: this week's row for each KPI of each open work and each person, kept over the week (the Monday's week). A work that turns
+     * red is told to its lead once. @return array{works: int, people: int, turned_red: int}
+     */
+    public function snapshot(?Carbon $now = null): array
+    {
+        $now ??= now();
+        if (! self::ready()) {
+            return ['works' => 0, 'people' => 0, 'turned_red' => 0];
+        }
+        $week = $now->copy()->startOfWeek()->toDateString();
+        $red = 0;
+        $works = DB::table('projects')->whereNull('deleted_at')->whereIn('state', ['open', 'on_hold'])->whereNull('frozen_at')->get();
+        foreach ($works as $project) {
+            $before = $this->latestHealth((int) $project->id);
+            $statuses = [];
+            foreach ($this->forWork($project) as $k) {
+                $r = $this->evaluate($k, 'work', $project, $now);
+                $statuses[] = $r['status'];
+                $this->keep($k, 'work', (int) $project->id, $week, $r);
+            }
+            if (self::worst($statuses) === 'bad' && $before !== 'bad') {
+                $red++;
+                $bad = $this->forWork($project)->filter(fn ($k) => $this->evaluate($k, 'work', $project, $now)['status'] === 'bad')->pluck('name')->all();
+                ProjectNotices::tell(User::find($project->lead_user_id), ProjectNotices::TASK, "{$project->number} has turned red", implode(', ', $bad) . ' missed the target.', "/admin/projects/{$project->id}", 'Open the scorecard');
+                app(ProjectRules::class)->fire('kpi_red', $project, null, ['kpis' => $bad]);
+            }
+        }
+        $people = 0;
+        $personKpis = DB::table('project_kpis')->where('is_active', 1)->whereIn('measure', $this->measuresAbout('person'))->get();
+        if ($personKpis->isNotEmpty()) {
+            foreach (app(\App\Services\Notify\Staff::class)->holding('projects.use') as $u) {
+                foreach ($personKpis as $k) {
+                    $this->keep($k, 'person', (int) $u->id, $week, $this->evaluate($k, 'person', (int) $u->id, $now));
+                }
+                $people++;
+            }
+        }
+
+        return ['works' => $works->count(), 'people' => $people, 'turned_red' => $red];
+    }
+
+    /** @return string[] the Mondays of the last $n weeks, oldest first */
+    public function weeks(int $n): array
+    {
+        $out = [];
+        for ($i = $n - 1; $i >= 0; $i--) {
+            $out[] = now()->startOfWeek()->subWeeks($i)->toDateString();
+        }
+
+        return $out;
+    }
+
+    private function keep(object $k, string $type, int $id, string $week, array $r): void
+    {
+        $money = ProjectMeasures::MEASURES[$k->measure][4];
+        DB::table('project_kpi_snapshots')->updateOrInsert(['kpi_id' => $k->id, 'subject_type' => $type, 'subject_id' => $id, 'week' => $week],
+            ['status' => $r['status'], 'value' => $money ? null : $r['value'], 'created_at' => now()]);   // a money figure is never kept, only its status
+    }
+
+    private function latestHealth(int $projectId): string
+    {
+        $latest = DB::table('project_kpi_snapshots')->where('subject_type', 'work')->where('subject_id', $projectId)->max('week');
+
+        return $latest ? self::worst(DB::table('project_kpi_snapshots')->where('subject_type', 'work')->where('subject_id', $projectId)->where('week', $latest)->pluck('status')->all()) : 'none';
+    }
+
     /** The KPIs that apply to a piece of work. */
     public function forWork(object $project)
     {

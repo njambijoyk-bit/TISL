@@ -116,3 +116,15 @@ Screen: `docs/screens/projects-kpis.png`.
 - **Starter KPIs:** for every industry, tasks on time, key dates met (the client sees it), days behind; for people, utilisation, tasks on time, timesheets on time; for the company, win rate and days to win; and per industry, for example Legal billable hours and reply time, Construction inspections passed and snags on time (the client sees both), site diary signed and budget used, Healthcare care reviews held on time.
 - **Routes:** `GET`, `POST /projects/configuration/kpis`, `PUT …/kpis/{kpi}`.
 - **Tests:** `tests/Feature/ProjectsKpisTest.php` (3, including the measures worked out on a real work and person). Browser check `e2e/projects-insights-ui.mjs` (4 checks).
+
+### 12.2 Scorecards and health (done)
+
+Screen: `docs/screens/projects-scorecard.png`.
+
+- **The scorecard** on each work's Overview (`projects.insights`): every KPI that applies (every industry, its industry, its kind of work), each with its status dot, how it was worked out, the figure now, its green target, and the last eight weeks. A money figure (from Books) shows only to those who see the work's money; others see its status and "The figure is for those who see the work's money".
+- **Health** is the worst KPI (choice 2): Off track, Needs watching, On track, or Not measured yet. The projects list shows it beside the title (from the latest snapshot) and can be filtered by it.
+- **The morning snapshot** (`projects:kpi-snapshot`, 06:10 daily) keeps this week's row for each KPI of each open work and each person, updated through the week, so a scorecard has eight weeks of history. A money figure is never kept, only its status (rule 2).
+- **Turning red:** when a work's health turns Off track, its lead is told once, naming the KPIs that missed, and the rules' "a work turns red" event fires (12.5).
+- **The client's scorecard:** on their My work page, "How it is going" shows the KPIs marked "the client sees it", never a money one.
+- **Routes:** `GET /projects/{project}/scorecard`; `health` on `GET /projects`.
+- **Tests:** `tests/Feature/ProjectsScorecardTest.php` (3). Browser checks `e2e/projects-insights-ui.mjs` (now 8), `e2e/projects-portal-ui.mjs` (now 10).

@@ -18,6 +18,10 @@ import ProjectKeys from '../../components/ProjectKeys';
  */
 const STATES = [['active', 'Open and on hold'], ['open', 'Open'], ['on_hold', 'On hold'], ['closed', 'Closed'], ['cancelled', 'Cancelled'], ['', 'All']];
 
+/** Stage 12: health from the latest scorecard (the worst KPI). */
+const HEALTH = { good: ['good', 'On track'], warn: ['warning', 'Needs watching'], bad: ['problem', 'Off track'] };
+const HEALTH_FILTER = { '': 'Any health', bad: 'Off track', warn: 'Needs watching', good: 'On track', none: 'Not measured' };
+
 export default function ProjectsList() {
   const navigate = useNavigate();
   const user = useAuthStore((s) => s.user);
@@ -106,6 +110,10 @@ export default function ProjectsList() {
           <SelectInput id="projects-state" value={filters.state} onChange={(e) => set({ state: e.target.value })} style={{ width: 'auto', minWidth: 190 }}>
             {STATES.map(([key, label]) => <option key={key || 'all'} value={key}>{label}{countOf(key) === null ? '' : ` (${countOf(key)})`}</option>)}
           </SelectInput>
+          <label htmlFor="projects-health" style={{ position: 'absolute', left: -9999 }}>Health</label>
+          <SelectInput id="projects-health" value={filters.health ?? ''} onChange={(e) => set({ health: e.target.value || undefined })} style={{ width: 'auto' }}>
+            {Object.entries(HEALTH_FILTER).map(([k, l]) => <option key={k || 'any'} value={k}>{l}</option>)}
+          </SelectInput>
           <label htmlFor="projects-search" style={{ position: 'absolute', left: -9999 }}>Search</label>
           <TextInput id="projects-search" type="search" placeholder="Search by number, title or reference" value={typed} onChange={(e) => setTyped(e.target.value)} style={{ flex: '1 1 240px', maxWidth: 360 }} />
         </div>
@@ -134,6 +142,7 @@ export default function ProjectsList() {
                     <td style={{ ...td, whiteSpace: 'nowrap', fontVariantNumeric: 'tabular-nums' }}>{p.number}</td>
                     <td style={td}>
                       <Link to={`/admin/projects/${p.id}`} style={{ color: 'var(--color-primary-500)', fontWeight: 600, textDecoration: 'none' }}>{p.title}</Link>
+                      {HEALTH[p.health] && <Chip status={HEALTH[p.health][0]} style={{ marginLeft: 8 }}>{HEALTH[p.health][1]}</Chip>}
                       {p.confidential && <Chip status="problem" style={{ marginLeft: 8 }}>Confidential</Chip>}
                       {p.frozen && <Chip style={{ marginLeft: 8 }}>Frozen</Chip>}
                     </td>

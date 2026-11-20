@@ -51,7 +51,8 @@ class ProjectPortal
             'requests' => array_values(array_map(fn ($r) => ['what' => $r->what, 'kind' => $r->kind, 'due_on' => $r->due_on, 'of' => DB::table('project_contacts')->where('id', $r->contact_id)->value('name'), 'link' => "/request/{$r->token}"],
                 array_filter($this->openRequests($c->id), fn ($r) => (int) $r->project_id === (int) $p->id))),
             'invoices' => $this->invoices($c, $p),
-            'snags' => app(ProjectSnags::class)->forClient($p),   // stage 10: snags the team shared with the client
+            'snags' => app(ProjectSnags::class)->forClient($p),
+            'scorecard' => app(ProjectKpis::class)->forClient($p),   // stage 12: the KPIs marked for the client, never a money one   // stage 10: snags the team shared with the client
         ];
     }
 

@@ -22,7 +22,7 @@ class ProjectController extends Controller
 
     public function index(Request $request): JsonResponse
     {
-        return response()->json($this->projects->list($request->user(), $request->only(['scope', 'state', 'type_id', 'stage_id', 'lead_user_id', 'customer_id', 'industry', 'q', 'page', 'per_page'])));
+        return response()->json($this->projects->list($request->user(), $request->only(['scope', 'state', 'type_id', 'stage_id', 'lead_user_id', 'customer_id', 'industry', 'health', 'q', 'page', 'per_page'])));
     }
 
     public function options(Request $request): JsonResponse

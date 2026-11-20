@@ -88,6 +88,10 @@ class ProjectService
         if (! empty($f['industry'])) {
             $q->where('p.industry_key', $f['industry']);
         }
+        if (in_array($f['health'] ?? null, ['good', 'warn', 'bad', 'none'], true)) {   // stage 12: health from the latest scorecard snapshot
+            $f['health'] === 'none' ? $q->whereNotIn('p.id', array_merge(...array_map(fn ($h) => app(ProjectKpis::class)->worksWithHealth($h), ['good', 'warn', 'bad'])) ?: [0])
+                : $q->whereIn('p.id', app(ProjectKpis::class)->worksWithHealth($f['health']) ?: [0]);
+        }
         if (($term = trim((string) ($f['q'] ?? ''))) !== '') {
             $like = '%' . str_replace(['\\', '%', '_'], ['\\\\', '\%', '\_'], $term) . '%';
             $q->where(fn ($w) => $w->where('p.number', 'like', $like)->orWhere('p.title', 'like', $like)->orWhere('p.reference', 'like', $like));
@@ -488,6 +492,7 @@ class ProjectService
         }
         $hasCustomers = Schema::hasTable('customers');
         $hasLocations = Schema::hasTable('locations');
+        $health = app(ProjectKpis::class)->healthOf($ids);
         $rows = DB::table('projects as p')->leftJoin('project_types as t', 't.id', '=', 'p.type_id')->leftJoin('project_stages as s', 's.id', '=', 'p.stage_id')
             ->leftJoin('project_industries as i', 'i.key', '=', 'p.industry_key')->leftJoin('users as u', 'u.id', '=', 'p.lead_user_id')
             ->when($hasCustomers, fn ($q) => $q->leftJoin('customers as c', 'c.id', '=', 'p.customer_id')->addSelect('c.first_name as c_first', 'c.last_name as c_last', 'c.company_name as c_company'))
@@ -513,6 +518,7 @@ class ProjectService
                 'start_date' => $r->start_date ? substr((string) $r->start_date, 0, 10) : null, 'due_date' => $r->due_date ? substr((string) $r->due_date, 0, 10) : null,
                 'closing_period_ends' => $r->closing_period_ends ? substr((string) $r->closing_period_ends, 0, 10) : null, 'closed_at' => $r->closed_at,
                 'confidential' => (bool) $r->confidential, 'frozen' => $r->frozen_at !== null, 'created_at' => $r->created_at,
+                'health' => $health[(int) $r->id] ?? null,   // stage 12: from the latest scorecard snapshot
             ];
         }
 

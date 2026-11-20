@@ -27,6 +27,11 @@ class InsightsController extends Controller
         });
     }
 
+    public function scorecard(Request $request, int $project): JsonResponse
+    {
+        return $this->guard(fn () => response()->json($this->kpis->scorecard(app(\App\Services\Projects\ProjectService::class)->findFor($request->user(), $project), $request->user())));
+    }
+
     protected function guard(callable $do): JsonResponse
     {
         try {

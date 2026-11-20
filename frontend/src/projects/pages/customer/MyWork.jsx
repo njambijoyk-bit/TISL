@@ -129,6 +129,15 @@ export function MyWorkOne({ id }) {
         )}
       </Panel>
 
+      {w.scorecard?.length > 0 && (
+        <Panel data-my-scorecard>
+          <PanelTitle hint="How your work is going, worked out from the work itself.">How it is going</PanelTitle>
+          <ul style={{ margin: 0, paddingLeft: 18, display: 'grid', gap: 6, fontSize: 14 }}>
+            {w.scorecard.map((k) => <li key={k.name}>{k.name}: <strong>{k.value === null ? 'not measured yet' : `${Number(k.value).toLocaleString('en-GB', { maximumFractionDigits: 1 })}${{ pct: '%', days: ' days', hours: ' h' }[k.unit] ?? ''}`}</strong> <Chip status={{ good: 'good', warn: 'warning', bad: 'problem' }[k.status] ?? 'neutral'}>{{ good: 'On track', warn: 'Needs watching', bad: 'Off track' }[k.status] ?? 'Not measured'}</Chip></li>)}
+          </ul>
+        </Panel>
+      )}
+
       {w.snags?.length > 0 && (
         <Panel data-my-snags>
           <PanelTitle hint="Things to put right that the team shared with you.">Snags</PanelTitle>

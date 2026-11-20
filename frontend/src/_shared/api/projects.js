@@ -216,6 +216,7 @@ const projectsAPI = {
   saveDateRule: async (id, data) => (id ? await api.put(`/admin/projects/configuration/date-rules/${id}`, data) : await api.post('/admin/projects/configuration/date-rules', data)).data,
   kpis: async () => (await api.get('/admin/projects/configuration/kpis')).data,
   saveKpi: async (id, data) => (id ? await api.put(`/admin/projects/configuration/kpis/${id}`, data) : await api.post('/admin/projects/configuration/kpis', data)).data,
+  scorecard: async (projectId) => (await api.get(`/admin/projects/${projectId}/scorecard`)).data,
   guestLinks: async (projectId) => (await api.get(`/admin/projects/${projectId}/guests`)).data,
   giveGuestLink: async (projectId, data) => (await api.post(`/admin/projects/${projectId}/guests`, data)).data,
   endGuestLink: async (projectId, id) => (await api.post(`/admin/projects/${projectId}/guests/${id}/end`)).data,

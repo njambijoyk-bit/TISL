@@ -20,6 +20,7 @@ await page.route('**/api/customer/my-work/413', (route) => json(route, {
   meetings: [{ title: 'Case review', starts_at: '2026-11-25T10:00:00', ends_at: '2026-11-25T11:00:00', location: 'Our office', online_link: null, state: 'planned', answer: 'pending', answer_link: '/meeting/abc123' }],
   files: [{ id: 10, name: 'Plaint.pdf', size: 245000, versions: 2, shared_at: '2026-11-12' }],
   requests: [{ what: 'The title deed', kind: 'file', due_on: '2026-12-01', of: 'Grace Wambua', link: '/request/tok123' }],
+  scorecard: [{ name: 'Key dates met', unit: 'pct', value: 100, status: 'good' }, { name: 'Days behind the expected end', unit: 'days', value: 9, status: 'warn' }],
   snags: [{ number: 2, title: 'Chipped tile at the entrance', area: 'Lobby', state: 'fixed', due_on: null }],
   invoices: [{ number: 'INV-0044', type: 'Sales Invoice', date: '2026-11-12', total: 480000, open: 180000 }, { number: 'INV-0031', type: 'Sales Invoice', date: '2026-10-05', total: 50000, open: 0 }],
 }));
@@ -39,6 +40,7 @@ const dl = page.waitForEvent('download', { timeout: 5000 });
 await page.locator('[data-my-file="Plaint.pdf"]').getByRole('button', { name: 'Download' }).click();
 ok('downloading goes through the portal and saves under the file name', (await dl).suggestedFilename() === 'Plaint.pdf' && asked.includes('file 10'));
 ok('invoices show what is still to pay, and point to My account to pay', /INV-0044 12 Nov 2026 480,000 180,000/.test(await text(page.locator('[data-my-invoice="INV-0044"]'))) && /Paid/.test(await text(page.locator('[data-my-invoice="INV-0031"]'))) && (await page.getByRole('link', { name: 'Pay from My account' }).getAttribute('href')) === '/my-account');
+ok('the client sees the KPIs marked for them, with how they are going', /How it is going .*Key dates met: 100% On track Days behind the expected end: 9 days Needs watching/.test(await text(page.locator('[data-my-scorecard]'))));
 ok('snags shared with the client are shown with how far they are', /Chipped tile at the entrance · Lobby Fixed, being checked/.test(await text(page.locator('[data-my-snags]'))));
 await page.screenshot({ path: D + 'projects-portal.png', fullPage: true });
 await finish(c);

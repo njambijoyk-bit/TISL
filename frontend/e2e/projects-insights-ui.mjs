@@ -1,5 +1,6 @@
 // Browser check: insights (stage 12). KPIs in Configuration (12.1): the list with targets in the measure's unit, adding one (amber on the right
 // side of green, from Books marked). The API is answered by the check itself; what each measure works out is proved by ProjectsKpisTest.
+// Scorecards (12.2): the scorecard on a work with eight weeks, a money figure from Books, and health in the list with its filter.
 // It needs only the website (npx vite --port 5177).
 import { D, SITE, ok, finish, open } from './lib.mjs';
 
@@ -41,4 +42,32 @@ await page.getByRole('button', { name: 'Add a KPI' }).click();
 await page.getByLabel('Measures').selectOption('utilisation');
 ok('a measure about people applies everywhere: the industry cannot be chosen and the client never sees it', await page.getByLabel('Applies to').isDisabled() && (await page.getByLabel('The client sees it').count()) === 0);
 await page.screenshot({ path: D + 'projects-kpis.png', fullPage: true });
+
+// ---------------------------------------------------------------- the scorecard on a work, health in the list
+await page.route(/\/api\/admin\/projects\/509$/, (route) => json(route, { project: { id: 509, number: 'BW-0509', title: 'Kilimani flats', description: null, industry: { key: 'construction', name: 'Construction' }, type: { id: 5, name: 'Building works' }, stage: { id: 1, name: 'Works', status: 'info' }, state: 'open', priority: 'medium',
+  customer: { id: 1, name: 'Imara Sacco' }, lead: { id: 1, name: 'Kamau' }, branch: null, cost_centre_id: 9, reference: null, authority: null, place: null, start_date: null, due_date: '2027-03-31', closing_period_ends: null, closed_at: null, confidential: false, frozen: false,
+  stages: [{ id: 1, name: 'Works', state: 'open', status: 'info', required_fields: [] }], cost_centre_path: 'BW-0509', words: {}, can: { open: true, money: true }, locks: {}, fields: [] } }));
+const weeks = ['2026-09-28', '2026-10-05', '2026-10-12', '2026-10-19', '2026-10-26', '2026-11-02', '2026-11-09', '2026-11-16'];
+const K = (key, name, unit, higher, good, status, value, detail, w, extra = {}) => ({ id: key.length, key, measure: key, name, unit, higher, target_good: good, target_warn: good, status, value, detail, weeks: w, books: false, client_sees: false, about: 'work', ...extra });
+await page.route('**/api/admin/projects/509/scorecard', (route) => json(route, { ready: true, health: 'bad', weeks, can: { change: true }, kpis: [
+  K('inspections_passed', 'Inspections passed', 'pct', true, 90, 'good', 94, '16 of 17 finished inspections', ['good', 'good', 'warn', 'good', 'good', 'good', 'good', 'good'], { client_sees: true }),
+  K('snags_on_time', 'Snags closed on time', 'pct', true, 85, 'warn', 78, '18 of 23 snags due', [null, null, 'good', 'warn', 'warn', 'warn', 'warn', 'warn']),
+  K('budget_used', 'Budget used', 'pct', false, 100, 'bad', 114, 'costs against the budget, from Books', [null, null, 'good', 'good', 'warn', 'warn', 'bad', 'bad'], { books: true }),
+] }));
+await go('/admin/projects/509');
+await page.locator('[data-scorecard]').waitFor({ timeout: 10000 });
+ok('the scorecard shows the health as the worst KPI, each figure against green and how it was worked out', /Scorecard .* Off track/.test(await text(page.locator('[data-scorecard]'))) && /Budget used from Books costs against the budget, from Books 114% ≤ 100%/.test(await text(page.locator('[data-scorecard-kpi="budget_used"]'))) && /Inspections passed Client sees it 16 of 17 finished inspections 94% ≥ 90%/.test(await text(page.locator('[data-scorecard-kpi="inspections_passed"]'))));
+ok('each KPI shows its last eight weeks', (await page.locator('[data-scorecard-kpi="snags_on_time"] [aria-label="Last eight weeks"] [role="img"]').count()) === 8 && (await page.locator('[data-scorecard-kpi="snags_on_time"] [aria-label="2026-11-16: Needs watching"]').count()) === 1);
+await page.screenshot({ path: D + 'projects-scorecard.png', fullPage: true });
+const listed = [];
+await page.route(/\/api\/admin\/projects(\?.*)?$/, (route) => { const q = Object.fromEntries(new URL(route.request().url()).searchParams); listed.push(q); const all = [{ id: 509, number: 'BW-0509', title: 'Kilimani flats', health: 'bad' }, { id: 510, number: 'BW-0510', title: 'Ruaka road', health: 'good' }, { id: 511, number: 'BW-0511', title: 'New office', health: null }];
+  const data = all.filter((p) => !q.health || p.health === q.health).map((p) => ({ ...p, description: null, industry: { key: 'construction', name: 'Construction' }, type: { id: 5, name: 'Building works' }, stage: { id: 1, name: 'Works', status: 'info' }, state: 'open', priority: 'medium', customer: null, lead: { id: 1, name: 'Kamau' }, branch: null, due_date: null, confidential: false, frozen: false }));
+  return json(route, { data, total: data.length, page: 1, per_page: 25, counts: { open: 3, on_hold: 0, closed: 0, cancelled: 0 } }); });
+await page.route('**/api/admin/projects/invitations', (route) => json(route, { invitations: [] }));
+await go('/admin/projects');
+await page.getByText('Kilimani flats').waitFor({ timeout: 10000 });
+ok('the list shows each work\'s health, and none for one not measured', (await page.getByRole('row').filter({ hasText: 'Kilimani flats' }).getByText('Off track').count()) === 1 && (await page.getByRole('row').filter({ hasText: 'Ruaka road' }).getByText('On track').count()) === 1 && !/track|watching/i.test(await text(page.getByRole('row').filter({ hasText: 'New office' }))));
+await page.getByLabel('Health').selectOption({ label: 'Off track' });
+await page.waitForTimeout(400);
+ok('the list can be filtered by health', listed.at(-1)?.health === 'bad' && (await page.getByText('Ruaka road').count()) === 0);
 await finish(c);
