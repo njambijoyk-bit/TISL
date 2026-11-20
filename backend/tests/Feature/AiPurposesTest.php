@@ -368,4 +368,16 @@ class AiPurposesTest extends TestCase
         $this->putJson('/api/admin/ai-analytics/purposes/drafts/limit', ['monthly_limit' => 0.001, 'limit_unit' => 'cost'])->assertOk();
         $this->ask('drafts', 'projects_updates');
     }
+
+    public function test_keys_purposes_and_usage_are_core_while_page_analysis_stays_with_extras(): void
+    {
+        $this->script270();
+        $this->admin();
+        $this->licensed['extras'] = false;   // without Extras, Mimi, screening, explanations and drafts still need keys
+        $this->getJson('/api/admin/ai-analytics/keys')->assertOk();
+        $this->postJson('/api/admin/ai-analytics/keys', ['provider' => 'anthropic', 'label' => 'main', 'api_key' => 'sk-1'])->assertCreated();
+        $this->getJson('/api/admin/ai-analytics/usage')->assertOk();
+        $this->assertArrayNotHasKey('analytics', app(AiGateway::class)->purposes(), 'page analysis is the Extras feature, so its purpose is hidden');
+        $this->getJson('/api/admin/ai-analytics/modules')->assertNotFound();   // an inactive module's routes answer as if they were not there
+    }
 }

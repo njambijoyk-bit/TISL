@@ -1045,7 +1045,7 @@ function App() {
                 path="/admin/ai-analytics/modules"
                 element={
                   <ProtectedRoute requireAdmin>
-                    <AiModulesPage />
+                    <ModuleRoute module="extras" redirectTo="/admin/ai-analytics"><AiModulesPage /></ModuleRoute>
                   </ProtectedRoute>
                 }
               />
@@ -1053,7 +1053,7 @@ function App() {
                 path="/admin/ai-analytics/sessions"
                 element={
                   <ProtectedRoute requireAdmin>
-                    <AiSessionsPage />
+                    <ModuleRoute module="extras" redirectTo="/admin/ai-analytics"><AiSessionsPage /></ModuleRoute>
                   </ProtectedRoute>
                 }
               />

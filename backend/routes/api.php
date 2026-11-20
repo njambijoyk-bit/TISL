@@ -3159,10 +3159,9 @@ Route::middleware('auth:sanctum')->group(function () {
             Route::get('/logs',          [BugReportController::class, 'keyLogs']);
         });
 
-        // ── AI Analytics ─────────────────────────────────────────────────────────────
-        Route::prefix('ai-analytics')->middleware('module:extras')->group(function () {
-
-            // Keys (super_admin only — policy handles it)
+        // ── AI keys, purposes and usage: core. Mimi, screening, explanations and drafts all need keys, whatever is licensed (the policy needs ai.keys) ──
+        Route::prefix('ai-analytics')->group(function () {
+            // Keys (who may manage them: the ai.keys permission, through the policy)
             Route::get   ('keys',              [AiAnalyticsController::class, 'indexKeys']);
             Route::post  ('keys',              [AiAnalyticsController::class, 'storeKey']);
             Route::post  ('keys/{key}/activate',[AiAnalyticsController::class, 'activateKey']);
@@ -3175,6 +3174,11 @@ Route::middleware('auth:sanctum')->group(function () {
             Route::put   ('purposes-rest',     [AiAnalyticsController::class, 'saveRest']);
             Route::put   ('purposes/{purpose}/limit', [AiAnalyticsController::class, 'saveLimit'])->where('purpose', '[a-z_]+');
             Route::get   ('usage',             [AiAnalyticsController::class, 'usage']);
+
+        });
+
+        // ── AI page analysis: the Extras module's feature ──────────────────────────────
+        Route::prefix('ai-analytics')->middleware('module:extras')->group(function () {
 
             // Modules
             Route::get   ('modules',                    [AiAnalyticsController::class, 'indexModules']);

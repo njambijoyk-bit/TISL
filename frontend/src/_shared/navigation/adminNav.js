@@ -230,8 +230,8 @@ export const ADMIN_NAV = [
         tabs: [
           { title: 'AI configuration', path: '/admin/ai-analytics', exact: true },
           { title: 'Keys', path: '/admin/ai-analytics/keys' },
-          { title: 'Modules', path: '/admin/ai-analytics/modules' },
-          { title: 'Sessions', path: '/admin/ai-analytics/sessions' },
+          { title: 'Modules', path: '/admin/ai-analytics/modules', module: MODULES.EXTRAS },   // page analysis is an Extras feature; keys are core
+          { title: 'Sessions', path: '/admin/ai-analytics/sessions', module: MODULES.EXTRAS },
           { title: 'Mimi', path: '/admin/ai-analytics/mimi', also: ['/admin/ai-analytics/mimi-sessions', '/admin/ai-analytics/mimi-eligibility', '/admin/ai-analytics/mimi-harmful'] },
           { title: 'Mimi knowledge', path: '/admin/ai-analytics/mimi-knowledge', perm: ['mimi.knowledge', 'mimi.routing'] },
         ],

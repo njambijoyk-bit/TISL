@@ -250,3 +250,13 @@ Screens: `docs/screens/ai-purposes.png` (usage and limit on each card) and `docs
    - At 100% the draft is written from the facts, without the AI.
    - Raise the limit and it uses the AI again.
 7. **Usage:** the Usage tab's counts for this month match what you just did.
+
+### Keys moved to core (after A.3)
+
+The owner asked for this on 2026-11-20.
+
+- **Before:** the menu already showed Mimi AI as core, but the server kept every AI route behind the Extras module. Without an Extras licence the Keys page opened but could save nothing. So Mimi, careers screening, explanations and drafts could never get a key, though none of them is an Extras feature.
+- **Now:**
+  - **Keys, purposes and usage are core.** They need only the `ai.keys` permission, whatever is licensed.
+  - **Page analysis** (the Modules and Sessions tabs, analysing and its outputs) stays with Extras. Its routes still need Extras, its two tabs are hidden without it, its pages send you back to AI configuration, and its `analytics` purpose is hidden as before.
+- **Test:** `AiPurposesTest` (now 10) adds and lists keys and reads usage with Extras not licensed, while page analysis is not reachable.
