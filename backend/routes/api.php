@@ -3865,6 +3865,11 @@ Route::get('/vendor-scans/{vendor}/{n}', [\App\Http\Controllers\Api\VendorScanCo
     ->whereNumber('vendor')->whereNumber('n')->middleware('signed')->name('vendor-scans.show');
 
 // Vendor portal — logged-in vendor, Extras on
+// a subcontractor's own subcontracts on the work (Projects build 10.4): their claims, certificates and bills
+Route::middleware(['auth:sanctum', 'module:projects'])->prefix('vendor-portal/subcontracts')->group(function () {
+    Route::get('/', [\App\Http\Controllers\Api\Projects\SubcontractorPortalController::class, 'index']);
+    Route::post('/{sub}/claims', [\App\Http\Controllers\Api\Projects\SubcontractorPortalController::class, 'claim'])->whereNumber('sub')->middleware('throttle:20,1');
+});
 Route::middleware(['auth:sanctum', 'module:extras'])->prefix('vendor-portal')->group(function () {
     $vp = \App\Http\Controllers\Api\VendorPortalController::class;
 

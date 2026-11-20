@@ -22,7 +22,7 @@ class ProjectsSubcontractsTest extends TestCase
     {
         parent::setUp();
         $this->createProjectsWorld();
-        Schema::create('vendors', function ($t) { $t->id(); $t->string('vendor_number')->nullable(); $t->string('company_name')->nullable(); $t->string('contact_name')->nullable(); $t->unsignedBigInteger('user_id')->nullable(); $t->timestamps(); $t->softDeletes(); });
+        Schema::create('vendors', function ($t) { $t->id(); $t->string('vendor_number')->nullable(); $t->string('company_name')->nullable(); $t->string('contact_name')->nullable(); $t->unsignedBigInteger('user_id')->nullable(); $t->string('status')->default('approved'); $t->timestamps(); $t->softDeletes(); });
         Schema::create('vendor_orders', function ($t) { $t->id(); $t->string('po_number'); $t->unsignedBigInteger('vendor_id'); $t->string('status')->default('sent'); $t->string('currency')->nullable(); $t->decimal('subtotal', 14, 2)->default(0); $t->decimal('total', 14, 2)->default(0); $t->timestamps(); });
         Schema::create('vouchers', function ($t) { $t->id(); $t->unsignedBigInteger('voucher_type_id'); $t->string('voucher_number'); $t->string('status')->default('posted'); $t->unsignedBigInteger('cost_centre_id')->nullable(); $t->decimal('total_amount', 14, 2)->default(0); $t->date('date')->nullable(); $t->string('narration')->nullable(); });
         Schema::create('voucher_entries', function ($t) { $t->id(); $t->unsignedBigInteger('voucher_id'); $t->unsignedBigInteger('ledger_id'); $t->string('side', 1); $t->decimal('amount', 14, 2); $t->unsignedBigInteger('cost_centre_id')->nullable(); $t->boolean('is_party')->default(false); });
@@ -133,5 +133,27 @@ class ProjectsSubcontractsTest extends TestCase
         $claim = $this->postJson($this->url("/subcontracts/{$sub}/claims"), ['claimed_pct' => 10])->assertCreated()->json('subcontracts.0.claims.0.id');
         $this->postJson($this->url("/claims/{$claim}/certify"), ['certified_pct' => 10])->assertStatus(428)->assertJsonPath('serious.action', 'sub.certify');
         $this->assertSame([], $this->posted, 'nothing reaches the books before it is approved');
+    }
+
+    public function test_the_subcontractor_sees_only_their_own_on_their_portal_and_claims_there(): void
+    {
+        $sub = $this->sub();
+        $this->postJson($this->url('/subcontracts'), ['vendor_id' => 4, 'title' => 'Plumbing'])->assertCreated();
+        $grace = User::forceCreate(['name' => 'Grace (Juja Electrical)', 'email' => 'grace@juja.test', 'role' => 'vendor']);
+        DB::table('vendors')->where('id', 3)->update(['user_id' => $grace->id]);
+
+        Sanctum::actingAs($grace, ['*']);
+        $mine = $this->getJson('/api/vendor-portal/subcontracts')->assertOk()->json('subcontracts');
+        $this->assertSame(['Electrical works'], array_column($mine, 'title'), 'never another vendor\'s');
+        $this->assertStringEndsWith('Kilimani flats', $mine[0]['project']);
+        $other = (int) DB::table('project_subcontracts')->where('vendor_id', 4)->value('id');
+        $this->postJson("/api/vendor-portal/subcontracts/{$other}/claims", ['claimed_pct' => 10])->assertNotFound();
+        $this->postJson("/api/vendor-portal/subcontracts/{$sub}/claims", ['claimed_pct' => 40, 'note' => 'First and second floors wired'])->assertCreated()->assertJsonPath('subcontracts.0.claims.0.by_vendor', true);
+        $this->assertSame([40.0, 'submitted'], [(float) DB::table('project_sub_claims')->value('claimed_pct'), DB::table('project_sub_claims')->value('state')]);
+
+        DB::table('vendors')->where('id', 3)->update(['status' => 'suspended']);
+        $this->getJson('/api/vendor-portal/subcontracts')->assertForbidden();
+        Sanctum::actingAs($this->njeri, ['*']);
+        $this->getJson('/api/vendor-portal/subcontracts')->assertForbidden();
     }
 }

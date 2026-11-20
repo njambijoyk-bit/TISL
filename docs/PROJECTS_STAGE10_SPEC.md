@@ -149,3 +149,12 @@ Screen: `docs/screens/projects-subcontracts.png`.
 - **Outside Projects:** Books lets a journal settle an open **purchase** invoice when it debits that supplier for at least the amount, the mirror of the existing sales write-off. Nothing else in Books changed.
 - **Routes:** `GET`, `POST /projects/{project}/subcontracts`; `PUT …/subcontracts/{sub}`; `POST …/subcontracts/{sub}/claims`, `…/subcontracts/{sub}/release`, `…/claims/{claim}/certify`, `…/claims/{claim}/reject`; `GET`, `PUT /projects/configuration/site`.
 - **Tests:** `tests/Feature/ProjectsSubcontractsTest.php` (3; Books stood in); the serious-actions test now counts 19. Browser check `e2e/projects-site-ui.mjs` (now 15 checks). The purchase write-off in Books is on the hand-check list, since no test runs the full Books voucher service.
+
+### 10.4 The subcontractor's view (done)
+
+Screen: `docs/screens/projects-vendor-subcontracts.png`.
+
+- **Vendor portal → Subcontracts** (`/vendor-portal/subcontracts`, a card on the vendor dashboard while Projects is on): a vendor signed in sees each of their subcontracts across the works: the work, the vendor order, retention, what is certified of the agreed value, what is held back (and whether it was released), and each claim with the answer and our bill's number and amount. Never another vendor's, nothing else about the work. A suspended vendor account is refused.
+- **Making a claim** there: how far the whole work is (%), up to a day, a note and a file (kept in the work's files). Whoever works the site with `projects.subcontracts` is told, with a link to certify it. When a claim is certified, not certified, or retention is released, the subcontractor is told.
+- **Routes:** `GET /vendor-portal/subcontracts`, `POST /vendor-portal/subcontracts/{sub}/claims`.
+- **Tests:** `tests/Feature/ProjectsSubcontractsTest.php` (now 4). Browser check `e2e/projects-vendor-ui.mjs` (3 checks).

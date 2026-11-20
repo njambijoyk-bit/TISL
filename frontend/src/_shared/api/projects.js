@@ -175,6 +175,8 @@ const projectsAPI = {
   releaseSubRetention: async (projectId, id) => (await api.post(`/admin/projects/${projectId}/subcontracts/${id}/release`)).data,
   siteSettings: async () => (await api.get('/admin/projects/configuration/site')).data,
   saveSiteSettings: async (data) => (await api.put('/admin/projects/configuration/site', data)).data,
+  vendorSubcontracts: async () => (await api.get('/vendor-portal/subcontracts')).data,
+  vendorClaim: async (id, body, file) => { const f = new FormData(); Object.entries(body ?? {}).forEach(([k, v]) => v != null && v !== '' && f.append(k, v)); if (file) f.append('file', file); return (await api.post(`/vendor-portal/subcontracts/${id}/claims`, f, { headers: { 'Content-Type': 'multipart/form-data' } })).data; },
   guestLinks: async (projectId) => (await api.get(`/admin/projects/${projectId}/guests`)).data,
   giveGuestLink: async (projectId, data) => (await api.post(`/admin/projects/${projectId}/guests`, data)).data,
   endGuestLink: async (projectId, id) => (await api.post(`/admin/projects/${projectId}/guests/${id}/end`)).data,

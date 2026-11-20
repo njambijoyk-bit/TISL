@@ -347,6 +347,7 @@ const VendorTenderDetail = lazy(() => import('./extras/pages/vendor-portal/Vendo
 const VendorPq           = lazy(() => import('./extras/pages/vendor-portal/VendorPrequalification'));
 const VendorAccount      = lazy(() => import('./extras/pages/vendor-portal/VendorAccount'));
 const VendorOrders       = lazy(() => import('./extras/pages/vendor-portal/VendorOrders'));
+const VendorSubcontracts = lazy(() => import('./projects/pages/vendor/VendorSubcontracts'));   // a subcontractor's own subcontracts (Projects build 10.4)
 const VendorProfile      = lazy(() => import('./extras/pages/vendor-portal/VendorProfile'));
 const TenderList         = lazy(() => import('./extras/pages/admin/tenders/TenderList'));
 const TenderDetail       = lazy(() => import('./extras/pages/admin/tenders/TenderDetail'));
@@ -697,6 +698,7 @@ function App() {
             <Route path="/vendor-portal/tenders/:id" element={<ProtectedRoute><ModuleRoute module="extras"><VendorTenderDetail /></ModuleRoute></ProtectedRoute>} />
             <Route path="/vendor-portal/pq" element={<ProtectedRoute><ModuleRoute module="extras"><VendorPq /></ModuleRoute></ProtectedRoute>} />
             <Route path="/vendor-portal/orders" element={<ProtectedRoute><ModuleRoute module="extras"><VendorOrders /></ModuleRoute></ProtectedRoute>} />
+            <Route path="/vendor-portal/subcontracts" element={<ProtectedRoute><ModuleRoute module="projects"><VendorSubcontracts /></ModuleRoute></ProtectedRoute>} />
             <Route path="/vendor-portal/account" element={<ProtectedRoute><ModuleRoute module="extras"><VendorAccount /></ModuleRoute></ProtectedRoute>} />
             <Route path="/vendor-portal/profile" element={<ProtectedRoute><ModuleRoute module="extras"><VendorProfile /></ModuleRoute></ProtectedRoute>} />
 

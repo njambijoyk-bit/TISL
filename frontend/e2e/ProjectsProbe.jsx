@@ -21,6 +21,7 @@ import ProjectsMyWork from '/src/projects/pages/admin/ProjectsMyWork.jsx';
 import ProjectsInbox from '/src/projects/pages/admin/ProjectsInbox.jsx';
 import MeetingAnswer from '/src/projects/pages/public/MeetingAnswer.jsx';
 import { MyWorkList, MyWorkOne } from '/src/projects/pages/customer/MyWork.jsx';
+import { SubcontractsList } from '/src/projects/pages/vendor/VendorSubcontracts.jsx';
 import GuestPage from '/src/projects/pages/public/GuestPage.jsx';
 import RequestAnswer from '/src/projects/pages/public/RequestAnswer.jsx';
 import ProjectsHandover from '/src/projects/pages/admin/ProjectsHandover.jsx';
@@ -60,6 +61,7 @@ export default function ProjectsProbe() {
       <Route path="/meeting/:token" element={<MeetingAnswer />} />
       <Route path="/request/:token" element={<RequestAnswer />} />
       <Route path="/guest/:token" element={<GuestPage />} />
+      <Route path="/vendor-portal/subcontracts" element={<SubcontractsList />} />
       <Route path="/my-work" element={<MyWorkList />} />
       <Route path="/my-work/:id" element={<MyWorkOneProbe />} />
       <Route path="/admin/projects/handover" element={<ProjectsHandover />} />
