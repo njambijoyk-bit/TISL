@@ -74,7 +74,7 @@ class ScreenApplicationJob implements ShouldQueue
         $gateway  = app(\App\Services\Ai\AiGateway::class);
         $messages = [['role' => 'user', 'content' => $prompt]];
         try {
-            $r = $gateway->run('screening', null, $messages, ['max_tokens' => 1024, 'timeout' => 45]);
+            $r = $gateway->run('screening', null, $messages, ['max_tokens' => 1024, 'timeout' => 45, 'feature' => 'careers']);
         } catch (\App\Services\Ai\AiGatewayException $e) {
             $env = env('ANTHROPIC_API_KEY');
             if ($e->kind !== 'none' || ! $env) {

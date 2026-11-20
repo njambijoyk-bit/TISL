@@ -941,7 +941,7 @@ KNOWLEDGE:
 
             $gateway = app(\App\Services\Ai\AiGateway::class);
             try {
-                $r = $gateway->run('mimi', $system, $messages, ['max_tokens' => 2048, 'temperature' => 0.7, 'timeout' => 30]);
+                $r = $gateway->run('mimi', $system, $messages, ['max_tokens' => 2048, 'temperature' => 0.7, 'timeout' => 30, 'feature' => 'chat']);
             } catch (\App\Services\Ai\AiGatewayException $e) {
                 if ($e->kind !== 'none' || ! env('GEMINI_API_KEY')) {
                     throw $e;

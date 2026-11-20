@@ -55,7 +55,7 @@ class AiAnalyticsService
         try {
             // ── Ask the first key in use for analytics (the next one if it fails) ──
             $gateway = app(\App\Services\Ai\AiGateway::class);
-            $r       = $gateway->run('analytics', null, [['role' => 'user', 'content' => $prompt]], ['max_tokens' => 1024]);
+            $r       = $gateway->run('analytics', null, [['role' => 'user', 'content' => $prompt]], ['max_tokens' => 1024, 'feature' => 'page_analysis']);
             $key     = $r['key'];
             $result  = ['content' => $r['text'], 'prompt_tokens' => $r['prompt_tokens'], 'completion_tokens' => $r['completion_tokens'], 'model' => $r['model']];
 

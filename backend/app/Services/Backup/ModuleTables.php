@@ -130,6 +130,7 @@ final class ModuleTables
             'algorithm_config', 'algorithm_segment_rules', 'algorithm_bonus_content',
             'customer_algorithm_scores', 'customer_product_pins', 'search_events',
             'ai_analytics_modules', 'ai_analytics_sessions', 'ai_analytics_outputs',
+            'ai_purpose_settings', 'ai_gateway_settings', 'ai_calls',   // AI purposes: limits, how long a key rests, the call log (never what was asked)
             // Engagement Engine: reviews, comments, reactions, reports and their settings
             'engagement_settings', 'engagement_report_reasons', 'engagement_rules', 'engagement_posts', 'engagement_reactions', 'engagement_reports', 'engagement_log',
             // Point of sale: stations, who works at them, the receipt paper of each branch
@@ -180,6 +181,8 @@ final class ModuleTables
         // Secrets tied to this server: AI keys are encrypted with its APP_KEY (unreadable
         // after a restore elsewhere), developer access keys hold raw keys.
         'ai_provider_keys', 'dev_access_keys', 'dev_access_key_logs',
+        // which purposes a key is kept to and each purpose's line point at those keys, so they stay with them
+        'ai_key_purposes', 'ai_purpose_lines',
         // Framework / transient
         'vault_unlock_sessions',
         'migrations', 'sessions', 'cache', 'cache_locks',

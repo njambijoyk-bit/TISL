@@ -10,7 +10,7 @@ class AiProviderKey extends Model
     protected $fillable = [
         'provider', 'label', 'api_key',
         'is_active', 'created_by', 'last_used_at',
-        'model', 'base_url', 'used_for', 'priority', 'last_error', 'last_error_at',
+        'model', 'base_url', 'used_for', 'priority', 'last_error', 'last_error_at', 'open_to_all', 'resting_until', 'rest_reason',
     ];
 
     protected $hidden = ['api_key']; // never serialise raw key
@@ -19,6 +19,8 @@ class AiProviderKey extends Model
         'is_active'    => 'boolean',
         'last_used_at' => 'datetime',
         'last_error_at' => 'datetime',
+        'open_to_all'  => 'boolean',
+        'resting_until' => 'datetime',
         'priority'     => 'integer',
     ];
 

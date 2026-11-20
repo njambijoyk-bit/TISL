@@ -1,0 +1,229 @@
+<?php
+
+namespace Tests\Feature;
+
+use App\Models\AiProviderKey;
+use App\Services\Ai\AiGateway;
+use App\Services\Ai\AiGatewayException;
+use App\Services\Licensing\LicenseManager;
+use Carbon\Carbon;
+use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Http;
+use Illuminate\Support\Facades\Schema;
+use Tests\TestCase;
+
+/** AI purposes, build A.1 (docs/AI_PURPOSES_SPEC.md): purposes linked to modules, keys open or kept, a line per purpose with models, resting keys, the call log. */
+class AiPurposesTest extends TestCase
+{
+    use Concerns\RunsSqlScripts;
+
+    private array $licensed = ['careers' => false, 'projects' => true, 'extras' => true];
+
+    protected function setUp(): void
+    {
+        parent::setUp();
+        config(['app.key' => 'base64:' . base64_encode(str_repeat('k', 32))]);   // keys are stored encrypted
+        Carbon::setTestNow('2026-11-20 10:00:00');
+        Schema::dropIfExists('ai_provider_keys');
+        Schema::create('ai_provider_keys', function ($t) {
+            $t->id(); $t->string('provider'); $t->string('label'); $t->text('api_key'); $t->boolean('is_active')->default(true); $t->unsignedBigInteger('created_by')->nullable(); $t->timestamp('last_used_at')->nullable();
+            $t->string('model')->nullable(); $t->string('base_url')->nullable(); $t->string('used_for', 10)->default('all'); $t->integer('priority')->default(100); $t->string('last_error')->nullable(); $t->dateTime('last_error_at')->nullable(); $t->timestamps();
+        });
+        $licensed = &$this->licensed;
+        $this->app->instance(LicenseManager::class, new class($licensed) extends LicenseManager {
+            public function __construct(private array &$licensed) {}
+
+            public function isLicensed(string $moduleKey): bool
+            {
+                return $this->licensed[$moduleKey] ?? false;
+            }
+        });
+        AiGateway::forget();
+    }
+
+    protected function tearDown(): void
+    {
+        Carbon::setTestNow();
+        AiGateway::forget();
+        parent::tearDown();
+    }
+
+    /** Script 270's tables, and its three key columns (added by a guarded procedure on MySQL). */
+    private function script270(): void
+    {
+        $this->runSqlScripts('270_ai_purposes.sql');
+        Schema::table('ai_provider_keys', function ($t) { $t->boolean('open_to_all')->default(true); $t->dateTime('resting_until')->nullable(); $t->string('rest_reason')->nullable(); });
+        DB::table('ai_gateway_settings')->insert(['id' => 1, 'rest_minutes' => 10]);
+        AiGateway::forget();
+    }
+
+    private function key(string $label, string $provider, int $priority, array $extra = []): AiProviderKey
+    {
+        return AiProviderKey::create(['provider' => $provider, 'label' => $label, 'api_key' => "sk-{$label}", 'is_active' => true, 'priority' => $priority] + $extra);
+    }
+
+    private function line(string $purpose, array $keys): void
+    {
+        foreach ($keys as $i => [$key, $model]) {
+            DB::table('ai_purpose_lines')->insert(['purpose' => $purpose, 'key_id' => $key->id, 'position' => $i + 1, 'model' => $model]);
+        }
+    }
+
+    private function gw(): AiGateway
+    {
+        return app(AiGateway::class);
+    }
+
+    /** Anthropic answers with the model it was asked for; OpenAI and Gemini answer as told. */
+    private function fake(array $openai = [], array $gemini = []): void
+    {
+        Http::swap(new \Illuminate\Http\Client\Factory);   // a second fake would otherwise keep the first one's answers
+        Http::fake([
+            'api.anthropic.com/*' => fn ($r) => Http::response(['content' => [['type' => 'text', 'text' => 'from claude']], 'usage' => ['input_tokens' => 100, 'output_tokens' => 20], 'model' => $r->data()['model'], 'stop_reason' => 'end_turn']),
+            'api.openai.com/*' => Http::response(...($openai ?: [['choices' => [['message' => ['content' => 'from gpt'], 'finish_reason' => 'stop']], 'usage' => ['prompt_tokens' => 50, 'completion_tokens' => 10], 'model' => 'gpt-4o-mini']])),
+            'generativelanguage.googleapis.com/*' => Http::response(...($gemini ?: [['candidates' => [['content' => ['parts' => [['text' => 'from gemini']]], 'finishReason' => 'STOP']], 'usageMetadata' => ['promptTokenCount' => 10, 'candidatesTokenCount' => 5]]])),
+        ]);
+    }
+
+    private function ask(string $purpose, string $feature): array
+    {
+        return $this->gw()->run($purpose, null, [['role' => 'user', 'content' => 'Hello']], ['feature' => $feature]);
+    }
+
+    public function test_a_purpose_shows_when_any_module_using_it_is_licensed_and_a_call_from_an_unlicensed_module_is_refused(): void
+    {
+        $this->script270();
+        $this->key('main', 'anthropic', 10);
+        $this->fake();
+        $this->assertSame(['mimi', 'analytics', 'explain', 'drafts'], array_keys($this->gw()->purposes()), 'careers is not licensed, so screening is hidden');
+        $this->assertSame(['Projects weekly updates'], $this->gw()->purposes()['drafts']['used_by']);
+
+        $this->assertSame('from claude', $this->ask('drafts', 'projects_updates')['text'], 'licensed: switched on or off does not matter');
+        try {
+            $this->ask('screening', 'careers');
+            $this->fail('screening ran without Careers licensed');
+        } catch (AiGatewayException $e) {
+            $this->assertSame('licence', $e->kind);
+        }
+        $this->assertSame(['drafts' => 'ok', 'screening' => 'refused'], DB::table('ai_calls')->pluck('outcome', 'purpose')->all());
+        Http::assertSentCount(1);
+
+        $this->licensed['careers'] = true;
+        $this->assertArrayHasKey('screening', $this->gw()->purposes());
+        $this->licensed['projects'] = false;
+        $this->assertArrayNotHasKey('drafts', $this->gw()->purposes());
+        $this->expectExceptionMessage('Drafts is not available: the module it is for is not licensed.');
+        $this->ask('drafts', 'projects_updates');
+    }
+
+    public function test_a_call_goes_down_its_own_line_with_each_places_model_then_the_other_keys_allowed_for_it(): void
+    {
+        $this->script270();
+        $main = $this->key('main', 'anthropic', 10, ['model' => 'claude-sonnet-4-5']);
+        $hr = $this->key('hr', 'openai', 5, ['open_to_all' => false]);
+        DB::table('ai_key_purposes')->insert(['key_id' => $hr->id, 'purpose' => 'screening']);
+        $gem = $this->key('gem', 'gemini', 20, ['open_to_all' => false]);
+        DB::table('ai_key_purposes')->insert([['key_id' => $gem->id, 'purpose' => 'drafts'], ['key_id' => $gem->id, 'purpose' => 'explain']]);
+        $this->line('drafts', [[$main, 'claude-haiku-4-5'], [$gem, null]]);
+
+        $line = fn ($p) => array_map(fn ($x) => [$x['key']->label, $x['model'], $x['position'], $x['own']], $this->gw()->lineFor($p));
+        $this->assertSame([['main', 'claude-haiku-4-5', 1, true], ['gem', 'gemini-2.5-flash', 2, true]], $line('drafts'));
+        $this->assertSame([['main', 'claude-sonnet-4-5', 1, false], ['gem', 'gemini-2.5-flash', 2, false]], $line('explain'), 'no line of its own: the keys allowed for it, in the general order');
+        $this->assertSame([['main', 'claude-sonnet-4-5', 1, false]], $line('mimi'), 'kept keys never serve another purpose');
+        $this->assertSame([['hr', 'gpt-4o-mini', 1, false], ['main', 'claude-sonnet-4-5', 2, false]], $line('screening'));
+
+        $this->fake();
+        $r = $this->ask('drafts', 'projects_updates');
+        $this->assertSame(['claude-haiku-4-5', 1], [$r['model'], $r['position']], 'the model chosen for this place, not the key\'s own');
+        Http::assertSent(fn ($req) => ($req->data()['model'] ?? null) === 'claude-haiku-4-5');
+        $call = DB::table('ai_calls')->first();
+        $this->assertSame(['drafts', $main->id, 'anthropic', 100, 20, 'ok', 1], [$call->purpose, (int) $call->key_id, $call->provider, (int) $call->prompt_tokens, (int) $call->completion_tokens, $call->outcome, (int) $call->position]);
+        $this->assertEqualsWithDelta(0.0006, (float) $call->cost_estimate, 0.000001);
+    }
+
+    public function test_a_key_over_quota_rests_and_the_next_key_answers_while_a_busy_key_does_not_rest(): void
+    {
+        $this->script270();
+        $gpt = $this->key('gpt', 'openai', 10);
+        $this->key('main', 'anthropic', 20);
+        $this->fake([['error' => ['message' => 'You exceeded your current quota, please check your plan and billing details.']], 429]);
+
+        $r = $this->ask('mimi', 'chat');
+        $this->assertSame(['from claude', 2], [$r['text'], $r['position']]);
+        $gpt->refresh();
+        $this->assertSame('2026-11-20 10:10:00', $gpt->resting_until->format('Y-m-d H:i:s'));
+        $this->assertStringContainsString('exceeded your current quota', $gpt->rest_reason);
+        $this->assertSame([['failed', 1], ['ok', 2]], DB::table('ai_calls')->orderBy('id')->get()->map(fn ($c) => [$c->outcome, (int) $c->position])->all());
+
+        $this->ask('mimi', 'chat');
+        Http::assertSentCount(3);   // the resting key was skipped the second time
+        $this->assertSame(['main'], array_map(fn ($x) => $x['key']->label, $this->gw()->lineFor('mimi')));
+
+        Carbon::setTestNow('2026-11-20 10:11:00');
+        $this->assertSame(['gpt', 'main'], array_map(fn ($x) => $x['key']->label, $this->gw()->lineFor('mimi')), 'the rest is over');
+
+        // busy (a rate limit, not the quota) moves on but does not rest
+        $this->fake([['error' => ['message' => 'Rate limit reached for requests per minute.']], 429]);
+        $this->ask('mimi', 'chat');
+        $this->assertSame('2026-11-20 10:10:00', $gpt->refresh()->resting_until->format('Y-m-d H:i:s'), 'not rested again');
+
+        // a bad request would fail on every key: it stops at once
+        $this->fake([['error' => ['message' => 'messages: field required']], 400]);
+        DB::table('ai_calls')->delete();
+        try {
+            $this->ask('mimi', 'chat');
+            $this->fail('a bad request went on to the next key');
+        } catch (AiGatewayException $e) {
+            $this->assertSame(1, DB::table('ai_calls')->count());
+        }
+    }
+
+    public function test_when_every_key_rests_the_message_says_so(): void
+    {
+        $this->script270();
+        $this->key('gpt', 'openai', 10, ['resting_until' => '2026-11-20 10:05:00', 'rest_reason' => 'over quota']);
+        $this->expectExceptionMessage('Every AI key for Mimi chat is resting after being refused.');
+        $this->ask('mimi', 'chat');
+    }
+
+    public function test_a_refused_key_does_not_rest_when_resting_is_switched_off(): void
+    {
+        $this->script270();
+        DB::table('ai_gateway_settings')->update(['rest_minutes' => 0]);
+        $gpt = $this->key('gpt', 'openai', 10);
+        $this->key('main', 'anthropic', 20);
+        $this->fake([['error' => ['message' => 'Incorrect API key provided.']], 401]);
+        $this->assertSame('from claude', $this->ask('mimi', 'chat')['text']);
+        $this->assertNull($gpt->refresh()->resting_until);
+    }
+
+    public function test_before_script_270_each_keys_single_used_for_is_read_as_it_always_was(): void
+    {
+        $this->key('analytics key', 'openai', 10, ['used_for' => 'analytics']);
+        $this->key('mimi key', 'anthropic', 20, ['used_for' => 'mimi']);
+        $this->assertFalse(AiGateway::ready());
+        $labels = fn ($p) => $this->gw()->keysFor($p)->pluck('label')->all();
+        $this->assertSame(['analytics key'], $labels('explain'), 'explain and drafts used the analytics key before, so they still do');
+        $this->assertSame(['analytics key'], $labels('drafts'));
+        $this->assertSame(['mimi key'], $labels('mimi'));
+        $this->assertSame([], $labels('screening'));
+        $this->fake();
+        $this->assertSame('from gpt', $this->ask('drafts', 'projects_updates')['text'], 'and nothing is logged, there being no log yet');
+    }
+
+    public function test_script_270_moves_the_keys_as_the_gateway_reads_them(): void
+    {
+        $sql = file_get_contents(base_path('database/sql/270_ai_purposes.sql'));
+        foreach (AiGateway::LEGACY as $from => $to) {
+            foreach ($to as $purpose) {
+                $this->assertMatchesRegularExpression($from === $purpose && $from !== 'analytics' ? "/SELECT id, used_for, NOW\\(\\) FROM ai_provider_keys WHERE used_for IN \\([^)]*'{$from}'/" : "/SELECT id, '{$purpose}', NOW\\(\\) FROM ai_provider_keys WHERE used_for = '{$from}'/", $sql, "{$from} → {$purpose}");
+            }
+        }
+        foreach (AiGateway::PURPOSES as $purpose => $p) {
+            $this->assertLessThanOrEqual(20, strlen($purpose));
+            foreach ($p[3] as [$feature, $module]) {
+                $this->assertTrue($module === 'core' || in_array($module, \App\Services\Licensing\LicenseFormat::MODULES, true), "{$purpose}: {$module} is not a module");
+            }
+        }
+    }
+}

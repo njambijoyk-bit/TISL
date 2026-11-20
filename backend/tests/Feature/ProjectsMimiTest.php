@@ -145,7 +145,7 @@ class ProjectsMimiTest extends TestCase
         $field = DB::table('project_fields')->insertGetId(['key' => 'board_ref', 'label' => 'Board reference', 'kind' => 'text', 'is_sensitive' => 1, 'is_active' => 1, 'sort_order' => 1]);
         DB::table('project_field_values')->insert(['project_id' => $this->work->id, 'field_id' => $field, 'value' => 'SECRET-77']);
         $this->postJson("/api/admin/projects/{$this->work->id}/updates")->assertCreated()->assertJsonPath('updates.0.body', 'Dear Imara, a good week.')->assertJsonPath('updates.0.by_ai', true);
-        $this->assertSame('analytics', $this->asked[0][0]);
+        $this->assertSame('drafts', $this->asked[0][0]);
         $this->assertStringContainsString('Done this week: Design the home page', $this->asked[0][1]);
         $this->assertStringNotContainsString('SECRET-77', $this->asked[0][1], 'sensitive fields stay out');
 

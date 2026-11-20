@@ -17,7 +17,7 @@ class ExplainService
             . "Say what it means (is it fine, a loss, a gain, something to check) and, if the data offers alternatives, mention the most useful one. No headings, no bullet lists.";
         $payload = json_encode(array_intersect_key($answer, array_flip(['title', 'subtitle', 'blocks', 'basis'])), JSON_UNESCAPED_UNICODE | JSON_PARTIAL_OUTPUT_ON_ERROR);
         try {
-            $r = $this->ai->run('analytics', $system, [['role' => 'user', 'content' => "Explain this:\n" . mb_substr((string) $payload, 0, 12000)]], ['max_tokens' => 500, 'temperature' => 0.2]);
+            $r = $this->ai->run('explain', $system, [['role' => 'user', 'content' => "Explain this:\n" . mb_substr((string) $payload, 0, 12000)]], ['max_tokens' => 500, 'temperature' => 0.2, 'feature' => 'insight']);
         } catch (AiGatewayException $e) {
             throw new \RuntimeException($e->kind === 'none' ? 'No AI key is set up for analytics yet. Add one under AI → Keys.' : 'The AI could not answer just now. Try again in a moment.');
         }

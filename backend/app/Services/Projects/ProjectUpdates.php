@@ -162,8 +162,8 @@ class ProjectUpdates
             return [$plain, false];
         }
         try {
-            $r = app(AiGateway::class)->run('analytics', 'You write short weekly progress updates from a firm to its client. Use only the facts given; do not invent anything. Plain, warm, '
-                . 'professional English; at most 150 words; no headings; no amounts of money; end with what happens next week. Write the message only.', [['role' => 'user', 'content' => $this->factsText($f)]], ['max_tokens' => 400, 'temperature' => 0.3]);
+            $r = app(AiGateway::class)->run('drafts', 'You write short weekly progress updates from a firm to its client. Use only the facts given; do not invent anything. Plain, warm, '
+                . 'professional English; at most 150 words; no headings; no amounts of money; end with what happens next week. Write the message only.', [['role' => 'user', 'content' => $this->factsText($f)]], ['max_tokens' => 400, 'temperature' => 0.3, 'feature' => 'projects_updates']);
             $text = trim((string) ($r['text'] ?? ''));
 
             return $text !== '' && empty($r['blocked']) ? [mb_substr($text, 0, 5000), true] : [$plain, false];
