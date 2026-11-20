@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import { ArrowDown, ArrowUp, CheckCircle, Loader2, Plus, X } from 'lucide-react';
 import aiAnalyticsAPI from '../../../../_shared/api/aiAnalytics';
+import { amount } from './aiFormat';
 
 const C = {
   card: 'var(--surface-card, #fff)', input: 'var(--surface-input)', border: 'color-mix(in srgb, var(--color-primary-500) 18%, transparent)',
@@ -12,6 +13,7 @@ const field = { width: '100%', padding: '7px 10px', borderRadius: 8, border: `1p
 const btn = { display: 'inline-flex', alignItems: 'center', gap: 5, padding: '6px 12px', borderRadius: 8, border: `1px solid ${C.border}`, background: 'transparent', color: C.mid, cursor: 'pointer', fontFamily: 'inherit', fontSize: '0.72rem', fontWeight: 700 };
 const iconBtn = { ...btn, padding: '4px 6px' };
 const tag = (color) => ({ fontSize: '0.6rem', padding: '2px 7px', borderRadius: 10, border: `1px solid color-mix(in srgb, ${color} 45%, transparent)`, color, whiteSpace: 'nowrap', fontWeight: 700 });
+const num = (n) => Number(n ?? 0).toLocaleString();
 const until = (iso) => new Date(iso).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
 
 /**
@@ -25,6 +27,13 @@ export default function AiPurposesPanel({ data, keys, providers, onChanged }) {
   const [tests, setTests] = useState({});
   const [problem, setProblem] = useState({});
   const [rest, setRest] = useState(String(data.rest_minutes ?? 10));
+  const [limitOf, setLimitOf] = useState(null);   // purpose whose limit is being changed
+  const [limitForm, setLimitForm] = useState({ monthly_limit: '', limit_unit: 'tokens' });
+  const saveLimit = async (purpose) => {
+    setBusy(`l-${purpose}`);
+    try { await aiAnalyticsAPI.savePurposeLimit(purpose, limitForm.monthly_limit === '' ? null : Number(limitForm.monthly_limit), limitForm.limit_unit); setLimitOf(null); await onChanged(); } catch (e) { fail(purpose, e); }
+    setBusy(null);
+  };
 
   if (!data.ready) {
     return <p style={{ color: C.mid, fontSize: '0.8rem' }}>Purposes need database script <code>270_ai_purposes.sql</code>. Until it is run, each key's "used for" decides where it is used, as before.</p>;
@@ -120,6 +129,34 @@ export default function AiPurposesPanel({ data, keys, providers, onChanged }) {
                 </ol>
               )}
 
+              {p.usage && (
+                <div data-ai-usage={p.key} style={{ display: 'grid', gap: 5 }}>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', gap: 8, flexWrap: 'wrap', fontSize: '0.68rem', color: C.mid }}>
+                    <span>This month: {num(p.usage.calls)} calls · {num(p.usage.fell_back)} fell back{p.usage.failed ? ` · ${num(p.usage.failed)} failed tries` : ''}</span>
+                    <span>{p.usage.limit != null ? `${amount(p.usage.limit_unit === 'cost' ? p.usage.cost : p.usage.tokens, p.usage.limit_unit)} of ${amount(p.usage.limit, p.usage.limit_unit)}` : `${amount(p.usage.tokens, 'tokens')} · no limit`}</span>
+                  </div>
+                  {p.usage.limit != null && (
+                    <div role="meter" aria-label={`${p.name} used ${p.usage.used_pct}% of its limit`} aria-valuenow={Math.min(100, p.usage.used_pct)} aria-valuemin={0} aria-valuemax={100} style={{ height: 6, borderRadius: 99, background: 'color-mix(in srgb, var(--color-primary-500) 10%, transparent)', overflow: 'hidden' }}>
+                      <i style={{ display: 'block', height: '100%', width: `${Math.min(100, p.usage.used_pct)}%`, background: p.usage.stopped ? C.bad : p.usage.used_pct >= 80 ? C.warn : C.accent }} />
+                    </div>
+                  )}
+                  {p.usage.stopped && <span style={{ fontSize: '0.68rem', color: C.bad }}>Stopped: it has used its limit for this month. Raise the limit to start it again.</span>}
+                </div>
+              )}
+              {limitOf === p.key && (
+                <div data-ai-limit-form style={{ display: 'flex', gap: 6, flexWrap: 'wrap', alignItems: 'end' }}>
+                  <span>
+                    <label htmlFor={`lim-${p.key}`} style={label}>Monthly limit (empty = none)</label>
+                    <input id={`lim-${p.key}`} type="number" min={0} step="any" value={limitForm.monthly_limit} onChange={(e) => setLimitForm((f) => ({ ...f, monthly_limit: e.target.value }))} style={{ ...field, width: 130 }} />
+                  </span>
+                  <select aria-label="Limit in" value={limitForm.limit_unit} onChange={(e) => setLimitForm((f) => ({ ...f, limit_unit: e.target.value }))} style={{ ...field, width: 'auto' }}>
+                    <option value="tokens">tokens</option><option value="cost">estimated cost (USD)</option>
+                  </select>
+                  <button type="button" style={{ ...btn, color: C.accent, borderColor: C.accent }} onClick={() => saveLimit(p.key)} disabled={busy === `l-${p.key}`}>Save the limit</button>
+                  <button type="button" style={btn} onClick={() => setLimitOf(null)}>Cancel</button>
+                  <span style={{ flexBasis: '100%', fontSize: '0.64rem', color: C.dim }}>At 80% the people who manage AI keys are told. At 100% it stops using the AI until next month.</span>
+                </div>
+              )}
               {problem[p.key] && <p role="alert" style={{ margin: 0, color: C.bad, fontSize: '0.72rem' }}>{problem[p.key]}</p>}
               {t && (
                 <div data-ai-test={p.key} style={{ fontSize: '0.72rem', color: t.ok ? C.good : C.bad }}>
@@ -130,6 +167,7 @@ export default function AiPurposesPanel({ data, keys, providers, onChanged }) {
               {editing !== p.key && (
                 <span style={{ display: 'flex', gap: 6, flexWrap: 'wrap' }}>
                   <button type="button" style={btn} onClick={() => edit(p)}><Plus size={11} /> {p.own_line.length ? 'Change the line' : 'Set up a line'}</button>
+                  <button type="button" style={btn} onClick={() => { setLimitOf(p.key); setLimitForm({ monthly_limit: p.usage?.limit ?? '', limit_unit: p.usage?.limit_unit ?? 'tokens' }); }}>{p.usage?.limit != null ? 'Change the limit' : 'Set a limit'}</button>
                   <button type="button" style={{ ...btn, color: C.accent, borderColor: C.accent }} onClick={() => test(p.key)} disabled={busy === `t-${p.key}`}>{busy === `t-${p.key}` ? <Loader2 size={11} /> : <CheckCircle size={11} />} Test this purpose</button>
                 </span>
               )}

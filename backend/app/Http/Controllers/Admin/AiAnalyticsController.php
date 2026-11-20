@@ -195,6 +195,25 @@ class AiAnalyticsController extends Controller
         return response()->json(app(\App\Services\Ai\AiPurposeConfig::class)->test($purpose));
     }
 
+    /** This month for each purpose and key, and the last six months (build A.3). */
+    public function usage()
+    {
+        $this->authorize('manage', AiProviderKey::class);
+
+        return response()->json(app(\App\Services\Ai\AiLimits::class)->usage());
+    }
+
+    /** A purpose's monthly limit: monthly_limit (empty = none) in limit_unit (tokens | cost). */
+    public function saveLimit(Request $request, string $purpose)
+    {
+        $this->authorize('manage', AiProviderKey::class);
+        $request->validate(['monthly_limit' => 'nullable|numeric', 'limit_unit' => 'required|string']);
+        $limit = $request->input('monthly_limit');
+        app(\App\Services\Ai\AiLimits::class)->save($purpose, $limit === null || $limit === '' ? null : (float) $limit, (string) $request->input('limit_unit'), $request->user());
+
+        return response()->json(app(\App\Services\Ai\AiPurposeConfig::class)->overview());
+    }
+
     public function saveRest(Request $request)
     {
         $this->authorize('manage', AiProviderKey::class);

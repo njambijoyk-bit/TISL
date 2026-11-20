@@ -1,5 +1,5 @@
 // Browser check: AI → Keys with purposes (docs/AI_PURPOSES_SPEC.md, build A.2). The Keys tab: open to all or kept to some, a resting key. The Purposes tab:
-// each purpose with who uses it, its line with a model per place, changing the line, testing a purpose down its line, the rest length.
+// each purpose with who uses it, this month's usage against a limit and setting one (A.3), the Usage tab by purpose, by key and by month, its line with a model per place, changing the line, testing a purpose down its line, the rest length.
 // The API is answered by the check itself; what the gateway does is proved by AiPurposesTest. It needs only the website (npx vite --port 5177).
 import { D, SITE, ok, finish, open } from './lib.mjs';
 
@@ -20,11 +20,12 @@ const place = (k, model, position, own) => ({ key_id: k.id, label: k.label, prov
 let draftsLine = [place(keys[1], 'gemini-2.5-flash', 1, true), place(keys[0], 'claude-haiku-4-5', 2, true), place(keys[2], 'gpt-4o-mini', 3, false)];
 let draftsOwn = [{ key_id: 2, model: null }, { key_id: 1, model: 'claude-haiku-4-5' }];
 let rest = 10;
+let draftsUsage = { key: 'drafts', calls: 38, failed: 9, refused: 0, fell_back: 9, tokens: 410000, cost: 0.42, ms: 900, limit: 500000, limit_unit: 'tokens', used_pct: 82, stopped: false };
 const answer = () => ({ columns_ready: true, ready: true, rest_minutes: rest, first_choice: { mimi: 1, drafts: 2 },
   providers: [{ value: 'anthropic', label: 'Anthropic', desc: 'Claude models', model: 'claude-sonnet-4-5', models: ['claude-sonnet-4-5', 'claude-haiku-4-5'] }, { value: 'gemini', label: 'Google Gemini', desc: 'Gemini models', model: 'gemini-2.5-flash', models: ['gemini-2.5-flash'] }, { value: 'openai', label: 'OpenAI', desc: 'GPT models', model: 'gpt-4o-mini', models: ['gpt-4o-mini'] }],
   purposes: [
-    { ...P('mimi', 'Mimi chat', ['Mimi chat'], 'customers and staff'), line: [place(keys[0], 'claude-sonnet-4-5', 1, false), place(keys[2], 'gpt-4o-mini', 2, false)], own_line: [] },
-    { ...P('drafts', 'Drafts', ['Projects weekly updates'], 'whoever checks the draft, then its reader'), line: draftsLine, own_line: draftsOwn },
+    { ...P('mimi', 'Mimi chat', ['Mimi chat'], 'customers and staff'), line: [place(keys[0], 'claude-sonnet-4-5', 1, false), place(keys[2], 'gpt-4o-mini', 2, false)], own_line: [], usage: { key: 'mimi', calls: 4812, failed: 31, refused: 0, fell_back: 31, tokens: 2100000, cost: 18.4, ms: 1200, limit: null, limit_unit: 'tokens', used_pct: null, stopped: false } },
+    { ...P('drafts', 'Drafts', ['Projects weekly updates'], 'whoever checks the draft, then its reader'), line: draftsLine, own_line: draftsOwn, usage: draftsUsage },
   ], keys });
 
 await page.route(/\/api\/(admin|me|v1)\b/, (route) => json(route, []));
@@ -35,6 +36,11 @@ await page.route('**/api/admin/ai-analytics/keys', (route) => {
 });
 await page.route(/\/api\/admin\/ai-analytics\/purposes\/drafts\/line$/, (route) => { const b = route.request().postDataJSON(); sent.push(['line', b]); draftsOwn = b.line; draftsLine = b.line.map((l, i) => place(keys.find((k) => k.id === l.key_id), l.model || keys.find((k) => k.id === l.key_id).model, i + 1, true)); return json(route, answer()); });
 await page.route(/\/api\/admin\/ai-analytics\/purposes\/drafts\/test$/, (route) => { sent.push(['test']); return json(route, { ok: true, key: 'Anthropic main', model: 'claude-haiku-4-5', position: 2, ms: 640, reply: 'OK', purpose: 'Drafts', failed: [{ key: 'Gemini general', error: 'Google Gemini said: quota exceeded' }] }); });
+await page.route(/\/api\/admin\/ai-analytics\/purposes\/drafts\/limit$/, (route) => { const b = route.request().postDataJSON(); sent.push(['limit', b]); draftsUsage = { ...draftsUsage, limit: b.monthly_limit, limit_unit: b.limit_unit, used_pct: b.monthly_limit ? Math.round((b.limit_unit === 'cost' ? 0.42 : 410000) / b.monthly_limit * 1000) / 10 : null }; return json(route, answer()); });
+await page.route(/\/api\/admin\/ai-analytics\/usage$/, (route) => json(route, { ready: true, month: 'November 2026',
+  purposes: [{ ...draftsUsage, name: 'Drafts' }, { key: 'mimi', name: 'Mimi chat', calls: 4812, failed: 31, refused: 0, fell_back: 31, tokens: 2100000, cost: 18.4, ms: 1200, limit: null, limit_unit: 'tokens', used_pct: null, stopped: false }],
+  keys: [{ key_id: 1, label: 'Anthropic main', provider: 'anthropic', calls: 4700, failed: 0, tokens: 2300000, cost: 18.2, ms: 1100, purposes: ['drafts', 'mimi'] }, { key_id: 2, label: 'Gemini general', provider: 'gemini', calls: 20, failed: 40, tokens: 90000, cost: 0.03, ms: 700, purposes: ['drafts'] }],
+  months: ['2026-06', '2026-07', '2026-08', '2026-09', '2026-10', '2026-11'].map((m, i) => ({ month: m, label: m, by_purpose: { mimi: { calls: 100 * i, tokens: 300000 * i, cost: 1 }, drafts: { calls: 5 * i, tokens: 50000 * i, cost: 0.1 } } })) }));
 await page.route(/\/api\/admin\/ai-analytics\/purposes-rest$/, (route) => { rest = route.request().postDataJSON().rest_minutes; sent.push(['rest', rest]); return json(route, answer()); });
 
 await page.goto(`${SITE}/e2e/harness.html?c=AiKeys`, { waitUntil: 'networkidle' });
@@ -59,6 +65,8 @@ const drafts = page.locator('[data-ai-purpose="drafts"]');
 ok('each purpose says who uses it', /Used by: Projects weekly updates/.test(await text(drafts.locator('[data-ai-used-by]'))));
 ok('the line shows each place with its model, then the other keys allowed', /1 Gemini general resting until .* gemini-2.5-flash 2 Anthropic main claude-haiku-4-5 THEN THE OTHER KEYS ALLOWED FOR IT 3 OpenAI backup gpt-4o-mini/.test(await text(drafts.locator('[data-ai-line]'))));
 ok('a purpose with no line of its own says it uses the keys allowed for it', /NO LINE OF ITS OWN: THE KEYS ALLOWED FOR IT 1 Anthropic main/.test(await text(page.locator('[data-ai-purpose="mimi"] [data-ai-line]'))));
+ok('a purpose shows this month against its limit, amber past 80%', /This month: 38 calls · 9 fell back · 9 failed tries 410,000 tokens of 500,000 tokens/.test(await text(drafts.locator('[data-ai-usage="drafts"]'))) && (await drafts.getByRole('meter').getAttribute('aria-valuenow')) === '82');
+ok('a purpose with no limit says so', /2,100,000 tokens · no limit/.test(await text(page.locator('[data-ai-usage="mimi"]'))));
 await page.screenshot({ path: D + 'ai-purposes.png', fullPage: true });
 
 await drafts.getByRole('button', { name: 'Change the line' }).click();
@@ -74,6 +82,20 @@ await drafts.getByRole('button', { name: 'Test this purpose' }).click();
 await drafts.locator('[data-ai-test="drafts"]').waitFor({ timeout: 5000 });
 ok('testing a purpose says which key answered, at which place, and what failed first', /Anthropic main answered at place 2 \(claude-haiku-4-5, 640 ms\) Gemini general failed first: Google Gemini said: quota exceeded/.test(await text(drafts.locator('[data-ai-test="drafts"]'))));
 
+await drafts.getByRole('button', { name: 'Change the limit' }).click();
+await drafts.locator('#lim-drafts').fill('1');
+await drafts.getByLabel('Limit in').selectOption('cost');
+await drafts.getByRole('button', { name: 'Save the limit' }).click();
+await page.waitForTimeout(300);
+ok('a monthly limit is saved in estimated cost', JSON.stringify(last('limit')?.[1]) === JSON.stringify({ monthly_limit: 1, limit_unit: 'cost' }));
+
+await page.getByRole('tab', { name: 'USAGE' }).click();
+await page.locator('[data-ai-usage-tab]').waitFor({ timeout: 5000 });
+ok('the Usage tab lists each purpose this month with fallbacks, failed tries, tokens, estimated cost and limit', /Mimi chat 4,812 31 31 2,100,000 \$18.40 1,200 ms none/.test(await text(page.locator('[data-ai-usage-purpose="mimi"]'))));
+ok('and each key with the purposes it served', /Anthropic main Drafts, Mimi chat 4,700 0 2,300,000 \$18.20/.test(await text(page.locator('[data-ai-usage-key="Anthropic main"]'))));
+ok('and the last six months, drawn to one scale', (await page.locator('[data-ai-month]').count()) === 6 && /2026-11 1,750,000/.test(await text(page.locator('[data-ai-month="2026-11"]'))));
+await page.screenshot({ path: D + 'ai-usage.png', fullPage: true });
+await page.getByRole('tab', { name: 'PURPOSES' }).click();
 await page.locator('#ai-rest').fill('30');
 await page.getByRole('button', { name: 'Save', exact: true }).click();
 await page.waitForTimeout(300);

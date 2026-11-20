@@ -3173,6 +3173,8 @@ Route::middleware('auth:sanctum')->group(function () {
             Route::put   ('purposes/{purpose}/line', [AiAnalyticsController::class, 'saveLine'])->where('purpose', '[a-z_]+');
             Route::post  ('purposes/{purpose}/test', [AiAnalyticsController::class, 'testPurpose'])->where('purpose', '[a-z_]+');
             Route::put   ('purposes-rest',     [AiAnalyticsController::class, 'saveRest']);
+            Route::put   ('purposes/{purpose}/limit', [AiAnalyticsController::class, 'saveLimit'])->where('purpose', '[a-z_]+');
+            Route::get   ('usage',             [AiAnalyticsController::class, 'usage']);
 
             // Modules
             Route::get   ('modules',                    [AiAnalyticsController::class, 'indexModules']);

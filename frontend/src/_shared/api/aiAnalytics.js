@@ -38,6 +38,14 @@ const aiAnalyticsAPI = {
   testPurpose: (purpose) =>
     api.post(`${BASE}/purposes/${purpose}/test`).then(r => r.data),
 
+  // a purpose's monthly limit: monthly_limit (null = none) in limit_unit 'tokens' | 'cost'
+  savePurposeLimit: (purpose, monthly_limit, limit_unit) =>
+    api.put(`${BASE}/purposes/${purpose}/limit`, { monthly_limit, limit_unit }).then(r => r.data),
+
+  // this month per purpose and per key, and the last six months
+  getUsage: () =>
+    api.get(`${BASE}/usage`).then(r => r.data),
+
   saveRestMinutes: (minutes) =>
     api.put(`${BASE}/purposes-rest`, { rest_minutes: minutes }).then(r => r.data),
 

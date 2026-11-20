@@ -8,6 +8,7 @@ import {
 import GeneralLayout from '../../../../_shared/components/layout/GeneralLayout';
 import aiAnalyticsAPI from '../../../../_shared/api/aiAnalytics';
 import AiPurposesPanel from './AiPurposesPanel';
+import AiUsagePanel from './AiUsagePanel';
 
 // ── Design tokens ─────────────────────────────────────────────────────────────
 const C = {
@@ -414,7 +415,7 @@ export default function AiKeysPage() {
 
           {/* ── Keys | Purposes ── */}
           <div role="tablist" aria-label="AI keys" style={{ display: 'flex', gap: 6, marginBottom: 20 }}>
-            {[['keys', 'KEYS'], ['purposes', 'PURPOSES']].map(([k, l]) => (
+            {[['keys', 'KEYS'], ['purposes', 'PURPOSES'], ...(meta.ready ? [['usage', 'USAGE']] : [])].map(([k, l]) => (
               <button key={k} role="tab" aria-selected={tab === k} onClick={() => setTab(k)}
                 style={{ padding: '8px 16px', borderRadius: 8, border: `1px solid ${tab === k ? C.blue : C.border}`, background: tab === k ? 'color-mix(in srgb, var(--color-primary-500) 12%, transparent)' : 'transparent', color: tab === k ? C.blue : C.textMid, cursor: 'pointer', fontFamily: 'inherit', fontSize: '0.75rem', fontWeight: 700, letterSpacing: '0.08em' }}>{l}</button>
             ))}
@@ -423,6 +424,8 @@ export default function AiKeysPage() {
           {tab === 'purposes' && !loading && (
             <AiPurposesPanel data={meta} keys={keys} providers={PROVIDERS} onChanged={() => load(true)} />
           )}
+
+          {tab === 'usage' && !loading && <AiUsagePanel purposes={meta.purposes} />}
 
           {tab === 'keys' && (<>
           {/* ── Add key button ── */}

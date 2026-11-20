@@ -20,12 +20,14 @@ class AiPurposeConfig
     public function overview(): array
     {
         $ready = AiGateway::ready();
+        $usage = $ready ? collect(app(AiLimits::class)->usage()['purposes'])->keyBy('key') : collect();
         $purposes = [];
         foreach ($this->gw->purposes() as $key => $p) {
             $line = $ready ? $this->gw->lineFor($key, true) : [];
             $purposes[] = $p + [
                 'line' => array_map(fn ($x) => ['key_id' => (int) $x['key']->id, 'label' => $x['key']->label, 'provider' => $x['key']->provider, 'model' => $x['model'], 'position' => $x['position'], 'own' => $x['own'],
                     'resting_until' => $x['key']->resting_until?->toIso8601String()], $line),
+                'usage' => $usage[$key] ?? null,
                 'own_line' => $ready ? DB::table('ai_purpose_lines')->where('purpose', $key)->orderBy('position')->get(['key_id', 'model'])->map(fn ($l) => ['key_id' => (int) $l->key_id, 'model' => $l->model])->all() : [],
             ];
         }

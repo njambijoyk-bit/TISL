@@ -300,4 +300,72 @@ class AiPurposesTest extends TestCase
         $this->admin(['admin.access']);
         $this->putJson('/api/admin/ai-analytics/purposes/drafts/line', ['line' => []])->assertForbidden();
     }
+
+    public function test_a_purpose_tells_the_ai_admins_at_80_percent_of_its_limit_and_stops_at_100(): void
+    {
+        $this->script270();
+        $this->admin();
+        $told = [];
+        $this->app->instance(\App\Services\Notify\Staff::class, new class extends \App\Services\Notify\Staff {
+            public function holding(string $permission): \Illuminate\Support\Collection
+            {
+                return collect([tap(new \App\Models\User(), fn ($u) => [$u->id = 9, $u->name = 'Owner'])]);
+            }
+        });
+        $this->app->instance(\App\Services\Notify\Notifier::class, new class($told) extends \App\Services\Notify\Notifier {
+            public function __construct(private array &$told) {}
+
+            public function send(\Illuminate\Database\Eloquent\Model $to, string $type, string $title, string $message, array $o = []): array
+            {
+                $this->told[] = [$to->name, $type, $title];
+
+                return ['notification' => null, 'channels' => [], 'skipped' => [], 'staff_list' => false];
+            }
+        });
+        $main = $this->key('main', 'anthropic', 10);
+        $this->fake();   // each Claude answer is 120 tokens
+
+        $this->putJson('/api/admin/ai-analytics/purposes/drafts/limit', ['monthly_limit' => 0, 'limit_unit' => 'tokens'])->assertStatus(422)->assertJsonPath('errors.monthly_limit.0', 'A limit is more than 0. Leave it empty for no limit.');
+        $this->putJson('/api/admin/ai-analytics/purposes/drafts/limit', ['monthly_limit' => 10, 'limit_unit' => 'kes'])->assertStatus(422);
+        $this->putJson('/api/admin/ai-analytics/purposes/drafts/limit', ['monthly_limit' => 300, 'limit_unit' => 'tokens'])->assertOk();
+
+        // last month does not count
+        DB::table('ai_calls')->insert(['purpose' => 'drafts', 'key_id' => $main->id, 'prompt_tokens' => 5000, 'completion_tokens' => 0, 'outcome' => 'ok', 'position' => 1, 'created_at' => '2026-10-31 23:00:00']);
+        $this->ask('drafts', 'projects_updates');   // 120 of 300: 40%
+        $this->assertSame([], $told);
+        $this->ask('drafts', 'projects_updates');   // 240 of 300: 80%
+        $this->assertSame([['Owner', 'ai_limit', 'Drafts has used 80% of its AI limit']], $told);
+        $this->ask('drafts', 'projects_updates');   // 360: past the limit; told only once a month
+        $this->assertCount(1, $told);
+        try {
+            $this->ask('drafts', 'projects_updates');
+            $this->fail('a purpose past its limit used the AI');
+        } catch (AiGatewayException $e) {
+            $this->assertSame('limit', $e->kind);
+            $this->assertSame('Drafts has used its monthly AI limit of 300 tokens. It starts again on 1 Dec, or the limit can be raised on AI → Keys.', $e->getMessage());
+        }
+        Http::assertSentCount(3);
+        $this->assertSame('refused', DB::table('ai_calls')->orderByDesc('id')->value('outcome'));
+        $this->assertSame('from claude', $this->ask('mimi', 'chat')['text'], 'other purposes are not stopped');
+
+        // the usage screen
+        $u = $this->getJson('/api/admin/ai-analytics/usage')->assertOk()->json();
+        $d = collect($u['purposes'])->firstWhere('key', 'drafts');
+        $this->assertEquals([3, 0, 1, 360, 300, 120, true], [$d['calls'], $d['failed'], $d['refused'], $d['tokens'], $d['limit'], $d['used_pct'], $d['stopped']]);
+        $this->assertSame(['main', 4, 480, ['drafts', 'mimi']], [$u['keys'][0]['label'], $u['keys'][0]['calls'], $u['keys'][0]['tokens'], $u['keys'][0]['purposes']]);
+        $this->assertSame(['2026-06', '2026-11'], [$u['months'][0]['month'], $u['months'][5]['month']]);
+        $this->assertSame(5000, $u['months'][4]['by_purpose']['drafts']['tokens']);
+        $this->assertEquals(120, collect($this->getJson('/api/admin/ai-analytics/keys')->json('purposes'))->firstWhere('key', 'drafts')['usage']['used_pct']);
+
+        // raising the limit starts it again, and may warn again; a limit in estimated cost; no limit
+        $this->putJson('/api/admin/ai-analytics/purposes/drafts/limit', ['monthly_limit' => 1000, 'limit_unit' => 'tokens'])->assertOk();
+        $this->ask('drafts', 'projects_updates');
+        $this->assertNull(DB::table('ai_purpose_settings')->where('purpose', 'drafts')->value('warned_month'));
+        $this->putJson('/api/admin/ai-analytics/purposes/drafts/limit', ['monthly_limit' => 0.001, 'limit_unit' => 'cost'])->assertOk();   // 4 × $0.0006 used
+        $this->expectExceptionMessage('Drafts has used its monthly AI limit of $0.0010 (estimated).');
+        $this->putJson('/api/admin/ai-analytics/purposes/drafts/limit', ['monthly_limit' => null, 'limit_unit' => 'tokens'])->assertOk();
+        $this->ask('drafts', 'projects_updates');
+        $this->putJson('/api/admin/ai-analytics/purposes/drafts/limit', ['monthly_limit' => 0.001, 'limit_unit' => 'cost'])->assertOk();
+        $this->ask('drafts', 'projects_updates');
+    }
 }

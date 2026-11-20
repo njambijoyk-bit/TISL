@@ -1,6 +1,6 @@
-# AI purposes: each kind of AI work with its own keys and models (plan)
+# AI purposes: each kind of AI work with its own keys and models (built)
 
-Status: being built. The owner said "go" on 2026-11-20, so the four choices at the end are taken as recommended. What is built is under "As built".
+Status: built. The owner said "go" on 2026-11-20, so the four choices at the end are taken as recommended. All three builds are done; see "As built" and the checks by hand at the end.
 
 ## Where we are now
 
@@ -212,3 +212,41 @@ Screen: `docs/screens/ai-purposes.png`.
   - `GET`, `POST` and `PUT` on `keys` now carry `open_to_all`, `kept_to`, `resting_until` and the purposes overview.
   - All need `ai.keys`, as the keys always have.
 - **Tests:** `tests/Feature/AiPurposesTest.php` (now 8). Browser check `e2e/ai-purposes-ui.mjs` (11).
+
+### A.3 Usage and limits (done)
+
+Screens: `docs/screens/ai-purposes.png` (usage and limit on each card) and `docs/screens/ai-usage.png` (the Usage tab).
+
+- **Each purpose card shows this month:** calls, how many fell back to a later key, failed tries, and tokens. A purpose with a limit shows "used of limit" with a bar, amber past 80%, red when stopped. A purpose without one says "no limit".
+- **Set a limit** on the card, in tokens or in estimated cost (USD). Empty means no limit.
+  - **At 80%,** everyone who holds `ai.keys` is told once that month. This uses the new notice type "AI: a purpose near its monthly limit", which is essential and staff-only.
+  - **At 100%,** the purpose stops using the AI until the 1st of next month, or until the limit is raised. The call is refused before any key is tried, logged as refused, and the message says when it starts again. The feature falls back as it does with no AI. Other purposes carry on.
+  - Changing a limit lets the 80% notice go out again.
+- **Usage tab** (shown once script 270 is run):
+  - This month by purpose: calls, fell back, failed tries, tokens, estimated cost, average time, and the limit with how much is used.
+  - This month by key: calls, failed tries, tokens, estimated cost, and the purposes it served.
+  - Tokens over the last six months, drawn to one scale.
+- Everything is read from the call log, which never holds what was asked or answered. Costs are estimates from rough rates per provider, not a bill.
+- **Routes:**
+  - `GET /admin/ai-analytics/usage`
+  - `PUT /admin/ai-analytics/purposes/{purpose}/limit`
+  - Both need `ai.keys`.
+- **Tests:** `tests/Feature/AiPurposesTest.php` (now 9). Browser check `e2e/ai-purposes-ui.mjs` (now 17).
+
+### To check by hand once script 270 is run
+
+1. **Keys are moved:** AI → Keys, Keys tab.
+   - A key that was "used for: all" says OPEN TO ALL.
+   - A key that was "used for: analytics" says KEPT TO page analysis, explain and drafts.
+   - Mimi, page analysis and Insights "Explain in words" answer as before.
+2. **Licences:** with Careers not licensed, there is no "Applicant screening" card. With Projects licensed, "Drafts" shows even if Projects is switched off.
+3. **A line:** on Drafts, set up a line with a cheaper model at place 1, then press "Test this purpose". The answer comes from that key and model.
+4. **Falling back:**
+   - Edit a key in the line and paste a wrong API key, then test the purpose. The next key answers, and the bad key says "RESTING UNTIL …".
+   - Put the right key back and press TEST on the key: it stops resting.
+5. **A kept key:** keep a key to Applicant screening only. It never appears in another purpose's line, even after testing with every other key switched off.
+6. **A limit:** give Drafts a tiny limit (say 1,000 tokens). Draft a Projects weekly update two or three times.
+   - The people who manage AI keys get the 80% notice once.
+   - At 100% the draft is written from the facts, without the AI.
+   - Raise the limit and it uses the AI again.
+7. **Usage:** the Usage tab's counts for this month match what you just did.
