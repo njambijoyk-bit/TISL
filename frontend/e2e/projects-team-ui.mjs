@@ -51,11 +51,19 @@ await page.route(/\/api\/admin\/projects\/team\/3\/(goals|reviews|one-to-ones)(\
   else if (/task$/.test(url)) growth = { ...growth, one_to_ones: [{ ...growth.one_to_ones[0], actions: [{ ...growth.one_to_ones[0].actions[0], task_id: 77 }] }] };
   return json(route, growth, /task$/.test(url) ? 201 : 200);
 });
+const wk = (n, from) => ({ from, to: from, number: n });
+await page.route('**/api/admin/projects/insights/capacity', (route) => json(route, { can: { team: true }, weeks: [wk(47, '2026-11-16'), wk(48, '2026-11-23'), wk(49, '2026-11-30'), wk(50, '2026-12-07'), wk(51, '2026-12-14'), wk(52, '2026-12-21'), wk(53, '2026-12-28'), wk(1, '2027-01-04')],
+  people: [{ id: 2, name: 'Kamau', no_estimate: 2, weeks: [{ due_hours: 52, can_hours: 40, state: 'over' }, { due_hours: 38, can_hours: 40, state: 'near' }, ...Array(6).fill({ due_hours: 10, can_hours: 40, state: 'ok' })] },
+    { id: 3, name: 'Njeri', no_estimate: 0, weeks: [{ due_hours: 6, can_hours: 32, state: 'ok' }, { due_hours: 0, can_hours: 0, state: 'off' }, ...Array(6).fill({ due_hours: 4, can_hours: 40, state: 'ok' })] }] }));
+await page.route('**/api/admin/projects/insights/people/3', (route) => json(route, { ready: true, person: { id: 3, name: 'Njeri' }, health: 'warn', weeks: [], kpis: [
+  { id: 9, key: 'all_person_utilisation', name: 'Utilisation', unit: 'pct', value: 64, status: 'warn', detail: '102 of 160 working hours' }, { id: 10, key: 'all_person_timesheets', name: 'Timesheets in on time', unit: 'pct', value: 100, status: 'good', detail: '6 weeks with time' }] }));
 await page.goto(`${SITE}/e2e/harness.html?c=ProjectsApp&at=${encodeURIComponent('/admin/projects/team')}`, { waitUntil: 'networkidle' });
 await page.addStyleTag({ content: '#root{max-width:1150px!important}' });
 await page.locator('[data-person="Kamau"]').waitFor({ timeout: 15000 });
 ok('each person shows what they carry this week', /Kamau Associate · Litigation Drafting Court work 6 open · 2 late 43h of 40h Over 1 date · 3 meetings — M-0413/.test(await text(page.locator('[data-person="Kamau"]'))));
 ok('days away and certificates running out are shown', /A certificate runs out soon/.test(await text(page.locator('[data-person="Njeri"]'))) && /20 Nov/.test(await text(page.locator('[data-person="Njeri"]'))) && /Wanjiru \(you\)/.test(await text(page.locator('[data-person="Wanjiru"]'))));
+await page.locator('[data-capacity]').waitFor({ timeout: 10000 });
+ok('capacity shows eight weeks: over in red, close in amber, a week off, and tasks with no estimate', /Kamau 2 tasks have no estimate 52 \/ 40 38 \/ 40/.test(await text(page.locator('[data-capacity-person="Kamau"]'))) && (await page.locator('[data-capacity-person="Kamau"] [data-week-state="over"]').count()) === 1 && /off/.test(await text(page.locator('[data-capacity-person="Njeri"]'))));
 await page.screenshot({ path: D + 'projects-team.png', fullPage: true });
 await page.getByLabel('Has late tasks').click();
 await page.waitForTimeout(400);
@@ -90,6 +98,7 @@ await page.getByRole('button', { name: 'Make it a task' }).click();
 await page.locator('[data-one-to-one="2026-11-17"]').getByRole('button', { name: 'Make it a task' }).click();
 await page.waitForTimeout(400);
 ok('an action point becomes a task on one of their pieces of work', JSON.stringify([...sent].reverse().find((x) => x[0] === 'growth').slice(1)) === JSON.stringify(['one-to-ones/8/actions/0/task', { project_id: 413 }]) && /A task/.test(await text(page.locator('[data-one-to-one="2026-11-17"]'))));
+ok('a person\'s page shows their scorecard to their manager', /Scorecard .*Needs watching/.test(await text(page.locator('[data-person-scorecard]'))) && /Utilisation 102 of 160 working hours 64% Needs watching/.test(await text(page.locator('[data-person-kpi="all_person_utilisation"]'))));
 await page.screenshot({ path: D + 'projects-person.png', fullPage: true });
 
 await finish(c);

@@ -128,3 +128,12 @@ Screen: `docs/screens/projects-scorecard.png`.
 - **The client's scorecard:** on their My work page, "How it is going" shows the KPIs marked "the client sees it", never a money one.
 - **Routes:** `GET /projects/{project}/scorecard`; `health` on `GET /projects`.
 - **Tests:** `tests/Feature/ProjectsScorecardTest.php` (3). Browser checks `e2e/projects-insights-ui.mjs` (now 8), `e2e/projects-portal-ui.mjs` (now 10).
+
+### 12.3 People and capacity (done)
+
+Screen: `docs/screens/projects-capacity.png` (the Team page, capacity at the bottom).
+
+- **A person's scorecard:** utilisation, tasks done on time, timesheets in on time (and any other person KPI), each with its figure, how it was worked out and its status. On **My Work** everyone sees their own ("My scorecard"); on a person's page their managers see theirs (`projects.insights.team` and being above them in Stage 8's HR line). Nobody else, whatever their other permissions.
+- **Capacity** (Team page): for the next eight weeks, each person's hours of open tasks due that week (from the tasks' estimates, shared equally between the people on a task; what is already late counts in this week) against their working hours (company hours on working days, from Attendance, less leave, days off and holidays). Over is red, within 10% amber, a week with no working hours "off". Tasks with no estimate are counted so the gap is visible. Without `projects.capacity` a person sees only their own row; with it, their line and everyone on the work they can see.
+- **Routes:** `GET /projects/insights/people/{user}`, `GET /projects/insights/capacity`.
+- **Tests:** `tests/Feature/ProjectsCapacityTest.php` (2). Browser check `e2e/projects-team-ui.mjs` (now with capacity and a person's scorecard).

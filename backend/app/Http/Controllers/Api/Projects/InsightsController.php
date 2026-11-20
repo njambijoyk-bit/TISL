@@ -32,6 +32,16 @@ class InsightsController extends Controller
         return $this->guard(fn () => response()->json($this->kpis->scorecard(app(\App\Services\Projects\ProjectService::class)->findFor($request->user(), $project), $request->user())));
     }
 
+    public function person(Request $request, int $user): JsonResponse
+    {
+        return $this->guard(fn () => response()->json(app(\App\Services\Projects\ProjectPeopleInsights::class)->scorecard($request->user(), $user)));
+    }
+
+    public function capacity(Request $request): JsonResponse
+    {
+        return response()->json(app(\App\Services\Projects\ProjectPeopleInsights::class)->capacity($request->user()));
+    }
+
     protected function guard(callable $do): JsonResponse
     {
         try {

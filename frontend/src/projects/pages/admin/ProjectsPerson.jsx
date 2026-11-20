@@ -9,6 +9,7 @@ import { Btn, Chip, Notice, Panel, PanelTitle } from '../../components/ui';
 import ProjectKeys from '../../components/ProjectKeys';
 import GrowthPanel from '../../components/GrowthPanel';
 import ChecklistsPanel from '../../components/ChecklistsPanel';
+import { PersonScorecard } from '../../components/PeopleInsights';
 
 const link = { color: 'var(--color-primary-500)', textDecoration: 'none', fontWeight: 600 };
 
@@ -32,6 +33,7 @@ export default function ProjectsPerson() {
     <AdminLayout><ProjectKeys />
       {header}
       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(300px, 1fr))', gap: 16, alignItems: 'start' }} data-person-page>
+        <PersonScorecard userId={Number(id)} />
         <Panel data-person-tasks>
           <PanelTitle hint={`${p.tasks.open} open${p.tasks.late ? `, ${p.tasks.late} late` : ''}`}>Tasks</PanelTitle>
           {p.task_list.length === 0 && <p style={{ margin: 0, fontSize: 13.5, color: 'var(--text-secondary)' }}>Nothing open.</p>}

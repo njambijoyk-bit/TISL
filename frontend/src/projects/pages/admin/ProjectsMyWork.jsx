@@ -11,6 +11,7 @@ import { Btn, Chip, Notice, Panel, PanelTitle } from '../../components/ui';
 import ProjectKeys from '../../components/ProjectKeys';
 import useAuthStore from '../../../_shared/store/authStore';
 import { hasPermission } from '../../../_shared/lib/roles';
+import { PersonScorecard } from '../../components/PeopleInsights';
 
 const GROUPS = [['late', 'Late'], ['today', 'Today'], ['week', 'Later this week'], ['later', 'Later, or no date']];
 const link = { color: 'var(--color-primary-500)', textDecoration: 'none', fontWeight: 600, fontSize: 13 };
@@ -20,6 +21,7 @@ const link = { color: 'var(--color-primary-500)', textDecoration: 'none', fontWe
  * work, their follow-ups due, this week's time, and what waits for them. G then M opens it.
  */
 export default function ProjectsMyWork() {
+  const me = useAuthStore((st) => st.user);   // stage 12: my own scorecard
   const navigate = useNavigate();
   const [data, setData] = useState(null);
   const [problem, setProblem] = useState('');
@@ -120,6 +122,7 @@ export default function ProjectsMyWork() {
         </Panel>
       )}
       <MaterialsToIssue />
+      {me?.id && <div style={{ marginTop: 16 }}><PersonScorecard userId={me.id} title="My scorecard" /></div>}
     </AdminLayout>
   );
 }

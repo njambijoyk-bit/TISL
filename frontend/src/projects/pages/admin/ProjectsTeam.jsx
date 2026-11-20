@@ -8,6 +8,7 @@ import { hm } from '../../lib/tasks';
 import { Btn, Chip, DataTable, Notice, SelectInput } from '../../components/ui';
 import { td, th } from '../../components/uiTokens';
 import ProjectKeys from '../../components/ProjectKeys';
+import { CapacityPanel } from '../../components/PeopleInsights';
 
 /**
  * The team view (docs/PROJECTS_STAGE8_SPEC.md, build 8.1): who is carrying what this week. The viewer, everyone below them in HR's manager line,
@@ -61,6 +62,7 @@ export default function ProjectsTeam() {
           })}
         </tbody>
       </DataTable>
+      <div style={{ marginTop: 16 }}><CapacityPanel /></div>
     </AdminLayout>
   );
 }
