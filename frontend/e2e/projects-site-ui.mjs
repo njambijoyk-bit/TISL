@@ -1,4 +1,5 @@
-// Browser check: the Site tab (stage 10). Materials (10.1): planned, waiting and issued per material with the cost read from Stock, asking for
+// Browser check: the Site tab (stage 10). Plant (10.2): issuing from the asset register, returning, booking ahead with an overlap warning, hiring in on a vendor order.
+// Materials (10.1): planned, waiting and issued per material with the cost read from Stock, asking for
 // materials with the product finder, the store issuing against a request and returning to stock, and the Stock jobs named. The API is
 // answered by the check itself; Stock jobs, the cost centre and who may issue are proved by ProjectsMaterialsTest. It needs only the website
 // (npx vite --port 5177).
@@ -7,7 +8,7 @@ import { D, SITE, ok, finish, open } from './lib.mjs';
 const c = await open({ authenticator: false });
 const page = c.page;
 const json = (route, body, status = 200) => route.fulfill({ status, contentType: 'application/json', body: JSON.stringify(body) });
-const me = { user: { id: 1, name: 'Kamau', email: 'kamau@example.com' }, customer: null, security: null, access: { account: 'staff', clearance: 5, permissions: ['admin.access', 'projects.use', 'projects.materials', 'stock.manage', 'projects.money.view'] } };
+const me = { user: { id: 1, name: 'Kamau', email: 'kamau@example.com' }, customer: null, security: null, access: { account: 'staff', clearance: 5, permissions: ['admin.access', 'projects.use', 'projects.materials', 'stock.manage', 'projects.money.view', 'projects.plant', 'inventory.manage'] } };
 await page.addInitScript((who) => { localStorage.setItem('auth-storage', JSON.stringify({ state: { ...who, isAuthenticated: true }, version: 0 })); }, me);
 const sent = [];
 const last = (k) => [...sent].reverse().find((x) => x[0] === k);
@@ -57,4 +58,50 @@ await page.locator('[data-issued-line="31"]').getByRole('button', { name: 'Retur
 await page.waitForTimeout(300);
 ok('materials go back to stock', JSON.stringify(last('return')?.[1]) === JSON.stringify({ quantity: 5 }) && /20 bag/.test(await text(page.locator('[data-material="Cement 50kg"]'))));
 await page.screenshot({ path: D + 'projects-materials.png', fullPage: true });
+
+// plant
+let holding = [];
+let bookings = [];
+let hires = [];
+const plant = (extra = {}) => ({ ready: true, inventory: true, holding, bookings, hires, can: { book: true, issue: true }, ...extra });
+await page.route('**/api/admin/projects/413/plant', (route) => json(route, plant()));
+await page.route('**/api/admin/projects/plant/find?*', (route) => json(route, { items: [{ id: 1, name: 'Excavator', detail: 'CAT 320', serialized: true, available: 1, pieces: [{ id: 7, tag: 'EX-01', free: true }, { id: 8, tag: 'EX-02', free: false }] }] }));
+await page.route('**/api/admin/projects/vendors/find?*', (route) => json(route, { vendors: [{ id: 3, name: 'Mombasa Plant Hire', number: 'V-003', orders: [{ id: 30, number: 'PO-0030', status: 'sent' }] }] }));
+await page.route('**/api/admin/projects/413/plant/issue', (route) => { sent.push(['plant-issue', route.request().postDataJSON()]); holding = [{ id: 51, name: 'Excavator', tag: 'EX-01', quantity: 1, since: '2026-11-20', back_by: '2026-12-15', late: false, condition: 'good' }]; return json(route, plant()); });
+await page.route('**/api/admin/projects/413/plant/held/51/return', (route) => { sent.push(['plant-return', route.request().postDataJSON()]); holding = []; return json(route, plant()); });
+await page.route('**/api/admin/projects/413/plant/bookings', (route) => { const b = route.request().postDataJSON(); sent.push(['book', b]); bookings = [{ id: 61, item_id: 1, instance_id: null, name: 'Excavator', tag: null, quantity: 1, starts_on: b.starts_on, ends_on: b.ends_on, note: null, clashes: ['Booked for C-0399 from 1 Dec to 10 Dec'] }]; return json(route, plant({ clashes: bookings[0].clashes }), 201); });
+await page.route('**/api/admin/projects/413/plant/hires', (route) => { const b = route.request().postDataJSON(); sent.push(['hire', b]); hires = [{ id: 71, what: b.what, vendor: 'Mombasa Plant Hire', vendor_id: 3, starts_on: b.starts_on, ends_on: null, state: 'on_hire', order: { id: 30, number: 'PO-0030', status: 'sent' }, note: null }]; return json(route, plant(), 201); });
+await page.locator('[data-site]').getByRole('tab', { name: 'Plant' }).click();
+await page.locator('[data-plant-held]').waitFor({ timeout: 5000 });
+await page.getByRole('button', { name: 'Issue to the work' }).click();
+await page.getByLabel('Equipment').fill('exca');
+await page.getByRole('option').getByRole('button', { name: 'Excavator · CAT 320' }).click();
+ok('a piece that is out cannot be chosen to issue', await page.getByLabel('Which one').locator('option', { hasText: 'EX-02 (out)' }).isDisabled());
+await page.getByLabel('Which one').selectOption({ label: 'EX-01' });
+await page.getByLabel('Back by (optional)').fill('2026-12-15');
+await page.getByRole('button', { name: 'Issue it' }).click();
+await page.locator('[data-plant-holding="Excavator"]').waitFor({ timeout: 5000 });
+ok('issuing sends the piece, when it comes back and its condition', JSON.stringify(last('plant-issue')?.[1]) === JSON.stringify({ instance_id: 7, back_by: '2026-12-15', condition: 'good' }) && /Excavator EX-01 · since 20 Nov 2026 · back by 15 Dec 2026/.test(await text(page.locator('[data-plant-holding="Excavator"]'))));
+page.removeAllListeners('dialog');
+page.on('dialog', (d) => d.accept('fair'));
+await page.locator('[data-plant-holding="Excavator"]').getByRole('button', { name: 'Return' }).click();
+await page.waitForTimeout(300);
+ok('it comes back with its condition', JSON.stringify(last('plant-return')?.[1]) === JSON.stringify({ condition: 'fair' }) && (await page.locator('[data-plant-holding]').count()) === 0);
+await page.getByRole('button', { name: 'Book ahead' }).click();
+await page.getByLabel('Equipment').fill('exca');
+await page.getByRole('option').getByRole('button', { name: 'Excavator · CAT 320' }).click();
+await page.getByLabel('From').fill('2026-12-08');
+await page.getByLabel('To', { exact: true }).fill('2026-12-12');
+await page.getByRole('button', { name: 'Book it' }).click();
+await page.locator('[data-plant-booking="61"]').waitFor({ timeout: 5000 });
+ok('a booking that overlaps another work is made and the overlap shown', last('book')?.[1]?.instance_id === null && /Overlaps Booked for C-0399 from 1 Dec to 10 Dec/.test(await text(page.locator('[data-plant-booking="61"]'))));
+await page.getByRole('button', { name: 'Hire in' }).click();
+await page.getByLabel('What').fill('Tower crane');
+await page.getByLabel('Vendor (optional)').fill('momb');
+await page.getByRole('option').getByRole('button', { name: 'Mombasa Plant Hire · V-003' }).click();
+await page.getByLabel('Vendor order (optional)').selectOption({ label: 'PO-0030 (sent)' });
+await page.getByRole('button', { name: 'Put it on hire' }).click();
+await page.locator('[data-plant-hire="Tower crane"]').waitFor({ timeout: 5000 });
+ok('hired plant names its vendor and vendor order', last('hire')?.[1]?.vendor_order_id === 30 && last('hire')?.[1]?.vendor_id === 3 && /Tower crane · Mombasa Plant Hire · PO-0030 · from .* On hire/.test(await text(page.locator('[data-plant-hire="Tower crane"]'))));
+await page.screenshot({ path: D + 'projects-plant.png', fullPage: true });
 await finish(c);

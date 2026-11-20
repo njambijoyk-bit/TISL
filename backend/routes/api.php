@@ -2059,6 +2059,16 @@ Route::middleware('auth:sanctum')->group(function () {
             Route::post('/{project}/materials/requests/{req}/close', [$mt, 'close'])->whereNumber(['project', 'req']);   // whoever asked, or with projects.materials (checked inside)
             Route::post('/{project}/materials/issue', [$mt, 'issue'])->whereNumber('project')->middleware('permission:projects.materials');   // and stock.manage (checked inside)
             Route::post('/{project}/materials/lines/{line}/return', [$mt, 'giveBack'])->whereNumber(['project', 'line'])->middleware('permission:projects.materials');
+            $pl = \App\Http\Controllers\Api\Projects\PlantController::class;
+            Route::get('/plant/find', [$pl, 'find'])->middleware('permission:projects.plant');
+            Route::get('/vendors/find', [$pl, 'vendors'])->middleware('permission:projects.plant,projects.subcontracts');
+            Route::get('/{project}/plant', [$pl, 'index'])->whereNumber('project');
+            Route::post('/{project}/plant/bookings', [$pl, 'book'])->whereNumber('project')->middleware('permission:projects.plant');
+            Route::post('/{project}/plant/bookings/{booking}/cancel', [$pl, 'cancelBooking'])->whereNumber(['project', 'booking'])->middleware('permission:projects.plant');
+            Route::post('/{project}/plant/issue', [$pl, 'issue'])->whereNumber('project')->middleware('permission:projects.plant');   // and inventory.manage (checked inside)
+            Route::post('/{project}/plant/held/{assignment}/return', [$pl, 'giveBack'])->whereNumber(['project', 'assignment'])->middleware('permission:projects.plant');
+            Route::post('/{project}/plant/hires', [$pl, 'hire'])->whereNumber('project')->middleware('permission:projects.plant');
+            Route::post('/{project}/plant/hires/{hire}/off', [$pl, 'offHire'])->whereNumber(['project', 'hire'])->middleware('permission:projects.plant');
             $gl = \App\Http\Controllers\Api\Projects\GuestsController::class;
             Route::get('/{project}/guests', [$gl, 'index'])->whereNumber('project')->middleware('permission:projects.files.view');
             Route::post('/{project}/guests', [$gl, 'store'])->whereNumber('project')->middleware('permission:projects.guests');

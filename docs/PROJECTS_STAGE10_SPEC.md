@@ -120,3 +120,14 @@ Screen: `docs/screens/projects-materials.png`.
 - **Also fixed:** the Roles page now lists the "files" ability (Stage 9), so saving a role no longer drops it, and the new "site" ability.
 - **Routes:** `GET /projects/{project}/materials`; `POST …/materials/plan`, `…/materials/requests`, `…/materials/requests/{req}/close`, `…/materials/issue`, `…/materials/lines/{line}/return`; `GET /projects/materials/find`, `GET /projects/materials/waiting`.
 - **Tests:** `tests/Feature/ProjectsMaterialsTest.php` (3, one of them on Stock's journal carrying the cost centre). Browser check `e2e/projects-site-ui.mjs` (6 checks).
+
+### 10.2 Plant (done)
+
+Screen: `docs/screens/projects-plant.png`.
+
+- **On the work:** equipment from the asset register (Inventory) that the work holds now. **Issuing** and **returning** need `projects.plant`, a project role that works the site, and `inventory.manage`; they go through Inventory's own issue and return, with the work as the holder ("project", the work's number and name), so the register always says where a piece is. A piece with a serial number is chosen by its tag (pieces that are out cannot be chosen); bulk items by how many. Back-by day and condition going out; condition coming back. Inventory's refusals come back in plain words ("That piece is not free", "Not that many are free").
+- **Bookings ahead** (`projects.plant`): equipment, optionally the exact piece, from a day to a day. An overlap with another work's booking, or the piece being out elsewhere now, is shown as a warning on the booking; it is never refused.
+- **Hired plant** (`projects.plant`): what, the vendor and its vendor order (the vendor comes from the order when only the order is chosen; an order with another vendor is refused), on hire from, off hire on a day, or cancelled. Its cost is the vendor order's.
+- The daily record (10.5) will offer what is on the work and on hire that day for its plant hours.
+- **Routes:** `GET /projects/{project}/plant`; `POST …/plant/bookings`, `…/plant/bookings/{booking}/cancel`, `…/plant/issue`, `…/plant/held/{assignment}/return`, `…/plant/hires`, `…/plant/hires/{hire}/off`; `GET /projects/plant/find`, `GET /projects/vendors/find`.
+- **Tests:** `tests/Feature/ProjectsPlantTest.php` (3). Browser check `e2e/projects-site-ui.mjs` (now 11 checks).
