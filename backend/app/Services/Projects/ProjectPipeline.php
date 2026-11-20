@@ -211,6 +211,7 @@ class ProjectPipeline
         }
         DB::table('project_opportunities')->where('id', $opp->id)->update($values + ['updated_at' => now()]);
         ProjectLog::record(null, $by, 'opportunity.moved', 'opportunity', (int) $opp->id, ['stage' => $from->name ?? null], ['stage' => $to->name, 'why' => $this->lists->name($values['lost_reason_id'])]);
+        app(ProjectRules::class)->fire('opportunity_moved', null, $by, ['stage' => (string) $to->name, 'opportunity_id' => (int) $opp->id, 'title' => (string) $opp->title]);   // stage 12
     }
 
     /** What the form offers. @return array<string, mixed> */

@@ -54,6 +54,7 @@ class ProjectSnags
             'raised_by' => $by?->id, 'created_at' => now(), 'updated_at' => now()]);
         ProjectLog::record((int) $project->id, $by, 'snag.raised', 'snag', $id, null, ['number' => $number, 'title' => $title, 'inspection' => $inspectionId]);
         $this->tellGiven($project, (object) ['number' => $number, 'title' => $title, 'user_id' => $user, 'subcontract_id' => $sub, 'due_on' => $this->day($d['due_on'] ?? null)], $by, false);
+        app(ProjectRules::class)->fire('snag_raised', $project, $by, ['title' => "Snag {$number}: {$title}"]);   // stage 12
 
         return $id;
     }

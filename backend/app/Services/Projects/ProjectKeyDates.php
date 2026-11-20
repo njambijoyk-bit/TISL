@@ -165,6 +165,7 @@ class ProjectKeyDates
                 DB::table('project_key_dates')->where('id', $k->id)->update(['state' => 'missed', 'updated_at' => now()]);
                 ProjectLog::record((int) $k->project_id, null, 'key_date.missed', 'key_date', (int) $k->id, null, ['when' => $k->starts_at]);
                 $this->sync((int) $k->id);
+                app(ProjectRules::class)->fire('date_missed', DB::table('projects')->find($k->project_id), null, ['kind' => $k->kind, 'title' => $k->title]);   // stage 12
                 $title = "Missed: {$k->title} on {$k->project_number}";
                 $message = "{$k->title} was on {$when} and is not marked done.";
             } elseif ($days === 0 && ! in_array('0', $warned, true)) {

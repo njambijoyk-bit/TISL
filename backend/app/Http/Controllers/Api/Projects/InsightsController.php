@@ -8,7 +8,7 @@ use App\Services\Projects\ProjectKpis;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 
-/** Insights (stage 12): KPIs in Configuration (12.1); scorecards, people, forecasts come build by build. */
+/** Insights (stage 12): KPIs (12.1), scorecards (12.2), people (12.3), forecasts (12.4) and rules (12.5). */
 class InsightsController extends Controller
 {
     public function __construct(private ProjectKpis $kpis) {}
@@ -56,6 +56,26 @@ class InsightsController extends Controller
 
             return response()->json(['pipeline' => app(\App\Services\Projects\ProjectForecasts::class)->pipeline($request->user())]);
         });
+    }
+
+    public function rules(Request $request): JsonResponse
+    {
+        return response()->json(app(\App\Services\Projects\ProjectRules::class)->config($request->user()));
+    }
+
+    public function saveRule(Request $request, ?int $rule = null): JsonResponse
+    {
+        return $this->guard(function () use ($request, $rule) {
+            $r = app(\App\Services\Projects\ProjectRules::class);
+            $r->save($rule, $request->all(), $request->user());
+
+            return response()->json($r->config($request->user()), $rule ? 200 : 201);
+        });
+    }
+
+    public function tryRule(Request $request, int $rule): JsonResponse
+    {
+        return $this->guard(fn () => response()->json(app(\App\Services\Projects\ProjectRules::class)->trial($rule, $request->user())));
     }
 
     protected function guard(callable $do): JsonResponse

@@ -262,6 +262,7 @@ class ProjectService
         if ($chosen > 0) {
             $templates->apply($project, $chosen, $by, true);
         }
+        app(ProjectRules::class)->fire('work_started', $project, $by, ['title' => $project->title]);   // stage 12
 
         return $project;
     }
@@ -336,6 +337,7 @@ class ProjectService
         ProjectLog::record((int) $project->id, $by, $stage->state === 'closed' ? 'project.closed' : ($project->state === 'closed' ? 'project.reopened' : 'stage.moved'), 'project', (int) $project->id,
             ['stage' => $old, 'state' => $project->state], ['stage' => $stage->name, 'state' => $stage->state]);
         app(ProjectDateRules::class)->stageEvent($this->find((int) $project->id), (string) $stage->name, $by);   // stage 11: dates that follow from entering this stage
+        app(ProjectRules::class)->fire('stage_entered', $this->find((int) $project->id), $by, ['stage' => (string) $stage->name]);   // stage 12
         if ($stage->state === 'closed' && $project->state !== 'closed') {
             app(ProjectMaterials::class)->useUp($project, $by);   // stage 10: what the work's Stock jobs hold becomes a cost of the work
         }

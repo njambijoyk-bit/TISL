@@ -2134,6 +2134,10 @@ Route::middleware('auth:sanctum')->group(function () {
             Route::get('/configuration/kpis', [$ins12, 'kpis'])->middleware('permission:projects.config.view');
             Route::post('/configuration/kpis', [$ins12, 'saveKpi'])->middleware('permission:projects.kpis');
             Route::put('/configuration/kpis/{kpi}', [$ins12, 'saveKpi'])->whereNumber('kpi')->middleware('permission:projects.kpis');
+            Route::get('/configuration/rules', [$ins12, 'rules'])->middleware('permission:projects.config.view');
+            Route::post('/configuration/rules', [$ins12, 'saveRule'])->middleware('permission:projects.rules');
+            Route::put('/configuration/rules/{rule}', [$ins12, 'saveRule'])->whereNumber('rule')->middleware('permission:projects.rules');
+            Route::post('/configuration/rules/{rule}/try', [$ins12, 'tryRule'])->whereNumber('rule')->middleware('permission:projects.rules');
             $gl = \App\Http\Controllers\Api\Projects\GuestsController::class;
             Route::get('/{project}/guests', [$gl, 'index'])->whereNumber('project')->middleware('permission:projects.files.view');
             Route::post('/{project}/guests', [$gl, 'store'])->whereNumber('project')->middleware('permission:projects.guests');

@@ -1,6 +1,7 @@
 // Browser check: insights (stage 12). KPIs in Configuration (12.1): the list with targets in the measure's unit, adding one (amber on the right
 // side of green, from Books marked). The API is answered by the check itself; what each measure works out is proved by ProjectsKpisTest.
 // Scorecards (12.2): the scorecard on a work with eight weeks, a money figure from Books, and health in the list with its filter.
+// Rules (12.5): each rule read as when, if, then; adding one with its actions; trying one; switching it on; the last runs.
 // Forecasts (12.4): the pipeline chart and table, setting a stage's chance, when works will end, what will be billed.
 // It needs only the website (npx vite --port 5177).
 import { D, SITE, ok, finish, open } from './lib.mjs';
@@ -43,6 +44,47 @@ await page.getByRole('button', { name: 'Add a KPI' }).click();
 await page.getByLabel('Measures').selectOption('utilisation');
 ok('a measure about people applies everywhere: the industry cannot be chosen and the client never sees it', await page.getByLabel('Applies to').isDisabled() && (await page.getByLabel('The client sees it').count()) === 0);
 await page.screenshot({ path: D + 'projects-kpis.png', fullPage: true });
+
+// ---------------------------------------------------------------- rules
+let rules = [
+  { id: 1, key: 'missed_filing', name: 'Missed filing', trigger_event: 'date_missed', trigger_value: 'filing', conditions: { industry: 'legal' }, actions: [{ do: 'tell', who: 'lead' }, { do: 'task', who: 'lead', title: 'Explain the missed filing date', days: 1 }], is_active: false, max_per_day: 50, last_run_at: null, runs_today: 0, last_runs: [] },
+  { id: 2, key: 'new_work_follow', name: 'Manager follows new work', trigger_event: 'work_started', trigger_value: null, conditions: [], actions: [{ do: 'follow', who: 'lead_manager' }], is_active: true, max_per_day: 50, last_run_at: '2026-11-19T08:00:00Z', runs_today: 2,
+    last_runs: [{ subject: 'BW-0510 Westlands office', outcome: 'done', note: null, created_at: '2026-11-19T08:00:00Z' }, { subject: 'BW-0511 Ngong road', outcome: 'skipped', note: 'Reached its runs for today.', created_at: '2026-11-19T09:00:00Z' }] },
+];
+const ruleAnswer = () => ({ ready: true, rules, events: [{ key: 'work_started', name: 'A piece of work starts', value: null }, { key: 'date_missed', name: 'A key date is missed', value: 'Kind of key date (empty = any)' }, { key: 'snag_late', name: 'A snag is late by so many days', value: 'Days late' }],
+  who: { lead: 'The lead', members: 'Everyone on the work', followers: 'Its followers', lead_manager: 'The lead\'s manager', owner: 'The opportunity\'s owner', person: 'The person it is about' },
+  industries: [{ key: 'construction', name: 'Construction' }, { key: 'legal', name: 'Legal' }], tags: [{ key: 'urgent', name: 'Urgent' }], flags: [{ key: 'slow_payer', name: 'Slow payer' }], can: { change: true } });
+await page.route('**/api/admin/projects/configuration/rules', (route) => { if (route.request().method() === 'POST') { const b = route.request().postDataJSON(); sent.push(['rule', b]); rules = [...rules, { ...b, id: 3, key: null, trigger_value: b.trigger_value || null, last_runs: [], runs_today: 0 }]; return json(route, ruleAnswer(), 201); } return json(route, ruleAnswer()); });
+await page.route(/\/api\/admin\/projects\/configuration\/rules\/\d+$/, (route) => { const b = route.request().postDataJSON(); const id = Number(route.request().url().split('/').pop()); sent.push(['rule-put', id, b]); rules = rules.map((r) => (r.id === id ? { ...r, ...b } : r)); return json(route, ruleAnswer()); });
+await page.route(/\/api\/admin\/projects\/configuration\/rules\/\d+\/try$/, (route) => { sent.push(['try', route.request().url()]); return json(route, { runs: 2, examples: ['LIT-0042: Filing deadline missed', 'LIT-0057: Defence filing missed'] }); });
+await go('/admin/projects/configuration');
+await page.getByRole('tab', { name: 'KPIs and rules' }).click();
+await page.locator('[data-rules]').waitFor({ timeout: 10000 });
+ok('a rule reads as when, if, then', /When a key date is missed: filing, if Legal, then tell the lead; make the task "Explain the missed filing date" for the lead, due in 1 day\(s\)\./.test(await text(page.locator('[data-rule="missed_filing"]'))));
+ok('a rule shows whether it is on and how often it ran today', /Manager follows new work On · 2 today/.test(await text(page.locator('[data-rule="new_work_follow"]'))));
+await page.locator('[data-rule="new_work_follow"] summary').click();
+ok('the last runs show what was done and what was held back', /BW-0511 Ngong road skipped Reached its runs for today\./.test(await text(page.locator('[data-rule="new_work_follow"]'))));
+await page.locator('[data-rule="missed_filing"]').getByRole('button', { name: 'Try it' }).click();
+await page.locator('[data-rule-tried="1"]').waitFor({ timeout: 5000 });
+ok('trying a rule says what it would have done in the last 30 days', /would have run 2 times\. LIT-0042: Filing deadline missed/.test(await text(page.locator('[data-rule-tried="1"]'))) && /\/rules\/1\/try$/.test(last('try')?.[1] ?? ''));
+await page.locator('[data-rule="missed_filing"]').getByRole('button', { name: 'Switch on' }).click();
+await page.waitForTimeout(200);
+ok('a rule is switched on', JSON.stringify(last('rule-put')) === JSON.stringify(['rule-put', 1, { is_active: true }]));
+await page.getByRole('button', { name: 'Add a rule' }).click();
+await page.getByLabel('Name').fill('Late snag');
+await page.locator('#ru-e').selectOption('snag_late');
+await page.getByLabel('Days late').fill('7');
+await page.locator('#ru-w0').selectOption('lead_manager');
+await page.getByRole('button', { name: 'Add another' }).click();
+await page.locator('#ru-a1').selectOption('task');
+await page.locator('#ru-t1').fill('Chase the subcontractor');
+await page.locator('#ru-d1').fill('2');
+ok('only the safe actions are offered', JSON.stringify(await page.locator('#ru-a0 option').allInnerTexts()) === JSON.stringify(['Tell', 'Make a task', 'Make a key date', 'Add a follower', 'Tag the conversation', 'Flag the client']));
+await page.screenshot({ path: D + 'projects-rules.png', fullPage: true });
+await page.getByRole('button', { name: 'Save the rule' }).click();
+await page.locator('[data-rule="3"]').waitFor({ timeout: 5000 });
+const saved = last('rule')?.[1];
+ok('a rule is saved with its event, value and actions', saved?.trigger_event === 'snag_late' && saved?.trigger_value === '7' && JSON.stringify(saved?.actions) === JSON.stringify([{ do: 'tell', who: 'lead_manager' }, { do: 'task', who: 'lead', title: 'Chase the subcontractor', days: '2' }]) && saved?.is_active === false);
 
 // ---------------------------------------------------------------- the scorecard on a work, health in the list
 await page.route(/\/api\/admin\/projects\/509$/, (route) => json(route, { project: { id: 509, number: 'BW-0509', title: 'Kilimani flats', description: null, industry: { key: 'construction', name: 'Construction' }, type: { id: 5, name: 'Building works' }, stage: { id: 1, name: 'Works', status: 'info' }, state: 'open', priority: 'medium',

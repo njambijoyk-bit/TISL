@@ -149,3 +149,18 @@ Screen: `docs/screens/projects-forecasts.png`.
 - Nothing is kept: all worked out when the page opens.
 - **Routes:** `GET /projects/insights/forecasts`, `PUT /projects/insights/odds/{stage}`.
 - **Tests:** `tests/Feature/ProjectsForecastsTest.php` (2). Browser check `e2e/projects-insights-ui.mjs` (now 12).
+
+### 12.5 Rules (done)
+
+Screen: `docs/screens/projects-rules.png` (Configuration → KPIs and rules, under the KPIs).
+
+- **When** (what starts a rule): a piece of work starts; it enters a stage (named); a task goes past its due day; a key date is missed (of a kind, or any); a snag is raised; a snag is so many days late; the work turns red; an opportunity moves to a pipeline stage (named); someone's time on the work was not sent in last week (checked on Tuesdays); every morning, for each open work. Events from the work happen as they happen; the ones from time passing are checked by `projects:rules-morning` at 06:40.
+- **If** (all must match; empty means every work): industry, kind of work, priority, lead, the stage it is at, an extra field's value.
+- **Then** (up to six, in order): **tell** someone (the lead, everyone on the work, its followers, the lead's manager from the HR line, a named person; for opportunities the owner; for timesheets the person); **make a task** (title, for whom, due in so many days); **make a key date** (title, kind, in so many days; it goes to the calendar like any other); **add a follower**; **tag** the work's latest open conversation; **flag the client** (one of the client flags, saying which rule did it). A rule about an opportunity can tell or flag only, since it is not a piece of work yet.
+- **What a rule never does** (choice 3): any serious action, anything in Books, deleting, moving a stage. Saving a rule with any other action is refused.
+- **Safety:** a rule's own actions never start rules (so two rules cannot set each other off); each rule runs at most so many times a day (50 unless set; a run past that is logged as held back); every run is kept in the rule's log (what it was about, what it did, done / held back / failed) and on the work's log.
+- **Trying a rule** shows how many times it would have run in the last 30 days and up to ten examples, worked out from what happened (works started, stage moves, missed dates, late tasks, snags, red weeks, opportunity moves). Nothing is done.
+- **Starter rules** (all off until switched on): the lead's manager is told when a work turns red; a missed filing date on legal work tells the lead and makes the task "Explain the missed filing date"; a snag seven days late tells the lead; the lead's manager follows new work.
+- **Permissions:** seeing rules needs `projects.config.view`; adding, changing, trying and switching needs `projects.rules`.
+- **Routes:** `GET`/`POST /projects/configuration/rules`, `PUT /projects/configuration/rules/{rule}`, `POST /projects/configuration/rules/{rule}/try`.
+- **Tests:** `tests/Feature/ProjectsRulesTest.php` (4). Browser check `e2e/projects-insights-ui.mjs` (now 19).
