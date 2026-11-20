@@ -2113,6 +2113,14 @@ Route::middleware('auth:sanctum')->group(function () {
             Route::put('/configuration/types/{type}/settings', [$wt, 'settings'])->whereNumber('type')->middleware('permission:projects.config.stages');
             Route::get('/{project}/work-templates', [$wt, 'offered'])->whereNumber('project');
             Route::post('/{project}/work-templates/{template}/apply', [$wt, 'apply'])->whereNumber(['project', 'template'])->middleware('permission:projects.tasks');
+            $oc = \App\Http\Controllers\Api\Projects\OpeningCheckController::class;
+            Route::get('/{project}/opening-check', [$oc, 'show'])->whereNumber('project');
+            Route::put('/{project}/opening-check', [$oc, 'answer'])->whereNumber('project')->middleware('permission:projects.edit');
+            Route::post('/{project}/opening-check/sign', [$oc, 'sign'])->whereNumber('project')->middleware('permission:projects.edit');
+            Route::post('/{project}/opening-check/redo', [$oc, 'redo'])->whereNumber('project')->middleware('permission:projects.edit');
+            Route::get('/configuration/opening-questions', [$oc, 'config'])->middleware('permission:projects.config.view');
+            Route::post('/configuration/opening-questions', [$oc, 'saveQuestion'])->middleware('permission:projects.config.stages');
+            Route::put('/configuration/opening-questions/{question}', [$oc, 'saveQuestion'])->whereNumber('question')->middleware('permission:projects.config.stages');
             $gl = \App\Http\Controllers\Api\Projects\GuestsController::class;
             Route::get('/{project}/guests', [$gl, 'index'])->whereNumber('project')->middleware('permission:projects.files.view');
             Route::post('/{project}/guests', [$gl, 'store'])->whereNumber('project')->middleware('permission:projects.guests');

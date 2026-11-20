@@ -28,6 +28,7 @@ import RegisterKindsPanel from '../../components/RegisterKindsPanel';
 import SiteSettingsPanel from '../../components/SiteSettingsPanel';
 import InspectionKindsPanel from '../../components/InspectionKindsPanel';
 import WorkTemplatesPanel from '../../components/WorkTemplatesPanel';
+import OpeningQuestionsPanel from '../../components/OpeningQuestionsPanel';
 import ProjectKeys from '../../components/ProjectKeys';
 
 /**
@@ -310,7 +311,7 @@ export default function ProjectConfiguration() {
             <ShapePanel key={tab} part={tab} industries={data.industries} startIndustry={data.general.default_industry}
               wordsOf={() => ({ customer_id: t('client'), reference: t('reference'), authority: t('authority'), place: t('place'), start_date: 'Start date', due_date: 'Expected end', description: 'Description' })} />
           )}
-          {tab === 'stages' && <div style={{ marginTop: 14 }}><WorkTemplatesPanel /></div>}
+          {tab === 'stages' && <div style={{ marginTop: 14, display: 'grid', gap: 14 }}><WorkTemplatesPanel /><OpeningQuestionsPanel industries={data.industries} startIndustry={data.general.default_industry} /></div>}
           {tab === 'roles' && <ProjectRolesPanel canEdit={!!data.can.roles} />}
           {tab === 'access' && data.access && <AccessSettingsPanel key={JSON.stringify(data.access)} value={data.access} canEdit={!!data.can.manage} onSaved={setData} thing={t('project', false, true)} />}
           {tab === 'serious' && <SeriousPanel />}

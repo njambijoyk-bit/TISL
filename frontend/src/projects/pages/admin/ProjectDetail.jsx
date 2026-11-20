@@ -17,6 +17,7 @@ import MessagesPanel from '../../components/MessagesPanel';
 import MeetingsPanel from '../../components/MeetingsPanel';
 import FilesPanel from '../../components/FilesPanel';
 import SitePanel from '../../components/SitePanel';
+import OpeningCheckPanel from '../../components/OpeningCheckPanel';
 import ActivityPanel from '../../components/ActivityPanel';
 import LinksPanel from '../../components/LinksPanel';
 import { hasPermission } from '../../../_shared/lib/roles';
@@ -216,6 +217,7 @@ export default function ProjectDetail() {
       {!lockedTab && tab === 'people' && <PeoplePanel key={`${p.id}-${p.frozen}`} projectId={p.id} word={word} onTransferred={setProject} />}
       {tab === 'overview' && (
       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(300px, 1fr))', gap: 16, alignItems: 'start' }}>
+        <OpeningCheckPanel key={`oc-${p.id}-${p.stage?.id}`} projectId={p.id} />
         <Panel>
           <PanelTitle>Details</PanelTitle>
           <Row label={w('client')}>{p.customer?.name}</Row>

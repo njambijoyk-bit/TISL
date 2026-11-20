@@ -89,3 +89,14 @@ Screen: `docs/screens/projects-work-templates.png`.
 - **Also:** the Projects check (`node scripts/check-projects-theme.mjs`) now refuses two Projects API calls with one name, after it happened a second time here (a new call had the same name as a Stage 9 one).
 - **Routes:** `GET /projects/configuration/types/{type}/templates`; `POST /projects/configuration/work-templates`, `PUT …/work-templates/{template}`; `PUT /projects/configuration/types/{type}/settings`; `GET /projects/{project}/work-templates`, `POST …/work-templates/{template}/apply`.
 - **Tests:** `tests/Feature/ProjectsWorkTemplatesTest.php` (3). Browser check `e2e/projects-industry-ui.mjs` (8 checks).
+
+### 11.2 The opening check (done)
+
+Screen: `docs/screens/projects-opening-check.png`.
+
+- **Questions** (Configuration → Kinds of work and stages, `projects.config.stages` to change): for a whole industry or one kind of work; each "must be yes" or only for the record; stopped and asked again. The check is named in the industry's words ("Conflict check", "Site survey", "Approval to start"…).
+- **On the work** (Overview, `projects.edit` to answer): each question yes or no, with a note; **signed with a typed name**, kept with the time. It passes when every "must be yes" question is yes. A signed check keeps the questions it was signed with, even if the questions change later. "Do it again" (with a reason, logged) keeps the answers and takes the signature away.
+- **Required before moving on:** on a kind of work set to require it (11.1), the work cannot leave its first stage until the check has passed; the refusal says which (not done, or did not pass). Without the setting it is advice only.
+- **Who else is involved:** the client and every party on the work, each searched against the clients, contacts, parties and leads already known (Stage 3's search). A party who is already a client, or the client found as a party on other work, is marked **possible conflict**.
+- **Routes:** `GET`, `PUT /projects/{project}/opening-check`; `POST …/opening-check/sign`, `…/opening-check/redo`; `GET`, `POST /projects/configuration/opening-questions`, `PUT …/opening-questions/{question}`.
+- **Tests:** `tests/Feature/ProjectsOpeningCheckTest.php` (3). Browser check `e2e/projects-industry-ui.mjs` (now 13 checks).

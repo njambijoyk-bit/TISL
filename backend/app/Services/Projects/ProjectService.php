@@ -318,6 +318,9 @@ class ProjectService
         if ($stage->state === 'closed' || $project->state === 'closed') {
             $this->access->authorize($by, 'close', $project);
         }
+        if ($why = app(ProjectOpeningCheck::class)->blocks($project, (int) $stage->id)) {   // stage 11: the opening check must pass first
+            throw new ProjectException($why);
+        }
         $required = json_decode((string) $stage->required_fields, true) ?: [];
         $missing = array_merge($this->missingFor($project, $required), app(ProjectShape::class)->missingExtra($project, $required));
         if ($missing) {
