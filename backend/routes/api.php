@@ -1518,6 +1518,11 @@ Route::middleware('auth:sanctum')->group(function () {
             Route::post('/{type}/{id}/reorder',        [$g, 'reorder'])->whereNumber('id');
         });
         Route::get('/account', [\App\Http\Controllers\Api\MyAccountController::class, 'show']);
+        Route::middleware('module:projects')->prefix('my-work')->group(function () {   // the client portal (Projects build 9.5): their own work, only what was shared
+            Route::get('/', [\App\Http\Controllers\Api\Projects\PortalController::class, 'index']);
+            Route::get('/{project}', [\App\Http\Controllers\Api\Projects\PortalController::class, 'show'])->whereNumber('project');
+            Route::get('/{project}/files/{file}', [\App\Http\Controllers\Api\Projects\PortalController::class, 'download'])->whereNumber(['project', 'file']);
+        });
         Route::get('/account/statement/export', [\App\Http\Controllers\Api\MyAccountController::class, 'statementExport']);
         Route::get('/account/outstandings/export', [\App\Http\Controllers\Api\MyAccountController::class, 'outstandingsExport']);
         Route::get('/account/documents', [\App\Http\Controllers\Api\MyAccountController::class, 'documents']);

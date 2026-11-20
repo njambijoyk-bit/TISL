@@ -191,6 +191,7 @@ const ChefsPublicPage    = lazy(() => import('./menus/pages/public/ChefsPage'));
 const MenusFloor         = lazy(() => import('./menus/pages/admin/MenusFloor'));
 const MenuTablePage      = lazy(() => import('./menus/pages/public/TablePage'));
 const MeetingAnswer      = lazy(() => import('./projects/pages/public/MeetingAnswer'));
+const MyWork             = lazy(() => import('./projects/pages/customer/MyWork'));   // the client portal: a customer's own work (build 9.5)
 const RequestAnswer      = lazy(() => import('./projects/pages/public/RequestAnswer'));   // a file or sign-off asked of someone outside: no sign-in   // a meeting invitation's answer link: no sign-in
 const MenusTill          = lazy(() => import('./menus/pages/admin/MenusTill'));
 const MenusKitchen       = lazy(() => import('./menus/pages/admin/MenusKitchen'));
@@ -822,6 +823,8 @@ function App() {
                 </ProtectedRoute>
               }
             />
+            <Route path="/my-work" element={<ProtectedRoute><ModuleRoute module="projects"><MyWork /></ModuleRoute></ProtectedRoute>} />
+            <Route path="/my-work/:id" element={<ProtectedRoute><ModuleRoute module="projects"><MyWork /></ModuleRoute></ProtectedRoute>} />
             <Route
               path="/my-tickets"
               element={

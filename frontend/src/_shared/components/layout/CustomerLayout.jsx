@@ -12,6 +12,7 @@ import ThemeSwitcher from '../common/ThemeSwitcher';
 import useAuthStore from '../../store/authStore';
 import { isVendor } from '../../lib/roles';
 import { useLayoutAudio } from './useLayoutAudio';
+import { isModuleActive } from '../../navigation/modules';
 
 const PANEL_W   = 224;
 const PANEL_W_C = 52;
@@ -40,6 +41,7 @@ const CUSTOMER_GROUPS = [
       { name: 'My Account',      icon: User,          bg: 'linear-gradient(135deg,#6366f1,#818cf8)', path: '/my-account',        active: true },
       { name: 'My Wallet',       icon: Gift,          bg: 'linear-gradient(135deg,#ec4899,#f472b6)', path: '/gift-vouchers',     active: true },
       { name: 'My Quotes',       icon: FileText,      bg: 'linear-gradient(135deg,#3b82f6,#60a5fa)', path: '/my-quotes',         active: true },
+      { name: 'My Work',         icon: ClipboardList, bg: 'linear-gradient(135deg,var(--color-primary-600),var(--color-primary-500))', path: '/my-work',           active: true, module: 'projects' },
       { name: 'My Tickets',      icon: LifeBuoy,      bg: 'linear-gradient(135deg,var(--color-primary-400),var(--color-primary-400))', path: '/my-tickets',        active: true },
       { name: 'My Hampers',      icon: Gift,          bg: 'linear-gradient(135deg,#ec4899,#f472b6)', path: '/hampers/my-orders', active: true },
       { name: 'On the way',       icon: Truck,         bg: 'linear-gradient(135deg,#0ea5e9,#38bdf8)', path: '/my-deliveries',     active: true },
@@ -94,7 +96,8 @@ export default function CustomerLayout({ children }) {
   const { pathname } = useLocation();
 
   const { user, logout, isAuthenticated } = useAuthStore();
-  const groups = isVendor(user) ? vendorGroups(CUSTOMER_GROUPS) : CUSTOMER_GROUPS;
+  // an item tied to a module (My Work: Projects) shows only while that module is on
+  const groups = (isVendor(user) ? vendorGroups(CUSTOMER_GROUPS) : CUSTOMER_GROUPS).map((g) => ({ ...g, items: g.items.filter((i) => !i.module || isModuleActive(i.module)) }));
 
   const doCollapse = (val) => {
     setCollapsed(val);

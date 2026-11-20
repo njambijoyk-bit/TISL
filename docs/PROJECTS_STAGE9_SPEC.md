@@ -135,3 +135,13 @@ Screen: `docs/screens/projects-registers.png`.
 - **Expiry:** any file may carry the day it runs out (9.1). Every morning (`projects:file-expiry-warnings`, 07:40) the lead and whoever added it are told when it is within 60, 30 or 7 days, and on the day, once at each mark (a missed morning still warns once). A new date starts the warnings again. The Files tab marks files running out or run out.
 - **Routes:** `GET`, `POST /projects/{project}/registers`; `POST …/registers/{register}/lines`; `PUT`, `DELETE …/registers/{register}/lines/{line}`; `GET`, `POST /projects/configuration/registers`, `PUT /projects/configuration/registers/{id}`.
 - **Tests:** `tests/Feature/ProjectsRegistersTest.php` (3). Browser check `e2e/projects-files-ui.mjs` (now 17 checks).
+
+### 9.5 The client portal (done)
+
+Screen: `docs/screens/projects-portal.png`.
+
+- **My work** (customer menu → My Account → My Work, shown while Projects is on): a customer signed in sees every piece of work whose client is their customer record, its stage, and how many requests wait on them.
+- **One piece of work:** its dates; the stages (past, now, still to come) and the top phases; what is asked of any of the customer's contacts, each linking to the request page of 9.3; meetings they are asked to, in the last 30 days or still to come, with the answer link while it is planned; the documents the team shared (downloaded through the portal, never a team-only file); and the invoices on it.
+- **Invoices** are read from the books: sales and cash-sale vouchers for this customer on the work's cost centres or linked to the work, not cancelled, with what is still open. Paying stays on My account; the portal stores no amount.
+- **Routes:** `GET /customer/my-work`, `GET /customer/my-work/{project}`, `GET /customer/my-work/{project}/files/{file}` (customer accounts only; another customer's work answers "not found").
+- **Tests:** `tests/Feature/ProjectsPortalTest.php` (2). Browser check `e2e/projects-portal-ui.mjs` (8 checks).

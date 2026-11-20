@@ -1,4 +1,4 @@
-import { Navigate, Route, Routes } from 'react-router-dom';
+import { Navigate, Route, Routes, useParams } from 'react-router-dom';
 import ProjectsList from '/src/projects/pages/admin/ProjectsList.jsx';
 import ProjectForm from '/src/projects/pages/admin/ProjectForm.jsx';
 import ProjectDetail from '/src/projects/pages/admin/ProjectDetail.jsx';
@@ -20,6 +20,7 @@ import ProjectsTimesheet from '/src/projects/pages/admin/ProjectsTimesheet.jsx';
 import ProjectsMyWork from '/src/projects/pages/admin/ProjectsMyWork.jsx';
 import ProjectsInbox from '/src/projects/pages/admin/ProjectsInbox.jsx';
 import MeetingAnswer from '/src/projects/pages/public/MeetingAnswer.jsx';
+import { MyWorkList, MyWorkOne } from '/src/projects/pages/customer/MyWork.jsx';
 import RequestAnswer from '/src/projects/pages/public/RequestAnswer.jsx';
 import ProjectsHandover from '/src/projects/pages/admin/ProjectsHandover.jsx';
 import ProjectsTeam from '/src/projects/pages/admin/ProjectsTeam.jsx';
@@ -27,6 +28,8 @@ import ProjectsPerson from '/src/projects/pages/admin/ProjectsPerson.jsx';
 import ProjectsCasebook from '/src/projects/pages/admin/ProjectsCasebook.jsx';
 import ProjectsCase from '/src/projects/pages/admin/ProjectsCase.jsx';
 import KeyboardShortcuts from '/src/_shared/components/common/KeyboardShortcuts.jsx';
+
+function MyWorkOneProbe() { const { id } = useParams(); return <MyWorkOne id={id} />; }
 
 /** The Projects screens with their own addresses, so moving between them works as in the app. Starts at ?at=/admin/projects/... */
 export default function ProjectsProbe() {
@@ -55,6 +58,8 @@ export default function ProjectsProbe() {
       <Route path="/admin/projects/inbox" element={<ProjectsInbox />} />
       <Route path="/meeting/:token" element={<MeetingAnswer />} />
       <Route path="/request/:token" element={<RequestAnswer />} />
+      <Route path="/my-work" element={<MyWorkList />} />
+      <Route path="/my-work/:id" element={<MyWorkOneProbe />} />
       <Route path="/admin/projects/handover" element={<ProjectsHandover />} />
       <Route path="/admin/projects/team" element={<ProjectsTeam />} />
       <Route path="/admin/projects/team/:id" element={<ProjectsPerson />} />
