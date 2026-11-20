@@ -19,6 +19,7 @@ import FilesPanel from '../../components/FilesPanel';
 import SitePanel from '../../components/SitePanel';
 import OpeningCheckPanel from '../../components/OpeningCheckPanel';
 import ScorecardPanel from '../../components/ScorecardPanel';
+import UpdatesPanel from '../../components/UpdatesPanel';
 import ActivityPanel from '../../components/ActivityPanel';
 import LinksPanel from '../../components/LinksPanel';
 import { hasPermission } from '../../../_shared/lib/roles';
@@ -219,6 +220,7 @@ export default function ProjectDetail() {
       {tab === 'overview' && (
       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(300px, 1fr))', gap: 16, alignItems: 'start' }}>
         {hasPermission(user, 'projects.insights') && <ScorecardPanel key={`sc-${p.id}`} projectId={p.id} />}
+        {p.customer && p.state === 'open' && hasPermission(user, 'projects.messages.client') && <UpdatesPanel key={`up-${p.id}`} projectId={p.id} />}
         <OpeningCheckPanel key={`oc-${p.id}-${p.stage?.id}`} projectId={p.id} />
         <Panel>
           <PanelTitle>Details</PanelTitle>

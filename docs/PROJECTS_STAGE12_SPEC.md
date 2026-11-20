@@ -164,3 +164,27 @@ Screen: `docs/screens/projects-rules.png` (Configuration → KPIs and rules, und
 - **Permissions:** seeing rules needs `projects.config.view`; adding, changing, trying and switching needs `projects.rules`.
 - **Routes:** `GET`/`POST /projects/configuration/rules`, `PUT /projects/configuration/rules/{rule}`, `POST /projects/configuration/rules/{rule}/try`.
 - **Tests:** `tests/Feature/ProjectsRulesTest.php` (4). Browser check `e2e/projects-insights-ui.mjs` (now 19).
+
+### 12.6 Mimi (done)
+
+Screen: `docs/screens/projects-weekly-update.png` (the draft on a work's Overview).
+
+- **Ask Mimi** (staff with `projects.use`), from what the person may open, the same rule as the projects list (confidential work only to its people):
+  - "What is late on my work?": their tasks past the due day, and missed key dates of the last 30 days on work they are on.
+  - "What is due this week?": their tasks due to Sunday and the key dates they answer for.
+  - "How is M-0413?": stage, health, tasks open and late, expected end, next key date. Never money or extra fields. Without a number Mimi asks for one; work they may not open looks the same as none.
+  - "Who has room next week?" (`projects.capacity`): free hours next week for their line, most first.
+  - Work numbers are recognised from the kinds of work's number prefixes, so "M-0413" or "BW-0509" is taken as a piece of work before the order-number pattern sees it. The four entries are in `resources/mimi/knowledge.html` and in `docs/MIMI_LOCAL_LAYER_GUIDE.html` (resolver table, playground and self-test).
+- **Weekly update drafts:** on Fridays at 14:20 (`projects:weekly-updates`) Mimi drafts this week's update for each open work with a client and tells its lead. The draft covers tasks finished, key dates kept or missed, daily records and snags, what is planned next week and the next key date. Never money.
+  - The lead sees it on the work's **Overview** (with `projects.messages.client`), changes it, and either **sends it to the client**, **throws it away**, or **drafts it again**. Sending goes into the client conversation they choose, else the latest one, else a new "Weekly updates" conversation with the client's main contact. It is an ordinary message, so it reaches the contact like any other.
+  - Nothing is sent by itself (choice 4). Once sent or thrown away, that week is closed. A lead can also draft one by hand any day.
+- **What the AI sees** (Configuration → KPIs and rules → Mimi, `projects.config.manage`):
+  - The AI writes the draft through the company's analytics keys (AI → Keys).
+  - Without a key, if the AI fails, or for **confidential work**, the draft is written from the facts alone. Confidential work goes to the AI only if switched on.
+  - **Sensitive fields** are left out of what the AI is given unless switched on.
+  - Weekly drafts and AI writing can each be switched off.
+- **Routes:**
+  - `GET /projects/{project}/updates` and `POST` (draft now)
+  - `PUT /projects/{project}/updates/{update}/save|send|discard`
+  - `PUT /projects/configuration/insights`
+- **Tests:** `tests/Feature/ProjectsMimiTest.php` (3); `tests/Unit/MimiLocalLayerTest.php` now covers the Projects entries. Browser check `e2e/projects-insights-ui.mjs` (now 23).

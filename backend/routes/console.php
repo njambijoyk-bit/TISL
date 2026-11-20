@@ -49,6 +49,7 @@ Schedule::command('projects:file-expiry-warnings')->dailyAt('07:40')->withoutOve
 Schedule::command('projects:snag-reminders')->dailyAt('07:50')->withoutOverlapping();   // late snags, told to whoever they are given to (stage 10)
 Schedule::command('projects:kpi-snapshot')->dailyAt('06:10')->withoutOverlapping();   // this week's scorecards; a work that turns red is told (stage 12)
 Schedule::command('projects:rules-morning')->dailyAt('06:40')->withoutOverlapping();   // rules on late tasks and snags, missing timesheets (Tuesdays), every morning (stage 12)
+Schedule::command('projects:weekly-updates')->fridays()->at('14:20')->withoutOverlapping();   // Mimi drafts each open work's update for its lead to send (stage 12)
 Schedule::command('projects:daily-reminders')->weekdays()->dailyAt('18:00')->withoutOverlapping();   // works that keep a daily record and have none today (stage 10)
 Schedule::command('projects:key-date-warnings')->dailyAt('07:00')->withoutOverlapping();   // key dates coming up, on the day, and missed
 Schedule::command('projects:stop-timers')->hourly()->withoutOverlapping();   // timers left running past the company's cap stop themselves and tell the person

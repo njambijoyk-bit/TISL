@@ -38,7 +38,12 @@ final class LocalLayer
             } catch (\Throwable) {
                 $prefixes = [];     // a missing table must not stop Mimi
             }
-            $this->slots = new Slots($prefixes);
+            try {
+                $projects = Cache::remember('mimi_project_prefixes', 600, fn () => \Illuminate\Support\Facades\Schema::hasTable('project_types') ? \Illuminate\Support\Facades\DB::table('project_types')->pluck('number_prefix')->filter()->unique()->values()->all() : []);
+            } catch (\Throwable) {
+                $projects = [];
+            }
+            $this->slots = new Slots($prefixes, $projects);
         }
 
         return $this->slots;

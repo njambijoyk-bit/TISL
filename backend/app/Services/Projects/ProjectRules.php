@@ -58,7 +58,8 @@ class ProjectRules
             'industries' => DB::table('project_industries')->where('is_active', 1)->orderBy('sort_order')->get(['key', 'name'])->map(fn ($i) => (array) $i)->all(),
             'tags' => Schema::hasTable('project_tags') ? DB::table('project_tags')->where('is_active', 1)->orderBy('name')->get(['key', 'name'])->map(fn ($t) => (array) $t)->all() : [],
             'flags' => DB::table('project_lists')->where('list', 'flag')->where('is_active', 1)->orderBy('sort_order')->get(['key', 'name'])->map(fn ($f) => (array) $f)->all(),
-            'can' => ['change' => $user->hasPermission('projects.rules')]];
+            'settings' => app(ProjectSettings::class)->get('insights'),
+            'can' => ['change' => $user->hasPermission('projects.rules'), 'settings' => $user->hasPermission('projects.config.manage')]];
     }
 
     /** @param array<string, mixed> $d name, trigger_event, trigger_value, conditions, actions, is_active, max_per_day */

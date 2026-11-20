@@ -78,6 +78,51 @@ class InsightsController extends Controller
         return $this->guard(fn () => response()->json(app(\App\Services\Projects\ProjectRules::class)->trial($rule, $request->user())));
     }
 
+    public function saveInsightSettings(Request $request): JsonResponse
+    {
+        return $this->guard(function () use ($request) {
+            app(\App\Services\Projects\ProjectSettings::class)->save('insights', (array) $request->input('settings', []), $request->user());
+
+            return response()->json(app(\App\Services\Projects\ProjectRules::class)->config($request->user()));
+        });
+    }
+
+    public function updates(Request $request, int $project): JsonResponse
+    {
+        return $this->guard(fn () => response()->json(app(\App\Services\Projects\ProjectUpdates::class)->list($this->work($request, $project), $request->user())));
+    }
+
+    public function draftUpdate(Request $request, int $project): JsonResponse
+    {
+        return $this->guard(function () use ($request, $project) {
+            $u = app(\App\Services\Projects\ProjectUpdates::class);
+            $p = $this->work($request, $project);
+            $u->draft($p, $request->user());
+
+            return response()->json($u->list($p, $request->user()), 201);
+        });
+    }
+
+    public function decideUpdate(Request $request, int $project, int $update, string $what): JsonResponse
+    {
+        return $this->guard(function () use ($request, $project, $update, $what) {
+            $u = app(\App\Services\Projects\ProjectUpdates::class);
+            $p = $this->work($request, $project);
+            match ($what) {
+                'save' => $u->save($p, $update, (string) $request->input('body'), $request->user()),
+                'send' => $u->send($p, $update, $request->user(), $request->input('thread_id') ? (int) $request->input('thread_id') : null, $request->has('body') ? (string) $request->input('body') : null),
+                'discard' => $u->discard($p, $update, $request->user()),
+            };
+
+            return response()->json($u->list($p, $request->user()));
+        });
+    }
+
+    private function work(Request $request, int $project): object
+    {
+        return app(\App\Services\Projects\ProjectService::class)->findFor($request->user(), $project);
+    }
+
     protected function guard(callable $do): JsonResponse
     {
         try {

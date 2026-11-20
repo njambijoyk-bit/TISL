@@ -34,6 +34,8 @@ class ProjectSettings
         'work' => ['rounding' => 6, 'timer_cap_hours' => 10, 'attendance_check' => 'warn', 'approve_by' => 'lead', 'billable_default' => true, 'warn_days' => '14,7,1', 'week_reminder' => true, 'payroll_split' => false, 'disbursement_ledger_id' => 0],
         // the site (stage 10): the ledgers a certified subcontract claim is billed to and its retention is held in
         'site' => ['sub_cost_ledger_id' => 0, 'sub_retention_ledger_id' => 0],
+        // Mimi (stage 12): weekly update drafts on Fridays; whether the AI writes them; whether confidential work and sensitive fields may go to the AI
+        'insights' => ['weekly_updates' => true, 'ai_drafts' => true, 'ai_confidential' => false, 'ai_sensitive_fields' => false],
         // the directory (stage 3): which visibility levels can be used beyond staff only
         'directory' => ['levels' => ['clients', 'public']],
         // client health (stage 3): days since the last contact, days a next action is late, nothing planned, days money is overdue in the books. 0 switches a rule off.
@@ -263,6 +265,10 @@ class ProjectSettings
             }
 
             return $out;
+        }
+
+        if ($part === 'insights') {
+            return array_map(fn ($x) => (bool) $x, array_intersect_key($v, self::DEFAULTS['insights']));
         }
 
         if ($part === 'directory') {

@@ -11,9 +11,18 @@ final class Slots
 {
     private string $order;
 
-    /** @param  string[]  $prefixes  voucher_series.prefix values, e.g. "WNKJ-SO-" or "INV/{YYYY}/" */
-    public function __construct(array $prefixes = [])
+    private ?string $project = null;
+
+    /**
+     * @param  string[]  $prefixes  voucher_series.prefix values, e.g. "WNKJ-SO-" or "INV/{YYYY}/"
+     * @param  string[]  $projectPrefixes  Projects' number prefixes (project_types.number_prefix), e.g. "M" for M-0413
+     */
+    public function __construct(array $prefixes = [], array $projectPrefixes = [])
     {
+        $projectPrefixes = array_values(array_filter(array_map(fn ($p) => preg_quote(trim((string) $p), '/'), $projectPrefixes)));
+        if ($projectPrefixes) {
+            $this->project = '/\b(?:' . implode('|', array_unique($projectPrefixes)) . ')-\d{3,}\b/i';
+        }
         // safety nets that need no database: the year-style numbers the old pattern handled, and the general shape of a voucher number (WNKJ-SO-00012)
         $parts = ['[A-Z]+-\d{4}-\d+', '[A-Z]{2,8}(?:-[A-Z0-9]{1,8})*-\d{3,}'];
         foreach ($prefixes as $p) {
@@ -47,6 +56,9 @@ final class Slots
         $take('/[a-z0-9._%+-]+@[a-z0-9.-]+\.[a-z]{2,}/i', 'email', 'emailaddr');
         $take('/\bPAY-\d{4}-\d+-\d+\b/i', 'payref', 'payref');
         $take('/\bCUST-\d{4}-\d+\b/i', 'custref', 'custref');
+        if ($this->project) {
+            $take($this->project, 'projref', 'projref');   // a piece of work's number (Projects), taken before order numbers that share its shape
+        }
         $take($this->order, 'ordref', 'ordref');
         $take('/\b(?=[A-Z0-9]*[A-Z])(?=[A-Z0-9]*\d)[A-Z0-9]{10}\b/', 'payref', 'payref');
         $t = preg_replace_callback('/\border\s*#?\s*(\d{1,8})\b/i', function ($m) use (&$slots) {

@@ -79,7 +79,7 @@ class MimiLocalLayerTest extends TestCase
         $kb = $this->kb();
         $guard = fn (string $q) => (new MimiHarmScannerService)->scan($q, [])['harm_category'];
 
-        return new LocalAnswerer($kb, new Matcher(require __DIR__ . '/../../resources/mimi/synonyms.php', $kb->all()), new Slots(['WNKJ-SO-', 'WNKJ-INV-', 'WNKJ-CSH-']), $this->stubbed(), $guard);
+        return new LocalAnswerer($kb, new Matcher(require __DIR__ . '/../../resources/mimi/synonyms.php', $kb->all()), new Slots(['WNKJ-SO-', 'WNKJ-INV-', 'WNKJ-CSH-'], ['M', 'BW']), $this->stubbed(), $guard);
     }
 
     private function label($a): string
@@ -91,7 +91,7 @@ class MimiLocalLayerTest extends TestCase
 
     private function sample(string $variant): string
     {
-        return strtr($variant, ['{order}' => 'WNKJ-SO-00012', '{payment}' => 'PAY-2026-1-001', '{customer}' => 'CUST-2026-0001', '{email}' => 'wanjiru@example.com']);
+        return strtr($variant, ['{order}' => 'WNKJ-SO-00012', '{payment}' => 'PAY-2026-1-001', '{customer}' => 'CUST-2026-0001', '{email}' => 'wanjiru@example.com', '{work}' => 'M-0413']);
     }
 
     /** The oracle reads the declared rules directly, so a bug in sees() cannot hide itself. */

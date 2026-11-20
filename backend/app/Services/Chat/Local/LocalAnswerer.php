@@ -106,7 +106,7 @@ final class LocalAnswerer
         switch ($r->status) {
             case 'ask':
                 $a->outcome = 'ask';
-                $a->text = 'Which one? Send the number, for example ' . (str_contains($r->need, 'ordref') ? 'WNKJ-SO-00012' : (str_contains($r->need, 'email') ? 'name@example.com' : 'CUST-2026-0001')) . '.';
+                $a->text = 'Which one? Send the number, for example ' . (str_contains($r->need, 'ordref') ? 'WNKJ-SO-00012' : (str_contains($r->need, 'projref') ? 'M-0413' : (str_contains($r->need, 'email') ? 'name@example.com' : 'CUST-2026-0001'))) . '.';
                 $a->sensitive = false;
                 break;
             case 'denied':

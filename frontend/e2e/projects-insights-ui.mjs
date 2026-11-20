@@ -2,6 +2,7 @@
 // side of green, from Books marked). The API is answered by the check itself; what each measure works out is proved by ProjectsKpisTest.
 // Scorecards (12.2): the scorecard on a work with eight weeks, a money figure from Books, and health in the list with its filter.
 // Rules (12.5): each rule read as when, if, then; adding one with its actions; trying one; switching it on; the last runs.
+// Mimi (12.6): the weekly update draft on a work (change it, send it, throw it away) and what the AI may see.
 // Forecasts (12.4): the pipeline chart and table, setting a stage's chance, when works will end, what will be billed.
 // It needs only the website (npx vite --port 5177).
 import { D, SITE, ok, finish, open } from './lib.mjs';
@@ -9,7 +10,7 @@ import { D, SITE, ok, finish, open } from './lib.mjs';
 const c = await open({ authenticator: false });
 const page = c.page;
 const json = (route, body, status = 200) => route.fulfill({ status, contentType: 'application/json', body: JSON.stringify(body) });
-const me = { user: { id: 1, name: 'Kamau', email: 'kamau@example.com' }, customer: null, security: null, access: { account: 'staff', clearance: 5, permissions: ['admin.access', 'projects.use', 'projects.config.view', 'projects.config.manage', 'projects.kpis', 'projects.rules', 'projects.insights', 'projects.insights.team', 'projects.capacity', 'projects.money.view'] } };
+const me = { user: { id: 1, name: 'Kamau', email: 'kamau@example.com' }, customer: null, security: null, access: { account: 'staff', clearance: 5, permissions: ['admin.access', 'projects.use', 'projects.config.view', 'projects.config.manage', 'projects.kpis', 'projects.rules', 'projects.insights', 'projects.insights.team', 'projects.capacity', 'projects.money.view', 'projects.messages.client'] } };
 await page.addInitScript((who) => { localStorage.setItem('auth-storage', JSON.stringify({ state: { ...who, isAuthenticated: true }, version: 0 })); }, me);
 const sent = [];
 const last = (k) => [...sent].reverse().find((x) => x[0] === k);
@@ -51,9 +52,10 @@ let rules = [
   { id: 2, key: 'new_work_follow', name: 'Manager follows new work', trigger_event: 'work_started', trigger_value: null, conditions: [], actions: [{ do: 'follow', who: 'lead_manager' }], is_active: true, max_per_day: 50, last_run_at: '2026-11-19T08:00:00Z', runs_today: 2,
     last_runs: [{ subject: 'BW-0510 Westlands office', outcome: 'done', note: null, created_at: '2026-11-19T08:00:00Z' }, { subject: 'BW-0511 Ngong road', outcome: 'skipped', note: 'Reached its runs for today.', created_at: '2026-11-19T09:00:00Z' }] },
 ];
-const ruleAnswer = () => ({ ready: true, rules, events: [{ key: 'work_started', name: 'A piece of work starts', value: null }, { key: 'date_missed', name: 'A key date is missed', value: 'Kind of key date (empty = any)' }, { key: 'snag_late', name: 'A snag is late by so many days', value: 'Days late' }],
+let insightSettings = { weekly_updates: true, ai_drafts: true, ai_confidential: false, ai_sensitive_fields: false };
+const ruleAnswer = () => ({ ready: true, rules, settings: insightSettings, events: [{ key: 'work_started', name: 'A piece of work starts', value: null }, { key: 'date_missed', name: 'A key date is missed', value: 'Kind of key date (empty = any)' }, { key: 'snag_late', name: 'A snag is late by so many days', value: 'Days late' }],
   who: { lead: 'The lead', members: 'Everyone on the work', followers: 'Its followers', lead_manager: 'The lead\'s manager', owner: 'The opportunity\'s owner', person: 'The person it is about' },
-  industries: [{ key: 'construction', name: 'Construction' }, { key: 'legal', name: 'Legal' }], tags: [{ key: 'urgent', name: 'Urgent' }], flags: [{ key: 'slow_payer', name: 'Slow payer' }], can: { change: true } });
+  industries: [{ key: 'construction', name: 'Construction' }, { key: 'legal', name: 'Legal' }], tags: [{ key: 'urgent', name: 'Urgent' }], flags: [{ key: 'slow_payer', name: 'Slow payer' }], can: { change: true, settings: true } });
 await page.route('**/api/admin/projects/configuration/rules', (route) => { if (route.request().method() === 'POST') { const b = route.request().postDataJSON(); sent.push(['rule', b]); rules = [...rules, { ...b, id: 3, key: null, trigger_value: b.trigger_value || null, last_runs: [], runs_today: 0 }]; return json(route, ruleAnswer(), 201); } return json(route, ruleAnswer()); });
 await page.route(/\/api\/admin\/projects\/configuration\/rules\/\d+$/, (route) => { const b = route.request().postDataJSON(); const id = Number(route.request().url().split('/').pop()); sent.push(['rule-put', id, b]); rules = rules.map((r) => (r.id === id ? { ...r, ...b } : r)); return json(route, ruleAnswer()); });
 await page.route(/\/api\/admin\/projects\/configuration\/rules\/\d+\/try$/, (route) => { sent.push(['try', route.request().url()]); return json(route, { runs: 2, examples: ['LIT-0042: Filing deadline missed', 'LIT-0057: Defence filing missed'] }); });
@@ -85,6 +87,11 @@ await page.getByRole('button', { name: 'Save the rule' }).click();
 await page.locator('[data-rule="3"]').waitFor({ timeout: 5000 });
 const saved = last('rule')?.[1];
 ok('a rule is saved with its event, value and actions', saved?.trigger_event === 'snag_late' && saved?.trigger_value === '7' && JSON.stringify(saved?.actions) === JSON.stringify([{ do: 'tell', who: 'lead_manager' }, { do: 'task', who: 'lead', title: 'Chase the subcontractor', days: '2' }]) && saved?.is_active === false);
+await page.route('**/api/admin/projects/configuration/insights', (route) => { insightSettings = route.request().postDataJSON().settings; sent.push(['insights', insightSettings]); return json(route, ruleAnswer()); });
+ok('Mimi says what the AI may see, confidential work and sensitive fields off out of the box', await page.locator('[data-mimi-setting="ai_drafts"] input').isChecked() && !(await page.locator('[data-mimi-setting="ai_confidential"] input').isChecked()) && !(await page.locator('[data-mimi-setting="ai_sensitive_fields"] input').isChecked()));
+await page.locator('[data-mimi-setting="ai_confidential"] input').click();
+await page.waitForTimeout(200);
+ok('letting the AI see confidential work is saved', last('insights')?.[1]?.ai_confidential === true && last('insights')?.[1]?.ai_sensitive_fields === false);
 
 // ---------------------------------------------------------------- the scorecard on a work, health in the list
 await page.route(/\/api\/admin\/projects\/509$/, (route) => json(route, { project: { id: 509, number: 'BW-0509', title: 'Kilimani flats', description: null, industry: { key: 'construction', name: 'Construction' }, type: { id: 5, name: 'Building works' }, stage: { id: 1, name: 'Works', status: 'info' }, state: 'open', priority: 'medium',
@@ -97,11 +104,23 @@ await page.route('**/api/admin/projects/509/scorecard', (route) => json(route, {
   K('snags_on_time', 'Snags closed on time', 'pct', true, 85, 'warn', 78, '18 of 23 snags due', [null, null, 'good', 'warn', 'warn', 'warn', 'warn', 'warn']),
   K('budget_used', 'Budget used', 'pct', false, 100, 'bad', 114, 'costs against the budget, from Books', [null, null, 'good', 'good', 'warn', 'warn', 'bad', 'bad'], { books: true }),
 ] }));
+let updates = [{ id: 7, week: '2026-11-16', body: 'This week we poured the third floor slab.', state: 'draft', by_ai: true, decided_by: null, decided_at: null, message_id: null }, { id: 6, week: '2026-11-09', body: 'x', state: 'sent', by_ai: false, decided_by: 'Kamau', decided_at: '2026-11-13T14:00:00Z', message_id: 3 }];
+const updAnswer = () => ({ ready: true, updates, threads: [{ id: 41, subject: 'Site progress', state: 'open' }] });
+await page.route('**/api/admin/projects/509/updates', (route) => json(route, updAnswer()));
+await page.route(/\/api\/admin\/projects\/509\/updates\/\d+\/(save|send|discard)$/, (route) => { const what = route.request().url().split('/').pop(); sent.push(['update', what, route.request().postDataJSON()]); updates = updates.map((u) => (u.id === 7 ? { ...u, state: { save: 'draft', send: 'sent', discard: 'discarded' }[what], decided_by: what === 'save' ? null : 'Kamau' } : u)); return json(route, updAnswer()); });
 await go('/admin/projects/509');
 await page.locator('[data-scorecard]').waitFor({ timeout: 10000 });
 ok('the scorecard shows the health as the worst KPI, each figure against green and how it was worked out', /Scorecard .* Off track/.test(await text(page.locator('[data-scorecard]'))) && /Budget used from Books costs against the budget, from Books 114% ≤ 100%/.test(await text(page.locator('[data-scorecard-kpi="budget_used"]'))) && /Inspections passed Client sees it 16 of 17 finished inspections 94% ≥ 90%/.test(await text(page.locator('[data-scorecard-kpi="inspections_passed"]'))));
 ok('each KPI shows its last eight weeks', (await page.locator('[data-scorecard-kpi="snags_on_time"] [aria-label="Last eight weeks"] [role="img"]').count()) === 8 && (await page.locator('[data-scorecard-kpi="snags_on_time"] [aria-label="2026-11-16: Needs watching"]').count()) === 1);
 await page.screenshot({ path: D + 'projects-scorecard.png', fullPage: true });
+await page.locator('[data-update-draft]').waitFor({ timeout: 5000 });
+ok('the weekly draft says Mimi wrote it and waits for the lead', /Week of 16 Nov · written by Mimi/.test(await text(page.locator('[data-updates]'))) && (await page.locator('#up-body').inputValue()) === 'This week we poured the third floor slab.' && /Week of 9 Nov Sent by Kamau/.test(await text(page.locator('[data-updates]'))));
+await page.locator('#up-body').fill('This week we poured the third floor slab. Next: the roof.');
+await page.locator('#up-thread').selectOption('41');
+await page.locator('[data-updates]').screenshot({ path: D + 'projects-weekly-update.png' });
+await page.getByRole('button', { name: 'Send to the client' }).click();
+await page.locator('[data-update="7"]').waitFor({ timeout: 5000 });
+ok('the lead sends the changed update into the conversation chosen', JSON.stringify(last('update')) === JSON.stringify(['update', 'send', { body: 'This week we poured the third floor slab. Next: the roof.', thread_id: '41' }]) && /No draft waiting/.test(await text(page.locator('[data-updates]'))));
 const listed = [];
 await page.route(/\/api\/admin\/projects(\?.*)?$/, (route) => { const q = Object.fromEntries(new URL(route.request().url()).searchParams); listed.push(q); const all = [{ id: 509, number: 'BW-0509', title: 'Kilimani flats', health: 'bad' }, { id: 510, number: 'BW-0510', title: 'Ruaka road', health: 'good' }, { id: 511, number: 'BW-0511', title: 'New office', health: null }];
   const data = all.filter((p) => !q.health || p.health === q.health).map((p) => ({ ...p, description: null, industry: { key: 'construction', name: 'Construction' }, type: { id: 5, name: 'Building works' }, stage: { id: 1, name: 'Works', status: 'info' }, state: 'open', priority: 'medium', customer: null, lead: { id: 1, name: 'Kamau' }, branch: null, due_date: null, confidential: false, frozen: false }));

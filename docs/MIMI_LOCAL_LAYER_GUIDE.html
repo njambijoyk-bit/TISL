@@ -623,7 +623,7 @@ footer.site{border-top:1px solid var(--line);margin-top:60px;padding:24px 0;colo
 
   <ol>
     <li><strong>Normalise.</strong> Lower-case, strip accents and punctuation; <code>m-pesa</code> becomes <code>mpesa</code>.</li>
-    <li><strong>Pull out slots.</strong> Order numbers, payment numbers, customer numbers and emails are cut out and replaced by placeholder words (<code>ordref</code>, <code>payref</code>, <code>custref</code>, <code>emailaddr</code>), so "show me order WNKJ-SO-00012" is compared as "show order <em>ordref</em>". The order-number pattern is <strong>built from the voucher series prefixes</strong> in Books, not hardcoded; that is the fix for gap G5.</li>
+    <li><strong>Pull out slots.</strong> Order numbers, payment numbers, customer numbers, Projects work numbers (like M-0413, from the kinds of work's number prefixes) and emails are cut out and replaced by placeholder words (<code>ordref</code>, <code>payref</code>, <code>custref</code>, <code>projref</code>, <code>emailaddr</code>), so "show me order WNKJ-SO-00012" is compared as "show order <em>ordref</em>". The order-number pattern is <strong>built from the voucher series prefixes</strong> in Books, not hardcoded; that is the fix for gap G5.</li>
     <li><strong>Tokenise.</strong> Drop filler words; reduce tracking→track, deliveries→delivery; map synonyms to one canonical word (<em>pay, payment, M-Pesa, checkout, lipa</em> all become <code>pay</code>). The synonym list is data, below.</li>
     <li><strong>Candidates.</strong> Keep only entries visible to this caller (<a href="#roles">chapter 5</a>).</li>
     <li><strong>Score</strong> each candidate against each of its question variants and keep the best.</li>
@@ -696,6 +696,10 @@ footer.site{border-top:1px solid var(--line);margin-top:60px;padding:24px 0;colo
       <tr><th><code>orders.lookup</code></th><td><code>customers.view</code></td><td>data scope (<code>all</code>/<code>assigned</code>/<code>own</code>) and branch limits</td><td>number, type, status, fulfilment, total, date, customer name and number</td><td><span class="cls p2">P2</span></td></tr>
       <tr><th><code>customers.lookup</code></th><td><code>customers.view</code></td><td>data scope and branch limits</td><td>name, number, tier, order count. <strong>Not</strong> email, phone, credit or spend; those stay on the customer's page</td><td><span class="cls p2">P2</span></td></tr>
       <tr><th><code>payments.summary</code></th><td><code>books.view</code></td><td>branch limits for Books</td><td>counts and totals; latest pending with initials only</td><td><span class="cls p2">P2</span></td></tr>
+      <tr><th><code>projects.late</code></th><td><code>projects.use</code></td><td>work the caller is on</td><td>work and task number, task title, due day; missed key dates of the last 30 days</td><td><span class="cls p2">P2</span></td></tr>
+      <tr><th><code>projects.due</code></th><td><code>projects.use</code></td><td>work the caller is on</td><td>their tasks due to Sunday and key dates they answer for</td><td><span class="cls p2">P2</span></td></tr>
+      <tr><th><code>projects.status</code></th><td><code>projects.use</code>, a work number</td><td>work the caller may open (confidential work only to its people)</td><td>number, title, stage, health, tasks open and late, expected end, next key date. <strong>Never</strong> money or extra fields</td><td><span class="cls p2">P2</span></td></tr>
+      <tr><th><code>projects.room</code></th><td><code>projects.capacity</code></td><td>the caller's line (Stage 8)</td><td>name and free hours next week</td><td><span class="cls p2">P2</span></td></tr>
     </tbody>
   </table></div>
 
@@ -1113,6 +1117,39 @@ $response = $this-&gt;callGemini($payload-&gt;contents);            <span class=
   <p class="kb-denied">You don't have the permission to manage AI keys.</p>
 </article>
 
+<article class="kb" id="projects.late" data-audience="staff" data-requires="projects.use" data-sensitivity="restricted" data-resolver="projects.late" data-keywords="late overdue behind missed task tasks work project projects slipping" data-follow="projects.due">
+  <h4 class="kb-title">What is late on my work?</h4>
+  <ul class="kb-q"><li>What is late on my work?</li><li>Which of my tasks are overdue?</li><li>What am I behind on?</li><li>Missed dates on my projects</li><li>My overdue tasks</li></ul>
+  <div class="kb-a"><p>Here is what is late on the work you are on:</p></div>
+  <p class="kb-denied">Projects is for people with access to Projects.</p>
+  <p class="kb-empty">Nothing is late on your work. Well done.</p>
+</article>
+
+<article class="kb" id="projects.due" data-audience="staff" data-requires="projects.use" data-sensitivity="restricted" data-resolver="projects.due" data-keywords="due week this tasks dates deadline deadlines coming upcoming work project" data-follow="projects.late">
+  <h4 class="kb-title">What is due this week?</h4>
+  <ul class="kb-q"><li>What is due this week?</li><li>My deadlines this week</li><li>What do I have coming up?</li><li>Tasks due this week</li><li>Which key dates are this week?</li></ul>
+  <div class="kb-a"><p>Due from today to Sunday:</p></div>
+  <p class="kb-denied">Projects is for people with access to Projects.</p>
+  <p class="kb-empty">Nothing of yours is due for the rest of this week.</p>
+</article>
+
+<article class="kb" id="projects.status" data-audience="staff" data-requires="projects.use" data-sensitivity="restricted" data-resolver="projects.status" data-keywords="how going status progress health work project stage" data-follow="projects.late">
+  <h4 class="kb-title">How is a piece of work going?</h4>
+  <ul class="kb-q"><li>How is {work}?</li><li>How is {work} going?</li><li>Status of {work}</li><li>Where is {work} at?</li><li>Progress on {work}</li></ul>
+  <div class="kb-a"><p>Here is where it is:</p></div>
+  <p class="kb-denied">Projects is for people with access to Projects.</p>
+  <p class="kb-empty">I can't find open work with that number that you may open.</p>
+</article>
+
+<article class="kb" id="projects.room" data-audience="staff" data-requires="projects.use projects.capacity" data-sensitivity="restricted" data-resolver="projects.room" data-keywords="room free capacity available spare hours next week who team busy" data-follow="projects.due">
+  <h4 class="kb-title">Who has room next week?</h4>
+  <ul class="kb-q"><li>Who has room next week?</li><li>Who is free next week?</li><li>Who can take more work?</li><li>Team capacity next week</li><li>Who has spare hours?</li></ul>
+  <div class="kb-a"><p>Free hours next week, most first:</p></div>
+  <p class="kb-more">The Team page in Projects shows the next eight weeks.</p>
+  <p class="kb-denied">Seeing the team's capacity needs the capacity permission.</p>
+  <p class="kb-empty">Nobody you plan has free hours next week.</p>
+</article>
+
   </div>
 </section>
 
@@ -1258,7 +1295,7 @@ const CFG = { 'company.name': 'TISL Store', 'support.email': 'web@targetisl.co.k
 const fill = html => html.replace(/\{\{\s*([\w.]+)\s*\}\}/g, (m, k) => (k in CFG ? CFG[k] : m));
 
 // every permission key in Catalog::PERMISSIONS at commit e15e726
-const CATALOGUE_KEYS = new Set(['access.manage','access.roles','access.view','admin.access','ai.keys','algorithm.manage','algorithm.run','analytics.view','appearance.manage','attendance.arbitrate','attendance.manage','auctions.manage','bookings.manage','books.bounce','books.period','books.pettycash','books.post','books.review','books.view','books.writeoff','calendar.team','campaigns.admin','campaigns.build','campaigns.publish','campaigns.purge','careers.manage','catalogue.delete','catalogue.edit','catalogue.pricelists','catalogue.publish','catalogue.purge','catalogue.settings','catalogue.view','content.manage','costcentres.manage','costcentres.view','credit.act','credit.view','currency.base','currency.manage','customers.manage','customers.represent','customers.tiers','customers.view','delivery.manage','driver.app','engagement.moderate','engagement.settings','engagement.view','hampers.manage','hr.manage','hr.purge','hr.team','hr.view','imports.export','imports.manage','imports.view','insight.mimi','insight.ops','insight.view','inventory.accounting','inventory.manage','inventory.view','locations.manage','loyalty.configure','loyalty.deduct','loyalty.export','loyalty.grant','menus.manage','menus.view','payroll.run','policies.manage','projects.delete','projects.manage','projects.moderate','projects.purge','projects.use','promos.admin','promos.manage','quotes.view','quotes.write','resources.manage','settings.delete','shipping.manage','stock.expiry_alerts','stock.manage','stock.override_expiry','stock.settings','stock.view','system.backups','system.devtools','system.logs','system.modules','system.navigation','system.restore','tax.manage','tax.view','tickets.manage','tickets.purge','users.manage','users.purge','vault.bypass','vault.policies','vault.settings','vendors.approve','vendors.manage','vendors.view','verification.manage','verification.override']);
+const CATALOGUE_KEYS = new Set(['projects.use','projects.capacity','access.manage','access.roles','access.view','admin.access','ai.keys','algorithm.manage','algorithm.run','analytics.view','appearance.manage','attendance.arbitrate','attendance.manage','auctions.manage','bookings.manage','books.bounce','books.period','books.pettycash','books.post','books.review','books.view','books.writeoff','calendar.team','campaigns.admin','campaigns.build','campaigns.publish','campaigns.purge','careers.manage','catalogue.delete','catalogue.edit','catalogue.pricelists','catalogue.publish','catalogue.purge','catalogue.settings','catalogue.view','content.manage','costcentres.manage','costcentres.view','credit.act','credit.view','currency.base','currency.manage','customers.manage','customers.represent','customers.tiers','customers.view','delivery.manage','driver.app','engagement.moderate','engagement.settings','engagement.view','hampers.manage','hr.manage','hr.purge','hr.team','hr.view','imports.export','imports.manage','imports.view','insight.mimi','insight.ops','insight.view','inventory.accounting','inventory.manage','inventory.view','locations.manage','loyalty.configure','loyalty.deduct','loyalty.export','loyalty.grant','menus.manage','menus.view','payroll.run','policies.manage','projects.delete','projects.manage','projects.moderate','projects.purge','projects.use','promos.admin','promos.manage','quotes.view','quotes.write','resources.manage','settings.delete','shipping.manage','stock.expiry_alerts','stock.manage','stock.override_expiry','stock.settings','stock.view','system.backups','system.devtools','system.logs','system.modules','system.navigation','system.restore','tax.manage','tax.view','tickets.manage','tickets.purge','users.manage','users.purge','vault.bypass','vault.policies','vault.settings','vendors.approve','vendors.manage','vendors.view','verification.manage','verification.override']);
 const KINDS = ['guest', 'customer', 'vendor', 'applicant', 'driver', 'staff'];
 const ROLE_WORDS = ['super_admin', 'admin', 'manager', 'finance', 'cashier', 'chef', 'sales_rep', 'logistics', 'senior_accountant', 'owner'];
 
@@ -1387,10 +1424,12 @@ const tokens = t => squash(t).replace(/[^a-z0-9]+/g, ' ').split(' ').filter(w =>
 
 /* slots: references cut out of the question. In the server these patterns come from voucher_series.prefix */
 const SERIES = ['WNKJ-SO', 'WNKJ-INV', 'WNKJ-CSH'];
+const WORK_PREFIXES = ['M', 'BW', 'LIT', 'SW'];   // Projects number prefixes (project_types.number_prefix)
 const RX = {
   email:   /[a-z0-9._%+-]+@[a-z0-9.-]+\.[a-z]{2,}/gi,
   pay:     /\bPAY-\d{4}-\d+-\d+\b/gi,
   cust:    /\bCUST-\d{4}-\d+\b/gi,
+  work:    new RegExp('\\b(?:' + WORK_PREFIXES.join('|') + ')-\\d{3,}\\b', 'gi'),
   order:   new RegExp('\\b(?:' + SERIES.join('|') + ')-\\d+\\b', 'gi'),
   receipt: /\b(?=[A-Z0-9]*[A-Z])(?=[A-Z0-9]*\d)[A-Z0-9]{10}\b/g,
   ordnum:  /\border\s*#?\s*(\d{1,8})\b/gi,
@@ -1400,15 +1439,15 @@ const RX = {
 function extractSlots(q) {
   const slots = {}; let t = q;
   const take = (rx, name, ph) => { t = t.replace(rx, m => { if (!slots[name]) slots[name] = m; return ' ' + ph + ' '; }); };
-  take(RX.email, 'email', 'emailaddr'); take(RX.pay, 'payref', 'payref'); take(RX.cust, 'custref', 'custref');
+  take(RX.email, 'email', 'emailaddr'); take(RX.pay, 'payref', 'payref'); take(RX.cust, 'custref', 'custref'); take(RX.work, 'projref', 'projref');
   take(RX.order, 'ordref', 'ordref');   take(RX.receipt, 'payref', 'payref');
   t = t.replace(RX.ordnum, (m, n) => { slots.ordnum = n; return ' order ordref '; });
   return { text: t, slots };
 }
-const VSLOT = { '{order}': ' ordref ', '{payment}': ' payref ', '{customer}': ' custref ', '{email}': ' emailaddr ' };
-const variantText = v => v.replace(/\{(?:order|payment|customer|email)\}/g, m => VSLOT[m]);
-const SAMPLE_SLOT = { '{order}': 'WNKJ-SO-00012', '{payment}': 'PAY-2026-1-001', '{customer}': 'CUST-2026-0001', '{email}': 'wanjiru@example.com' };
-const withSample = v => v.replace(/\{(?:order|payment|customer|email)\}/g, m => SAMPLE_SLOT[m]);
+const VSLOT = { '{order}': ' ordref ', '{payment}': ' payref ', '{customer}': ' custref ', '{email}': ' emailaddr ', '{work}': ' projref ' };
+const variantText = v => v.replace(/\{(?:order|payment|customer|email|work)\}/g, m => VSLOT[m]);
+const SAMPLE_SLOT = { '{order}': 'WNKJ-SO-00012', '{payment}': 'PAY-2026-1-001', '{customer}': 'CUST-2026-0001', '{email}': 'wanjiru@example.com', '{work}': 'M-0413' };
+const withSample = v => v.replace(/\{(?:order|payment|customer|email|work)\}/g, m => SAMPLE_SLOT[m]);
 
 /* ════════ 5 · matching ════════ */
 function lev(a, b, max) {
@@ -1501,6 +1540,14 @@ const RESOLVERS = {
     } },
   'payments.summary':  { kinds: ['staff'], requires: ['books.view'], needs: [], cls: 'P2', scope: 'branch (Books)',
     run: () => ({ status: 'ok', rows: 4, scope: 'all', lines: ['Collected today: ' + kes(42300), 'This month: ' + kes(612450), 'Pending: 3 · Failed: 1 · Open disputes: 0', 'Latest pending: PAY-2026-1-017 · W. K. · ' + kes(4500)] }) },
+  'projects.late':     { kinds: ['staff'], requires: ['projects.use'], needs: [], cls: 'P2', scope: 'work the caller is on',
+    run: () => ({ status: 'ok', rows: 2, scope: 'own', lines: ['M-0413-T7 Draft the defence · was due 12 Nov', 'M-0413 key date missed: Filing deadline · 14 Nov'] }) },
+  'projects.due':      { kinds: ['staff'], requires: ['projects.use'], needs: [], cls: 'P2', scope: 'work the caller is on',
+    run: () => ({ status: 'ok', rows: 1, scope: 'own', lines: ['BW-0509-T3 Order the steel · due 21 Nov'] }) },
+  'projects.status':   { kinds: ['staff'], requires: ['projects.use'], needs: ['projref'], cls: 'P2', scope: 'work the caller may open',
+    run: (ctx, s) => ({ status: 'ok', rows: 2, scope: ctx.scope, lines: [`${(s.projref || '').toUpperCase()} Kilimani flats · Works · needs watching`, '12 tasks open, 2 late · expected to end 31 Mar'] }) },
+  'projects.room':     { kinds: ['staff'], requires: ['projects.use', 'projects.capacity'], needs: [], cls: 'P2', scope: 'the caller\'s line',
+    run: () => ({ status: 'ok', rows: 2, scope: 'all', lines: ['Njeri · 14 hours free', 'Otieno · 6 hours free'] }) },
 };
 function runResolver(name, ctx, slots) {
   const R = RESOLVERS[name]; if (!R) return { status: 'empty' };
@@ -1613,7 +1660,7 @@ function buildReply(res) {
     case 'guard': return msg('bot', el('p', { text: fill("I'm not able to help with that. Please keep our conversation focused on {{company.name}} topics.") }), el('div', { class: 'src' }, chip('Stopped by the guard, before anything else', 'bad'), chip(res.harm, 'mono')));
     case 'answer': case 'empty': case 'denied_resolver': case 'ask': {
       const m = msg('bot');
-      if (res.outcome === 'ask') { m.append(el('p', { text: 'Which one? Send the number, for example ' + (res.resolver.need.includes('ordref') ? 'WNKJ-SO-00012' : res.resolver.need.includes('email') ? 'wanjiru@example.com' : 'CUST-2026-0001') + '.' })); m.append(el('div', { class: 'src' }, chip('Needs a reference', 'warn'), chip(e.id, 'mono'))); return m; }
+      if (res.outcome === 'ask') { m.append(el('p', { text: 'Which one? Send the number, for example ' + (res.resolver.need.includes('ordref') ? 'WNKJ-SO-00012' : res.resolver.need.includes('projref') ? 'M-0413' : res.resolver.need.includes('email') ? 'wanjiru@example.com' : 'CUST-2026-0001') + '.' })); m.append(el('div', { class: 'src' }, chip('Needs a reference', 'warn'), chip(e.id, 'mono'))); return m; }
       if (res.outcome === 'denied_resolver') { m.append(el('p', { text: fill(e.denied ? e.denied.textContent.trim() : 'That is not available to you.') })); m.append(el('div', { class: 'src' }, chip('Refused by the resolver, not only the entry', 'bad'), chip(e.id, 'mono'))); return m; }
       m.append(htmlBlock(fill(e.a.innerHTML)));
       if (res.outcome === 'empty') m.append(el('p', { text: fill(e.empty ? e.empty.textContent.trim() : 'Nothing found.') }));

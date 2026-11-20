@@ -172,4 +172,36 @@
   <div class="kb-a"><p>Go to <strong>AI → Keys</strong>. Keys are stored encrypted. For each key you choose the provider and model, what it may be used for (analytics, Mimi, screening or all), and where it comes in the order. If one fails (busy, over quota, bad key) the next is tried, and the last error shows on the screen.</p></div>
   <p class="kb-denied">You don't have the permission to manage AI keys.</p>
 </article>
+<article class="kb" id="projects.late" data-audience="staff" data-requires="projects.use" data-sensitivity="restricted" data-resolver="projects.late" data-keywords="late overdue behind missed task tasks work project projects slipping" data-follow="projects.due">
+  <h4 class="kb-title">What is late on my work?</h4>
+  <ul class="kb-q"><li>What is late on my work?</li><li>Which of my tasks are overdue?</li><li>What am I behind on?</li><li>Missed dates on my projects</li><li>My overdue tasks</li></ul>
+  <div class="kb-a"><p>Here is what is late on the work you are on:</p></div>
+  <p class="kb-denied">Projects is for people with access to Projects.</p>
+  <p class="kb-empty">Nothing is late on your work. Well done.</p>
+</article>
+
+<article class="kb" id="projects.due" data-audience="staff" data-requires="projects.use" data-sensitivity="restricted" data-resolver="projects.due" data-keywords="due week this tasks dates deadline deadlines coming upcoming work project" data-follow="projects.late">
+  <h4 class="kb-title">What is due this week?</h4>
+  <ul class="kb-q"><li>What is due this week?</li><li>My deadlines this week</li><li>What do I have coming up?</li><li>Tasks due this week</li><li>Which key dates are this week?</li></ul>
+  <div class="kb-a"><p>Due from today to Sunday:</p></div>
+  <p class="kb-denied">Projects is for people with access to Projects.</p>
+  <p class="kb-empty">Nothing of yours is due for the rest of this week.</p>
+</article>
+
+<article class="kb" id="projects.status" data-audience="staff" data-requires="projects.use" data-sensitivity="restricted" data-resolver="projects.status" data-keywords="how going status progress health work project stage" data-follow="projects.late">
+  <h4 class="kb-title">How is a piece of work going?</h4>
+  <ul class="kb-q"><li>How is {work}?</li><li>How is {work} going?</li><li>Status of {work}</li><li>Where is {work} at?</li><li>Progress on {work}</li></ul>
+  <div class="kb-a"><p>Here is where it is:</p></div>
+  <p class="kb-denied">Projects is for people with access to Projects.</p>
+  <p class="kb-empty">I can't find open work with that number that you may open.</p>
+</article>
+
+<article class="kb" id="projects.room" data-audience="staff" data-requires="projects.use projects.capacity" data-sensitivity="restricted" data-resolver="projects.room" data-keywords="room free capacity available spare hours next week who team busy" data-follow="projects.due">
+  <h4 class="kb-title">Who has room next week?</h4>
+  <ul class="kb-q"><li>Who has room next week?</li><li>Who is free next week?</li><li>Who can take more work?</li><li>Team capacity next week</li><li>Who has spare hours?</li></ul>
+  <div class="kb-a"><p>Free hours next week, most first:</p></div>
+  <p class="kb-more">The Team page in Projects shows the next eight weeks.</p>
+  <p class="kb-denied">Seeing the team's capacity needs the capacity permission.</p>
+  <p class="kb-empty">Nobody you plan has free hours next week.</p>
+</article>
 </body></html>

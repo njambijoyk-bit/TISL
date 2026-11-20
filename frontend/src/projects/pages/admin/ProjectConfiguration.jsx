@@ -32,6 +32,7 @@ import OpeningQuestionsPanel from '../../components/OpeningQuestionsPanel';
 import DateRulesPanel from '../../components/DateRulesPanel';
 import KpisPanel from '../../components/KpisPanel';
 import RulesPanel from '../../components/RulesPanel';
+import MimiSettingsPanel from '../../components/MimiSettingsPanel';
 import ProjectKeys from '../../components/ProjectKeys';
 
 /**
@@ -330,7 +331,7 @@ export default function ProjectConfiguration() {
           {tab === 'casebook' && <CasebookKindsPanel />}
           {tab === 'templates' && <TemplatesPanel />}
           {tab === 'registers' && <RegisterKindsPanel />}
-          {tab === 'insights' && <div style={{ display: 'grid', gap: 14 }}><KpisPanel /><RulesPanel /></div>}
+          {tab === 'insights' && <div style={{ display: 'grid', gap: 14 }}><KpisPanel /><RulesPanel /><MimiSettingsPanel /></div>}
           {tab === 'site' && <div style={{ display: 'grid', gap: 14 }}><SiteSettingsPanel /><InspectionKindsPanel /></div>}
           {tab === 'shortcuts' && <ShortcutsPanel onChanged={reloadNames} />}
 

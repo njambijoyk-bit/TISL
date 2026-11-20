@@ -18,6 +18,10 @@ final class ResolverRegistry
             'orders.lookup' => new R\OrdersLookup,
             'customers.lookup' => new R\CustomersLookup,
             'payments.summary' => new R\PaymentsSummary,
+            'projects.late' => new R\ProjectsLate,
+            'projects.due' => new R\ProjectsDue,
+            'projects.status' => new R\ProjectsStatus,
+            'projects.room' => new R\ProjectsRoom,
         ];
     }
 }

@@ -138,7 +138,7 @@ final class Matcher
     /** Turn a variant's {order} style slots into the placeholder words the question side produces. */
     public static function variantText(string $v): string
     {
-        return strtr($v, ['{order}' => ' ordref ', '{payment}' => ' payref ', '{customer}' => ' custref ', '{email}' => ' emailaddr ']);
+        return strtr($v, ['{order}' => ' ordref ', '{payment}' => ' payref ', '{customer}' => ' custref ', '{email}' => ' emailaddr ', '{work}' => ' projref ']);
     }
 
     private function sim(string $a, string $b): float
