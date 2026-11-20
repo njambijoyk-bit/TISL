@@ -40,6 +40,13 @@ The list of purposes lives in code, one line each, with a name, what it is for, 
 
 A new AI feature later adds one line here and asks for its own purpose.
 
+**A purpose that belongs to a module follows that module's licence.** `screening` belongs to Careers and `drafts` belongs to Projects; `mimi`, `analytics` and `explain` belong to the core and are always there.
+
+- If the module is **not licensed**, its purpose is hidden on AI → Keys: no card on the Purposes tab and no tick box under "Kept to". Its calls are refused before any key is touched.
+- If the module is **licensed**, its purpose shows whether the module is switched on or off. That way the owner can set up keys before switching the module on.
+- This uses `LicenseManager::isLicensed()`, not `isActive()`.
+- Lines, kept-to ticks and usage stay stored when a licence lapses, and come back as they were if it returns.
+
 ### 2. Keys: open to all purposes, or kept to some
 
 Each key is either:
@@ -127,7 +134,7 @@ Plus two columns on `ai_provider_keys`:
 
 | Build | What |
 |---|---|
-| A.1 | Purposes registry, keys open or kept, lines per purpose with a model per place, resting keys, the call log; `explain` and `drafts` switched over; moving existing keys. Tests for every path down a line. |
+| A.1 | Purposes registry (each with the module it belongs to, hidden unless that module is licensed), keys open or kept, lines per purpose with a model per place, resting keys, the call log; `explain` and `drafts` switched over; moving existing keys. Tests for every path down a line. |
 | A.2 | The screen: Keys tab (open or kept, rest status), Purposes tab (line with models, test this purpose). Browser check. |
 | A.3 | Usage per purpose and per key from the call log, monthly limits with the 80% notice and the stop at 100%. Tests and browser check. |
 
