@@ -44,6 +44,18 @@ for (const file of files(root)) {
   });
 }
 
+// the Projects API: two calls with one name means the second silently replaces the first (it happened twice in stages 9 and 11)
+{
+  const api = join(root, '..', '_shared', 'api', 'projects.js');
+  const seen = new Map();
+  readFileSync(api, 'utf8').split('\n').forEach((line, i) => {
+    const m = line.match(/^  ([a-zA-Z]+): async/);
+    if (!m) return;
+    if (seen.has(m[1])) problems.push(`src/_shared/api/projects.js:${i + 1}  the API call "${m[1]}" is already defined on line ${seen.get(m[1])}`);
+    else seen.set(m[1], i + 1);
+  });
+}
+
 if (problems.length) {
   console.error(`Projects screens must use the selected theme and fonts (src/projects/README.md). ${problems.length} problem(s):\n`);
   console.error(problems.join('\n'));

@@ -16,7 +16,7 @@ import ProjectKeys from '../../components/ProjectKeys';
  * table, so "Reference" reads "Case number" to a law firm and "Contract number" to a builder, and it is the same field.
  * What is fixed when work starts (industry, kind of work, branch, lead, number) is only asked for when starting.
  */
-const EMPTY = { industry_key: '', type_id: '', title: '', description: '', customer_id: null, lead_user_id: '', location_id: '', priority: 'medium', reference: '', authority: '', place: '', start_date: '', due_date: '', confidential: false };
+const EMPTY = { industry_key: '', type_id: '', title: '', description: '', customer_id: null, lead_user_id: '', location_id: '', priority: 'medium', reference: '', authority: '', place: '', start_date: '', due_date: '', confidential: false, template_id: 'default' };
 
 function ClientPicker({ label, value, onChange }) {
   const [q, setQ] = useState('');
@@ -120,7 +120,7 @@ export default function ProjectForm() {
       const saved = editing
         ? await projectsAPI.update(id, { ...common, ...(canConfidential && form.confidential !== project.confidential ? { confidential: form.confidential } : {}) })
         : await projectsAPI.create({ ...common, industry_key: form.industry_key, type_id: Number(form.type_id), lead_user_id: form.lead_user_id ? Number(form.lead_user_id) : undefined,
-          location_id: form.location_id ? Number(form.location_id) : null, confidential: canConfidential ? form.confidential : false });
+          location_id: form.location_id ? Number(form.location_id) : null, confidential: canConfidential ? form.confidential : false, ...(form.template_id !== 'default' ? { template_id: Number(form.template_id) } : {}) });
       toast.success(editing ? 'Saved' : `${saved.number} started`);
       navigate(`/admin/projects/${saved.id}`);
     } catch (err) {
@@ -145,16 +145,24 @@ export default function ProjectForm() {
             <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))', gap: 14 }}>
               {!editing && options.industries.length > 1 && (
                 <Field label="Industry" htmlFor="project-industry">
-                  <SelectInput id="project-industry" value={form.industry_key} onChange={(e) => { const first = options.types.find((x) => x.industry === e.target.value); set({ industry_key: e.target.value, type_id: first ? first.id : '' }); }}>
+                  <SelectInput id="project-industry" value={form.industry_key} onChange={(e) => { const first = options.types.find((x) => x.industry === e.target.value); set({ industry_key: e.target.value, type_id: first ? first.id : '', template_id: 'default' }); }}>
                     {options.industries.map((i) => <option key={i.key} value={i.key}>{i.name}</option>)}
                   </SelectInput>
                 </Field>
               )}
               {!editing && (
                 <Field label="Kind of work" htmlFor="project-type">
-                  <SelectInput id="project-type" value={form.type_id} onChange={(e) => set({ type_id: e.target.value })} required>
+                  <SelectInput id="project-type" value={form.type_id} onChange={(e) => set({ type_id: e.target.value, template_id: 'default' })} required>
                     {types.length === 0 && <option value="">None set up for this industry</option>}
                     {types.map((x) => <option key={x.id} value={x.id}>{x.name}</option>)}
+                  </SelectInput>
+                </Field>
+              )}
+              {!editing && (options?.templates?.[form.type_id] ?? []).length > 0 && (
+                <Field label="Start from" htmlFor="project-template" hint="Its phases, tasks and key dates are made from the start date.">
+                  <SelectInput id="project-template" value={form.template_id === 'default' ? String(options.templates[form.type_id].find((t) => t.is_default)?.id ?? 0) : form.template_id} onChange={(e) => set({ template_id: e.target.value })}>
+                    {options.templates[form.type_id].map((t) => <option key={t.id} value={t.id}>{t.name}{t.is_default ? ' (usual)' : ''}</option>)}
+                    <option value="0">Nothing: start empty</option>
                   </SelectInput>
                 </Field>
               )}
@@ -203,7 +211,8 @@ export default function ProjectForm() {
                 <textarea id="project-description" value={form.description} rows={4} onChange={(e) => set({ description: e.target.value })}
                   style={{ width: '100%', boxSizing: 'border-box', padding: '8px 10px', borderRadius: 9, border: '1px solid var(--line-strong)', background: 'var(--surface-card)', color: 'var(--text-primary)', fontSize: 13.5, fontFamily: 'var(--font-body)', resize: 'vertical' }} />
               </Field>
-              {canConfidential && (
+              {!editing && options?.start_confidential?.[form.type_id] && <Notice style={{ gridColumn: '1 / -1' }}>This kind of work starts confidential: only the people on it can find it.</Notice>}
+              {canConfidential && !(!editing && options?.start_confidential?.[form.type_id]) && (
                 <label htmlFor="project-confidential" style={{ gridColumn: '1 / -1', display: 'flex', gap: 8, alignItems: 'flex-start', fontSize: 13.5 }}>
                   <input id="project-confidential" type="checkbox" style={check} checked={form.confidential} onChange={(e) => set({ confidential: e.target.checked })} />
                   <span><b>Confidential.</b> Only the people on it can find it, even in search. Every time it is opened is recorded.</span>

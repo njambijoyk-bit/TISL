@@ -2106,6 +2106,13 @@ Route::middleware('auth:sanctum')->group(function () {
             Route::post('/{project}/snags/{snag}/photo', [$sn, 'photo'])->whereNumber(['project', 'snag']);   // the same
             Route::post('/{project}/snags/{snag}/close', [$sn, 'close'])->whereNumber(['project', 'snag'])->middleware('permission:projects.inspections');
             Route::post('/{project}/snags/{snag}/reopen', [$sn, 'reopen'])->whereNumber(['project', 'snag'])->middleware('permission:projects.inspections');
+            $wt = \App\Http\Controllers\Api\Projects\WorkTemplatesController::class;
+            Route::get('/configuration/types/{type}/templates', [$wt, 'forType'])->whereNumber('type')->middleware('permission:projects.config.view');
+            Route::post('/configuration/work-templates', [$wt, 'save'])->middleware('permission:projects.config.stages');
+            Route::put('/configuration/work-templates/{template}', [$wt, 'save'])->whereNumber('template')->middleware('permission:projects.config.stages');
+            Route::put('/configuration/types/{type}/settings', [$wt, 'settings'])->whereNumber('type')->middleware('permission:projects.config.stages');
+            Route::get('/{project}/work-templates', [$wt, 'offered'])->whereNumber('project');
+            Route::post('/{project}/work-templates/{template}/apply', [$wt, 'apply'])->whereNumber(['project', 'template'])->middleware('permission:projects.tasks');
             $gl = \App\Http\Controllers\Api\Projects\GuestsController::class;
             Route::get('/{project}/guests', [$gl, 'index'])->whereNumber('project')->middleware('permission:projects.files.view');
             Route::post('/{project}/guests', [$gl, 'store'])->whereNumber('project')->middleware('permission:projects.guests');

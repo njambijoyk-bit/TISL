@@ -136,8 +136,13 @@ class ProjectService
         $shape = app(ProjectShape::class);
         $maySee = $user->hasPermission('projects.fields.sensitive');
         $fields = [];
+        $templates = [];
+        $startConfidential = [];
+        $wt = app(ProjectWorkTemplates::class);
         foreach ($types as $t) {
             $fields[$t['id']] = array_values(array_filter($shape->fields($t['industry'], $t['id']), fn ($f) => $maySee || ! $f['sensitive']));
+            $templates[$t['id']] = $wt->offered($t['id']);   // stage 11: how a work of this kind can start
+            $startConfidential[$t['id']] = $wt->setting($t['id'], 'confidential_default');
         }
         $staff = app(\App\Services\Notify\Staff::class)->holding('projects.use')->map(fn ($u) => ['id' => (int) $u->id, 'name' => $u->name])->sortBy('name')->values()->all();
         $words = [];
@@ -146,7 +151,7 @@ class ProjectService
         }
 
         return ['default_industry' => $general['default_industry'], 'industries' => $industries, 'types' => $types, 'branches' => $branches,
-            'leads' => $staff, 'fields' => $fields,
+            'leads' => $staff, 'fields' => $fields, 'templates' => $templates, 'start_confidential' => $startConfidential,
             'priorities' => self::PRIORITIES, 'words' => $words, 'cost_centres' => $this->costCentres->ready(),
             'can' => ['create' => $user->hasPermission('projects.create'), 'confidential' => $user->hasPermission('projects.confidential')]];
     }
@@ -203,6 +208,7 @@ class ProjectService
             throw new ProjectException('Give it a title.');
         }
         $confidential = ! empty($d['confidential']);
+        $byDefault = ! $confidential && app(ProjectWorkTemplates::class)->setting((int) $type->id, 'confidential_default');   // stage 11: this kind of work starts confidential (healthcare)
         if ($confidential && ! $by->hasPermission('projects.confidential')) {
             ProjectLog::refused(null, $by, 'project.confidential', 'Does not hold projects.confidential', 'project');
             throw new ProjectException('You may not make this confidential.', 403);
@@ -221,6 +227,7 @@ class ProjectService
             throw new ProjectException('The Lead project role is missing or switched off. Put it back in Configuration first.');
         }
 
+        $confidential = $confidential || $byDefault;
         $id = DB::transaction(function () use ($values, $industry, $type, $stage, $confidential, $lead, $locationId, $by, $roles, $d) {
             $number = $this->nextNumber($type->number_prefix);
             $cc = $this->costCentres->forProject($number, $values['title'], $locationId);   // a failure here undoes everything: no project without its cost centre
@@ -244,7 +251,13 @@ class ProjectService
         });
         $project = $this->find($id);
         ProjectLog::record($id, $by, 'project.created', 'project', $id, null, ['number' => $project->number, 'title' => $project->title, 'type' => $type->name, 'lead' => $lead->name,
-            'confidential' => (bool) $project->confidential, 'cost_centre_id' => $project->cost_centre_id]);
+            'confidential' => (bool) $project->confidential, 'confidential_by_default' => $byDefault, 'cost_centre_id' => $project->cost_centre_id]);
+        // stage 11: the chosen work template (or the kind of work's default; 0 = none) makes its phases, tasks and key dates
+        $templates = app(ProjectWorkTemplates::class);
+        $chosen = array_key_exists('template_id', $d) ? (int) $d['template_id'] : (collect($templates->offered((int) $type->id))->firstWhere('is_default', true)['id'] ?? 0);
+        if ($chosen > 0) {
+            $templates->apply($project, $chosen, $by, true);
+        }
 
         return $project;
     }
