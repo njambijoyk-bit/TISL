@@ -21,7 +21,24 @@ class SubcontractorPortalController extends Controller
 
     public function index(Request $request): JsonResponse
     {
-        return $this->guard(fn () => response()->json(['ready' => ProjectsSetup::site(), 'subcontracts' => $this->subs->forVendor($this->vendor($request))]));
+        return $this->guard(fn () => response()->json($this->answer($this->vendor($request))));
+    }
+
+    /** Stage 10, build 10.7: the subcontractor says a snag given to them is fixed. */
+    public function fixSnag(Request $request, int $snag): JsonResponse
+    {
+        return $this->guard(function () use ($request, $snag) {
+            $vendor = $this->vendor($request);
+            app(\App\Services\Projects\ProjectSnags::class)->fixByVendor($vendor, $snag, $request->input('note'), $request->user());
+
+            return response()->json($this->answer($vendor));
+        });
+    }
+
+    /** @return array<string, mixed> */
+    private function answer(int $vendor): array
+    {
+        return ['ready' => ProjectsSetup::site(), 'subcontracts' => $this->subs->forVendor($vendor), 'snags' => app(\App\Services\Projects\ProjectSnags::class)->forVendor($vendor)];
     }
 
     public function claim(Request $request, int $sub): JsonResponse
@@ -35,7 +52,7 @@ class SubcontractorPortalController extends Controller
             $fileId = $request->file('file') && ProjectsSetup::documents() ? app(ProjectFiles::class)->receive($project, $request->file('file'), null, $request->user()->id, 'claim') : null;
             $this->subs->claim($project, $sub, $request->only(['claimed_pct', 'period_to', 'note']), $request->user(), true, $fileId);
 
-            return response()->json(['ready' => true, 'subcontracts' => $this->subs->forVendor($vendor)], 201);
+            return response()->json($this->answer($vendor), 201);
         });
     }
 

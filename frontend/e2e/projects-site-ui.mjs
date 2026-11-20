@@ -1,4 +1,4 @@
-// Browser check: the Site tab (stage 10). Subcontracts (10.3): adding one on a vendor order, a claim, certifying less than claimed with a reason, and the totals. Plant (10.2): issuing from the asset register, returning, booking ahead with an overlap warning, hiring in on a vendor order.
+// Browser check: the Site tab (stage 10). Inspections (10.6): starting one, answering with a tap, finishing with a typed name, a failed answer becoming a snag. Snags (10.7): raising one, given to someone, marking fixed and closing. Subcontracts (10.3): adding one on a vendor order, a claim, certifying less than claimed with a reason, and the totals. Plant (10.2): issuing from the asset register, returning, booking ahead with an overlap warning, hiring in on a vendor order.
 // Materials (10.1): planned, waiting and issued per material with the cost read from Stock, asking for
 // materials with the product finder, the store issuing against a request and returning to stock, and the Stock jobs named. The API is
 // answered by the check itself; Stock jobs, the cost centre and who may issue are proved by ProjectsMaterialsTest. It needs only the website
@@ -8,7 +8,7 @@ import { D, SITE, ok, finish, open } from './lib.mjs';
 const c = await open({ authenticator: false });
 const page = c.page;
 const json = (route, body, status = 200) => route.fulfill({ status, contentType: 'application/json', body: JSON.stringify(body) });
-const me = { user: { id: 1, name: 'Kamau', email: 'kamau@example.com' }, customer: null, security: null, access: { account: 'staff', clearance: 5, permissions: ['admin.access', 'projects.use', 'projects.materials', 'stock.manage', 'projects.money.view', 'projects.plant', 'inventory.manage', 'projects.subcontracts'] } };
+const me = { user: { id: 1, name: 'Kamau', email: 'kamau@example.com' }, customer: null, security: null, access: { account: 'staff', clearance: 5, permissions: ['admin.access', 'projects.use', 'projects.materials', 'stock.manage', 'projects.money.view', 'projects.plant', 'inventory.manage', 'projects.subcontracts', 'projects.inspections'] } };
 await page.addInitScript((who) => { localStorage.setItem('auth-storage', JSON.stringify({ state: { ...who, isAuthenticated: true }, version: 0 })); }, me);
 const sent = [];
 const last = (k) => [...sent].reverse().find((x) => x[0] === k);
@@ -18,7 +18,7 @@ await page.route('**/api/me', (route) => json(route, me));
 await page.route('**/api/admin/projects/names', (route) => json(route, { ready: true, industry: 'construction', company_industry: 'construction', names: {}, keys: {} }));
 await page.route(/\/api\/admin\/projects\/413$/, (route) => json(route, { project: { id: 413, number: 'C-0413', title: 'Kilimani flats', description: null, industry: { key: 'construction', name: 'Construction' }, type: { id: 1, name: 'Building' }, stage: { id: 1, name: 'Works', status: 'info' }, state: 'open', priority: 'medium',
   customer: null, lead: { id: 1, name: 'Kamau' }, branch: null, cost_centre_id: 9, reference: null, authority: null, place: null, start_date: null, due_date: null, closing_period_ends: null, closed_at: null, confidential: false, frozen: false,
-  stages: [{ id: 1, name: 'Works', state: 'open', status: 'info', required_fields: [] }], cost_centre_path: 'C-0413', words: { material: { name: 'Material', plural: 'Materials' }, subcontractor: { name: 'Subcontractor', plural: 'Subcontractors' } }, can: { open: true, money: true }, locks: {}, fields: [] } }));
+  stages: [{ id: 1, name: 'Works', state: 'open', status: 'info', required_fields: [] }], cost_centre_path: 'C-0413', words: { material: { name: 'Material', plural: 'Materials' }, subcontractor: { name: 'Subcontractor', plural: 'Subcontractors' }, inspection: { name: 'Inspection', plural: 'Inspections' }, snag: { name: 'Snag', plural: 'Snags' }, daily_record: { name: 'Site diary', plural: 'Site diaries' } }, can: { open: true, money: true }, locks: {}, fields: [] } }));
 let requests = [{ id: 5, variant_id: 11, name: 'Cement 50kg', unit: 'bag', quantity: 40, issued: 0, branch: 'Yard', location_id: 2, needed_on: '2026-11-18', late: true, note: null, state: 'open', asked_by: 'Njeri', at: '2026-11-17' }];
 let issued = [];
 let materials = [{ variant_id: 11, name: 'Cement 50kg', unit: 'bag', planned: 400, plan_note: null, waiting: 40, issued: 0, cost: 0 }];
@@ -138,4 +138,65 @@ await page.waitForTimeout(400);
 ok('certifying less than claimed asks why, and the bill in the books is shown', JSON.stringify(last('certify')?.[1]) === JSON.stringify({ certified_pct: 25, note: 'Second floor not finished' }) && /certified 25% .*PI-0012 .*Certified/.test(await text(page.locator('[data-claim="1"]'))));
 ok('the totals show what is certified of the agreed value and what is held back', /Certified 25% · (KES )?500,000 of (KES )?2,000,000 before tax · held back (KES )?50,000/.test(await text(page.locator('[data-subcontract-totals]'))));
 await page.screenshot({ path: D + 'projects-subcontracts.png', fullPage: true });
+
+// inspections
+let insp = null;
+let inspList = [];
+const showInsp = () => ({ inspection: insp, answers: insp.answers, can: { answer: insp.state === 'draft' } });
+await page.route('**/api/admin/projects/413/inspections', (route) => {
+  if (route.request().method() === 'POST') { sent.push(['inspect', route.request().postDataJSON()]); insp = { id: 21, kind: 'Waterproofing', area: 'Roof, block B', done_on: today(), state: 'draft', outcome: null, inspector: null, answers: [{ no: 1, question: 'Membrane laps 100 mm', answer: null, note: null, file: null, snag: null }, { no: 2, question: 'No punctures', answer: null, note: null, file: null, snag: null }] }; return json(route, { ...showInsp(), inspection: insp }, 201); }
+  return json(route, { ready: true, inspections: inspList, kinds: [{ id: 2, name: 'Waterproofing' }], can: { inspect: true } });
+});
+await page.route('**/api/admin/projects/413/inspections/21', (route) => json(route, showInsp()));
+await page.route('**/api/admin/projects/413/inspections/21/answers/*', (route) => { const no = Number(route.request().url().split('/').pop()); const b = route.request().postDataJSON(); sent.push(['answer', no, b]); insp.answers = insp.answers.map((a) => (a.no === no ? { ...a, answer: b.answer, note: b.note } : a)); return json(route, showInsp()); });
+await page.route('**/api/admin/projects/413/inspections/21/finish', (route) => { sent.push(['finish', route.request().postDataJSON()]); insp = { ...insp, state: 'done', outcome: 'failed', inspector: 'Kamau Njoroge', answers: insp.answers.map((a) => (a.answer === 'fail' ? { ...a, snag: { number: 1, state: 'open' } } : a)) }; return json(route, showInsp()); });
+function today() { return new Date().toISOString().slice(0, 10); }
+await page.locator('[data-site]').getByRole('tab', { name: 'Inspections' }).click();
+await page.locator('[data-inspections]').waitFor({ timeout: 5000 });
+await page.getByRole('button', { name: 'Start an inspection' }).click();
+await page.getByLabel('Where (optional)').fill('Roof, block B');
+await page.locator('[data-inspection-form]').getByRole('button', { name: 'Start' }).click();
+await page.locator('[data-inspection="21"]').waitFor({ timeout: 5000 });
+await page.locator('[data-answer="1"]').getByRole('button', { name: 'Passed' }).click();
+await page.waitForTimeout(200);
+await page.locator('[data-answer="2"]').getByRole('button', { name: 'Failed' }).click();
+await page.waitForTimeout(200);
+await page.getByLabel('Note on question 2').fill('Puncture by the outlet');
+await page.getByLabel('Note on question 2').blur();
+await page.waitForTimeout(300);
+ok('each question is answered with a tap and a note', JSON.stringify(sent.filter((x) => x[0] === 'answer').map((x) => [x[1], x[2].answer])) === JSON.stringify([[1, 'pass'], [2, 'fail'], [2, 'fail']]) && last('answer')[2].note === 'Puncture by the outlet');
+await page.getByLabel('Type your full name to finish').fill('Kamau Njoroge');
+await page.getByRole('button', { name: 'Finish' }).click();
+await page.locator('[data-inspection-outcome]').waitFor({ timeout: 5000 });
+ok('finishing with a typed name fails it and the failed answer is a snag', JSON.stringify(last('finish')?.[1]) === JSON.stringify({ name: 'Kamau Njoroge' }) && /Failed. Each failed answer is now a snag/.test(await text(page.locator('[data-inspection-outcome]'))) && /Snag 1/.test(await text(page.locator('[data-answer="2"]'))));
+
+// snags
+let snags = [{ id: 1, number: 1, title: 'No punctures: Puncture by the outlet', area: 'Roof, block B', state: 'open', due_on: null, late: false, shared: false, from_inspection: true, given: null, mine: false, file: null, fixed_note: null, fixed_by: null }];
+const snagAnswer = (st) => ({ ready: true, snags: snags.filter((x) => !st || x.state === st), counts: { open: snags.filter((x) => x.state === 'open').length, fixed: snags.filter((x) => x.state === 'fixed').length, closed: snags.filter((x) => x.state === 'closed').length }, people: [{ id: 2, name: 'Njeri' }], subcontracts: [{ id: 81, name: 'Electrical works · Juja Electrical' }], can: { manage: true, photos: true } });
+await page.route(/\/api\/admin\/projects\/413\/snags(\?.*)?$/, (route) => {
+  if (route.request().method() === 'POST') { sent.push(['snag', route.request().headers()['content-type'] ?? '']); snags = [...snags, { id: 2, number: 2, title: 'Chipped tile at the entrance', area: 'Lobby', state: 'open', due_on: '2026-11-25', late: false, shared: true, from_inspection: false, given: { kind: 'person', id: 2, name: 'Njeri' }, mine: false, file: null, fixed_note: null, fixed_by: null }]; return json(route, snagAnswer('open'), 201); }
+  return json(route, snagAnswer(new URL(route.request().url()).searchParams.get('state')));
+});
+await page.route('**/api/admin/projects/413/snags/2/fix', (route) => { sent.push(['fix', route.request().postDataJSON()]); snags = snags.map((x) => (x.id === 2 ? { ...x, state: 'fixed', fixed_note: 'Tile replaced', fixed_by: 'Kamau' } : x)); return json(route, snagAnswer('open')); });
+await page.route('**/api/admin/projects/413/snags/2/close', (route) => { sent.push(['close', 2]); snags = snags.map((x) => (x.id === 2 ? { ...x, state: 'closed' } : x)); return json(route, snagAnswer('fixed')); });
+await page.locator('[data-site]').getByRole('tab', { name: 'Snags' }).click();
+await page.locator('[data-snags]').waitFor({ timeout: 5000 });
+ok('the snag from the inspection is open and says where it came from', /1. No punctures: Puncture by the outlet · Roof, block B · given to nobody yet .*from an inspection/.test(await text(page.locator('[data-snag="1"]'))));
+await page.getByRole('button', { name: 'Raise a snag' }).click();
+await page.getByLabel('What').fill('Chipped tile at the entrance');
+await page.getByLabel('Given to').selectOption({ label: 'Njeri' });
+await page.getByLabel('The client sees it').check();
+await page.getByRole('button', { name: 'Raise it' }).click();
+await page.locator('[data-snag="2"]').waitFor({ timeout: 5000 });
+ok('a snag is raised, given to someone and shared with the client', /^multipart\/form-data/.test(last('snag')?.[1] ?? '') && /2. Chipped tile at the entrance · Lobby · Njeri .*Client sees it Open/.test(await text(page.locator('[data-snag="2"]'))));
+page.removeAllListeners('dialog');
+page.on('dialog', (d) => d.accept('Tile replaced'));
+await page.locator('[data-snag="2"]').getByRole('button', { name: 'Mark fixed' }).click();
+await page.waitForTimeout(300);
+await page.getByRole('tab', { name: /^Fixed, to check/ }).click();
+await page.locator('[data-snag="2"]').getByRole('button', { name: 'Close' }).click();
+await page.waitForTimeout(300);
+ok('marked fixed with what was done, then checked and closed', JSON.stringify(last('fix')?.[1]) === JSON.stringify({ note: 'Tile replaced' }) && JSON.stringify(last('close')) === JSON.stringify(['close', 2]));
+await page.getByRole('tab', { name: /^Closed/ }).click();
+await page.screenshot({ path: D + 'projects-snags.png', fullPage: true });
 await finish(c);

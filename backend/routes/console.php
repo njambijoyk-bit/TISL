@@ -46,6 +46,7 @@ Schedule::command('projects:certificate-warnings')->dailyAt('07:10')->withoutOve
 Schedule::command('projects:checklist-reminders')->dailyAt('07:20')->withoutOverlapping();   // joining and leaving steps due or late (stage 8)
 Schedule::command('projects:request-reminders')->dailyAt('07:30')->withoutOverlapping();   // files and sign-offs asked for, due or late (stage 9)
 Schedule::command('projects:file-expiry-warnings')->dailyAt('07:40')->withoutOverlapping();   // files on the work running out (stage 9)
+Schedule::command('projects:snag-reminders')->dailyAt('07:50')->withoutOverlapping();   // late snags, told to whoever they are given to (stage 10)
 Schedule::command('projects:daily-reminders')->weekdays()->dailyAt('18:00')->withoutOverlapping();   // works that keep a daily record and have none today (stage 10)
 Schedule::command('projects:key-date-warnings')->dailyAt('07:00')->withoutOverlapping();   // key dates coming up, on the day, and missed
 Schedule::command('projects:stop-timers')->hourly()->withoutOverlapping();   // timers left running past the company's cap stop themselves and tell the person

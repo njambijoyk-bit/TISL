@@ -2087,6 +2087,25 @@ Route::middleware('auth:sanctum')->group(function () {
             Route::post('/{project}/daily/{day}/photos', [$dy, 'photo'])->whereNumber('project')->where('day', '\d{4}-\d{2}-\d{2}')->middleware('permission:projects.daily');
             Route::post('/{project}/daily/{day}/sign', [$dy, 'sign'])->whereNumber('project')->where('day', '\d{4}-\d{2}-\d{2}')->middleware('permission:projects.daily');
             Route::put('/{project}/daily-settings', [$dy, 'keeps'])->whereNumber('project')->middleware('permission:projects.daily');
+            $ins = \App\Http\Controllers\Api\Projects\InspectionsController::class;
+            Route::get('/configuration/inspections', [$ins, 'kinds'])->middleware('permission:projects.config.view');
+            Route::post('/configuration/inspections', [$ins, 'saveKind'])->middleware('permission:projects.config.manage');
+            Route::put('/configuration/inspections/{kind}', [$ins, 'saveKind'])->whereNumber('kind')->middleware('permission:projects.config.manage');
+            Route::get('/{project}/inspections', [$ins, 'index'])->whereNumber('project');
+            Route::post('/{project}/inspections', [$ins, 'start'])->whereNumber('project')->middleware('permission:projects.inspections');
+            Route::get('/{project}/inspections/{inspection}', [$ins, 'show'])->whereNumber(['project', 'inspection']);
+            Route::put('/{project}/inspections/{inspection}/answers/{no}', [$ins, 'answer'])->whereNumber(['project', 'inspection', 'no'])->middleware('permission:projects.inspections');
+            Route::post('/{project}/inspections/{inspection}/answers/{no}/photo', [$ins, 'photo'])->whereNumber(['project', 'inspection', 'no'])->middleware('permission:projects.inspections');
+            Route::post('/{project}/inspections/{inspection}/finish', [$ins, 'finish'])->whereNumber(['project', 'inspection'])->middleware('permission:projects.inspections');
+            $sn = \App\Http\Controllers\Api\Projects\SnagsController::class;
+            Route::get('/{project}/snags', [$sn, 'index'])->whereNumber('project');
+            Route::post('/{project}/snags', [$sn, 'store'])->whereNumber('project')->middleware('permission:projects.inspections');
+            Route::put('/{project}/snags/{snag}', [$sn, 'update'])->whereNumber(['project', 'snag'])->middleware('permission:projects.inspections');
+            Route::delete('/{project}/snags/{snag}', [$sn, 'destroy'])->whereNumber(['project', 'snag'])->middleware('permission:projects.inspections');
+            Route::post('/{project}/snags/{snag}/fix', [$sn, 'fix'])->whereNumber(['project', 'snag']);   // whoever it was given to, or with projects.inspections (checked inside)
+            Route::post('/{project}/snags/{snag}/photo', [$sn, 'photo'])->whereNumber(['project', 'snag']);   // the same
+            Route::post('/{project}/snags/{snag}/close', [$sn, 'close'])->whereNumber(['project', 'snag'])->middleware('permission:projects.inspections');
+            Route::post('/{project}/snags/{snag}/reopen', [$sn, 'reopen'])->whereNumber(['project', 'snag'])->middleware('permission:projects.inspections');
             $gl = \App\Http\Controllers\Api\Projects\GuestsController::class;
             Route::get('/{project}/guests', [$gl, 'index'])->whereNumber('project')->middleware('permission:projects.files.view');
             Route::post('/{project}/guests', [$gl, 'store'])->whereNumber('project')->middleware('permission:projects.guests');
@@ -3877,6 +3896,7 @@ Route::get('/vendor-scans/{vendor}/{n}', [\App\Http\Controllers\Api\VendorScanCo
 Route::middleware(['auth:sanctum', 'module:projects'])->prefix('vendor-portal/subcontracts')->group(function () {
     Route::get('/', [\App\Http\Controllers\Api\Projects\SubcontractorPortalController::class, 'index']);
     Route::post('/{sub}/claims', [\App\Http\Controllers\Api\Projects\SubcontractorPortalController::class, 'claim'])->whereNumber('sub')->middleware('throttle:20,1');
+    Route::post('/snags/{snag}/fix', [\App\Http\Controllers\Api\Projects\SubcontractorPortalController::class, 'fixSnag'])->whereNumber('snag')->middleware('throttle:30,1');
 });
 Route::middleware(['auth:sanctum', 'module:extras'])->prefix('vendor-portal')->group(function () {
     $vp = \App\Http\Controllers\Api\VendorPortalController::class;

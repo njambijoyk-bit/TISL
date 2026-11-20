@@ -129,6 +129,15 @@ export function MyWorkOne({ id }) {
         )}
       </Panel>
 
+      {w.snags?.length > 0 && (
+        <Panel data-my-snags>
+          <PanelTitle hint="Things to put right that the team shared with you.">Snags</PanelTitle>
+          <ul style={{ margin: 0, paddingLeft: 18, display: 'grid', gap: 6, fontSize: 14 }}>
+            {w.snags.map((n) => <li key={n.number}>{n.title}{n.area ? ` · ${n.area}` : ''} <Chip status={n.state === 'closed' ? 'good' : n.state === 'fixed' ? 'info' : 'warning'}>{n.state === 'closed' ? 'Done' : n.state === 'fixed' ? 'Fixed, being checked' : 'Open'}</Chip></li>)}
+          </ul>
+        </Panel>
+      )}
+
       {w.invoices.length > 0 && (
         <Panel data-my-invoices>
           <PanelTitle right={<Link to="/my-account" style={link}>Pay from My account</Link>}>Invoices</PanelTitle>

@@ -213,7 +213,7 @@ class ProjectSubcontracts
     public function shape(object $s, bool $money): array
     {
         $claims = DB::table('project_sub_claims')->where('subcontract_id', $s->id)->orderByDesc('number')->get();
-        $bills = DB::table('vouchers')->whereIn('id', $claims->pluck('voucher_id')->filter()->all() ?: [0])->get(['id', 'voucher_number', 'total_amount', 'status'])->keyBy('id');
+        $bills = Schema::hasTable('vouchers') ? DB::table('vouchers')->whereIn('id', $claims->pluck('voucher_id')->filter()->all() ?: [0])->get(['id', 'voucher_number', 'total_amount', 'status'])->keyBy('id') : collect();
         $order = $s->vendor_order_id && Schema::hasTable('vendor_orders') ? DB::table('vendor_orders')->where('id', $s->vendor_order_id)->first(['id', 'po_number', 'status']) : null;
         $value = $this->value($s);
         $done = $this->certifiedPct((int) $s->id);
@@ -248,7 +248,7 @@ class ProjectSubcontracts
     {
         $ids = DB::table('project_sub_claims')->where('subcontract_id', $subId)->whereNotNull('retention_voucher_id')->pluck('retention_voucher_id')->all();
 
-        return $ids ? round((float) DB::table('vouchers')->whereIn('id', $ids)->where('status', 'posted')->sum('total_amount'), 2) : 0.0;
+        return $ids && Schema::hasTable('vouchers') ? round((float) DB::table('vouchers')->whereIn('id', $ids)->where('status', 'posted')->sum('total_amount'), 2) : 0.0;
     }
 
     private function order(mixed $id, int $vendor): ?int

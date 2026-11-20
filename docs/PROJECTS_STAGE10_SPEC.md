@@ -1,6 +1,6 @@
-# Projects Stage 10: Resources and site (being built)
+# Projects Stage 10: Resources and site (built)
 
-Status: the owner said "stage 10 now" on 2026-11-20 after Stage 9, so this design is built straight away with the four choices at the end taken as recommended (as in every stage so far). Any of them can still be changed; say which. What is built so far is listed under "As built".
+Status: built. The owner said "stage 10 now" on 2026-11-20 after Stage 9, so the four choices at the end were taken as recommended; any of them can still be changed. All seven builds are listed under "As built" (10.6 and 10.7 were committed together, since a failed inspection answer raises a snag).
 
 Stages 1 to 9 built the work, its money, the doing of it, the talking about it, its links, its people and its papers. Stage 10 is about what is used on site and what happens there: materials, plant, subcontractors, the daily record, inspections and snags. The words are the industry's (Stage 1 names: "material", "subcontractor", "daily record", "inspection", "snag"), so a firm that is not in construction sees its own.
 
@@ -169,3 +169,32 @@ Screen: `docs/screens/projects-daily.png` (at phone width).
 - **Reminder:** a work marked "keeps a daily record" has its lead told at 18:00 on a weekday with no record that day (`projects:daily-reminders`).
 - **Routes:** `GET`, `PUT /projects/{project}/daily/{day}`; `POST …/daily/{day}/lines`, `DELETE …/daily/{day}/lines/{line}`, `POST …/daily/{day}/photos`, `POST …/daily/{day}/sign`; `PUT …/daily-settings`.
 - **Tests:** `tests/Feature/ProjectsDailyTest.php` (3). Browser check `e2e/projects-daily-ui.mjs` (8 checks, at phone width).
+
+### 10.6 Inspections (done)
+
+- **Inspection kinds** (Configuration → Site, `projects.config.manage`): a name and its questions, one a line (1 to 60), offered or not. Script 267 starts with "Quality check" (three questions).
+- **An inspection** on a work (`projects.inspections` and a project role that works the site): the kind, where, the day. It copies the kind's questions, so changing a kind later does not change past inspections. Each question is answered with a tap (passed, failed, not applicable), with a note and a photo from the phone's camera (kept in the work's Files under "Inspections").
+- **Finishing** needs every question answered and the inspector's typed name. The outcome is passed, or failed when any answer failed; **each failed answer becomes a snag** (the question and the note as its title, the area, the photo), and the lead is told. A finished inspection is locked.
+- **Routes:** `GET`, `POST /projects/configuration/inspections`, `PUT …/inspections/{kind}`; `GET`, `POST /projects/{project}/inspections`; `GET …/inspections/{inspection}`; `PUT …/inspections/{inspection}/answers/{no}`; `POST …/answers/{no}/photo`; `POST …/inspections/{inspection}/finish`.
+
+### 10.7 Snags (done)
+
+Screen: `docs/screens/projects-snags.png`.
+
+- **A snag** (`projects.inspections` to raise and manage): what, where, a photo, given to someone on the work or to a subcontract, by a day, and whether the client sees it. Numbered per work. Whoever it is given to is told (a subcontractor through their vendor login).
+- **Open → fixed → closed:** whoever it is given to marks it fixed with what was done (on the work, or a subcontractor on their portal); whoever may inspect closes it, or opens it again with a reason. Whoever raised it is told when it is fixed.
+- **On the portals:** the subcontractor's Subcontracts page lists the snags given to them, with "Mark fixed"; the client's My work shows the snags shared with them and how far they are.
+- **Late snags** are told once a day at 07:50 to whoever has them (`projects:snag-reminders`).
+- **Routes:** `GET`, `POST /projects/{project}/snags`; `PUT`, `DELETE …/snags/{snag}`; `POST …/snags/{snag}/fix`, `…/photo`, `…/close`, `…/reopen`; `POST /vendor-portal/subcontracts/snags/{snag}/fix`.
+- **Tests:** `tests/Feature/ProjectsInspectionsTest.php` (3, inspections and snags). Browser checks: `e2e/projects-site-ui.mjs` (now 21 checks), `e2e/projects-vendor-ui.mjs` (now 5), `e2e/projects-portal-ui.mjs` (now 9).
+
+### To check by hand once script 267 is run
+
+1. Configuration → Site: choose the subcontract costs and retention ledgers; look at the "Quality check" inspection kind.
+2. On a piece of work → Site → Materials: plan a material, ask for some from a branch; as whoever keeps the store (Stock management and Projects materials), issue part of it from My Work's "Materials to issue", then return some. In Stock → Jobs see the work's job, and in Books the Work in progress journal on the work's cost centre.
+3. Close the work and see the Stock job completed (cost moved to Cost of services).
+4. Plant: issue a piece of equipment from the asset register to the work; check the asset register shows the work as its holder; book it ahead on another work and see the overlap warning; return it with its condition. Put a hired crane on a vendor order.
+5. Subcontracts: add one on a vendor order with 10% retention; claim 30%; certify 25% with a reason. In Books see the purchase invoice for 25% of the order before tax, the retention journal, and **the invoice's open amount reduced by the retention** (this is the purchase write-off added to Books: please look at it closely). Mark complete and release retention.
+6. Sign in as the subcontractor (a vendor login): Vendor portal → Subcontracts; make a claim with a file; mark a snag fixed.
+7. Site diary on a phone: add weather, a crew, plant hours and a photo; sign it; see that only a note can be added after.
+8. Start an inspection, fail one answer with a note and a photo, finish it; see the snag; give it to someone, mark it fixed as them, close it. Share another snag with the client and see it on their My work.

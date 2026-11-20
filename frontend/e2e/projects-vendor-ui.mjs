@@ -15,8 +15,10 @@ await page.route('**/api/me', (route) => json(route, me));
 let subs = [{ id: 81, project: 'C-0413 Kilimani flats', vendor_id: 3, vendor: 'Juja Electrical', title: 'Electrical works', scope: 'All wiring and fittings', starts_on: null, ends_on: null, state: 'active', retention_pct: 10, order: { id: 30, number: 'PO-0030', status: 'sent' },
   certified_pct: 25, value: 2000000, certified: 500000, held: 50000, released: false,
   claims: [{ id: 91, number: 1, period_to: '2026-10-31', claimed_pct: 30, certified_pct: 25, state: 'certified', note: null, answer_note: 'Second floor not finished', by_vendor: true, at: '2026-11-01', file_id: null, bill: { id: 5, number: 'PI-0012', total: 580000 } }] }];
-await page.route('**/api/vendor-portal/subcontracts', (route) => json(route, { ready: true, subcontracts: subs }));
-await page.route('**/api/vendor-portal/subcontracts/81/claims', (route) => { sent.push(route.request().headers()['content-type'] ?? ''); subs = [{ ...subs[0], claims: [{ id: 92, number: 2, period_to: null, claimed_pct: 60, certified_pct: null, state: 'submitted', note: null, answer_note: null, by_vendor: true, at: '2026-11-20', file_id: 4, bill: null }, ...subs[0].claims] }]; return json(route, { ready: true, subcontracts: subs }, 201); });
+let vsnags = [{ id: 4, project: 'C-0413', subcontract: 'Electrical works', number: 3, title: 'Socket loose in kitchen', area: 'Flat 2B', due_on: '2026-11-18', late: true, state: 'open', note: null }];
+await page.route('**/api/vendor-portal/subcontracts', (route) => json(route, { ready: true, subcontracts: subs, snags: vsnags }));
+await page.route('**/api/vendor-portal/subcontracts/snags/4/fix', (route) => { sent.push('fix:' + route.request().postDataJSON().note); vsnags = [{ ...vsnags[0], state: 'fixed', late: false }]; return json(route, { ready: true, subcontracts: subs, snags: vsnags }); });
+await page.route('**/api/vendor-portal/subcontracts/81/claims', (route) => { sent.push(route.request().headers()['content-type'] ?? ''); subs = [{ ...subs[0], claims: [{ id: 92, number: 2, period_to: null, claimed_pct: 60, certified_pct: null, state: 'submitted', note: null, answer_note: null, by_vendor: true, at: '2026-11-20', file_id: 4, bill: null }, ...subs[0].claims] }]; return json(route, { ready: true, subcontracts: subs, snags: vsnags }, 201); });
 
 await page.goto(`${SITE}/e2e/harness.html?c=ProjectsApp&at=${encodeURIComponent('/vendor-portal/subcontracts')}`, { waitUntil: 'networkidle' });
 await page.locator('[data-vendor-subcontracts]').waitFor({ timeout: 15000 });
@@ -28,5 +30,10 @@ await page.getByLabel('A file (optional)').setInputFiles({ name: 'progress.pdf',
 await page.getByRole('button', { name: 'Send the claim' }).click();
 await page.locator('[data-vendor-claim="2"]').waitFor({ timeout: 5000 });
 ok('a claim is sent with its file as a real upload and then waits', /^multipart\/form-data/.test(sent[0] ?? '') && /Claim 2: 60% Waiting/.test(await text(page.locator('[data-vendor-claim="2"]'))) && (await page.getByRole('button', { name: 'Make a claim' }).count()) === 0);
+page.on('dialog', (d) => d.accept('Tightened and tested'));
+ok('snags given to them are listed, late ones marked', /3. Socket loose in kitchen · C-0413 · Electrical works · Flat 2B · by 18 Nov 2026 Late Open/.test(await text(page.locator('[data-vendor-snag="3"]'))));
+await page.locator('[data-vendor-snag="3"]').getByRole('button', { name: 'Mark fixed' }).click();
+await page.waitForTimeout(300);
+ok('they mark a snag fixed with what was done', sent.includes('fix:Tightened and tested') && /Fixed, being checked/.test(await text(page.locator('[data-vendor-snag="3"]'))));
 await page.screenshot({ path: D + 'projects-vendor-subcontracts.png', fullPage: true });
 await finish(c);

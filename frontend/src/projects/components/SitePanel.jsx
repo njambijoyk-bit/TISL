@@ -5,13 +5,15 @@ import MaterialsPanel from './MaterialsPanel';
 import PlantPanel from './PlantPanel';
 import SubcontractsPanel from './SubcontractsPanel';
 import DailyPanel from './DailyPanel';
+import InspectionsPanel from './InspectionsPanel';
+import SnagsPanel from './SnagsPanel';
 
 /**
  * The Site tab (docs/PROJECTS_STAGE10_SPEC.md): what is used on site and what happens there. Each part is named in the industry's words.
  * Parts are added build by build: materials (10.1), plant (10.2), subcontracts (10.3), the daily record (10.5), inspections (10.6), snags (10.7).
  */
 export default function SitePanel({ projectId, word }) {
-  const parts = [['materials', word('material', true)], ['plant', 'Plant'], ['subcontracts', word('subcontractor', true)], ['daily', word('daily_record')]];
+  const parts = [['materials', word('material', true)], ['plant', 'Plant'], ['subcontracts', word('subcontractor', true)], ['daily', word('daily_record')], ['inspections', word('inspection', true)], ['snags', word('snag', true)]];
   const [params] = useSearchParams();
   const [view, setView] = useState(parts.some(([k]) => k === params.get('part')) ? params.get('part') : parts[0][0]);
 
@@ -24,6 +26,8 @@ export default function SitePanel({ projectId, word }) {
       {view === 'plant' && <PlantPanel projectId={projectId} />}
       {view === 'subcontracts' && <SubcontractsPanel projectId={projectId} word={word} />}
       {view === 'daily' && <DailyPanel projectId={projectId} word={word} />}
+      {view === 'inspections' && <InspectionsPanel projectId={projectId} word={word} />}
+      {view === 'snags' && <SnagsPanel projectId={projectId} word={word} />}
     </div>
   );
 }

@@ -26,6 +26,7 @@ import CasebookKindsPanel from '../../components/CasebookKindsPanel';
 import TemplatesPanel from '../../components/TemplatesPanel';
 import RegisterKindsPanel from '../../components/RegisterKindsPanel';
 import SiteSettingsPanel from '../../components/SiteSettingsPanel';
+import InspectionKindsPanel from '../../components/InspectionKindsPanel';
 import ProjectKeys from '../../components/ProjectKeys';
 
 /**
@@ -323,7 +324,7 @@ export default function ProjectConfiguration() {
           {tab === 'casebook' && <CasebookKindsPanel />}
           {tab === 'templates' && <TemplatesPanel />}
           {tab === 'registers' && <RegisterKindsPanel />}
-          {tab === 'site' && <SiteSettingsPanel />}
+          {tab === 'site' && <div style={{ display: 'grid', gap: 14 }}><SiteSettingsPanel /><InspectionKindsPanel /></div>}
           {tab === 'shortcuts' && <ShortcutsPanel onChanged={reloadNames} />}
 
           {tab === 'history' && (
