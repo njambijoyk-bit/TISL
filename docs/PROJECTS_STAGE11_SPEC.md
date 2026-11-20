@@ -100,3 +100,12 @@ Screen: `docs/screens/projects-opening-check.png`.
 - **Who else is involved:** the client and every party on the work, each searched against the clients, contacts, parties and leads already known (Stage 3's search). A party who is already a client, or the client found as a party on other work, is marked **possible conflict**.
 - **Routes:** `GET`, `PUT /projects/{project}/opening-check`; `POST …/opening-check/sign`, `…/opening-check/redo`; `GET`, `POST /projects/configuration/opening-questions`, `PUT …/opening-questions/{question}`.
 - **Tests:** `tests/Feature/ProjectsOpeningCheckTest.php` (3). Browser check `e2e/projects-industry-ui.mjs` (now 13 checks).
+
+### 11.3 Date rules (done)
+
+- **Configuration → Kinds of work and stages → Date rules** (`projects.config.stages` to change), per industry: when **a key date of a kind is set**, or **is marked done**, or **the work enters a stage**, make a key date (its title and kind) so many days later, in calendar days or **working days** (Monday to Friday), with its warning days. A rule cannot make a date of the kind that starts it. Rules can be switched off.
+- **What happens:** the date is made on the work with the lead responsible, on the calendar, and logged ("made by rule"). The key dates list says "made by the rule …". A date is made once from each date (and once per work for a stage). A made date can start a rule of its own, up to five steps.
+- **Moving:** moving a date moves the open dates made from it (and what was made from those), noting "Moved with …". A made date that someone moves or changes by hand stops following.
+- Dates made by a work template (11.1) start rules too.
+- **Routes:** `GET`, `POST /projects/configuration/date-rules`, `PUT …/date-rules/{rule}`.
+- **Tests:** `tests/Feature/ProjectsDateRulesTest.php` (3). Browser check `e2e/projects-industry-ui.mjs` (now 14 checks).

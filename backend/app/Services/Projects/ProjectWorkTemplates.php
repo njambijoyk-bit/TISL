@@ -159,6 +159,7 @@ class ProjectWorkTemplates
                         'starts_at' => $start->copy()->addDays((int) ($i->offset_days ?? 0))->format('Y-m-d 00:00:00'), 'all_day' => 1, 'responsible_id' => $project->lead_user_id, 'warn_days' => $i->warn_days,
                         'state' => 'open', 'created_by' => $by->id, 'created_at' => now(), 'updated_at' => now()]);
                     app(ProjectKeyDates::class)->sync($id);
+                    app(ProjectDateRules::class)->dateEvent($project, $id, 'date_set', $by);
                     $made['dates']++;
                 }
             }

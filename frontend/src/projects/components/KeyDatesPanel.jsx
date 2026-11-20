@@ -70,7 +70,7 @@ export default function KeyDatesPanel({ projectId, word }) {
           <tbody>
             {data.dates.map((d) => (
               <tr key={d.id} data-key-date={d.title}>
-                <td style={{ ...td, whiteSpace: 'nowrap', fontVariantNumeric: 'tabular-nums' }}>{when(d)}{d.moved_from && <span style={{ display: 'block', fontSize: 12, color: 'var(--text-secondary)' }} title={d.move_reason ?? ''}>moved from {day(d.moved_from)}{d.moved_by ? ` by ${d.moved_by}` : ''}: {d.move_reason}</span>}</td>
+                <td style={{ ...td, whiteSpace: 'nowrap', fontVariantNumeric: 'tabular-nums' }}>{when(d)}{d.moved_from && <span style={{ display: 'block', fontSize: 12, color: 'var(--text-secondary)' }} title={d.move_reason ?? ''}>moved from {day(d.moved_from)}{d.moved_by ? ` by ${d.moved_by}` : ''}: {d.move_reason}</span>}{d.made_by_rule && <span data-made-by-rule style={{ display: 'block', fontSize: 12, color: 'var(--text-secondary)' }}>made by the rule "{d.made_by_rule}"</span>}</td>
                 <td style={td}><strong style={{ fontWeight: 600 }}>{d.title}</strong>{d.kind_name && <Chip style={{ marginLeft: 6 }}>{d.kind_name}</Chip>}{d.task && <span style={{ display: 'block', fontSize: 12, color: 'var(--text-secondary)' }}>{d.task.ref} {d.task.title}</span>}</td>
                 <td style={td}>{d.responsible?.name ?? <span style={{ color: 'var(--text-secondary)' }}>·</span>}</td>
                 <td style={td}>{soon(d)}</td>

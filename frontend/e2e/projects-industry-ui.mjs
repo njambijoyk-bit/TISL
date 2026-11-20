@@ -1,6 +1,6 @@
 // Browser check: industry finish (stage 11). Work templates (11.1): choosing one when a piece of work starts (the usual one chosen, or none),
 // a kind of work that starts confidential, making a template in Configuration, and adding what is missing on a running work. The opening check (11.2):
-// answering yes or no with a note, signing with a typed name, a failed check, and who else is involved with a possible conflict.
+// Date rules (11.3): a rule made in Configuration. The opening check: answering yes or no with a note, signing with a typed name, a failed check, and who else is involved with a possible conflict.
 // The API is answered by the check itself; what a template makes is proved by ProjectsWorkTemplatesTest. It needs only the website (npx vite --port 5177).
 import { D, SITE, ok, finish, open } from './lib.mjs';
 
@@ -48,6 +48,9 @@ await page.route('**/api/admin/projects/configuration/work-templates', (route) =
   return json(route, { ready: true, type: { id: 1, name: 'Litigation', industry: 'legal' }, settings: { confidential_default: false, opening_required: true }, templates, date_kinds: [], can: { change: true } }, 201); });
 await page.route(/\/api\/admin\/projects\/configuration(\?.*)?$/, (route) => json(route, { ready: true, general: { default_industry: 'legal', project_may_use_other_industry: true, trash_days: 30 }, access: null, version: 1, industries: [{ key: 'legal', name: 'Legal', group: 'common', is_active: true }], viewing: 'legal', terms: [], personal: null, can: { manage: true, industry: true, names: true, roles: true } }));
 await page.route('**/api/admin/projects/configuration/opening-questions**', (route) => json(route, { ready: true, name: 'Conflict check', types: [{ id: 1, name: 'Litigation' }], questions: [{ id: 1, type_id: null, question: 'No conflict with an existing client', must_be_yes: true, is_active: true }], can: { change: true } }));
+let rules = [];
+const rulesAnswer = () => ({ ready: true, triggers: { date_set: 'A key date of this kind is set', date_done: 'A key date of this kind is done', stage: 'The work enters this stage' }, rules, date_kinds: [{ key: 'mention', name: 'Mention' }, { key: 'filing', name: 'Filing deadline' }], stages: ['Opening', 'Pleadings'], can: { change: true } });
+await page.route('**/api/admin/projects/configuration/date-rules**', (route) => { if (route.request().method() === 'POST') { const b = route.request().postDataJSON(); sent.push(['rule', b]); rules = [{ id: 1, name: b.make_title, trigger_kind: b.trigger_kind, trigger_value: b.trigger_value, make_kind: b.make_kind, make_title: b.make_title, offset_days: b.offset_days, working_days: b.working_days, warn_days: b.warn_days, is_active: true }]; return json(route, rulesAnswer(), 201); } return json(route, rulesAnswer()); });
 await page.route('**/api/admin/projects/configuration/shape**', (route) => json(route, { types: [], fields: [], industry: 'legal', kinds: [], can: { stages: true, fields: true } }));
 await go('/admin/projects/configuration');
 await page.getByRole('tab', { name: 'Kinds of work and stages' }).click();
@@ -71,6 +74,15 @@ await page.locator('[data-work-template="Employment claim"]').waitFor({ timeout:
 const t = last('template')?.[1];
 ok('a template is saved with its phase, the task under it and a key date', t?.name === 'Employment claim' && t.is_default === true && JSON.stringify(t.items.map((i) => [i.kind, i.title, i.parent_ref, i.offset_days, i.date_kind])) === JSON.stringify([['phase', 'Pleadings', '', null, ''], ['task', 'File the claim', 'Pleadings', 14, ''], ['date', 'First mention', '', 30, 'hearing']]));
 await page.screenshot({ path: D + 'projects-work-templates.png', fullPage: true });
+await page.getByRole('button', { name: 'Add a rule' }).click();
+await page.getByLabel('Kind of date').selectOption({ label: 'Mention' });
+await page.getByLabel('Make the date').fill('File the defence');
+await page.getByLabel('Of kind').selectOption({ label: 'Filing deadline' });
+await page.getByLabel('Days later').fill('14');
+await page.getByLabel('Warn days (optional)').fill('7,2');
+await page.getByRole('button', { name: 'Save the rule' }).click();
+await page.locator('[data-date-rule="File the defence"]').waitFor({ timeout: 5000 });
+ok('a date rule is made and read back in words', last('rule')?.[1]?.trigger_value === 'mention' && last('rule')[1].offset_days === 14 && /Mention set → "File the defence" 14 days later · warn 7,2 days before/.test(await text(page.locator('[data-date-rule="File the defence"]'))));
 
 // ---------------------------------------------------------------- on a running work
 await page.route(/\/api\/admin\/projects\/413$/, (route) => json(route, { project: { id: 413, number: 'M-0413', title: 'Imara v Baraka', description: null, industry: { key: 'legal', name: 'Legal' }, type: { id: 1, name: 'Litigation' }, stage: { id: 1, name: 'Opening', status: 'info' }, state: 'open', priority: 'medium',

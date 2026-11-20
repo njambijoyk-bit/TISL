@@ -36,6 +36,7 @@ class ProjectKeyDates
         $tasks = DB::table('project_work_tasks')->whereIn('id', $rows->pluck('task_id')->filter()->all() ?: [0])->get(['id', 'number', 'title'])->keyBy('id');
         $manage = $this->access->decide($user, 'dates', $project)['allowed'];
         $today = now()->startOfDay();
+        $byRule = app(ProjectDateRules::class)->madeBy($rows->pluck('id')->all());   // stage 11: a date a rule made names the rule
 
         return [
             'ready' => true,
@@ -47,6 +48,7 @@ class ProjectKeyDates
                 'phase_id' => $d->phase_id ? (int) $d->phase_id : null,
                 'task' => $d->task_id && isset($tasks[$d->task_id]) ? ['id' => (int) $d->task_id, 'ref' => "{$project->number}-T{$tasks[$d->task_id]->number}", 'title' => $tasks[$d->task_id]->title] : null,
                 'warn_days' => $d->warn_days, 'moved_from' => $d->moved_from, 'move_reason' => $d->move_reason, 'moved_by' => $d->moved_by ? ($names[$d->moved_by] ?? null) : null,
+                'made_by_rule' => $byRule[$d->id] ?? null,
             ])->values()->all(),
             'kinds' => $kinds->filter(fn ($k) => $k['is_active'])->map(fn ($k) => ['key' => $k['key'], 'name' => $k['name']])->values()->all(),
             'people' => $manage ? $this->members($project) : [],
@@ -67,6 +69,7 @@ class ProjectKeyDates
         $id = DB::table('project_key_dates')->insertGetId($row + ['project_id' => $project->id, 'state' => 'open', 'created_by' => $by->id, 'created_at' => now(), 'updated_at' => now()]);
         ProjectLog::record((int) $project->id, $by, 'key_date.added', 'key_date', $id, null, ['title' => $row['title'], 'when' => $row['starts_at']]);
         $this->sync($id);
+        app(ProjectDateRules::class)->dateEvent($project, $id, 'date_set', $by);   // stage 11: dates that follow from this one
 
         return $id;
     }
@@ -82,6 +85,7 @@ class ProjectKeyDates
             DB::table('project_key_dates')->where('id', $k->id)->update($row + ['updated_at' => now()]);
             ProjectLog::record((int) $project->id, $by, 'key_date.changed', 'key_date', (int) $k->id, array_intersect_key((array) $k, $row), $row);
             $this->sync((int) $k->id);
+            app(ProjectDateRules::class)->touched((int) $k->id);
         }
     }
 
@@ -106,6 +110,8 @@ class ProjectKeyDates
         DB::table('project_key_dates')->where('id', $k->id)->update($row);
         ProjectLog::record((int) $project->id, $by, 'key_date.moved', 'key_date', (int) $k->id, ['when' => $k->starts_at], ['when' => $when], ProjectLog::DONE, $reason);
         $this->sync((int) $k->id);
+        app(ProjectDateRules::class)->touched((int) $k->id);   // moved by hand: no longer follows the date it was made from
+        app(ProjectDateRules::class)->moved($project, (int) $k->id, $by);   // and what was made from it moves with it
         $fmt = fn ($v, $all) => Carbon::parse($v)->format($all ? 'j M Y' : 'j M Y H:i');
         app(ProjectFollows::class)->tell($project, 'project', (int) $project->id, "{$k->title} moved · {$project->number}",
             "{$by->name} moved it from {$fmt($k->starts_at, $k->all_day)} to {$fmt($when, $allDay)}. Why: {$reason}", "/admin/projects/{$project->id}?tab=work&part=dates", 'Open the key dates', [(int) $by->id]);
@@ -119,6 +125,9 @@ class ProjectKeyDates
         DB::table('project_key_dates')->where('id', $k->id)->update(['state' => $state, 'done_at' => $done ? now() : null, 'done_by' => $done ? $by->id : null, 'updated_at' => now()]);
         ProjectLog::record((int) $project->id, $by, $done ? 'key_date.done' : 'key_date.reopened', 'key_date', (int) $k->id, ['state' => $k->state], ['state' => $state]);
         $this->sync((int) $k->id);
+        if ($done) {
+            app(ProjectDateRules::class)->dateEvent($project, (int) $k->id, 'date_done', $by);
+        }
     }
 
     public function delete(object $project, int $id, User $by): void
