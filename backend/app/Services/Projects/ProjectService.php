@@ -315,6 +315,9 @@ class ProjectService
             'updated_by' => $by->id, 'updated_at' => now()]);
         ProjectLog::record((int) $project->id, $by, $stage->state === 'closed' ? 'project.closed' : ($project->state === 'closed' ? 'project.reopened' : 'stage.moved'), 'project', (int) $project->id,
             ['stage' => $old, 'state' => $project->state], ['stage' => $stage->name, 'state' => $stage->state]);
+        if ($stage->state === 'closed' && $project->state !== 'closed') {
+            app(ProjectMaterials::class)->useUp($project, $by);   // stage 10: what the work's Stock jobs hold becomes a cost of the work
+        }
 
         return $this->find((int) $project->id);
     }

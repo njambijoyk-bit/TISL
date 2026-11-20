@@ -9,7 +9,7 @@ class StockJob extends Model
 {
     protected $table = 'stock_jobs';
 
-    protected $fillable = ['number', 'title', 'customer_id', 'location_id', 'status', 'note', 'invoice_voucher_id', 'created_by', 'completed_at'];
+    protected $fillable = ['number', 'title', 'customer_id', 'location_id', 'cost_centre_id', 'status', 'note', 'invoice_voucher_id', 'created_by', 'completed_at'];
 
     protected $casts = ['completed_at' => 'datetime'];
 

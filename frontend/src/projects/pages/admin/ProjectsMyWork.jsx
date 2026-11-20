@@ -9,6 +9,8 @@ import { hm, STATUS_TONE } from '../../lib/tasks';
 import { clock, TIMER_CHANGED } from '../../lib/timer';
 import { Btn, Chip, Notice, Panel, PanelTitle } from '../../components/ui';
 import ProjectKeys from '../../components/ProjectKeys';
+import useAuthStore from '../../../_shared/store/authStore';
+import { hasPermission } from '../../../_shared/lib/roles';
 
 const GROUPS = [['late', 'Late'], ['today', 'Today'], ['week', 'Later this week'], ['later', 'Later, or no date']];
 const link = { color: 'var(--color-primary-500)', textDecoration: 'none', fontWeight: 600, fontSize: 13 };
@@ -117,6 +119,31 @@ export default function ProjectsMyWork() {
           </div>
         </Panel>
       )}
+      <MaterialsToIssue />
     </AdminLayout>
+  );
+}
+
+/** Stage 10: for whoever keeps the store, the materials asked for on every work they may issue to. */
+function MaterialsToIssue() {
+  const user = useAuthStore((st) => st.user);
+  const keeps = hasPermission(user, 'stock.manage') && hasPermission(user, 'projects.materials');
+  const [rows, setRows] = useState(null);
+  useEffect(() => { if (keeps) projectsAPI.materialsWaiting().then((d) => setRows(d.requests)).catch(() => setRows([])); }, [keeps]);
+  if (!keeps || !rows?.length) return null;
+  return (
+    <Panel style={{ marginTop: 16 }} data-mw-materials>
+      <PanelTitle hint="Asked for on the work, waiting at the store">Materials to issue</PanelTitle>
+      <div style={{ display: 'grid', gap: 6 }}>
+        {rows.map((r) => (
+          <div key={r.id} style={{ display: 'flex', gap: 8, alignItems: 'center', flexWrap: 'wrap', fontSize: 13.5 }}>
+            <Link to={`/admin/projects/${r.project_id}?tab=site`} style={link}>{r.project}</Link>
+            <span>{r.still}{r.unit ? ` ${r.unit}` : ''} × {r.name}</span>
+            <span style={{ fontSize: 12, color: 'var(--text-secondary)' }}>from {r.branch}{r.needed_on ? ` · by ${day(r.needed_on)}` : ''}</span>
+            {r.late && <Chip status="problem">Late</Chip>}
+          </div>
+        ))}
+      </div>
+    </Panel>
   );
 }

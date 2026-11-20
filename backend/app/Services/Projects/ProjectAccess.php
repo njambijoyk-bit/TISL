@@ -25,6 +25,7 @@ class ProjectAccess
         'changes' => 'projects.changes', 'changes_approve' => 'projects.changes.approve',
         'talk_team' => 'projects.messages.internal', 'talk_client' => 'projects.messages.client', 'moderate' => 'projects.messages.moderate', 'meet' => 'projects.meetings',
         'files_view' => 'projects.files.view', 'files' => 'projects.files.manage', 'files_share' => 'projects.files.share', 'files_sign' => 'projects.files.sign', 'guests' => 'projects.guests',
+        'materials' => 'projects.materials', 'plant' => 'projects.plant', 'subcontracts' => 'projects.subcontracts', 'daily' => 'projects.daily', 'inspections' => 'projects.inspections',
     ];
 
     /** what is asked => the ability their project role must have */
@@ -35,6 +36,7 @@ class ProjectAccess
         'changes' => 'tasks', 'changes_approve' => 'edit',   // anyone working the tasks raises a change; deciding on one is for those who may change the work
         'talk_team' => 'talk', 'talk_client' => 'talk', 'moderate' => 'talk', 'meet' => 'meet',
         'files_view' => 'open', 'files' => 'files', 'files_share' => 'files', 'files_sign' => 'files', 'guests' => 'files',   // stage 9: whoever keeps the work's files
+        'materials' => 'site', 'plant' => 'site', 'subcontracts' => 'site', 'daily' => 'site', 'inspections' => 'site',   // stage 10: whoever works the site
     ];
 
     /** reading: what `projects.view_all` opens on a project the person is not on, and what stays possible on a frozen one */

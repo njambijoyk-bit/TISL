@@ -28,6 +28,8 @@ class ProjectRoles
         'approve_time' => 'Approve time logged on it',
         'talk' => 'Write in its conversations',
         'meet' => 'Plan its meetings',
+        'files' => 'Keep its files: add, share, ask for sign-off, give guest links',
+        'site' => 'Work its site: materials, plant, subcontracts, daily record, inspections, snags',
         'open_shared' => 'See only what is shared with them (for clients and guests)',
     ];
 

@@ -70,9 +70,15 @@ class ProjectsSetup
         return self::once('documents', fn () => self::ready() && Schema::hasTable('project_files') && Schema::hasTable('vault_documents'));
     }
 
+    /** Stage 10: resources and site (script 267). */
+    public static function site(): bool
+    {
+        return self::once('site', fn () => self::ready() && Schema::hasTable('project_material_requests') && Schema::hasTable('project_snags'));
+    }
+
     public static function forget(): void
     {
-        foreach (['ready', 'control_room', 'relationships', 'money', 'work', 'messages', 'links', 'people', 'documents'] as $k) {
+        foreach (['ready', 'control_room', 'relationships', 'money', 'work', 'messages', 'links', 'people', 'documents', 'site'] as $k) {
             app()->offsetUnset(self::KEY . $k);
         }
     }

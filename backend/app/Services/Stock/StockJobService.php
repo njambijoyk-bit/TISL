@@ -23,13 +23,15 @@ class StockJobService
 {
     public function __construct(private VariantStockService $stock, private BatchService $batches, private VoucherService $vouchers) {}
 
-    public function open(string $title, int $locationId, ?int $customerId, ?string $note, ?User $user = null): StockJob
+    /** @param ?int $costCentreId the job's journals land on this cost centre (a piece of work in Projects); needs script 267 */
+    public function open(string $title, int $locationId, ?int $customerId, ?string $note, ?User $user = null, ?int $costCentreId = null): StockJob
     {
         $title = trim($title);
         if ($title === '') {
             throw new BooksException('Give the job a title.');
         }
-        $j = StockJob::create(['title' => $title, 'location_id' => $locationId, 'customer_id' => $customerId, 'status' => 'open', 'note' => $note, 'created_by' => $user?->id]);
+        $j = StockJob::create(['title' => $title, 'location_id' => $locationId, 'customer_id' => $customerId, 'status' => 'open', 'note' => $note, 'created_by' => $user?->id]
+            + ($costCentreId && \Illuminate\Support\Facades\Schema::hasColumn('stock_jobs', 'cost_centre_id') ? ['cost_centre_id' => $costCentreId] : []));
         $j->update(['number' => 'JB-' . str_pad((string) $j->id, 6, '0', STR_PAD_LEFT)]);
 
         return $j;
@@ -269,7 +271,7 @@ class StockJobService
             'voucher_type_id' => $type->id, 'date' => today()->toDateString(), 'location_id' => $j->location_id, 'narration' => $narration,
             'meta' => ['stock_job' => ['job_id' => $j->id]],
             'entries' => [['ledger_id' => $ledger[$debit], 'side' => 'D', 'amount' => $amount], ['ledger_id' => $ledger[$credit], 'side' => 'C', 'amount' => $amount]],
-        ], $user)->id;
+        ] + (! empty($j->cost_centre_id) ? ['cost_centre_id' => (int) $j->cost_centre_id] : []), $user)->id;   // a job on a cost centre (a piece of work) puts its journals there
     }
 
     private function needOpen(StockJob $j): void

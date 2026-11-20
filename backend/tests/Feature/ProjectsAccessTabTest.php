@@ -53,7 +53,7 @@ class ProjectsAccessTabTest extends TestCase
         $this->assertSame(['Kamau', 'Njeri', 'Otieno', 'Wambui', 'Mwangi', 'Amina'], array_column($t['people'], 'name'), 'by project role, then by name; someone removed is not listed');
         $this->assertSame(['On it as Lead', 'in', 'Can get in', 'good', true], [$by['Kamau']['reason'], $by['Kamau']['state'], $by['Kamau']['state_words'], $by['Kamau']['status'], $by['Kamau']['is_lead']]);
         $this->assertContains('Set its hours, end dates and locked areas', $by['Kamau']['can']);
-        $this->assertSame(['Open it', 'Add and change its phases', 'Add and remove links', 'Add, change and assign its tasks', 'Log time on it', 'Write in its conversations', 'Plan its meetings'], $by['Njeri']['can']);   // a Member works on tasks and logs time since stage 5, and talks and meets since stage 6
+        $this->assertSame(['Open it', 'Add and change its phases', 'Add and remove links', 'Add, change and assign its tasks', 'Log time on it', 'Write in its conversations', 'Plan its meetings', 'Keep its files: add, share, ask for sign-off, give guest links', 'Work its site: materials, plant, subcontracts, daily record, inspections, snags'], $by['Njeri']['can']);   // a Member works on tasks and logs time since stage 5, talks and meets since stage 6, keeps files since stage 9 and works the site since stage 10
         $this->assertSame(['in', true], [$by['Njeri']['state'], $by['Njeri']['ending_soon']]);
         $this->assertContains($by['Njeri']['ends_in_days'], [3, 4]);
         $this->assertSame(['Was on it as Finance', 'ended', 'problem'], [$by['Mwangi']['reason'], $by['Mwangi']['state'], $by['Mwangi']['status']]);
