@@ -67,21 +67,23 @@ Healthcare defaults to confidential projects with clinical notes in a locked are
 
 ## Build order
 
-| Stage | Name | Size | Contents |
-|---|---|---|---|
-| 1 | Foundation | Large | New project record, names table, configuration page, custom fields, phases, cost centre link, permission catalogue, project roles, action log, trash, link registry, theme-only building blocks and build check, shortcut registration. Old tables and data deleted. |
-| 2 | Control room | Medium | Access list, confidential projects, hours and end dates, locked areas, serious actions, log screen, attack signals. |
-| 3 | Relationships | Large | Leads, opportunities, pipeline, contacts, parties, interaction log, next actions, client page, health, directory. |
-| 4 | Money through Books | Large | Project picker on vouchers, budgets, Money tab, ledgers from a project, held money, fixed and staged billing, advances, retention. |
-| 5 | Work and time | Large | Tasks, scope lines, key dates, changes, views, timers, timesheets, rates, hourly billing, payroll split by timesheet, My Work. |
-| 6 | Messages, meetings, working together | Medium | Inbox, tags, Notifier types, staff channels, replies into threads, meetings and calendar, invitations, followers, transfer. |
-| 7 | Linking modules | Medium | The registry and each module's links. |
-| 8 | People | Medium | Team view, goals, checklists, casebook, client flags. |
-| 9 | Documents and portals | Medium | Vault folders, templates, registers, client portal, guest links. |
-| 10 | Resources and site | Large | Materials, plant, subcontracts, daily record on a phone, inspections, snags. |
-| 11 | Industry finish | Medium | Per industry: templates, default stages, documents, date rules, KPIs. Common, then niche, then basic. |
-| 12 | Insights and rules | Medium | KPIs, scorecards, forecasts, rules engine, Mimi updates. |
+All twelve stages are built (Stage 12 finished 2026-11-20). Each stage's spec, `docs/PROJECTS_STAGEn_SPEC.md`, has an "As built" section and the checks to do by hand; the database scripts are 256 to 269, run in order.
+
+| Stage | Name | Size | Contents | Built |
+|---|---|---|---|---|
+| 1 | Foundation | Large | New project record, names table, configuration page, custom fields, phases, cost centre link, permission catalogue, project roles, action log, trash, link registry, theme-only building blocks and build check, shortcut registration. Old tables and data deleted. | Built |
+| 2 | Control room | Medium | Access list, confidential projects, hours and end dates, locked areas, serious actions, log screen, attack signals. | Built |
+| 3 | Relationships | Large | Leads, opportunities, pipeline, contacts, parties, interaction log, next actions, client page, health, directory. | Built |
+| 4 | Money through Books | Large | Project picker on vouchers, budgets, Money tab, ledgers from a project, held money, fixed and staged billing, advances, retention. | Built |
+| 5 | Work and time | Large | Tasks, scope lines, key dates, changes, views, timers, timesheets, rates, hourly billing, payroll split by timesheet, My Work. | Built |
+| 6 | Messages, meetings, working together | Medium | Inbox, tags, Notifier types, staff channels, replies into threads, meetings and calendar, invitations, followers, transfer. | Built |
+| 7 | Linking modules | Medium | The registry and each module's links. | Built |
+| 8 | People | Medium | Team view, goals, checklists, casebook, client flags. | Built |
+| 9 | Documents and portals | Medium | Vault folders, templates, registers, client portal, guest links. | Built |
+| 10 | Resources and site | Large | Materials, plant, subcontracts, daily record on a phone, inspections, snags. | Built |
+| 11 | Industry finish | Medium | Per industry: templates, default stages, documents, date rules, KPIs. Common, then niche, then basic. | Built |
+| 12 | Insights and rules | Medium | KPIs, scorecards, forecasts, rules engine, Mimi updates. | Built |
 
 ## Next
 
-Stage 1 in detail: the project record field by field, the names table, the full permission list, and the screens for creating and opening a project.
+The plan is complete. What remains is the owner's: run scripts 256 to 269, then go through each stage's checks by hand.

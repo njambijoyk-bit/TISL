@@ -1,6 +1,6 @@
-# Projects Stage 12: Insights and rules (being built)
+# Projects Stage 12: Insights and rules (built)
 
-Status: the owner read the plan (also as a page, "Projects Stage 12") and said "go" on 2026-11-20, so the four choices at the end are taken as recommended; any of them can still be changed. What is built so far is listed under "As built".
+Status: the owner read the plan (also as a page, "Projects Stage 12") and said "go" on 2026-11-20, so the four choices at the end are taken as recommended; any of them can still be changed. All six builds are done (2026-11-20); see "As built" and the checks by hand at the end.
 
 Stages 1 to 11 built everything a piece of work is and does, for fifteen industries. Stage 12 is the last: it tells you how the work is going, and lets the module act on its own where you ask it to. It measures what is already there (tasks, dates, time, snags, the books), sets targets, shows scorecards for each piece of work and each person, forecasts what is coming, runs your own "when this happens, do that" rules, and teaches Mimi about Projects.
 
@@ -89,7 +89,7 @@ Size: medium to large. Six builds, one script, no new permissions (all four are 
 
 Every build runs the Projects tests and the Projects browser checks. At the end, the whole module is checked once more and the build order in `PROJECTS_CRM_PLAN.md` is marked done.
 
-## Four choices (my recommendation first; say if any should change)
+## Four choices (taken as recommended; say if any should change)
 
 1. **Targets** are percentages, counts, days or hours, never amounts; money is shown as ratios read from Books (margin %, budget used %). The other way: amount targets ("bill KES 2M a month"), which means Projects keeps money figures.
 2. **Health** of a piece of work is its worst KPI: one red makes it red. The other way: a weighted score out of 100.
@@ -188,3 +188,23 @@ Screen: `docs/screens/projects-weekly-update.png` (the draft on a work's Overvie
   - `PUT /projects/{project}/updates/{update}/save|send|discard`
   - `PUT /projects/configuration/insights`
 - **Tests:** `tests/Feature/ProjectsMimiTest.php` (3); `tests/Unit/MimiLocalLayerTest.php` now covers the Projects entries. Browser check `e2e/projects-insights-ui.mjs` (now 23).
+
+### To check by hand once script 269 is run
+
+1. **KPIs:** Configuration → KPIs and rules lists the starter KPIs for your industry. Change a target and see it saved.
+2. **Scorecards:** run `php artisan projects:kpi-snapshot`. Then open a work with tasks and key dates: its scorecard has a figure and a status for each KPI. The projects list shows health and filters by it. A money KPI shows only to someone with the money permission, and its figure matches the Money tab (from Books).
+3. **People:** on My Work, "My scorecard" shows your utilisation (it needs Attendance's working hours to be set). Capacity on the Team page shows the next eight weeks; give tasks estimates to fill it.
+4. **Forecasts:** Projects → Insights shows the pipeline by month. One opportunity with a Books quotation should show the quotation's total. Set a stage's chance and the expected figure moves.
+5. **Rules:**
+   - Switch on "Manager follows new work" and start a work: the lead's manager (from the HR line) follows it.
+   - Try "Missed filing" and see what it would have done in the last 30 days.
+   - Check that the rule log shows each run.
+6. **The morning rules:** with a rule on "A task goes past its due day", run `php artisan projects:rules-morning` the day after a task's due day: the people in the rule are told.
+7. **Mimi:**
+   - Ask her "what is late on my work?" and "how is ⟨a work number⟩?". She answers only for work you may open.
+   - Someone not on a confidential work gets "I can't find…".
+8. **Weekly updates:**
+   - Run `php artisan projects:weekly-updates` on a Friday, or press "Draft this week's" on a work with a client. The lead is told, and the draft is on the Overview.
+   - With an analytics AI key the draft is written by Mimi; without one it is written from the facts.
+   - Send it: it appears in the client conversation and reaches the client's contact by email or SMS. A confidential work's draft is never sent to the AI unless "Confidential work may go to the AI" is on.
+9. **Schedule:** the server's scheduler runs `projects:kpi-snapshot` (06:10), `projects:rules-morning` (06:40) and `projects:weekly-updates` (Fridays 14:20).
