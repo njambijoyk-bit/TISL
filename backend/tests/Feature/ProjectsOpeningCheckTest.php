@@ -23,6 +23,11 @@ class ProjectsOpeningCheckTest extends TestCase
         $this->kamau = $this->staff('Kamau', ['projects.use', 'projects.create', 'projects.edit', 'projects.stage', 'projects.config.view', 'projects.config.stages']);
         Sanctum::actingAs($this->kamau, ['*']);
         $this->type = (int) DB::table('project_types')->where('industry_key', 'general')->where('name', 'Client project')->value('id');
+        // the mechanism alone: the starter content script 268 gives General projects (11.5) is taken away here
+        DB::table('project_opening_questions')->where('industry_key', 'general')->delete();
+        DB::table('project_template_items')->whereIn('template_id', DB::table('project_work_templates')->whereIn('type_id', DB::table('project_types')->where('industry_key', 'general')->pluck('id'))->pluck('id'))->delete();
+        DB::table('project_work_templates')->whereIn('type_id', DB::table('project_types')->where('industry_key', 'general')->pluck('id'))->delete();
+        DB::table('project_date_rules')->where('industry_key', 'general')->delete();
         $this->postJson('/api/admin/projects/configuration/opening-questions', ['industry' => 'general', 'question' => 'Engagement letter signed', 'must_be_yes' => true])->assertCreated();
         $this->postJson('/api/admin/projects/configuration/opening-questions', ['type_id' => $this->type, 'question' => 'Deposit asked for', 'must_be_yes' => false])->assertCreated();
         $this->putJson("/api/admin/projects/configuration/types/{$this->type}/settings", ['opening_required' => true])->assertOk();

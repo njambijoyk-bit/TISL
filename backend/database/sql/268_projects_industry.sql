@@ -506,5 +506,454 @@ INSERT IGNORE INTO project_template_items (template_id, kind, ref, parent_ref, t
 UPDATE project_stages SET required_fields = '["customer_id", "field:ar_site"]' WHERE required_fields IS NULL AND name = 'Concept' AND type_id IN (SELECT id FROM project_types WHERE industry_key = 'architecture');
 
 
+-- ===================================================================== THE NICHE EIGHT AND THE BASIC TWO (build 11.5)
+
+-- ---------------------------------------------------------------- Food and catering
+INSERT IGNORE INTO project_lists (list, `key`, name, industry_key, status_token, is_system, sort_order) VALUES ('key_date', 'tasting', 'Tasting', 'catering', NULL, 1, 100), ('key_date', 'final_numbers', 'Final numbers due', 'catering', NULL, 1, 110), ('key_date', 'function_day', 'Function day', 'catering', NULL, 1, 120);
+INSERT IGNORE INTO project_fields (`key`, label, kind, options, industry_key, type_id, is_required, is_sensitive, is_active, sort_order, created_at, updated_at) VALUES ('cat_guests', 'Number of guests', 'number', NULL, 'catering', NULL, 0, 0, 1, 100, NOW(), NOW());
+INSERT IGNORE INTO project_fields (`key`, label, kind, options, industry_key, type_id, is_required, is_sensitive, is_active, sort_order, created_at, updated_at) VALUES ('cat_venue', 'Venue', 'text', NULL, 'catering', NULL, 0, 0, 1, 110, NOW(), NOW());
+INSERT IGNORE INTO project_fields (`key`, label, kind, options, industry_key, type_id, is_required, is_sensitive, is_active, sort_order, created_at, updated_at) VALUES ('cat_service', 'Service style', 'pick_one', '["Buffet", "Plated", "Cocktail", "Family style", "Packed meals"]', 'catering', NULL, 0, 0, 1, 120, NOW(), NOW());
+INSERT IGNORE INTO project_fields (`key`, label, kind, options, industry_key, type_id, is_required, is_sensitive, is_active, sort_order, created_at, updated_at) VALUES ('cat_dietary', 'Dietary needs and allergies', 'text', NULL, 'catering', NULL, 0, 0, 1, 130, NOW(), NOW());
+INSERT IGNORE INTO project_doc_templates (name, industry_key, body, is_active, created_at, updated_at) SELECT 'Function confirmation', 'catering', '{{company.name}}
+{{today}}
+
+{{client.name}}
+
+Dear {{contact.name}},
+
+{{project.number}}: {{project.title}}
+
+We are pleased to confirm your function.
+
+Venue: {{field.cat_venue}}
+Guests: {{field.cat_guests}}
+Service: {{field.cat_service}}
+Dietary needs: {{field.cat_dietary}}
+Our lead: {{lead.name}} ({{lead.email}})
+Start: {{project.start_date}}
+
+Please sign and return a copy to confirm.
+
+Yours sincerely,
+
+{{me.name}}
+For {{company.name}}', 1, NOW(), NOW() FROM project_industries WHERE `key` = 'catering' AND NOT EXISTS (SELECT 1 FROM project_doc_templates WHERE name = 'Function confirmation' AND industry_key = 'catering');
+INSERT IGNORE INTO project_opening_questions (industry_key, type_id, `key`, question, must_be_yes, sort_order, is_active, created_at) VALUES ('catering', 0, 'menu', 'The menu is agreed in writing', 1, 10, 1, NOW());
+INSERT IGNORE INTO project_opening_questions (industry_key, type_id, `key`, question, must_be_yes, sort_order, is_active, created_at) VALUES ('catering', 0, 'allergies', 'Allergies and dietary needs are recorded', 1, 20, 1, NOW());
+INSERT IGNORE INTO project_opening_questions (industry_key, type_id, `key`, question, must_be_yes, sort_order, is_active, created_at) VALUES ('catering', 0, 'venue', 'The venue has confirmed kitchen access and times', 1, 30, 1, NOW());
+INSERT IGNORE INTO project_opening_questions (industry_key, type_id, `key`, question, must_be_yes, sort_order, is_active, created_at) VALUES ('catering', 0, 'deposit', 'The deposit is asked for', 0, 40, 1, NOW());
+INSERT IGNORE INTO project_date_rules (industry_key, `key`, name, trigger_kind, trigger_value, make_kind, make_title, offset_days, working_days, warn_days, is_active, created_at) VALUES ('catering', 'numbers_before_function', 'Final numbers due', 'date_set', 'function_day', 'final_numbers', 'Final numbers due', 0, 0, '7,3', 1, NOW());
+INSERT IGNORE INTO project_work_templates (type_id, name, is_default, is_active, created_at, updated_at) SELECT id, 'Function', 1, 1, NOW(), NOW() FROM project_types WHERE industry_key = 'catering' AND name = 'Function';
+INSERT IGNORE INTO project_template_items (template_id, kind, ref, parent_ref, title, offset_days, estimate_minutes, date_kind, warn_days, sort_order) SELECT t.id, 'task', NULL, NULL, 'Menu proposal', 3, 120, NULL, NULL, 10 FROM project_work_templates t JOIN project_types y ON y.id = t.type_id WHERE y.industry_key = 'catering' AND y.name = 'Function' AND t.name = 'Function';
+INSERT IGNORE INTO project_template_items (template_id, kind, ref, parent_ref, title, offset_days, estimate_minutes, date_kind, warn_days, sort_order) SELECT t.id, 'date', NULL, NULL, 'Tasting', 10, NULL, 'tasting', '2', 20 FROM project_work_templates t JOIN project_types y ON y.id = t.type_id WHERE y.industry_key = 'catering' AND y.name = 'Function' AND t.name = 'Function';
+INSERT IGNORE INTO project_template_items (template_id, kind, ref, parent_ref, title, offset_days, estimate_minutes, date_kind, warn_days, sort_order) SELECT t.id, 'task', NULL, NULL, 'Order ingredients', 25, NULL, NULL, NULL, 30 FROM project_work_templates t JOIN project_types y ON y.id = t.type_id WHERE y.industry_key = 'catering' AND y.name = 'Function' AND t.name = 'Function';
+INSERT IGNORE INTO project_template_items (template_id, kind, ref, parent_ref, title, offset_days, estimate_minutes, date_kind, warn_days, sort_order) SELECT t.id, 'task', NULL, NULL, 'Staff roster', 26, NULL, NULL, NULL, 40 FROM project_work_templates t JOIN project_types y ON y.id = t.type_id WHERE y.industry_key = 'catering' AND y.name = 'Function' AND t.name = 'Function';
+INSERT IGNORE INTO project_template_items (template_id, kind, ref, parent_ref, title, offset_days, estimate_minutes, date_kind, warn_days, sort_order) SELECT t.id, 'date', NULL, NULL, 'Function day', 30, NULL, 'function_day', '7,1', 50 FROM project_work_templates t JOIN project_types y ON y.id = t.type_id WHERE y.industry_key = 'catering' AND y.name = 'Function' AND t.name = 'Function';
+INSERT IGNORE INTO project_work_templates (type_id, name, is_default, is_active, created_at, updated_at) SELECT id, 'Contract start-up', 1, 1, NOW(), NOW() FROM project_types WHERE industry_key = 'catering' AND name = 'Contract catering';
+INSERT IGNORE INTO project_template_items (template_id, kind, ref, parent_ref, title, offset_days, estimate_minutes, date_kind, warn_days, sort_order) SELECT t.id, 'task', NULL, NULL, 'Site kitchen check', 5, 240, NULL, NULL, 10 FROM project_work_templates t JOIN project_types y ON y.id = t.type_id WHERE y.industry_key = 'catering' AND y.name = 'Contract catering' AND t.name = 'Contract start-up';
+INSERT IGNORE INTO project_template_items (template_id, kind, ref, parent_ref, title, offset_days, estimate_minutes, date_kind, warn_days, sort_order) SELECT t.id, 'task', NULL, NULL, 'Menu cycle agreed', 10, 240, NULL, NULL, 20 FROM project_work_templates t JOIN project_types y ON y.id = t.type_id WHERE y.industry_key = 'catering' AND y.name = 'Contract catering' AND t.name = 'Contract start-up';
+INSERT IGNORE INTO project_template_items (template_id, kind, ref, parent_ref, title, offset_days, estimate_minutes, date_kind, warn_days, sort_order) SELECT t.id, 'task', NULL, NULL, 'Staff recruited and trained', 20, NULL, NULL, NULL, 30 FROM project_work_templates t JOIN project_types y ON y.id = t.type_id WHERE y.industry_key = 'catering' AND y.name = 'Contract catering' AND t.name = 'Contract start-up';
+INSERT IGNORE INTO project_template_items (template_id, kind, ref, parent_ref, title, offset_days, estimate_minutes, date_kind, warn_days, sort_order) SELECT t.id, 'date', NULL, NULL, 'Renewal', 365, NULL, 'renewal', '60,30', 40 FROM project_work_templates t JOIN project_types y ON y.id = t.type_id WHERE y.industry_key = 'catering' AND y.name = 'Contract catering' AND t.name = 'Contract start-up';
+UPDATE project_stages SET required_fields = '["customer_id", "field:cat_guests"]' WHERE required_fields IS NULL AND name = 'Menu agreed' AND type_id IN (SELECT id FROM project_types WHERE industry_key = 'catering');
+
+-- ---------------------------------------------------------------- Photography and film
+INSERT IGNORE INTO project_lists (list, `key`, name, industry_key, status_token, is_system, sort_order) VALUES ('key_date', 'shoot_day', 'Shoot day', 'photography', NULL, 1, 100), ('key_date', 'delivery', 'Delivery due', 'photography', NULL, 1, 110);
+INSERT IGNORE INTO project_fields (`key`, label, kind, options, industry_key, type_id, is_required, is_sensitive, is_active, sort_order, created_at, updated_at) VALUES ('ph_location', 'Location', 'text', NULL, 'photography', NULL, 0, 0, 1, 100, NOW(), NOW());
+INSERT IGNORE INTO project_fields (`key`, label, kind, options, industry_key, type_id, is_required, is_sensitive, is_active, sort_order, created_at, updated_at) VALUES ('ph_deliverables', 'Deliverables', 'pick_many', '["Edited photos", "Raw files", "Short video", "Full film", "Prints"]', 'photography', NULL, 0, 0, 1, 110, NOW(), NOW());
+INSERT IGNORE INTO project_fields (`key`, label, kind, options, industry_key, type_id, is_required, is_sensitive, is_active, sort_order, created_at, updated_at) VALUES ('ph_usage', 'Usage rights', 'pick_one', '["Personal", "Editorial", "Commercial", "Unlimited"]', 'photography', NULL, 0, 0, 1, 120, NOW(), NOW());
+INSERT IGNORE INTO project_doc_templates (name, industry_key, body, is_active, created_at, updated_at) SELECT 'Booking confirmation', 'photography', '{{company.name}}
+{{today}}
+
+{{client.name}}
+
+Dear {{contact.name}},
+
+{{project.number}}: {{project.title}}
+
+Thank you for booking us.
+
+Location: {{field.ph_location}}
+Usage rights: {{field.ph_usage}}
+Our lead: {{lead.name}} ({{lead.email}})
+Start: {{project.start_date}}
+
+Please sign and return a copy to confirm.
+
+Yours sincerely,
+
+{{me.name}}
+For {{company.name}}', 1, NOW(), NOW() FROM project_industries WHERE `key` = 'photography' AND NOT EXISTS (SELECT 1 FROM project_doc_templates WHERE name = 'Booking confirmation' AND industry_key = 'photography');
+INSERT IGNORE INTO project_doc_templates (name, industry_key, body, is_active, created_at, updated_at) SELECT 'Model release', 'photography', 'Model release · {{project.number}} {{project.title}}
+
+I agree that {{company.name}} may use photographs and film of me taken on ________ for the uses agreed with {{client.name}} ({{field.ph_usage}}).
+
+Name: ____________  Signature: ____________  Date: ________', 1, NOW(), NOW() FROM project_industries WHERE `key` = 'photography' AND NOT EXISTS (SELECT 1 FROM project_doc_templates WHERE name = 'Model release' AND industry_key = 'photography');
+INSERT IGNORE INTO project_opening_questions (industry_key, type_id, `key`, question, must_be_yes, sort_order, is_active, created_at) VALUES ('photography', 0, 'brief', 'The brief and shot list are agreed', 1, 10, 1, NOW());
+INSERT IGNORE INTO project_opening_questions (industry_key, type_id, `key`, question, must_be_yes, sort_order, is_active, created_at) VALUES ('photography', 0, 'releases', 'Model and location releases are arranged', 1, 20, 1, NOW());
+INSERT IGNORE INTO project_opening_questions (industry_key, type_id, `key`, question, must_be_yes, sort_order, is_active, created_at) VALUES ('photography', 0, 'usage', 'Usage rights are agreed', 1, 30, 1, NOW());
+INSERT IGNORE INTO project_date_rules (industry_key, `key`, name, trigger_kind, trigger_value, make_kind, make_title, offset_days, working_days, warn_days, is_active, created_at) VALUES ('photography', 'delivery_after_shoot', 'Edited delivery due', 'date_done', 'shoot_day', 'delivery', 'Edited delivery due', 14, 0, '3,1', 1, NOW());
+INSERT IGNORE INTO project_work_templates (type_id, name, is_default, is_active, created_at, updated_at) SELECT id, 'Shoot', 1, 1, NOW(), NOW() FROM project_types WHERE industry_key = 'photography' AND name = 'Photo shoot';
+INSERT IGNORE INTO project_template_items (template_id, kind, ref, parent_ref, title, offset_days, estimate_minutes, date_kind, warn_days, sort_order) SELECT t.id, 'task', NULL, NULL, 'Shot list', 3, 60, NULL, NULL, 10 FROM project_work_templates t JOIN project_types y ON y.id = t.type_id WHERE y.industry_key = 'photography' AND y.name = 'Photo shoot' AND t.name = 'Shoot';
+INSERT IGNORE INTO project_template_items (template_id, kind, ref, parent_ref, title, offset_days, estimate_minutes, date_kind, warn_days, sort_order) SELECT t.id, 'task', NULL, NULL, 'Location and permits', 7, 120, NULL, NULL, 20 FROM project_work_templates t JOIN project_types y ON y.id = t.type_id WHERE y.industry_key = 'photography' AND y.name = 'Photo shoot' AND t.name = 'Shoot';
+INSERT IGNORE INTO project_template_items (template_id, kind, ref, parent_ref, title, offset_days, estimate_minutes, date_kind, warn_days, sort_order) SELECT t.id, 'date', NULL, NULL, 'Shoot day', 14, NULL, 'shoot_day', '3,1', 30 FROM project_work_templates t JOIN project_types y ON y.id = t.type_id WHERE y.industry_key = 'photography' AND y.name = 'Photo shoot' AND t.name = 'Shoot';
+INSERT IGNORE INTO project_template_items (template_id, kind, ref, parent_ref, title, offset_days, estimate_minutes, date_kind, warn_days, sort_order) SELECT t.id, 'task', NULL, NULL, 'Selects to the client', 18, 240, NULL, NULL, 40 FROM project_work_templates t JOIN project_types y ON y.id = t.type_id WHERE y.industry_key = 'photography' AND y.name = 'Photo shoot' AND t.name = 'Shoot';
+INSERT IGNORE INTO project_template_items (template_id, kind, ref, parent_ref, title, offset_days, estimate_minutes, date_kind, warn_days, sort_order) SELECT t.id, 'task', NULL, NULL, 'Final edits', 28, 480, NULL, NULL, 50 FROM project_work_templates t JOIN project_types y ON y.id = t.type_id WHERE y.industry_key = 'photography' AND y.name = 'Photo shoot' AND t.name = 'Shoot';
+INSERT IGNORE INTO project_work_templates (type_id, name, is_default, is_active, created_at, updated_at) SELECT id, 'Film', 1, 1, NOW(), NOW() FROM project_types WHERE industry_key = 'photography' AND name = 'Film production';
+INSERT IGNORE INTO project_template_items (template_id, kind, ref, parent_ref, title, offset_days, estimate_minutes, date_kind, warn_days, sort_order) SELECT t.id, 'phase', 'Pre-production', NULL, 'Pre-production', NULL, NULL, NULL, NULL, 10 FROM project_work_templates t JOIN project_types y ON y.id = t.type_id WHERE y.industry_key = 'photography' AND y.name = 'Film production' AND t.name = 'Film';
+INSERT IGNORE INTO project_template_items (template_id, kind, ref, parent_ref, title, offset_days, estimate_minutes, date_kind, warn_days, sort_order) SELECT t.id, 'task', NULL, 'Pre-production', 'Script and storyboard', 14, 960, NULL, NULL, 20 FROM project_work_templates t JOIN project_types y ON y.id = t.type_id WHERE y.industry_key = 'photography' AND y.name = 'Film production' AND t.name = 'Film';
+INSERT IGNORE INTO project_template_items (template_id, kind, ref, parent_ref, title, offset_days, estimate_minutes, date_kind, warn_days, sort_order) SELECT t.id, 'task', NULL, 'Pre-production', 'Casting and locations', 21, 480, NULL, NULL, 30 FROM project_work_templates t JOIN project_types y ON y.id = t.type_id WHERE y.industry_key = 'photography' AND y.name = 'Film production' AND t.name = 'Film';
+INSERT IGNORE INTO project_template_items (template_id, kind, ref, parent_ref, title, offset_days, estimate_minutes, date_kind, warn_days, sort_order) SELECT t.id, 'phase', 'Production', NULL, 'Production', NULL, NULL, NULL, NULL, 40 FROM project_work_templates t JOIN project_types y ON y.id = t.type_id WHERE y.industry_key = 'photography' AND y.name = 'Film production' AND t.name = 'Film';
+INSERT IGNORE INTO project_template_items (template_id, kind, ref, parent_ref, title, offset_days, estimate_minutes, date_kind, warn_days, sort_order) SELECT t.id, 'date', NULL, NULL, 'Shoot day', 30, NULL, 'shoot_day', '7,1', 50 FROM project_work_templates t JOIN project_types y ON y.id = t.type_id WHERE y.industry_key = 'photography' AND y.name = 'Film production' AND t.name = 'Film';
+INSERT IGNORE INTO project_template_items (template_id, kind, ref, parent_ref, title, offset_days, estimate_minutes, date_kind, warn_days, sort_order) SELECT t.id, 'phase', 'Post-production', NULL, 'Post-production', NULL, NULL, NULL, NULL, 60 FROM project_work_templates t JOIN project_types y ON y.id = t.type_id WHERE y.industry_key = 'photography' AND y.name = 'Film production' AND t.name = 'Film';
+INSERT IGNORE INTO project_template_items (template_id, kind, ref, parent_ref, title, offset_days, estimate_minutes, date_kind, warn_days, sort_order) SELECT t.id, 'task', NULL, 'Post-production', 'First cut', 45, 1920, NULL, NULL, 70 FROM project_work_templates t JOIN project_types y ON y.id = t.type_id WHERE y.industry_key = 'photography' AND y.name = 'Film production' AND t.name = 'Film';
+INSERT IGNORE INTO project_template_items (template_id, kind, ref, parent_ref, title, offset_days, estimate_minutes, date_kind, warn_days, sort_order) SELECT t.id, 'task', NULL, 'Post-production', 'Client review', 50, 120, NULL, NULL, 80 FROM project_work_templates t JOIN project_types y ON y.id = t.type_id WHERE y.industry_key = 'photography' AND y.name = 'Film production' AND t.name = 'Film';
+INSERT IGNORE INTO project_template_items (template_id, kind, ref, parent_ref, title, offset_days, estimate_minutes, date_kind, warn_days, sort_order) SELECT t.id, 'task', NULL, 'Post-production', 'Final cut and grade', 60, 960, NULL, NULL, 90 FROM project_work_templates t JOIN project_types y ON y.id = t.type_id WHERE y.industry_key = 'photography' AND y.name = 'Film production' AND t.name = 'Film';
+
+-- ---------------------------------------------------------------- Marketing and creative
+INSERT IGNORE INTO project_lists (list, `key`, name, industry_key, status_token, is_system, sort_order) VALUES ('key_date', 'launch', 'Launch', 'marketing', NULL, 1, 100), ('key_date', 'report', 'Report due', 'marketing', NULL, 1, 110);
+INSERT IGNORE INTO project_fields (`key`, label, kind, options, industry_key, type_id, is_required, is_sensitive, is_active, sort_order, created_at, updated_at) VALUES ('mk_channels', 'Channels', 'pick_many', '["Social media", "Search", "Radio", "TV", "Outdoor", "Print", "Email"]', 'marketing', NULL, 0, 0, 1, 100, NOW(), NOW());
+INSERT IGNORE INTO project_fields (`key`, label, kind, options, industry_key, type_id, is_required, is_sensitive, is_active, sort_order, created_at, updated_at) VALUES ('mk_audience', 'Audience', 'text', NULL, 'marketing', NULL, 0, 0, 1, 110, NOW(), NOW());
+INSERT IGNORE INTO project_fields (`key`, label, kind, options, industry_key, type_id, is_required, is_sensitive, is_active, sort_order, created_at, updated_at) VALUES ('mk_objective', 'Objective', 'text', NULL, 'marketing', NULL, 0, 0, 1, 120, NOW(), NOW());
+INSERT IGNORE INTO project_doc_templates (name, industry_key, body, is_active, created_at, updated_at) SELECT 'Creative brief', 'marketing', 'Creative brief · {{project.number}} {{project.title}}
+Client: {{client.name}} · {{today}}
+
+Objective: {{field.mk_objective}}
+Audience: {{field.mk_audience}}
+Channels: {{field.mk_channels}}
+
+What we must say:
+
+What they should do:
+
+Deadline: {{project.due_date}} · Lead: {{lead.name}}', 1, NOW(), NOW() FROM project_industries WHERE `key` = 'marketing' AND NOT EXISTS (SELECT 1 FROM project_doc_templates WHERE name = 'Creative brief' AND industry_key = 'marketing');
+INSERT IGNORE INTO project_opening_questions (industry_key, type_id, `key`, question, must_be_yes, sort_order, is_active, created_at) VALUES ('marketing', 0, 'brief', 'The brief is signed off by the client', 1, 10, 1, NOW());
+INSERT IGNORE INTO project_opening_questions (industry_key, type_id, `key`, question, must_be_yes, sort_order, is_active, created_at) VALUES ('marketing', 0, 'approver', 'The client has named who approves the work', 1, 20, 1, NOW());
+INSERT IGNORE INTO project_opening_questions (industry_key, type_id, `key`, question, must_be_yes, sort_order, is_active, created_at) VALUES ('marketing', 0, 'assets', 'Brand assets are received', 0, 30, 1, NOW());
+INSERT IGNORE INTO project_date_rules (industry_key, `key`, name, trigger_kind, trigger_value, make_kind, make_title, offset_days, working_days, warn_days, is_active, created_at) VALUES ('marketing', 'report_after_launch', 'Campaign report due', 'date_set', 'launch', 'report', 'Campaign report due', 30, 0, '7', 1, NOW());
+INSERT IGNORE INTO project_work_templates (type_id, name, is_default, is_active, created_at, updated_at) SELECT id, 'Campaign', 1, 1, NOW(), NOW() FROM project_types WHERE industry_key = 'marketing' AND name = 'Campaign';
+INSERT IGNORE INTO project_template_items (template_id, kind, ref, parent_ref, title, offset_days, estimate_minutes, date_kind, warn_days, sort_order) SELECT t.id, 'phase', 'Creative', NULL, 'Creative', NULL, NULL, NULL, NULL, 10 FROM project_work_templates t JOIN project_types y ON y.id = t.type_id WHERE y.industry_key = 'marketing' AND y.name = 'Campaign' AND t.name = 'Campaign';
+INSERT IGNORE INTO project_template_items (template_id, kind, ref, parent_ref, title, offset_days, estimate_minutes, date_kind, warn_days, sort_order) SELECT t.id, 'task', NULL, 'Creative', 'Concepts', 7, 960, NULL, NULL, 20 FROM project_work_templates t JOIN project_types y ON y.id = t.type_id WHERE y.industry_key = 'marketing' AND y.name = 'Campaign' AND t.name = 'Campaign';
+INSERT IGNORE INTO project_template_items (template_id, kind, ref, parent_ref, title, offset_days, estimate_minutes, date_kind, warn_days, sort_order) SELECT t.id, 'task', NULL, 'Creative', 'Client review', 10, 60, NULL, NULL, 30 FROM project_work_templates t JOIN project_types y ON y.id = t.type_id WHERE y.industry_key = 'marketing' AND y.name = 'Campaign' AND t.name = 'Campaign';
+INSERT IGNORE INTO project_template_items (template_id, kind, ref, parent_ref, title, offset_days, estimate_minutes, date_kind, warn_days, sort_order) SELECT t.id, 'phase', 'Production', NULL, 'Production', NULL, NULL, NULL, NULL, 40 FROM project_work_templates t JOIN project_types y ON y.id = t.type_id WHERE y.industry_key = 'marketing' AND y.name = 'Campaign' AND t.name = 'Campaign';
+INSERT IGNORE INTO project_template_items (template_id, kind, ref, parent_ref, title, offset_days, estimate_minutes, date_kind, warn_days, sort_order) SELECT t.id, 'task', NULL, 'Production', 'Artwork and media plan', 21, 1440, NULL, NULL, 50 FROM project_work_templates t JOIN project_types y ON y.id = t.type_id WHERE y.industry_key = 'marketing' AND y.name = 'Campaign' AND t.name = 'Campaign';
+INSERT IGNORE INTO project_template_items (template_id, kind, ref, parent_ref, title, offset_days, estimate_minutes, date_kind, warn_days, sort_order) SELECT t.id, 'date', NULL, NULL, 'Launch', 28, NULL, 'launch', '7,1', 60 FROM project_work_templates t JOIN project_types y ON y.id = t.type_id WHERE y.industry_key = 'marketing' AND y.name = 'Campaign' AND t.name = 'Campaign';
+INSERT IGNORE INTO project_work_templates (type_id, name, is_default, is_active, created_at, updated_at) SELECT id, 'Monthly retainer', 1, 1, NOW(), NOW() FROM project_types WHERE industry_key = 'marketing' AND name = 'Retainer';
+INSERT IGNORE INTO project_template_items (template_id, kind, ref, parent_ref, title, offset_days, estimate_minutes, date_kind, warn_days, sort_order) SELECT t.id, 'task', NULL, NULL, 'Content calendar', 5, 240, NULL, NULL, 10 FROM project_work_templates t JOIN project_types y ON y.id = t.type_id WHERE y.industry_key = 'marketing' AND y.name = 'Retainer' AND t.name = 'Monthly retainer';
+INSERT IGNORE INTO project_template_items (template_id, kind, ref, parent_ref, title, offset_days, estimate_minutes, date_kind, warn_days, sort_order) SELECT t.id, 'task', NULL, NULL, 'Monthly report', 30, 120, NULL, NULL, 20 FROM project_work_templates t JOIN project_types y ON y.id = t.type_id WHERE y.industry_key = 'marketing' AND y.name = 'Retainer' AND t.name = 'Monthly retainer';
+INSERT IGNORE INTO project_template_items (template_id, kind, ref, parent_ref, title, offset_days, estimate_minutes, date_kind, warn_days, sort_order) SELECT t.id, 'date', NULL, NULL, 'Renewal', 365, NULL, 'renewal', '60,30', 30 FROM project_work_templates t JOIN project_types y ON y.id = t.type_id WHERE y.industry_key = 'marketing' AND y.name = 'Retainer' AND t.name = 'Monthly retainer';
+INSERT IGNORE INTO project_work_templates (type_id, name, is_default, is_active, created_at, updated_at) SELECT id, 'Brand identity', 1, 1, NOW(), NOW() FROM project_types WHERE industry_key = 'marketing' AND name = 'Brand project';
+INSERT IGNORE INTO project_template_items (template_id, kind, ref, parent_ref, title, offset_days, estimate_minutes, date_kind, warn_days, sort_order) SELECT t.id, 'task', NULL, NULL, 'Discovery workshop', 7, 240, NULL, NULL, 10 FROM project_work_templates t JOIN project_types y ON y.id = t.type_id WHERE y.industry_key = 'marketing' AND y.name = 'Brand project' AND t.name = 'Brand identity';
+INSERT IGNORE INTO project_template_items (template_id, kind, ref, parent_ref, title, offset_days, estimate_minutes, date_kind, warn_days, sort_order) SELECT t.id, 'task', NULL, NULL, 'Identity options', 21, 1920, NULL, NULL, 20 FROM project_work_templates t JOIN project_types y ON y.id = t.type_id WHERE y.industry_key = 'marketing' AND y.name = 'Brand project' AND t.name = 'Brand identity';
+INSERT IGNORE INTO project_template_items (template_id, kind, ref, parent_ref, title, offset_days, estimate_minutes, date_kind, warn_days, sort_order) SELECT t.id, 'task', NULL, NULL, 'Brand guidelines', 35, 960, NULL, NULL, 30 FROM project_work_templates t JOIN project_types y ON y.id = t.type_id WHERE y.industry_key = 'marketing' AND y.name = 'Brand project' AND t.name = 'Brand identity';
+
+-- ---------------------------------------------------------------- Interiors and fit-out
+INSERT IGNORE INTO project_lists (list, `key`, name, industry_key, status_token, is_system, sort_order) VALUES ('key_date', 'measure', 'Site measure', 'interiors', NULL, 1, 100), ('key_date', 'install', 'Installation', 'interiors', NULL, 1, 110), ('key_date', 'defects_end_fit', 'End of defects period', 'interiors', NULL, 1, 120);
+INSERT IGNORE INTO project_fields (`key`, label, kind, options, industry_key, type_id, is_required, is_sensitive, is_active, sort_order, created_at, updated_at) VALUES ('in_address', 'Site address', 'text', NULL, 'interiors', NULL, 0, 0, 1, 100, NOW(), NOW());
+INSERT IGNORE INTO project_fields (`key`, label, kind, options, industry_key, type_id, is_required, is_sensitive, is_active, sort_order, created_at, updated_at) VALUES ('in_area', 'Area (m²)', 'number', NULL, 'interiors', NULL, 0, 0, 1, 110, NOW(), NOW());
+INSERT IGNORE INTO project_fields (`key`, label, kind, options, industry_key, type_id, is_required, is_sensitive, is_active, sort_order, created_at, updated_at) VALUES ('in_style', 'Style', 'text', NULL, 'interiors', NULL, 0, 0, 1, 120, NOW(), NOW());
+INSERT IGNORE INTO project_doc_templates (name, industry_key, body, is_active, created_at, updated_at) SELECT 'Design proposal letter', 'interiors', '{{company.name}}
+{{today}}
+
+{{client.name}}
+
+Dear {{contact.name}},
+
+{{project.number}}: {{project.title}}
+
+Thank you for asking us to design your space.
+
+Site: {{field.in_address}}
+Area: {{field.in_area}} m²
+Our lead: {{lead.name}} ({{lead.email}})
+Start: {{project.start_date}}
+
+Please sign and return a copy to confirm.
+
+Yours sincerely,
+
+{{me.name}}
+For {{company.name}}', 1, NOW(), NOW() FROM project_industries WHERE `key` = 'interiors' AND NOT EXISTS (SELECT 1 FROM project_doc_templates WHERE name = 'Design proposal letter' AND industry_key = 'interiors');
+INSERT IGNORE INTO project_inspection_kinds (`key`, name, questions, is_active, created_at) VALUES ('fitout_handover', 'Fit-out handover', 'Joinery is complete and aligned
+Paint and finishes are clean
+Lighting and power work
+The space is clean and clear', 1, NOW());
+INSERT IGNORE INTO project_opening_questions (industry_key, type_id, `key`, question, must_be_yes, sort_order, is_active, created_at) VALUES ('interiors', 0, 'measure', 'The site is measured', 1, 10, 1, NOW());
+INSERT IGNORE INTO project_opening_questions (industry_key, type_id, `key`, question, must_be_yes, sort_order, is_active, created_at) VALUES ('interiors', 0, 'landlord', 'The landlord''s approval for the works is received', 1, 20, 1, NOW());
+INSERT IGNORE INTO project_opening_questions (industry_key, type_id, `key`, question, must_be_yes, sort_order, is_active, created_at) VALUES ('interiors', 0, 'budget', 'The design and scope are agreed', 1, 30, 1, NOW());
+INSERT IGNORE INTO project_date_rules (industry_key, `key`, name, trigger_kind, trigger_value, make_kind, make_title, offset_days, working_days, warn_days, is_active, created_at) VALUES ('interiors', 'defects_after_handover_fit', 'End of the defects period', 'stage', 'Handover', 'defects_end_fit', 'End of the defects period', 180, 0, '30,7', 1, NOW());
+INSERT IGNORE INTO project_work_templates (type_id, name, is_default, is_active, created_at, updated_at) SELECT id, 'Fit-out', 1, 1, NOW(), NOW() FROM project_types WHERE industry_key = 'interiors' AND name = 'Fit-out';
+INSERT IGNORE INTO project_template_items (template_id, kind, ref, parent_ref, title, offset_days, estimate_minutes, date_kind, warn_days, sort_order) SELECT t.id, 'date', NULL, NULL, 'Site measure', 2, NULL, 'measure', '1', 10 FROM project_work_templates t JOIN project_types y ON y.id = t.type_id WHERE y.industry_key = 'interiors' AND y.name = 'Fit-out' AND t.name = 'Fit-out';
+INSERT IGNORE INTO project_template_items (template_id, kind, ref, parent_ref, title, offset_days, estimate_minutes, date_kind, warn_days, sort_order) SELECT t.id, 'phase', 'Design', NULL, 'Design', NULL, NULL, NULL, NULL, 20 FROM project_work_templates t JOIN project_types y ON y.id = t.type_id WHERE y.industry_key = 'interiors' AND y.name = 'Fit-out' AND t.name = 'Fit-out';
+INSERT IGNORE INTO project_template_items (template_id, kind, ref, parent_ref, title, offset_days, estimate_minutes, date_kind, warn_days, sort_order) SELECT t.id, 'task', NULL, 'Design', 'Layout and mood boards', 10, 960, NULL, NULL, 30 FROM project_work_templates t JOIN project_types y ON y.id = t.type_id WHERE y.industry_key = 'interiors' AND y.name = 'Fit-out' AND t.name = 'Fit-out';
+INSERT IGNORE INTO project_template_items (template_id, kind, ref, parent_ref, title, offset_days, estimate_minutes, date_kind, warn_days, sort_order) SELECT t.id, 'phase', 'Procurement', NULL, 'Procurement', NULL, NULL, NULL, NULL, 40 FROM project_work_templates t JOIN project_types y ON y.id = t.type_id WHERE y.industry_key = 'interiors' AND y.name = 'Fit-out' AND t.name = 'Fit-out';
+INSERT IGNORE INTO project_template_items (template_id, kind, ref, parent_ref, title, offset_days, estimate_minutes, date_kind, warn_days, sort_order) SELECT t.id, 'task', NULL, 'Procurement', 'Order furniture and finishes', 20, NULL, NULL, NULL, 50 FROM project_work_templates t JOIN project_types y ON y.id = t.type_id WHERE y.industry_key = 'interiors' AND y.name = 'Fit-out' AND t.name = 'Fit-out';
+INSERT IGNORE INTO project_template_items (template_id, kind, ref, parent_ref, title, offset_days, estimate_minutes, date_kind, warn_days, sort_order) SELECT t.id, 'phase', 'Works', NULL, 'Works', NULL, NULL, NULL, NULL, 60 FROM project_work_templates t JOIN project_types y ON y.id = t.type_id WHERE y.industry_key = 'interiors' AND y.name = 'Fit-out' AND t.name = 'Fit-out';
+INSERT IGNORE INTO project_template_items (template_id, kind, ref, parent_ref, title, offset_days, estimate_minutes, date_kind, warn_days, sort_order) SELECT t.id, 'task', NULL, 'Works', 'Site works', 45, NULL, NULL, NULL, 70 FROM project_work_templates t JOIN project_types y ON y.id = t.type_id WHERE y.industry_key = 'interiors' AND y.name = 'Fit-out' AND t.name = 'Fit-out';
+INSERT IGNORE INTO project_template_items (template_id, kind, ref, parent_ref, title, offset_days, estimate_minutes, date_kind, warn_days, sort_order) SELECT t.id, 'date', NULL, NULL, 'Installation', 50, NULL, 'install', '3', 80 FROM project_work_templates t JOIN project_types y ON y.id = t.type_id WHERE y.industry_key = 'interiors' AND y.name = 'Fit-out' AND t.name = 'Fit-out';
+INSERT IGNORE INTO project_template_items (template_id, kind, ref, parent_ref, title, offset_days, estimate_minutes, date_kind, warn_days, sort_order) SELECT t.id, 'task', NULL, 'Works', 'Snagging', 55, NULL, NULL, NULL, 90 FROM project_work_templates t JOIN project_types y ON y.id = t.type_id WHERE y.industry_key = 'interiors' AND y.name = 'Fit-out' AND t.name = 'Fit-out';
+INSERT IGNORE INTO project_work_templates (type_id, name, is_default, is_active, created_at, updated_at) SELECT id, 'Design', 1, 1, NOW(), NOW() FROM project_types WHERE industry_key = 'interiors' AND name = 'Design only';
+INSERT IGNORE INTO project_template_items (template_id, kind, ref, parent_ref, title, offset_days, estimate_minutes, date_kind, warn_days, sort_order) SELECT t.id, 'date', NULL, NULL, 'Site measure', 2, NULL, 'measure', '1', 10 FROM project_work_templates t JOIN project_types y ON y.id = t.type_id WHERE y.industry_key = 'interiors' AND y.name = 'Design only' AND t.name = 'Design';
+INSERT IGNORE INTO project_template_items (template_id, kind, ref, parent_ref, title, offset_days, estimate_minutes, date_kind, warn_days, sort_order) SELECT t.id, 'task', NULL, NULL, 'Concept', 10, 960, NULL, NULL, 20 FROM project_work_templates t JOIN project_types y ON y.id = t.type_id WHERE y.industry_key = 'interiors' AND y.name = 'Design only' AND t.name = 'Design';
+INSERT IGNORE INTO project_template_items (template_id, kind, ref, parent_ref, title, offset_days, estimate_minutes, date_kind, warn_days, sort_order) SELECT t.id, 'task', NULL, NULL, 'Drawings and specification', 20, 1440, NULL, NULL, 30 FROM project_work_templates t JOIN project_types y ON y.id = t.type_id WHERE y.industry_key = 'interiors' AND y.name = 'Design only' AND t.name = 'Design';
+
+-- ---------------------------------------------------------------- NGO programmes and grants
+INSERT IGNORE INTO project_lists (list, `key`, name, industry_key, status_token, is_system, sort_order) VALUES ('key_date', 'donor_report', 'Donor report due', 'ngo', NULL, 1, 100), ('key_date', 'grant_end', 'Grant end date', 'ngo', NULL, 1, 110), ('key_date', 'evaluation', 'Evaluation', 'ngo', NULL, 1, 120);
+INSERT IGNORE INTO project_fields (`key`, label, kind, options, industry_key, type_id, is_required, is_sensitive, is_active, sort_order, created_at, updated_at) VALUES ('ngo_donor', 'Donor', 'text', NULL, 'ngo', NULL, 0, 0, 1, 100, NOW(), NOW());
+INSERT IGNORE INTO project_fields (`key`, label, kind, options, industry_key, type_id, is_required, is_sensitive, is_active, sort_order, created_at, updated_at) VALUES ('ngo_grant_ref', 'Grant reference', 'text', NULL, 'ngo', NULL, 0, 0, 1, 110, NOW(), NOW());
+INSERT IGNORE INTO project_fields (`key`, label, kind, options, industry_key, type_id, is_required, is_sensitive, is_active, sort_order, created_at, updated_at) VALUES ('ngo_beneficiaries', 'Target beneficiaries', 'number', NULL, 'ngo', NULL, 0, 0, 1, 120, NOW(), NOW());
+INSERT IGNORE INTO project_fields (`key`, label, kind, options, industry_key, type_id, is_required, is_sensitive, is_active, sort_order, created_at, updated_at) VALUES ('ngo_counties', 'Counties', 'text', NULL, 'ngo', NULL, 0, 0, 1, 130, NOW(), NOW());
+INSERT IGNORE INTO project_doc_templates (name, industry_key, body, is_active, created_at, updated_at) SELECT 'Partner agreement cover letter', 'ngo', '{{company.name}}
+{{today}}
+
+{{client.name}}
+
+Dear {{contact.name}},
+
+{{project.number}}: {{project.title}}
+
+Thank you for partnering with us on this programme.
+
+Donor: {{field.ngo_donor}} · Grant: {{field.ngo_grant_ref}}
+Where: {{field.ngo_counties}}
+Our lead: {{lead.name}} ({{lead.email}})
+Start: {{project.start_date}}
+
+Please sign and return a copy to confirm.
+
+Yours sincerely,
+
+{{me.name}}
+For {{company.name}}', 1, NOW(), NOW() FROM project_industries WHERE `key` = 'ngo' AND NOT EXISTS (SELECT 1 FROM project_doc_templates WHERE name = 'Partner agreement cover letter' AND industry_key = 'ngo');
+INSERT IGNORE INTO project_opening_questions (industry_key, type_id, `key`, question, must_be_yes, sort_order, is_active, created_at) VALUES ('ngo', 0, 'agreement', 'The grant agreement is signed', 1, 10, 1, NOW());
+INSERT IGNORE INTO project_opening_questions (industry_key, type_id, `key`, question, must_be_yes, sort_order, is_active, created_at) VALUES ('ngo', 0, 'due_diligence', 'Partner due diligence is done', 1, 20, 1, NOW());
+INSERT IGNORE INTO project_opening_questions (industry_key, type_id, `key`, question, must_be_yes, sort_order, is_active, created_at) VALUES ('ngo', 0, 'safeguarding', 'The safeguarding policy is in place', 1, 30, 1, NOW());
+INSERT IGNORE INTO project_opening_questions (industry_key, type_id, `key`, question, must_be_yes, sort_order, is_active, created_at) VALUES ('ngo', 0, 'baseline', 'A baseline survey is planned', 0, 40, 1, NOW());
+INSERT IGNORE INTO project_date_rules (industry_key, `key`, name, trigger_kind, trigger_value, make_kind, make_title, offset_days, working_days, warn_days, is_active, created_at) VALUES ('ngo', 'report_quarterly', 'First quarterly donor report', 'stage', 'Implementation', 'donor_report', 'First quarterly donor report', 90, 0, '14,7', 1, NOW());
+INSERT IGNORE INTO project_date_rules (industry_key, `key`, name, trigger_kind, trigger_value, make_kind, make_title, offset_days, working_days, warn_days, is_active, created_at) VALUES ('ngo', 'evaluation_before_end', 'Final evaluation', 'date_set', 'grant_end', 'evaluation', 'Final evaluation', 0, 0, '60,30', 1, NOW());
+INSERT IGNORE INTO project_work_templates (type_id, name, is_default, is_active, created_at, updated_at) SELECT id, 'Grant programme', 1, 1, NOW(), NOW() FROM project_types WHERE industry_key = 'ngo' AND name = 'Grant-funded programme';
+INSERT IGNORE INTO project_template_items (template_id, kind, ref, parent_ref, title, offset_days, estimate_minutes, date_kind, warn_days, sort_order) SELECT t.id, 'phase', 'Inception', NULL, 'Inception', NULL, NULL, NULL, NULL, 10 FROM project_work_templates t JOIN project_types y ON y.id = t.type_id WHERE y.industry_key = 'ngo' AND y.name = 'Grant-funded programme' AND t.name = 'Grant programme';
+INSERT IGNORE INTO project_template_items (template_id, kind, ref, parent_ref, title, offset_days, estimate_minutes, date_kind, warn_days, sort_order) SELECT t.id, 'task', NULL, 'Inception', 'Inception report', 30, 960, NULL, NULL, 20 FROM project_work_templates t JOIN project_types y ON y.id = t.type_id WHERE y.industry_key = 'ngo' AND y.name = 'Grant-funded programme' AND t.name = 'Grant programme';
+INSERT IGNORE INTO project_template_items (template_id, kind, ref, parent_ref, title, offset_days, estimate_minutes, date_kind, warn_days, sort_order) SELECT t.id, 'task', NULL, 'Inception', 'Baseline survey', 45, NULL, NULL, NULL, 30 FROM project_work_templates t JOIN project_types y ON y.id = t.type_id WHERE y.industry_key = 'ngo' AND y.name = 'Grant-funded programme' AND t.name = 'Grant programme';
+INSERT IGNORE INTO project_template_items (template_id, kind, ref, parent_ref, title, offset_days, estimate_minutes, date_kind, warn_days, sort_order) SELECT t.id, 'phase', 'Implementation', NULL, 'Implementation', NULL, NULL, NULL, NULL, 40 FROM project_work_templates t JOIN project_types y ON y.id = t.type_id WHERE y.industry_key = 'ngo' AND y.name = 'Grant-funded programme' AND t.name = 'Grant programme';
+INSERT IGNORE INTO project_template_items (template_id, kind, ref, parent_ref, title, offset_days, estimate_minutes, date_kind, warn_days, sort_order) SELECT t.id, 'task', NULL, 'Implementation', 'Work plan for the year', 40, 480, NULL, NULL, 50 FROM project_work_templates t JOIN project_types y ON y.id = t.type_id WHERE y.industry_key = 'ngo' AND y.name = 'Grant-funded programme' AND t.name = 'Grant programme';
+INSERT IGNORE INTO project_template_items (template_id, kind, ref, parent_ref, title, offset_days, estimate_minutes, date_kind, warn_days, sort_order) SELECT t.id, 'date', NULL, NULL, 'First donor report', 90, NULL, 'donor_report', '14,7', 60 FROM project_work_templates t JOIN project_types y ON y.id = t.type_id WHERE y.industry_key = 'ngo' AND y.name = 'Grant-funded programme' AND t.name = 'Grant programme';
+INSERT IGNORE INTO project_template_items (template_id, kind, ref, parent_ref, title, offset_days, estimate_minutes, date_kind, warn_days, sort_order) SELECT t.id, 'phase', 'Close-out', NULL, 'Close-out', NULL, NULL, NULL, NULL, 70 FROM project_work_templates t JOIN project_types y ON y.id = t.type_id WHERE y.industry_key = 'ngo' AND y.name = 'Grant-funded programme' AND t.name = 'Grant programme';
+INSERT IGNORE INTO project_template_items (template_id, kind, ref, parent_ref, title, offset_days, estimate_minutes, date_kind, warn_days, sort_order) SELECT t.id, 'task', NULL, 'Close-out', 'Final report', 365, 1920, NULL, NULL, 80 FROM project_work_templates t JOIN project_types y ON y.id = t.type_id WHERE y.industry_key = 'ngo' AND y.name = 'Grant-funded programme' AND t.name = 'Grant programme';
+INSERT IGNORE INTO project_work_templates (type_id, name, is_default, is_active, created_at, updated_at) SELECT id, 'Core programme', 1, 1, NOW(), NOW() FROM project_types WHERE industry_key = 'ngo' AND name = 'Core programme';
+INSERT IGNORE INTO project_template_items (template_id, kind, ref, parent_ref, title, offset_days, estimate_minutes, date_kind, warn_days, sort_order) SELECT t.id, 'task', NULL, NULL, 'Annual plan', 14, 480, NULL, NULL, 10 FROM project_work_templates t JOIN project_types y ON y.id = t.type_id WHERE y.industry_key = 'ngo' AND y.name = 'Core programme' AND t.name = 'Core programme';
+INSERT IGNORE INTO project_template_items (template_id, kind, ref, parent_ref, title, offset_days, estimate_minutes, date_kind, warn_days, sort_order) SELECT t.id, 'task', NULL, NULL, 'Quarterly review', 90, 240, NULL, NULL, 20 FROM project_work_templates t JOIN project_types y ON y.id = t.type_id WHERE y.industry_key = 'ngo' AND y.name = 'Core programme' AND t.name = 'Core programme';
+INSERT IGNORE INTO project_template_items (template_id, kind, ref, parent_ref, title, offset_days, estimate_minutes, date_kind, warn_days, sort_order) SELECT t.id, 'date', NULL, NULL, 'Evaluation', 330, NULL, 'evaluation', '30', 30 FROM project_work_templates t JOIN project_types y ON y.id = t.type_id WHERE y.industry_key = 'ngo' AND y.name = 'Core programme' AND t.name = 'Core programme';
+
+-- ---------------------------------------------------------------- Events
+INSERT IGNORE INTO project_lists (list, `key`, name, industry_key, status_token, is_system, sort_order) VALUES ('key_date', 'event_day', 'Event day', 'events', NULL, 1, 100), ('key_date', 'site_visit_ev', 'Venue visit', 'events', NULL, 1, 110), ('key_date', 'rsvp', 'RSVP deadline', 'events', NULL, 1, 120);
+INSERT IGNORE INTO project_fields (`key`, label, kind, options, industry_key, type_id, is_required, is_sensitive, is_active, sort_order, created_at, updated_at) VALUES ('ev_venue', 'Venue', 'text', NULL, 'events', NULL, 0, 0, 1, 100, NOW(), NOW());
+INSERT IGNORE INTO project_fields (`key`, label, kind, options, industry_key, type_id, is_required, is_sensitive, is_active, sort_order, created_at, updated_at) VALUES ('ev_guests', 'Number of guests', 'number', NULL, 'events', NULL, 0, 0, 1, 110, NOW(), NOW());
+INSERT IGNORE INTO project_fields (`key`, label, kind, options, industry_key, type_id, is_required, is_sensitive, is_active, sort_order, created_at, updated_at) VALUES ('ev_theme', 'Theme', 'text', NULL, 'events', NULL, 0, 0, 1, 120, NOW(), NOW());
+INSERT IGNORE INTO project_doc_templates (name, industry_key, body, is_active, created_at, updated_at) SELECT 'Event confirmation', 'events', '{{company.name}}
+{{today}}
+
+{{client.name}}
+
+Dear {{contact.name}},
+
+{{project.number}}: {{project.title}}
+
+We are delighted to confirm your event.
+
+Venue: {{field.ev_venue}}
+Guests: {{field.ev_guests}}
+Theme: {{field.ev_theme}}
+Our lead: {{lead.name}} ({{lead.email}})
+Start: {{project.start_date}}
+
+Please sign and return a copy to confirm.
+
+Yours sincerely,
+
+{{me.name}}
+For {{company.name}}', 1, NOW(), NOW() FROM project_industries WHERE `key` = 'events' AND NOT EXISTS (SELECT 1 FROM project_doc_templates WHERE name = 'Event confirmation' AND industry_key = 'events');
+INSERT IGNORE INTO project_doc_templates (name, industry_key, body, is_active, created_at, updated_at) SELECT 'Run of show', 'events', 'Run of show · {{project.title}}
+Venue: {{field.ev_venue}} · Lead: {{lead.name}}
+
+Time    What    Who
+
+
+Team: {{team}}', 1, NOW(), NOW() FROM project_industries WHERE `key` = 'events' AND NOT EXISTS (SELECT 1 FROM project_doc_templates WHERE name = 'Run of show' AND industry_key = 'events');
+INSERT IGNORE INTO project_opening_questions (industry_key, type_id, `key`, question, must_be_yes, sort_order, is_active, created_at) VALUES ('events', 0, 'venue', 'The venue and date are held in writing', 1, 10, 1, NOW());
+INSERT IGNORE INTO project_opening_questions (industry_key, type_id, `key`, question, must_be_yes, sort_order, is_active, created_at) VALUES ('events', 0, 'budget', 'The scope and guest numbers are agreed', 1, 20, 1, NOW());
+INSERT IGNORE INTO project_opening_questions (industry_key, type_id, `key`, question, must_be_yes, sort_order, is_active, created_at) VALUES ('events', 0, 'insurance', 'Event insurance and permits are arranged', 0, 30, 1, NOW());
+INSERT IGNORE INTO project_date_rules (industry_key, `key`, name, trigger_kind, trigger_value, make_kind, make_title, offset_days, working_days, warn_days, is_active, created_at) VALUES ('events', 'rsvp_before_event', 'RSVP deadline', 'date_set', 'event_day', 'rsvp', 'RSVP deadline', 0, 0, '21,14', 1, NOW());
+INSERT IGNORE INTO project_work_templates (type_id, name, is_default, is_active, created_at, updated_at) SELECT id, 'Private event', 1, 1, NOW(), NOW() FROM project_types WHERE industry_key = 'events' AND name = 'Private event';
+INSERT IGNORE INTO project_template_items (template_id, kind, ref, parent_ref, title, offset_days, estimate_minutes, date_kind, warn_days, sort_order) SELECT t.id, 'date', NULL, NULL, 'Venue visit', 7, NULL, 'site_visit_ev', '1', 10 FROM project_work_templates t JOIN project_types y ON y.id = t.type_id WHERE y.industry_key = 'events' AND y.name = 'Private event' AND t.name = 'Private event';
+INSERT IGNORE INTO project_template_items (template_id, kind, ref, parent_ref, title, offset_days, estimate_minutes, date_kind, warn_days, sort_order) SELECT t.id, 'task', NULL, NULL, 'Suppliers booked', 21, NULL, NULL, NULL, 20 FROM project_work_templates t JOIN project_types y ON y.id = t.type_id WHERE y.industry_key = 'events' AND y.name = 'Private event' AND t.name = 'Private event';
+INSERT IGNORE INTO project_template_items (template_id, kind, ref, parent_ref, title, offset_days, estimate_minutes, date_kind, warn_days, sort_order) SELECT t.id, 'task', NULL, NULL, 'Run of show', 50, 240, NULL, NULL, 30 FROM project_work_templates t JOIN project_types y ON y.id = t.type_id WHERE y.industry_key = 'events' AND y.name = 'Private event' AND t.name = 'Private event';
+INSERT IGNORE INTO project_template_items (template_id, kind, ref, parent_ref, title, offset_days, estimate_minutes, date_kind, warn_days, sort_order) SELECT t.id, 'date', NULL, NULL, 'Event day', 60, NULL, 'event_day', '14,7,1', 40 FROM project_work_templates t JOIN project_types y ON y.id = t.type_id WHERE y.industry_key = 'events' AND y.name = 'Private event' AND t.name = 'Private event';
+INSERT IGNORE INTO project_work_templates (type_id, name, is_default, is_active, created_at, updated_at) SELECT id, 'Corporate event', 1, 1, NOW(), NOW() FROM project_types WHERE industry_key = 'events' AND name = 'Corporate event';
+INSERT IGNORE INTO project_template_items (template_id, kind, ref, parent_ref, title, offset_days, estimate_minutes, date_kind, warn_days, sort_order) SELECT t.id, 'task', NULL, NULL, 'Concept and budget', 7, 480, NULL, NULL, 10 FROM project_work_templates t JOIN project_types y ON y.id = t.type_id WHERE y.industry_key = 'events' AND y.name = 'Corporate event' AND t.name = 'Corporate event';
+INSERT IGNORE INTO project_template_items (template_id, kind, ref, parent_ref, title, offset_days, estimate_minutes, date_kind, warn_days, sort_order) SELECT t.id, 'date', NULL, NULL, 'Venue visit', 10, NULL, 'site_visit_ev', '1', 20 FROM project_work_templates t JOIN project_types y ON y.id = t.type_id WHERE y.industry_key = 'events' AND y.name = 'Corporate event' AND t.name = 'Corporate event';
+INSERT IGNORE INTO project_template_items (template_id, kind, ref, parent_ref, title, offset_days, estimate_minutes, date_kind, warn_days, sort_order) SELECT t.id, 'task', NULL, NULL, 'Invitations', 30, NULL, NULL, NULL, 30 FROM project_work_templates t JOIN project_types y ON y.id = t.type_id WHERE y.industry_key = 'events' AND y.name = 'Corporate event' AND t.name = 'Corporate event';
+INSERT IGNORE INTO project_template_items (template_id, kind, ref, parent_ref, title, offset_days, estimate_minutes, date_kind, warn_days, sort_order) SELECT t.id, 'task', NULL, NULL, 'Production schedule', 75, 480, NULL, NULL, 40 FROM project_work_templates t JOIN project_types y ON y.id = t.type_id WHERE y.industry_key = 'events' AND y.name = 'Corporate event' AND t.name = 'Corporate event';
+INSERT IGNORE INTO project_template_items (template_id, kind, ref, parent_ref, title, offset_days, estimate_minutes, date_kind, warn_days, sort_order) SELECT t.id, 'date', NULL, NULL, 'Event day', 90, NULL, 'event_day', '14,7,1', 50 FROM project_work_templates t JOIN project_types y ON y.id = t.type_id WHERE y.industry_key = 'events' AND y.name = 'Corporate event' AND t.name = 'Corporate event';
+INSERT IGNORE INTO project_work_templates (type_id, name, is_default, is_active, created_at, updated_at) SELECT id, 'Wedding', 1, 1, NOW(), NOW() FROM project_types WHERE industry_key = 'events' AND name = 'Wedding';
+INSERT IGNORE INTO project_template_items (template_id, kind, ref, parent_ref, title, offset_days, estimate_minutes, date_kind, warn_days, sort_order) SELECT t.id, 'task', NULL, NULL, 'Planning meeting', 7, 120, NULL, NULL, 10 FROM project_work_templates t JOIN project_types y ON y.id = t.type_id WHERE y.industry_key = 'events' AND y.name = 'Wedding' AND t.name = 'Wedding';
+INSERT IGNORE INTO project_template_items (template_id, kind, ref, parent_ref, title, offset_days, estimate_minutes, date_kind, warn_days, sort_order) SELECT t.id, 'date', NULL, NULL, 'Venue visit', 14, NULL, 'site_visit_ev', '1', 20 FROM project_work_templates t JOIN project_types y ON y.id = t.type_id WHERE y.industry_key = 'events' AND y.name = 'Wedding' AND t.name = 'Wedding';
+INSERT IGNORE INTO project_template_items (template_id, kind, ref, parent_ref, title, offset_days, estimate_minutes, date_kind, warn_days, sort_order) SELECT t.id, 'task', NULL, NULL, 'Vendors booked', 60, NULL, NULL, NULL, 30 FROM project_work_templates t JOIN project_types y ON y.id = t.type_id WHERE y.industry_key = 'events' AND y.name = 'Wedding' AND t.name = 'Wedding';
+INSERT IGNORE INTO project_template_items (template_id, kind, ref, parent_ref, title, offset_days, estimate_minutes, date_kind, warn_days, sort_order) SELECT t.id, 'task', NULL, NULL, 'Final walk-through', 170, 180, NULL, NULL, 40 FROM project_work_templates t JOIN project_types y ON y.id = t.type_id WHERE y.industry_key = 'events' AND y.name = 'Wedding' AND t.name = 'Wedding';
+INSERT IGNORE INTO project_template_items (template_id, kind, ref, parent_ref, title, offset_days, estimate_minutes, date_kind, warn_days, sort_order) SELECT t.id, 'date', NULL, NULL, 'Event day', 180, NULL, 'event_day', '30,14,7,1', 50 FROM project_work_templates t JOIN project_types y ON y.id = t.type_id WHERE y.industry_key = 'events' AND y.name = 'Wedding' AND t.name = 'Wedding';
+
+-- ---------------------------------------------------------------- Fashion
+INSERT IGNORE INTO project_lists (list, `key`, name, industry_key, status_token, is_system, sort_order) VALUES ('key_date', 'fitting', 'Fitting', 'fashion', NULL, 1, 100), ('key_date', 'collection', 'Collection or delivery', 'fashion', NULL, 1, 110);
+INSERT IGNORE INTO project_fields (`key`, label, kind, options, industry_key, type_id, is_required, is_sensitive, is_active, sort_order, created_at, updated_at) VALUES ('fa_measurements_taken', 'Measurements taken on', 'date', NULL, 'fashion', NULL, 0, 0, 1, 100, NOW(), NOW());
+INSERT IGNORE INTO project_fields (`key`, label, kind, options, industry_key, type_id, is_required, is_sensitive, is_active, sort_order, created_at, updated_at) VALUES ('fa_fabric', 'Fabric', 'text', NULL, 'fashion', NULL, 0, 0, 1, 110, NOW(), NOW());
+INSERT IGNORE INTO project_fields (`key`, label, kind, options, industry_key, type_id, is_required, is_sensitive, is_active, sort_order, created_at, updated_at) VALUES ('fa_quantity', 'Quantity (pieces)', 'number', NULL, 'fashion', NULL, 0, 0, 1, 120, NOW(), NOW());
+INSERT IGNORE INTO project_doc_templates (name, industry_key, body, is_active, created_at, updated_at) SELECT 'Order confirmation', 'fashion', '{{company.name}}
+{{today}}
+
+{{client.name}}
+
+Dear {{contact.name}},
+
+{{project.number}}: {{project.title}}
+
+Thank you for your order.
+
+Fabric: {{field.fa_fabric}}
+Pieces: {{field.fa_quantity}}
+Our lead: {{lead.name}} ({{lead.email}})
+Start: {{project.start_date}}
+
+Please sign and return a copy to confirm.
+
+Yours sincerely,
+
+{{me.name}}
+For {{company.name}}', 1, NOW(), NOW() FROM project_industries WHERE `key` = 'fashion' AND NOT EXISTS (SELECT 1 FROM project_doc_templates WHERE name = 'Order confirmation' AND industry_key = 'fashion');
+INSERT IGNORE INTO project_opening_questions (industry_key, type_id, `key`, question, must_be_yes, sort_order, is_active, created_at) VALUES ('fashion', 0, 'design', 'The design is signed off', 1, 10, 1, NOW());
+INSERT IGNORE INTO project_opening_questions (industry_key, type_id, `key`, question, must_be_yes, sort_order, is_active, created_at) VALUES ('fashion', 0, 'measurements', 'Measurements are taken and recorded', 1, 20, 1, NOW());
+INSERT IGNORE INTO project_opening_questions (industry_key, type_id, `key`, question, must_be_yes, sort_order, is_active, created_at) VALUES ('fashion', 0, 'fabric', 'Fabric is chosen and available', 1, 30, 1, NOW());
+INSERT IGNORE INTO project_date_rules (industry_key, `key`, name, trigger_kind, trigger_value, make_kind, make_title, offset_days, working_days, warn_days, is_active, created_at) VALUES ('fashion', 'collection_after_fitting', 'Ready for collection', 'date_done', 'fitting', 'collection', 'Ready for collection', 7, 0, '2', 1, NOW());
+INSERT IGNORE INTO project_work_templates (type_id, name, is_default, is_active, created_at, updated_at) SELECT id, 'Bespoke', 1, 1, NOW(), NOW() FROM project_types WHERE industry_key = 'fashion' AND name = 'Bespoke order';
+INSERT IGNORE INTO project_template_items (template_id, kind, ref, parent_ref, title, offset_days, estimate_minutes, date_kind, warn_days, sort_order) SELECT t.id, 'task', NULL, NULL, 'Design and measurements', 2, 120, NULL, NULL, 10 FROM project_work_templates t JOIN project_types y ON y.id = t.type_id WHERE y.industry_key = 'fashion' AND y.name = 'Bespoke order' AND t.name = 'Bespoke';
+INSERT IGNORE INTO project_template_items (template_id, kind, ref, parent_ref, title, offset_days, estimate_minutes, date_kind, warn_days, sort_order) SELECT t.id, 'task', NULL, NULL, 'Cutting', 7, NULL, NULL, NULL, 20 FROM project_work_templates t JOIN project_types y ON y.id = t.type_id WHERE y.industry_key = 'fashion' AND y.name = 'Bespoke order' AND t.name = 'Bespoke';
+INSERT IGNORE INTO project_template_items (template_id, kind, ref, parent_ref, title, offset_days, estimate_minutes, date_kind, warn_days, sort_order) SELECT t.id, 'date', NULL, NULL, 'First fitting', 14, NULL, 'fitting', '1', 30 FROM project_work_templates t JOIN project_types y ON y.id = t.type_id WHERE y.industry_key = 'fashion' AND y.name = 'Bespoke order' AND t.name = 'Bespoke';
+INSERT IGNORE INTO project_template_items (template_id, kind, ref, parent_ref, title, offset_days, estimate_minutes, date_kind, warn_days, sort_order) SELECT t.id, 'task', NULL, NULL, 'Finishing', 21, NULL, NULL, NULL, 40 FROM project_work_templates t JOIN project_types y ON y.id = t.type_id WHERE y.industry_key = 'fashion' AND y.name = 'Bespoke order' AND t.name = 'Bespoke';
+INSERT IGNORE INTO project_work_templates (type_id, name, is_default, is_active, created_at, updated_at) SELECT id, 'Collection', 1, 1, NOW(), NOW() FROM project_types WHERE industry_key = 'fashion' AND name = 'Collection';
+INSERT IGNORE INTO project_template_items (template_id, kind, ref, parent_ref, title, offset_days, estimate_minutes, date_kind, warn_days, sort_order) SELECT t.id, 'task', NULL, NULL, 'Mood board and sketches', 14, 1440, NULL, NULL, 10 FROM project_work_templates t JOIN project_types y ON y.id = t.type_id WHERE y.industry_key = 'fashion' AND y.name = 'Collection' AND t.name = 'Collection';
+INSERT IGNORE INTO project_template_items (template_id, kind, ref, parent_ref, title, offset_days, estimate_minutes, date_kind, warn_days, sort_order) SELECT t.id, 'task', NULL, NULL, 'Samples', 35, NULL, NULL, NULL, 20 FROM project_work_templates t JOIN project_types y ON y.id = t.type_id WHERE y.industry_key = 'fashion' AND y.name = 'Collection' AND t.name = 'Collection';
+INSERT IGNORE INTO project_template_items (template_id, kind, ref, parent_ref, title, offset_days, estimate_minutes, date_kind, warn_days, sort_order) SELECT t.id, 'task', NULL, NULL, 'Lookbook', 50, 960, NULL, NULL, 30 FROM project_work_templates t JOIN project_types y ON y.id = t.type_id WHERE y.industry_key = 'fashion' AND y.name = 'Collection' AND t.name = 'Collection';
+INSERT IGNORE INTO project_work_templates (type_id, name, is_default, is_active, created_at, updated_at) SELECT id, 'Production run', 1, 1, NOW(), NOW() FROM project_types WHERE industry_key = 'fashion' AND name = 'Production run';
+INSERT IGNORE INTO project_template_items (template_id, kind, ref, parent_ref, title, offset_days, estimate_minutes, date_kind, warn_days, sort_order) SELECT t.id, 'task', NULL, NULL, 'Tech pack', 7, 480, NULL, NULL, 10 FROM project_work_templates t JOIN project_types y ON y.id = t.type_id WHERE y.industry_key = 'fashion' AND y.name = 'Production run' AND t.name = 'Production run';
+INSERT IGNORE INTO project_template_items (template_id, kind, ref, parent_ref, title, offset_days, estimate_minutes, date_kind, warn_days, sort_order) SELECT t.id, 'task', NULL, NULL, 'Pre-production sample', 14, NULL, NULL, NULL, 20 FROM project_work_templates t JOIN project_types y ON y.id = t.type_id WHERE y.industry_key = 'fashion' AND y.name = 'Production run' AND t.name = 'Production run';
+INSERT IGNORE INTO project_template_items (template_id, kind, ref, parent_ref, title, offset_days, estimate_minutes, date_kind, warn_days, sort_order) SELECT t.id, 'task', NULL, NULL, 'Bulk production', 35, NULL, NULL, NULL, 30 FROM project_work_templates t JOIN project_types y ON y.id = t.type_id WHERE y.industry_key = 'fashion' AND y.name = 'Production run' AND t.name = 'Production run';
+INSERT IGNORE INTO project_template_items (template_id, kind, ref, parent_ref, title, offset_days, estimate_minutes, date_kind, warn_days, sort_order) SELECT t.id, 'task', NULL, NULL, 'Quality check', 40, 240, NULL, NULL, 40 FROM project_work_templates t JOIN project_types y ON y.id = t.type_id WHERE y.industry_key = 'fashion' AND y.name = 'Production run' AND t.name = 'Production run';
+INSERT IGNORE INTO project_template_items (template_id, kind, ref, parent_ref, title, offset_days, estimate_minutes, date_kind, warn_days, sort_order) SELECT t.id, 'date', NULL, NULL, 'Delivery', 45, NULL, 'collection', '7,2', 50 FROM project_work_templates t JOIN project_types y ON y.id = t.type_id WHERE y.industry_key = 'fashion' AND y.name = 'Production run' AND t.name = 'Production run';
+
+-- ---------------------------------------------------------------- Healthcare
+INSERT IGNORE INTO project_lists (list, `key`, name, industry_key, status_token, is_system, sort_order) VALUES ('key_date', 'review', 'Care review', 'healthcare', NULL, 1, 100), ('key_date', 'appointment', 'Appointment', 'healthcare', NULL, 1, 110), ('key_date', 'discharge', 'Discharge date', 'healthcare', NULL, 1, 120);
+INSERT IGNORE INTO project_fields (`key`, label, kind, options, industry_key, type_id, is_required, is_sensitive, is_active, sort_order, created_at, updated_at) VALUES ('hc_diagnosis', 'Diagnosis', 'text', NULL, 'healthcare', NULL, 0, 1, 1, 100, NOW(), NOW());
+INSERT IGNORE INTO project_fields (`key`, label, kind, options, industry_key, type_id, is_required, is_sensitive, is_active, sort_order, created_at, updated_at) VALUES ('hc_allergies', 'Allergies', 'text', NULL, 'healthcare', NULL, 0, 1, 1, 110, NOW(), NOW());
+INSERT IGNORE INTO project_fields (`key`, label, kind, options, industry_key, type_id, is_required, is_sensitive, is_active, sort_order, created_at, updated_at) VALUES ('hc_next_of_kin', 'Next of kin', 'text', NULL, 'healthcare', NULL, 0, 1, 1, 120, NOW(), NOW());
+INSERT IGNORE INTO project_fields (`key`, label, kind, options, industry_key, type_id, is_required, is_sensitive, is_active, sort_order, created_at, updated_at) VALUES ('hc_cover', 'Insurance or cover number', 'text', NULL, 'healthcare', NULL, 0, 1, 1, 130, NOW(), NOW());
+INSERT IGNORE INTO project_doc_templates (name, industry_key, body, is_active, created_at, updated_at) SELECT 'Consent form', 'healthcare', '{{company.name}}
+Consent to care · {{project.number}}
+
+Patient: {{client.name}}
+Lead clinician: {{lead.name}}
+
+I agree to the care described to me, and I understand I may withdraw my consent at any time.
+
+Signed: ____________  Date: ________
+Witness: ____________', 1, NOW(), NOW() FROM project_industries WHERE `key` = 'healthcare' AND NOT EXISTS (SELECT 1 FROM project_doc_templates WHERE name = 'Consent form' AND industry_key = 'healthcare');
+INSERT IGNORE INTO project_opening_questions (industry_key, type_id, `key`, question, must_be_yes, sort_order, is_active, created_at) VALUES ('healthcare', 0, 'consent', 'Informed consent is signed', 1, 10, 1, NOW());
+INSERT IGNORE INTO project_opening_questions (industry_key, type_id, `key`, question, must_be_yes, sort_order, is_active, created_at) VALUES ('healthcare', 0, 'eligibility', 'Eligibility or cover is confirmed', 1, 20, 1, NOW());
+INSERT IGNORE INTO project_opening_questions (industry_key, type_id, `key`, question, must_be_yes, sort_order, is_active, created_at) VALUES ('healthcare', 0, 'allergies', 'Allergies are recorded', 1, 30, 1, NOW());
+INSERT IGNORE INTO project_opening_questions (industry_key, type_id, `key`, question, must_be_yes, sort_order, is_active, created_at) VALUES ('healthcare', 0, 'next_of_kin', 'Next of kin details are recorded', 0, 40, 1, NOW());
+INSERT IGNORE INTO project_type_settings (type_id, confidential_default, opening_required, updated_at) SELECT id, 1, 1, NOW() FROM project_types WHERE industry_key = 'healthcare' AND name IN ('Treatment plan', 'Home care');
+INSERT IGNORE INTO project_date_rules (industry_key, `key`, name, trigger_kind, trigger_value, make_kind, make_title, offset_days, working_days, warn_days, is_active, created_at) VALUES ('healthcare', 'review_after_start', 'First care review', 'stage', 'Active care', 'review', 'First care review', 14, 0, '3', 1, NOW());
+INSERT IGNORE INTO project_date_rules (industry_key, `key`, name, trigger_kind, trigger_value, make_kind, make_title, offset_days, working_days, warn_days, is_active, created_at) VALUES ('healthcare', 'review_after_review', 'Next review appointment', 'date_done', 'review', 'appointment', 'Next review appointment', 28, 0, '3,1', 1, NOW());
+INSERT IGNORE INTO project_work_templates (type_id, name, is_default, is_active, created_at, updated_at) SELECT id, 'Treatment plan', 1, 1, NOW(), NOW() FROM project_types WHERE industry_key = 'healthcare' AND name = 'Treatment plan';
+INSERT IGNORE INTO project_template_items (template_id, kind, ref, parent_ref, title, offset_days, estimate_minutes, date_kind, warn_days, sort_order) SELECT t.id, 'task', NULL, NULL, 'Initial assessment', 1, 60, NULL, NULL, 10 FROM project_work_templates t JOIN project_types y ON y.id = t.type_id WHERE y.industry_key = 'healthcare' AND y.name = 'Treatment plan' AND t.name = 'Treatment plan';
+INSERT IGNORE INTO project_template_items (template_id, kind, ref, parent_ref, title, offset_days, estimate_minutes, date_kind, warn_days, sort_order) SELECT t.id, 'task', NULL, NULL, 'Care plan written', 3, 120, NULL, NULL, 20 FROM project_work_templates t JOIN project_types y ON y.id = t.type_id WHERE y.industry_key = 'healthcare' AND y.name = 'Treatment plan' AND t.name = 'Treatment plan';
+INSERT IGNORE INTO project_template_items (template_id, kind, ref, parent_ref, title, offset_days, estimate_minutes, date_kind, warn_days, sort_order) SELECT t.id, 'date', NULL, NULL, 'Care review', 14, NULL, 'review', '3', 30 FROM project_work_templates t JOIN project_types y ON y.id = t.type_id WHERE y.industry_key = 'healthcare' AND y.name = 'Treatment plan' AND t.name = 'Treatment plan';
+INSERT IGNORE INTO project_work_templates (type_id, name, is_default, is_active, created_at, updated_at) SELECT id, 'Home care', 1, 1, NOW(), NOW() FROM project_types WHERE industry_key = 'healthcare' AND name = 'Home care';
+INSERT IGNORE INTO project_template_items (template_id, kind, ref, parent_ref, title, offset_days, estimate_minutes, date_kind, warn_days, sort_order) SELECT t.id, 'task', NULL, NULL, 'Home assessment', 2, 120, NULL, NULL, 10 FROM project_work_templates t JOIN project_types y ON y.id = t.type_id WHERE y.industry_key = 'healthcare' AND y.name = 'Home care' AND t.name = 'Home care';
+INSERT IGNORE INTO project_template_items (template_id, kind, ref, parent_ref, title, offset_days, estimate_minutes, date_kind, warn_days, sort_order) SELECT t.id, 'task', NULL, NULL, 'Carer schedule', 5, 120, NULL, NULL, 20 FROM project_work_templates t JOIN project_types y ON y.id = t.type_id WHERE y.industry_key = 'healthcare' AND y.name = 'Home care' AND t.name = 'Home care';
+INSERT IGNORE INTO project_template_items (template_id, kind, ref, parent_ref, title, offset_days, estimate_minutes, date_kind, warn_days, sort_order) SELECT t.id, 'date', NULL, NULL, 'Care review', 28, NULL, 'review', '3', 30 FROM project_work_templates t JOIN project_types y ON y.id = t.type_id WHERE y.industry_key = 'healthcare' AND y.name = 'Home care' AND t.name = 'Home care';
+UPDATE project_stages SET required_fields = '["customer_id", "field:hc_allergies"]' WHERE required_fields IS NULL AND name = 'Active care' AND type_id IN (SELECT id FROM project_types WHERE industry_key = 'healthcare');
+
+-- ---------------------------------------------------------------- General projects
+INSERT IGNORE INTO project_lists (list, `key`, name, industry_key, status_token, is_system, sort_order) VALUES ('key_date', 'kickoff_gen', 'Kick-off', 'general', NULL, 1, 100), ('key_date', 'review_gen', 'Review', 'general', NULL, 1, 110);
+INSERT IGNORE INTO project_fields (`key`, label, kind, options, industry_key, type_id, is_required, is_sensitive, is_active, sort_order, created_at, updated_at) VALUES ('gen_sponsor', 'Sponsor', 'text', NULL, 'general', NULL, 0, 0, 1, 100, NOW(), NOW());
+INSERT IGNORE INTO project_doc_templates (name, industry_key, body, is_active, created_at, updated_at) SELECT 'Project confirmation letter', 'general', '{{company.name}}
+{{today}}
+
+{{client.name}}
+
+Dear {{contact.name}},
+
+{{project.number}}: {{project.title}}
+
+This letter confirms the work we will do for you.
+
+The work: {{project.description}}
+Our lead: {{lead.name}} ({{lead.email}})
+Start: {{project.start_date}}
+
+Please sign and return a copy to confirm.
+
+Yours sincerely,
+
+{{me.name}}
+For {{company.name}}', 1, NOW(), NOW() FROM project_industries WHERE `key` = 'general' AND NOT EXISTS (SELECT 1 FROM project_doc_templates WHERE name = 'Project confirmation letter' AND industry_key = 'general');
+INSERT IGNORE INTO project_opening_questions (industry_key, type_id, `key`, question, must_be_yes, sort_order, is_active, created_at) VALUES ('general', 0, 'scope', 'The scope is agreed', 1, 10, 1, NOW());
+INSERT IGNORE INTO project_opening_questions (industry_key, type_id, `key`, question, must_be_yes, sort_order, is_active, created_at) VALUES ('general', 0, 'sponsor', 'A sponsor is named', 0, 20, 1, NOW());
+INSERT IGNORE INTO project_work_templates (type_id, name, is_default, is_active, created_at, updated_at) SELECT id, 'Simple project', 0, 1, NOW(), NOW() FROM project_types WHERE industry_key = 'general' AND name = 'Client project';
+INSERT IGNORE INTO project_template_items (template_id, kind, ref, parent_ref, title, offset_days, estimate_minutes, date_kind, warn_days, sort_order) SELECT t.id, 'phase', 'Planning', NULL, 'Planning', NULL, NULL, NULL, NULL, 10 FROM project_work_templates t JOIN project_types y ON y.id = t.type_id WHERE y.industry_key = 'general' AND y.name = 'Client project' AND t.name = 'Simple project';
+INSERT IGNORE INTO project_template_items (template_id, kind, ref, parent_ref, title, offset_days, estimate_minutes, date_kind, warn_days, sort_order) SELECT t.id, 'task', NULL, 'Planning', 'Plan and agree scope', 5, 240, NULL, NULL, 20 FROM project_work_templates t JOIN project_types y ON y.id = t.type_id WHERE y.industry_key = 'general' AND y.name = 'Client project' AND t.name = 'Simple project';
+INSERT IGNORE INTO project_template_items (template_id, kind, ref, parent_ref, title, offset_days, estimate_minutes, date_kind, warn_days, sort_order) SELECT t.id, 'date', NULL, NULL, 'Kick-off', 7, NULL, 'kickoff_gen', '1', 30 FROM project_work_templates t JOIN project_types y ON y.id = t.type_id WHERE y.industry_key = 'general' AND y.name = 'Client project' AND t.name = 'Simple project';
+INSERT IGNORE INTO project_template_items (template_id, kind, ref, parent_ref, title, offset_days, estimate_minutes, date_kind, warn_days, sort_order) SELECT t.id, 'phase', 'Delivery', NULL, 'Delivery', NULL, NULL, NULL, NULL, 40 FROM project_work_templates t JOIN project_types y ON y.id = t.type_id WHERE y.industry_key = 'general' AND y.name = 'Client project' AND t.name = 'Simple project';
+INSERT IGNORE INTO project_template_items (template_id, kind, ref, parent_ref, title, offset_days, estimate_minutes, date_kind, warn_days, sort_order) SELECT t.id, 'task', NULL, 'Delivery', 'Deliver', 30, NULL, NULL, NULL, 50 FROM project_work_templates t JOIN project_types y ON y.id = t.type_id WHERE y.industry_key = 'general' AND y.name = 'Client project' AND t.name = 'Simple project';
+INSERT IGNORE INTO project_template_items (template_id, kind, ref, parent_ref, title, offset_days, estimate_minutes, date_kind, warn_days, sort_order) SELECT t.id, 'task', NULL, 'Delivery', 'Client sign-off', 35, 60, NULL, NULL, 60 FROM project_work_templates t JOIN project_types y ON y.id = t.type_id WHERE y.industry_key = 'general' AND y.name = 'Client project' AND t.name = 'Simple project';
+INSERT IGNORE INTO project_work_templates (type_id, name, is_default, is_active, created_at, updated_at) SELECT id, 'Internal project', 0, 1, NOW(), NOW() FROM project_types WHERE industry_key = 'general' AND name = 'Internal project';
+INSERT IGNORE INTO project_template_items (template_id, kind, ref, parent_ref, title, offset_days, estimate_minutes, date_kind, warn_days, sort_order) SELECT t.id, 'task', NULL, NULL, 'Plan', 5, 240, NULL, NULL, 10 FROM project_work_templates t JOIN project_types y ON y.id = t.type_id WHERE y.industry_key = 'general' AND y.name = 'Internal project' AND t.name = 'Internal project';
+INSERT IGNORE INTO project_template_items (template_id, kind, ref, parent_ref, title, offset_days, estimate_minutes, date_kind, warn_days, sort_order) SELECT t.id, 'task', NULL, NULL, 'Do the work', 30, NULL, NULL, NULL, 20 FROM project_work_templates t JOIN project_types y ON y.id = t.type_id WHERE y.industry_key = 'general' AND y.name = 'Internal project' AND t.name = 'Internal project';
+INSERT IGNORE INTO project_template_items (template_id, kind, ref, parent_ref, title, offset_days, estimate_minutes, date_kind, warn_days, sort_order) SELECT t.id, 'date', NULL, NULL, 'Review', 35, NULL, 'review_gen', '3', 30 FROM project_work_templates t JOIN project_types y ON y.id = t.type_id WHERE y.industry_key = 'general' AND y.name = 'Internal project' AND t.name = 'Internal project';
+
+-- ---------------------------------------------------------------- Jobs and field service
+INSERT IGNORE INTO project_lists (list, `key`, name, industry_key, status_token, is_system, sort_order) VALUES ('key_date', 'visit', 'Site visit', 'field_service', NULL, 1, 100), ('key_date', 'service_due', 'Next service due', 'field_service', NULL, 1, 110);
+INSERT IGNORE INTO project_fields (`key`, label, kind, options, industry_key, type_id, is_required, is_sensitive, is_active, sort_order, created_at, updated_at) VALUES ('fs_address', 'Job address', 'text', NULL, 'field_service', NULL, 0, 0, 1, 100, NOW(), NOW());
+INSERT IGNORE INTO project_fields (`key`, label, kind, options, industry_key, type_id, is_required, is_sensitive, is_active, sort_order, created_at, updated_at) VALUES ('fs_equipment', 'Equipment or asset', 'text', NULL, 'field_service', NULL, 0, 0, 1, 110, NOW(), NOW());
+INSERT IGNORE INTO project_fields (`key`, label, kind, options, industry_key, type_id, is_required, is_sensitive, is_active, sort_order, created_at, updated_at) VALUES ('fs_serial', 'Serial number', 'text', NULL, 'field_service', NULL, 0, 0, 1, 120, NOW(), NOW());
+INSERT IGNORE INTO project_doc_templates (name, industry_key, body, is_active, created_at, updated_at) SELECT 'Job report', 'field_service', 'Job report · {{project.number}}
+Client: {{client.name}} · Address: {{field.fs_address}}
+Equipment: {{field.fs_equipment}} ({{field.fs_serial}})
+Date: {{today}} · Technician: {{me.name}}
+
+Work done:
+
+Parts used:
+
+Client signature: ____________', 1, NOW(), NOW() FROM project_industries WHERE `key` = 'field_service' AND NOT EXISTS (SELECT 1 FROM project_doc_templates WHERE name = 'Job report' AND industry_key = 'field_service');
+INSERT IGNORE INTO project_inspection_kinds (`key`, name, questions, is_active, created_at) VALUES ('job_completion', 'Job completion check', 'The equipment works as it should
+The area is clean and safe
+The client was shown the work', 1, NOW());
+INSERT IGNORE INTO project_opening_questions (industry_key, type_id, `key`, question, must_be_yes, sort_order, is_active, created_at) VALUES ('field_service', 0, 'access', 'Access to the site is arranged', 1, 10, 1, NOW());
+INSERT IGNORE INTO project_opening_questions (industry_key, type_id, `key`, question, must_be_yes, sort_order, is_active, created_at) VALUES ('field_service', 0, 'safe', 'The site is safe to work on', 1, 20, 1, NOW());
+INSERT IGNORE INTO project_opening_questions (industry_key, type_id, `key`, question, must_be_yes, sort_order, is_active, created_at) VALUES ('field_service', 0, 'parts', 'Parts needed are available', 0, 30, 1, NOW());
+INSERT IGNORE INTO project_date_rules (industry_key, `key`, name, trigger_kind, trigger_value, make_kind, make_title, offset_days, working_days, warn_days, is_active, created_at) VALUES ('field_service', 'service_after_visit', 'Next service due', 'date_done', 'visit', 'service_due', 'Next service due', 180, 0, '14,7', 1, NOW());
+INSERT IGNORE INTO project_work_templates (type_id, name, is_default, is_active, created_at, updated_at) SELECT id, 'Installation', 1, 1, NOW(), NOW() FROM project_types WHERE industry_key = 'field_service' AND name = 'Installation';
+INSERT IGNORE INTO project_template_items (template_id, kind, ref, parent_ref, title, offset_days, estimate_minutes, date_kind, warn_days, sort_order) SELECT t.id, 'date', NULL, NULL, 'Site visit', 1, NULL, 'visit', '1', 10 FROM project_work_templates t JOIN project_types y ON y.id = t.type_id WHERE y.industry_key = 'field_service' AND y.name = 'Installation' AND t.name = 'Installation';
+INSERT IGNORE INTO project_template_items (template_id, kind, ref, parent_ref, title, offset_days, estimate_minutes, date_kind, warn_days, sort_order) SELECT t.id, 'task', NULL, NULL, 'Install', 3, 480, NULL, NULL, 20 FROM project_work_templates t JOIN project_types y ON y.id = t.type_id WHERE y.industry_key = 'field_service' AND y.name = 'Installation' AND t.name = 'Installation';
+INSERT IGNORE INTO project_template_items (template_id, kind, ref, parent_ref, title, offset_days, estimate_minutes, date_kind, warn_days, sort_order) SELECT t.id, 'task', NULL, NULL, 'Test and hand over', 3, 60, NULL, NULL, 30 FROM project_work_templates t JOIN project_types y ON y.id = t.type_id WHERE y.industry_key = 'field_service' AND y.name = 'Installation' AND t.name = 'Installation';
+INSERT IGNORE INTO project_work_templates (type_id, name, is_default, is_active, created_at, updated_at) SELECT id, 'Repair', 1, 1, NOW(), NOW() FROM project_types WHERE industry_key = 'field_service' AND name = 'Repair';
+INSERT IGNORE INTO project_template_items (template_id, kind, ref, parent_ref, title, offset_days, estimate_minutes, date_kind, warn_days, sort_order) SELECT t.id, 'date', NULL, NULL, 'Site visit', 1, NULL, 'visit', '1', 10 FROM project_work_templates t JOIN project_types y ON y.id = t.type_id WHERE y.industry_key = 'field_service' AND y.name = 'Repair' AND t.name = 'Repair';
+INSERT IGNORE INTO project_template_items (template_id, kind, ref, parent_ref, title, offset_days, estimate_minutes, date_kind, warn_days, sort_order) SELECT t.id, 'task', NULL, NULL, 'Diagnose', 1, 60, NULL, NULL, 20 FROM project_work_templates t JOIN project_types y ON y.id = t.type_id WHERE y.industry_key = 'field_service' AND y.name = 'Repair' AND t.name = 'Repair';
+INSERT IGNORE INTO project_template_items (template_id, kind, ref, parent_ref, title, offset_days, estimate_minutes, date_kind, warn_days, sort_order) SELECT t.id, 'task', NULL, NULL, 'Repair and test', 2, 120, NULL, NULL, 30 FROM project_work_templates t JOIN project_types y ON y.id = t.type_id WHERE y.industry_key = 'field_service' AND y.name = 'Repair' AND t.name = 'Repair';
+INSERT IGNORE INTO project_work_templates (type_id, name, is_default, is_active, created_at, updated_at) SELECT id, 'Maintenance visit', 1, 1, NOW(), NOW() FROM project_types WHERE industry_key = 'field_service' AND name = 'Maintenance';
+INSERT IGNORE INTO project_template_items (template_id, kind, ref, parent_ref, title, offset_days, estimate_minutes, date_kind, warn_days, sort_order) SELECT t.id, 'date', NULL, NULL, 'Site visit', 1, NULL, 'visit', '1', 10 FROM project_work_templates t JOIN project_types y ON y.id = t.type_id WHERE y.industry_key = 'field_service' AND y.name = 'Maintenance' AND t.name = 'Maintenance visit';
+INSERT IGNORE INTO project_template_items (template_id, kind, ref, parent_ref, title, offset_days, estimate_minutes, date_kind, warn_days, sort_order) SELECT t.id, 'task', NULL, NULL, 'Service checklist', 1, 120, NULL, NULL, 20 FROM project_work_templates t JOIN project_types y ON y.id = t.type_id WHERE y.industry_key = 'field_service' AND y.name = 'Maintenance' AND t.name = 'Maintenance visit';
+UPDATE project_stages SET required_fields = '["customer_id", "field:fs_address"]' WHERE required_fields IS NULL AND name = 'On site' AND type_id IN (SELECT id FROM project_types WHERE industry_key = 'field_service');
+
+
 -- PART C - CHECK (expect 7 tables)
 SELECT COUNT(*) AS tables_made FROM information_schema.tables WHERE table_schema = DATABASE() AND table_name IN ('project_type_settings', 'project_work_templates', 'project_template_items', 'project_opening_questions', 'project_opening_checks', 'project_date_rules', 'project_rule_dates');

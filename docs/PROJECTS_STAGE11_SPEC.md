@@ -1,6 +1,6 @@
-# Projects Stage 11: Industry finish (being built)
+# Projects Stage 11: Industry finish (built)
 
-Status: the owner said "stage 11" on 2026-11-20 after Stage 10, so this design is built straight away with the four choices at the end taken as recommended (as in every stage so far). Any of them can still be changed; say which. What is built so far is listed under "As built".
+Status: built. The owner said "stage 11" on 2026-11-20 after Stage 10, so the four choices at the end were taken as recommended; any of them can still be changed. All five builds are listed under "As built".
 
 Stages 1 to 10 built every part of the module once, for every industry. Stage 1 gave each of the 15 industries its names, kinds of work and stages. What it did not give them is the rest of what makes a law firm, a builder or a clinic feel at home on the first day: how a new piece of work starts (its phases, tasks and key dates), the check before work begins, dates that follow from other dates, the fields they keep, the documents they send. Stage 11 adds the three mechanisms that were missing (work templates, the opening check, date rules) and fills every industry with starter content: the five common industries in depth, then the eight niche ones, then the two basic ones.
 
@@ -126,3 +126,33 @@ Script 268 now carries the starter content for Legal, Construction, Software and
 | A stage needs | Pleadings: the client and the case number | Mobilisation: the client and the site address | Build: the client | Fieldwork: the client and the year end | Concept: the client and the site |
 
 The "a stage needs" lines are filled only where the company has not set anything for that stage. No amounts anywhere (rule 3). **Tests:** `tests/Feature/ProjectsIndustryContentTest.php` (2): every template, rule, question and document refers to things that exist, and a Litigation matter starts with its template, its conflict check required and its defence date made from service.
+
+### 11.5 The niche eight and the basic two (done)
+
+The same kinds of starter content, lighter, for Food and catering, Photography and film, Marketing and creative, Interiors and fit-out, NGO programmes and grants, Events, Fashion and Healthcare, and the two basic industries.
+
+| Industry | Work templates | Opening check | Date rules | Also |
+|---|---|---|---|---|
+| Food and catering | Function, Contract start-up | Menu, allergies, venue access; deposit | Final numbers due on the function day (warned 7 and 3 days before) | Guests, venue, service style, dietary needs; function confirmation |
+| Photography and film | Shoot, Film | Brief and shot list, releases, usage rights | Edited delivery 14 days after the shoot is done | Location, deliverables, usage rights; booking confirmation, model release |
+| Marketing and creative | Campaign, Monthly retainer, Brand identity | Brief signed off, approver named; brand assets | Campaign report 30 days after launch | Channels, audience, objective; creative brief |
+| Interiors and fit-out | Fit-out, Design | Site measured, landlord's approval, design agreed | End of defects period 180 days after entering Handover | Address, area, style; fit-out handover inspection; design proposal letter |
+| NGO programmes and grants | Grant programme, Core programme | Grant agreement, partner due diligence, safeguarding; baseline | First donor report 90 days after entering Implementation; final evaluation on the grant end date | Donor, grant reference, beneficiaries, counties; partner letter |
+| Events | Private event, Corporate event, Wedding | Venue and date held, scope agreed; insurance | RSVP deadline on the event day (warned 21 and 14 days before) | Venue, guests, theme; event confirmation, run of show |
+| Fashion | Bespoke, Collection, Production run | Design signed off, measurements, fabric | Ready for collection 7 days after a fitting | Measurements date, fabric, quantity; order confirmation |
+| **Healthcare** | Treatment plan, Home care | Consent, eligibility, allergies; next of kin. **Required** | First care review 14 days after entering Active care; next appointment 28 days after a review | **Every kind of work starts confidential**; diagnosis, allergies, next of kin and cover number are **sensitive fields**; consent form; Active care needs the patient and allergies |
+| General projects | Simple project, Internal project (offered, **never chosen for you**: a general project starts empty unless a template is picked) | Scope agreed; sponsor | | Sponsor; project confirmation letter |
+| Jobs and field service | Installation, Repair, Maintenance visit | Access, site safe; parts | Next service due 180 days after a visit is done | Address, equipment, serial number; job completion check; job report; On site needs the client and address |
+
+Healthcare's clinical notes: the daily record is named "Clinical note" for healthcare (Stage 1 names), and its sensitive fields are behind `projects.fields.sensitive` and can be locked (Stage 2 locked area "sensitive fields"), so they stay with those allowed.
+
+- **Tests:** `tests/Feature/ProjectsIndustryContentTest.php` (now 3): a care plan starts confidential with its consent check required and its clinical fields sensitive; every industry has templates; every kind of work outside General projects has a usual one. Earlier tests that check exact sets (fields, lists, templates, the opening check on legal work) now take away the starter content they do not test.
+
+### To check by hand once script 268 is run
+
+1. Start a Litigation matter: its phases, tasks and the first mention are there; the Conflict check is on the Overview; moving it to Pleadings is refused until the check passes; add a party with the name of an existing client and see "possible conflict".
+2. Sign the check; add a key date of kind "Service of papers" and see "Defence due" 15 days later, "made by the rule"; move the service date and see the defence date follow.
+3. Configuration → Kinds of work and stages: look at How work starts, the Conflict check questions and the Date rules; change a template, then add from it on a running matter (only what is missing is added).
+4. Start a Healthcare care plan as someone without the confidential permission: it starts confidential; the clinical fields show only to those allowed.
+5. Start a General project: it starts empty; pick "Simple project" in "Start from" on the next one.
+6. Files → Make a document on a legal matter: the Engagement letter and Letter to the court are offered.

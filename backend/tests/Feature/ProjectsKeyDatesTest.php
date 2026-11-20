@@ -68,7 +68,7 @@ class ProjectsKeyDatesTest extends TestCase
         $this->postJson($p, ['title' => 'X', 'date' => '2026-12-03', 'time' => '25:00'])->assertStatus(422);
         $this->postJson($p, ['title' => 'X'])->assertStatus(422)->assertJson(['message' => 'Give the date.']);
         $this->postJson($p, ['title' => 'X', 'date' => '2026-12-03', 'responsible_id' => $this->staff('Stranger')->id])->assertStatus(422);
-        $this->assertSame(85, DB::table('project_lists')->count());
+        $this->assertSame(85, DB::table('project_lists')->where(fn ($q) => $q->where('list', '!=', 'key_date')->orWhereIn('key', ['deadline', 'meeting', 'handover', 'renewal', 'payment', 'other', 'hearing', 'mention', 'filing', 'limitation', 'judgment', 'inspection', 'site_meeting', 'practical_completion', 'defects_end']))->count());   // what stages 3 to 5 ship; script 268 adds kinds of key date per industry
     }
 
     public function test_moving_a_date_needs_a_reason_and_keeps_where_it_was(): void

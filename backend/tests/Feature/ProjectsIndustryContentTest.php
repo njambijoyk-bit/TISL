@@ -77,4 +77,17 @@ class ProjectsIndustryContentTest extends TestCase
         $this->postJson("/api/admin/projects/{$id}/key-dates", ['title' => 'Papers served', 'kind' => 'service', 'date' => '2026-12-05'])->assertCreated();
         $this->assertSame('2026-12-20', substr(DB::table('project_key_dates')->where('project_id', $id)->where('title', 'Defence due')->value('starts_at'), 0, 10), 'the defence falls due 15 days after service');
     }
+
+    public function test_a_healthcare_care_plan_starts_confidential_with_its_consent_check_required_and_clinical_fields_sensitive(): void
+    {
+        $type = (int) DB::table('project_types')->where('industry_key', 'healthcare')->where('name', 'Treatment plan')->value('id');
+        $id = (int) $this->postJson('/api/admin/projects', ['industry_key' => 'healthcare', 'type_id' => $type, 'title' => 'Care plan for B. Otieno', 'customer_id' => 2])->assertCreated()->json('project.id');
+        $this->assertSame(1, (int) DB::table('projects')->where('id', $id)->value('confidential'), 'Kamau may not make work confidential himself, yet a care plan starts so');
+        $check = $this->getJson("/api/admin/projects/{$id}/opening-check")->assertOk()->json();
+        $this->assertSame(['Consent and eligibility check', true], [$check['name'], $check['required']]);
+        $this->assertSame([1, 1, 1, 1], DB::table('project_fields')->where('industry_key', 'healthcare')->pluck('is_sensitive')->map(fn ($v) => (int) $v)->all());
+        $this->assertSame(15, DB::table('project_types')->whereIn('id', DB::table('project_work_templates')->pluck('type_id'))->distinct()->count('industry_key'), 'every one of the fifteen industries has templates');
+        $this->assertSame(0, DB::table('project_types')->where('industry_key', '!=', 'general')->whereNotIn('id', DB::table('project_work_templates')->where('is_default', 1)->pluck('type_id'))->count(), 'and every kind of work a usual one');
+        $this->assertSame(0, DB::table('project_work_templates')->whereIn('type_id', DB::table('project_types')->where('industry_key', 'general')->pluck('id'))->where('is_default', 1)->count(), 'except General projects, which start empty unless a template is chosen');
+    }
 }

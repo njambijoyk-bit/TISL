@@ -25,6 +25,7 @@ class ProjectsLocksTest extends TestCase
         parent::setUp();
         Carbon::setTestNow('2026-11-16 10:00:00');
         $this->createProjectsWorld();
+        DB::table('project_fields')->delete();   // this test makes its own fields; the industry fields of script 268 are taken away
         $sent = &$this->sent;
         $this->app->instance(\App\Services\Notify\Notifier::class, new class($sent) extends \App\Services\Notify\Notifier {
             public function __construct(private array &$sent) {}

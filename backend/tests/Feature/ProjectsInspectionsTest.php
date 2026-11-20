@@ -41,7 +41,8 @@ class ProjectsInspectionsTest extends ProjectsFilesTestCase
     public function test_an_inspection_is_answered_and_finished_and_each_failed_answer_becomes_a_snag(): void
     {
         $kinds = $this->getJson('/api/admin/projects/configuration/inspections')->assertOk()->json('kinds');
-        $this->assertSame(['Quality check', 3], [$kinds[0]['name'], count($kinds[0]['questions'])], 'the kind script 267 starts with');
+        $quality = collect($kinds)->firstWhere('name', 'Quality check');
+        $this->assertSame(3, count($quality['questions']), 'the kind script 267 starts with');
         $this->postJson('/api/admin/projects/configuration/inspections', ['name' => 'Waterproofing', 'questions' => "Membrane laps 100 mm\n\nNo punctures\nFlood test 24 hours"])->assertCreated();
         $kind = (int) DB::table('project_inspection_kinds')->where('name', 'Waterproofing')->value('id');
         $i = $this->postJson($this->work('/inspections'), ['kind_id' => $kind, 'area' => 'Roof, block B'])->assertCreated()->json();

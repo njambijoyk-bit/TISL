@@ -43,7 +43,7 @@ class ProjectsLeadsTest extends TestCase
 
     public function test_the_script_ships_the_lists_and_the_pipeline_and_adds_three_columns_to_customers(): void
     {
-        $this->assertSame(85, DB::table('project_lists')->count());   // 70 from script 259, and 15 kinds of key date from 261
+        $this->assertSame(85 + substr_count((string) file_get_contents(base_path('database/sql/268_projects_industry.sql')), "('key_date', '"), DB::table('project_lists')->count());   // 70 from script 259, 15 kinds of key date from 261, and the industry ones of 268
         $this->assertSame(['new', 'qualified', 'proposal', 'negotiation', 'won', 'lost'], DB::table('project_pipeline_stages')->orderBy('sort_order')->pluck('key')->all());
         $this->assertSame([], array_diff(DB::table('project_lists')->whereNotNull('industry_key')->distinct()->pluck('industry_key')->all(), DB::table('project_industries')->pluck('key')->all()), 'every party role belongs to a real industry');
         foreach (['projects_account_manager_id', 'projects_lead_id', 'projects_client_since'] as $column) {

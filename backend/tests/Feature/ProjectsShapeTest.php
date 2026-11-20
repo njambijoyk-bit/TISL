@@ -23,6 +23,8 @@ class ProjectsShapeTest extends TestCase
     {
         parent::setUp();
         $this->createProjectsWorld();
+        DB::table('project_fields')->delete();   // this test makes its own fields; the industry fields of script 268 are taken away
+        DB::table('project_type_settings')->delete();   // and the opening check that script 268 requires on legal work
         $this->owner = $this->staff('Owner', self::OWNER);
         Sanctum::actingAs($this->owner, ['*']);
     }

@@ -12,7 +12,7 @@ class ProjectsDocTemplatesTest extends ProjectsFilesTestCase
     {
         $this->postJson('/api/admin/projects/configuration/templates', ['name' => 'Engagement letter', 'body' => $body])->assertOk();
 
-        return (int) DB::table('project_doc_templates')->where('name', 'Engagement letter')->value('id');
+        return (int) DB::table('project_doc_templates')->where('name', 'Engagement letter')->orderByDesc('id')->value('id');   // the one just made (script 268 ships its own engagement letters)
     }
 
     public function test_a_template_is_filled_from_the_work_and_its_own_text_is_kept_as_written(): void
