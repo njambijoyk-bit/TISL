@@ -54,6 +54,7 @@ export default function RequestAnswer() {
           </div>
         )}
         {problem && <p role="alert" style={{ marginTop: 12 }}>{problem}</p>}
+        {r.guest && <p style={{ margin: '14px 0 0', fontSize: 13 }}><a href={r.guest} style={{ color: 'var(--color-primary-600)' }}>Back to the shared documents</a></p>}
       </div>
     </main>
   );

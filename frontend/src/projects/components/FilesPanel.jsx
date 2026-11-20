@@ -5,6 +5,7 @@ import { day, message } from '../lib/format';
 import { Btn, Chip, Notice, Panel, SelectInput, TextInput } from './ui';
 import MakeDocument from './MakeDocument';
 import RequestsPanel from './RequestsPanel';
+import GuestLinksPanel from './GuestLinksPanel';
 import RegistersPanel from './RegistersPanel';
 
 const size = (b) => (b >= 1048576 ? `${(b / 1048576).toFixed(1)} MB` : b >= 1024 ? `${Math.round(b / 1024)} KB` : `${b} B`);
@@ -14,6 +15,7 @@ const size = (b) => (b >= 1048576 ? `${(b / 1048576).toFixed(1)} MB` : b >= 1024
  * The bytes live in the Core vault; this tab shows what Projects says about each file. Downloads go through the signed-in session.
  */
 export default function FilesPanel({ projectId }) {
+  const [guestsSeen, setGuestsSeen] = useState(0);   // a link given or ended changes whom a request can be asked of
   const [data, setData] = useState(null);
   const [folder, setFolder] = useState(null);
   const [removed, setRemoved] = useState(false);
@@ -80,7 +82,8 @@ export default function FilesPanel({ projectId }) {
         <input ref={versionPicker} type="file" hidden aria-label="Choose the new version" onChange={async (e) => { const f = e.target.files[0]; e.target.value = ''; if (f && open) { const note = window.prompt('What changed? (optional)') ?? ''; if (await run(() => projectsAPI.fileVersion(projectId, open.id, f, note), 'New version added')) showVersions({ id: open.id }); } }} />
       </div>
       {problem && <Notice status="problem" style={{ marginBottom: 10 }}>{problem}</Notice>}
-      {!removed && <RequestsPanel key={data.files.length} projectId={projectId} files={data.files} ask={askOn} onAsked={() => setAskOn(null)} onChanged={load} />}
+      {!removed && <RequestsPanel key={`${data.files.length}-${guestsSeen}`} projectId={projectId} files={data.files} ask={askOn} onAsked={() => setAskOn(null)} onChanged={load} />}
+      {!removed && <GuestLinksPanel projectId={projectId} onChanged={() => setGuestsSeen((n) => n + 1)} />}
       {making && <MakeDocument projectId={projectId} folderId={folder} onClose={() => setMaking(false)} onMade={(r) => { setData(r); setMaking(false); }} />}
       {!removed && subfolders.map((f) => (
         <div key={f.id} data-folder={f.name} style={{ display: 'flex', justifyContent: 'space-between', gap: 8, padding: '8px 0', borderBottom: '1px solid var(--line)', fontSize: 13.5 }}>

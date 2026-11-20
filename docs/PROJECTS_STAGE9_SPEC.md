@@ -1,6 +1,6 @@
-# Projects Stage 9: Documents and portals (being built)
+# Projects Stage 9: Documents and portals (built)
 
-Status: the owner said "go" on 2026-11-19 after Stage 8, so this design is built straight away with the four choices at the end taken as recommended (as in every stage so far). Any of them can still be changed; say which. What is built so far is listed under "As built".
+Status: built. The owner said "go" on 2026-11-19 after Stage 8, so the four choices at the end were taken as recommended; any of them can still be changed. All six builds are listed under "As built".
 
 Stages 1 to 8 built the work, its money, the doing of it, the talking about it, its links and its people. Stage 9 is about its papers and the people outside: the files of each piece of work, documents made from templates, asking for files and sign-off, registers, a portal for the client, and short-lived links for anyone else.
 
@@ -145,3 +145,26 @@ Screen: `docs/screens/projects-portal.png`.
 - **Invoices** are read from the books: sales and cash-sale vouchers for this customer on the work's cost centres or linked to the work, not cancelled, with what is still open. Paying stays on My account; the portal stores no amount.
 - **Routes:** `GET /customer/my-work`, `GET /customer/my-work/{project}`, `GET /customer/my-work/{project}/files/{file}` (customer accounts only; another customer's work answers "not found").
 - **Tests:** `tests/Feature/ProjectsPortalTest.php` (2). Browser check `e2e/projects-portal-ui.mjs` (8 checks).
+
+### 9.6 Guest links (done)
+
+Screens: `docs/screens/projects-guests.png` (Files tab), `docs/screens/projects-guest-page.png` (the guest's page).
+
+- **Giving a link** (Files tab → Guest links → "Give a guest link"; `projects.guests` and a project role that keeps files): for whom, an email (optional: the link is emailed when given), and the end day, 30 days ahead to start with and at most 90. Giving one is the serious action "Give a guest link": like every serious action it needs nothing more out of the box; confirming who you are is the suggested setting.
+- **What the guest sees** (`/guest/{code}`, no sign-in): the company, the work, until when the link works, every file shared on the work (the same "Share with the client" switch as the portal), and the requests asked of that link, each opening its request page (9.3) while it waits. Nothing else: no team-only file, no stage, no money.
+- **Asking a guest:** on Requests, "Of whom" lists live guest links under "Guests". The guest is emailed the request if the link has an email, and always sees it on their page. When the link ends, its requests stop working too.
+- **It ends:** by itself after its end day, or at once with "End it now". An ended link answers "This link has ended" and cannot be brought back; give a new one.
+- **Logged:** every opening, download and answer, with the time and internet address ("Openings" on each link); giving and ending are in the work's log.
+- **Routes:** `GET`, `POST /projects/{project}/guests`; `POST …/guests/{link}/end`; `GET …/guests/{link}/visits`; public `GET /guests/{code}`, `GET /guests/{code}/files/{file}`.
+- **Tests:** `tests/Feature/ProjectsGuestLinksTest.php` (3); the serious-actions test now counts 18. Browser check `e2e/projects-guests-ui.mjs` (11 checks).
+
+### To check by hand once script 266 is run
+
+1. Open a piece of work → Files. Add a folder and two files; share one with the client. Add a new version of it and see both versions.
+2. Configuration → Templates: write a template with `{{client.name}}` and `{{project.title}}`; on the Files tab, "Make a document", look at the preview, make the PDF.
+3. Ask a client contact for a file with a due day; open the emailed link in a private window and send a file; see it land in the folder and the asker told.
+4. Ask the same contact to sign off the shared file; add a new version before they answer and see the link refuse the old version.
+5. Files → Registers: start a drawing register, add a line on a file, add a new version of that file and see the revision move on.
+6. Give a file a "Runs out on" day 7 days away; tomorrow at 07:40 the lead is told.
+7. Sign in as the client (a customer account linked to the work's client): My Account → My Work shows the work, its stage, the shared file (download it), the request, and any invoice on the work.
+8. Give a guest link to yourself with your email; open it in a private window, download the shared file, then "End it now" and reload: it says the link has ended. Check "Openings".

@@ -107,6 +107,11 @@ Route::prefix('requests')->middleware('throttle:30,1')->group(function () {
     Route::get('/{token}/file', [\App\Http\Controllers\Api\Projects\RequestsController::class, 'publicFile'])->where('token', '[A-Za-z0-9]{40,60}');
     Route::post('/{token}/answer', [\App\Http\Controllers\Api\Projects\RequestsController::class, 'publicAnswer'])->where('token', '[A-Za-z0-9]{40,60}');
 });
+// a guest link (Projects build 9.6): read-only shared files and the requests asked of it; no sign-in, the long code is the key, it ends by itself
+Route::prefix('guests')->middleware('throttle:30,1')->group(function () {
+    Route::get('/{token}', [\App\Http\Controllers\Api\Projects\GuestsController::class, 'publicShow'])->where('token', '[A-Za-z0-9]{40,60}');
+    Route::get('/{token}/files/{file}', [\App\Http\Controllers\Api\Projects\GuestsController::class, 'publicFile'])->where('token', '[A-Za-z0-9]{40,60}')->whereNumber('file');
+});
 // a meeting invitation's answer link (Projects build 6.6): no sign-in, the long code in the link is the key
 Route::prefix('meetings')->middleware('throttle:30,1')->group(function () {
     Route::get('/{token}', [\App\Http\Controllers\Api\Projects\MeetingsController::class, 'publicShow'])->where('token', '[A-Za-z0-9]{32,60}');
@@ -2045,6 +2050,11 @@ Route::middleware('auth:sanctum')->group(function () {
             Route::post('/{project}/requests', [$rq, 'store'])->whereNumber('project')->middleware('permission:projects.files.sign');
             Route::post('/{project}/requests/{req}/answer', [$rq, 'answer'])->whereNumber(['project', 'req'])->middleware('permission:projects.files.view');   // only by whoever was asked (checked inside)
             Route::post('/{project}/requests/{req}/cancel', [$rq, 'cancel'])->whereNumber(['project', 'req'])->middleware('permission:projects.files.sign');
+            $gl = \App\Http\Controllers\Api\Projects\GuestsController::class;
+            Route::get('/{project}/guests', [$gl, 'index'])->whereNumber('project')->middleware('permission:projects.files.view');
+            Route::post('/{project}/guests', [$gl, 'store'])->whereNumber('project')->middleware('permission:projects.guests');
+            Route::post('/{project}/guests/{link}/end', [$gl, 'end'])->whereNumber(['project', 'link'])->middleware('permission:projects.guests');
+            Route::get('/{project}/guests/{link}/visits', [$gl, 'visits'])->whereNumber(['project', 'link'])->middleware('permission:projects.files.view');
             Route::post('/{project}/folders', [$fl, 'folder'])->whereNumber('project')->middleware('permission:projects.files.manage');
             Route::match(['put', 'delete'], '/{project}/folders/{folder}', [$fl, 'folder'])->whereNumber(['project', 'folder'])->middleware('permission:projects.files.manage');
             $cb = \App\Http\Controllers\Api\Projects\CasebookController::class;

@@ -192,6 +192,7 @@ const MenusFloor         = lazy(() => import('./menus/pages/admin/MenusFloor'));
 const MenuTablePage      = lazy(() => import('./menus/pages/public/TablePage'));
 const MeetingAnswer      = lazy(() => import('./projects/pages/public/MeetingAnswer'));
 const MyWork             = lazy(() => import('./projects/pages/customer/MyWork'));   // the client portal: a customer's own work (build 9.5)
+const GuestPage          = lazy(() => import('./projects/pages/public/GuestPage'));   // a guest link: shared files, read-only, no sign-in (build 9.6)
 const RequestAnswer      = lazy(() => import('./projects/pages/public/RequestAnswer'));   // a file or sign-off asked of someone outside: no sign-in   // a meeting invitation's answer link: no sign-in
 const MenusTill          = lazy(() => import('./menus/pages/admin/MenusTill'));
 const MenusKitchen       = lazy(() => import('./menus/pages/admin/MenusKitchen'));
@@ -613,6 +614,7 @@ function App() {
  <Route path="/menu/table/:qr" element={<ModuleRoute module="menus"><MenuTablePage /></ModuleRoute>} />
  <Route path="/meeting/:token" element={<MeetingAnswer />} />
  <Route path="/request/:token" element={<RequestAnswer />} />
+ <Route path="/guest/:token" element={<GuestPage />} />
             <Route path="/menu/order/:token" element={<ModuleRoute module="menus"><MenuOrderTrack /></ModuleRoute>} />
             <Route path="/menu/plans" element={<ModuleRoute module="menus"><PlansPage /></ModuleRoute>} />
             <Route path="/menu/plan/:token" element={<ModuleRoute module="menus"><PlanManagePage /></ModuleRoute>} />

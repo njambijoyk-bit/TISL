@@ -27,7 +27,8 @@ class ProjectFileRequests
 
         return ['requests' => $rows->map(fn ($r) => $this->shape($r, $user))->all(), 'can' => ['ask' => $this->access->decide($user, 'files_sign', $project)['allowed']],
             'people' => array_map(fn ($u) => ['id' => $u->id, 'name' => $u->name], DB::table('project_members as m')->join('users as u', 'u.id', '=', 'm.user_id')->where('m.project_id', $project->id)->where('m.status', 'active')->orderBy('u.name')->get(['u.id', 'u.name'])->all()),
-            'contacts' => array_merge(...array_values(array_map(fn ($list) => array_values(array_filter($list, fn ($c) => $c['email'])), app(ProjectThreads::class)->contactsFor($project))))];
+            'contacts' => array_merge(...array_values(array_map(fn ($list) => array_values(array_filter($list, fn ($c) => $c['email'])), app(ProjectThreads::class)->contactsFor($project)))),
+            'guests' => app(ProjectGuestLinks::class)->liveOn($project)];
     }
 
     /** @param array<string, mixed> $d kind, what, user_id | contact_id, due_on, folder_id (file) | file_id (signoff) @return int */
@@ -39,8 +40,12 @@ class ProjectFileRequests
         $what !== '' || throw new ProjectException('Say what you are asking for.');
         $userId = ! empty($d['user_id']) ? (int) $d['user_id'] : null;
         $contactId = ! empty($d['contact_id']) ? (int) $d['contact_id'] : null;
-        if (! $userId === ! $contactId) {
-            throw new ProjectException('Ask one person: someone on the work, or a contact.');
+        $guestId = ! empty($d['guest_link_id']) ? (int) $d['guest_link_id'] : null;
+        if (count(array_filter([$userId, $contactId, $guestId])) !== 1) {
+            throw new ProjectException('Ask one person: someone on the work, a contact, or a guest.');
+        }
+        if ($guestId && ! app(ProjectGuestLinks::class)->live(DB::table('project_guest_links')->where('id', $guestId)->where('project_id', $project->id)->first())) {
+            throw new ProjectException('That guest link has ended. Give a new one first.');
         }
         if ($userId && ! DB::table('project_members')->where(['project_id' => $project->id, 'user_id' => $userId, 'status' => 'active'])->exists()) {
             throw new ProjectException('Ask someone on this work.');
@@ -60,8 +65,8 @@ class ProjectFileRequests
         }
         $folder = $kind === 'file' && ! empty($d['folder_id']) ? (int) (DB::table('project_folders')->where('id', (int) $d['folder_id'])->where('project_id', $project->id)->whereNull('deleted_at')->value('id') ?? throw new ProjectException('Choose a folder on this work.')) : null;
         $due = ! empty($d['due_on']) ? (preg_match('/^\d{4}-\d{2}-\d{2}$/', (string) $d['due_on']) ? $d['due_on'] : throw new ProjectException('Choose the day it is due.')) : null;
-        $id = DB::table('project_file_requests')->insertGetId(['project_id' => $project->id, 'kind' => $kind, 'what' => mb_substr($what, 0, 300), 'user_id' => $userId, 'contact_id' => $contactId,
-            'file_id' => $file?->id, 'version_number' => $version, 'folder_id' => $folder, 'due_on' => $due, 'token' => $contactId ? Str::random(48) : null, 'state' => 'open', 'asked_by' => $by->id, 'created_at' => now(), 'updated_at' => now()]);
+        $id = DB::table('project_file_requests')->insertGetId(['project_id' => $project->id, 'kind' => $kind, 'what' => mb_substr($what, 0, 300), 'user_id' => $userId, 'contact_id' => $contactId, 'guest_link_id' => $guestId,
+            'file_id' => $file?->id, 'version_number' => $version, 'folder_id' => $folder, 'due_on' => $due, 'token' => $contactId || $guestId ? Str::random(48) : null, 'state' => 'open', 'asked_by' => $by->id, 'created_at' => now(), 'updated_at' => now()]);
         ProjectLog::record((int) $project->id, $by, 'request.asked', 'request', $id, null, ['kind' => $kind, 'what' => $what]);
         $this->tell(DB::table('project_file_requests')->where('id', $id)->first(), $project, $by->name, false);
 
@@ -85,7 +90,7 @@ class ProjectFileRequests
         $file = $r->file_id ? DB::table('project_files')->where('id', $r->file_id)->first() : null;
 
         return ['kind' => $r->kind, 'what' => $r->what, 'due_on' => $r->due_on, 'state' => $r->state, 'project' => "{$p->number} {$p->title}", 'company' => \App\Models\CompanyProfile::name(),
-            'who' => DB::table('project_contacts')->where('id', $r->contact_id)->value('name'), 'file' => $file ? ['name' => $file->name, 'version' => (int) $r->version_number] : null,
+            'who' => $this->outsider($r), 'guest' => $r->guest_link_id ? "/guest/" . DB::table('project_guest_links')->where('id', $r->guest_link_id)->value('token') : null, 'file' => $file ? ['name' => $file->name, 'version' => (int) $r->version_number] : null,
             'answer' => $r->state !== 'open' ? ['name' => $r->answer_name, 'note' => $r->answer_note, 'at' => $r->answered_at] : null];
     }
 
@@ -93,7 +98,10 @@ class ProjectFileRequests
     {
         [$r, $p] = $this->tokenRow($token);
         $r->state === 'open' || throw new ProjectException('This has already been answered.');
-        $this->answer($p, $r, $file, $d, null, DB::table('project_contacts')->where('id', $r->contact_id)->value('name') ?? 'A contact', request()->ip());
+        $this->answer($p, $r, $file, $d, null, $this->outsider($r) ?? 'A contact', request()->ip());
+        if ($r->guest_link_id) {
+            app(ProjectGuestLinks::class)->visit((int) $r->guest_link_id, 'answered', null);
+        }
 
         return $this->byToken($token);
     }
@@ -173,6 +181,13 @@ class ProjectFileRequests
         $body = ($by ? "{$by} asks: " : '') . $r->what . ($r->due_on ? "\nBy " . Carbon::parse($r->due_on)->format('j M Y') . '.' : '');
         if ($r->user_id) {
             ProjectNotices::tell(User::find($r->user_id), ProjectNotices::TASK, $title, $body, "/admin/projects/{$p->id}?tab=files&requests=1", 'Answer it');
+        } elseif ($r->guest_link_id && ($g = DB::table('project_guest_links')->where('id', $r->guest_link_id)->first()) && $g->email) {
+            try {
+                app(Notifier::class)->sendToContact(['name' => $g->name, 'email' => $g->email, 'phone' => null], ProjectNotices::REQUEST, $title, "{$body}\n\n" . rtrim((string) config('app.frontend_url'), '/') . "/request/{$r->token}",
+                    ['subject' => $title, 'action_url' => "/request/{$r->token}", 'action_text' => $r->kind === 'file' ? 'Send the file' : 'Look and sign off', 'only' => ['email']]);
+            } catch (\Throwable $e) {
+                report($e);
+            }
         } elseif ($r->contact_id && ($c = DB::table('project_contacts')->where('id', $r->contact_id)->first())) {
             try {
                 app(Notifier::class)->sendToContact(['name' => $c->name, 'email' => $c->email, 'phone' => $c->phone], ProjectNotices::REQUEST, $title, "{$body}\n\n" . rtrim((string) config('app.frontend_url'), '/') . "/request/{$r->token}",
@@ -191,10 +206,16 @@ class ProjectFileRequests
         $now = $file ? (int) DB::table('vault_documents')->where('id', $file->vault_document_id)->value('version_count') : null;
 
         return ['id' => (int) $r->id, 'kind' => $r->kind, 'what' => $r->what, 'state' => $r->state, 'due_on' => $r->due_on, 'late' => $r->state === 'open' && $r->due_on && $r->due_on < now()->toDateString(),
-            'of' => $r->user_id ? ($names[$r->user_id] ?? 'Someone') : (DB::table('project_contacts')->where('id', $r->contact_id)->value('name') ?? 'A contact'), 'outside' => (bool) $r->contact_id,
+            'of' => $r->user_id ? ($names[$r->user_id] ?? 'Someone') : ($this->outsider($r) ?? 'A contact'), 'outside' => (bool) ($r->contact_id || $r->guest_link_id), 'guest' => (bool) $r->guest_link_id,
             'asked_by' => $names[$r->asked_by] ?? null, 'file' => $file ? ['id' => (int) $file->id, 'name' => $file->name] : null, 'version' => $r->version_number ? (int) $r->version_number : null,
             'newer' => $r->kind === 'signoff' && $now && $now > (int) $r->version_number, 'answer' => $r->answered_at ? ['name' => $r->answer_name, 'note' => $r->answer_note, 'at' => $r->answered_at, 'ip' => $r->answer_ip] : null,
             'mine' => $r->state === 'open' && (int) $r->user_id === (int) $viewer->id];
+    }
+
+    /** Who outside was asked: a contact, or the person a guest link is for. */
+    private function outsider(object $r): ?string
+    {
+        return $r->guest_link_id ? DB::table('project_guest_links')->where('id', $r->guest_link_id)->value('name') : DB::table('project_contacts')->where('id', $r->contact_id)->value('name');
     }
 
     private function open(object $project, int $id): object
@@ -212,6 +233,9 @@ class ProjectFileRequests
         $p = $r ? DB::table('projects')->where('id', $r->project_id)->whereNull('deleted_at')->first() : null;
         if (! $r || ! $p || $r->state === 'cancelled') {
             throw new ProjectException('This link is not valid.', 404);
+        }
+        if ($r->guest_link_id && ! app(ProjectGuestLinks::class)->live(DB::table('project_guest_links')->where('id', $r->guest_link_id)->first())) {
+            throw new ProjectException('This link has ended.', 410);
         }
 
         return [$r, $p];

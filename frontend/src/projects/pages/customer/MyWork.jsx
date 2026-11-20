@@ -22,7 +22,7 @@ const PHASE = { done: 'good', active: 'info', blocked: 'problem' };
 export function MyWorkList() {
   const [data, setData] = useState(null);
   const [problem, setProblem] = useState('');
-  useEffect(() => { projectsAPI.myWork().then(setData).catch((e) => setProblem(message(e, 'Your work could not be loaded.'))); }, []);
+  useEffect(() => { projectsAPI.portalWork().then(setData).catch((e) => setProblem(message(e, 'Your work could not be loaded.'))); }, []);
   if (!data) return <div style={page}>{problem ? <Notice status="problem">{problem}</Notice> : <p>Loading…</p>}</div>;
 
   return (
@@ -51,11 +51,11 @@ export function MyWorkList() {
 export function MyWorkOne({ id }) {
   const [w, setW] = useState(null);
   const [problem, setProblem] = useState('');
-  useEffect(() => { projectsAPI.myWorkOne(id).then(setW).catch((e) => setProblem(message(e, 'This work could not be loaded.'))); }, [id]);
+  useEffect(() => { projectsAPI.portalWorkOne(id).then(setW).catch((e) => setProblem(message(e, 'This work could not be loaded.'))); }, [id]);
   if (!w) return <div style={page}>{problem ? <Notice status="problem">{problem}</Notice> : <p>Loading…</p>}</div>;
   const download = async (f) => {
     try {
-      const blob = await projectsAPI.myWorkFile(id, f.id);
+      const blob = await projectsAPI.portalWorkFile(id, f.id);
       const url = URL.createObjectURL(blob); const a = document.createElement('a'); a.href = url; a.download = f.name; a.click(); URL.revokeObjectURL(url);
     } catch (e) { setProblem(message(e, 'That file could not be downloaded.')); }
   };
