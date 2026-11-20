@@ -29,6 +29,18 @@ const aiAnalyticsAPI = {
   deleteKey: (id) =>
     api.delete(`${BASE}/keys/${id}`).then(r => r.data),
 
+  // ── Purposes: each kind of AI work with its own line of keys (docs/AI_PURPOSES_SPEC.md) ──
+  // line = [{ key_id, model }], first choice first; [] = no line of its own
+  savePurposeLine: (purpose, line) =>
+    api.put(`${BASE}/purposes/${purpose}/line`, { line }).then(r => r.data),
+
+  // a one-word test down the purpose's line: { ok, key, model, position, failed: [{key, error}] } or { ok: false, message }
+  testPurpose: (purpose) =>
+    api.post(`${BASE}/purposes/${purpose}/test`).then(r => r.data),
+
+  saveRestMinutes: (minutes) =>
+    api.put(`${BASE}/purposes-rest`, { rest_minutes: minutes }).then(r => r.data),
+
   // ── Modules ───────────────────────────────────────────────────────
   getModules: () =>
     api.get(`${BASE}/modules`).then(r => r.data),

@@ -16,6 +16,7 @@ use Tests\TestCase;
 class AiPurposesTest extends TestCase
 {
     use Concerns\RunsSqlScripts;
+    use Concerns\StandsInForAccess;
 
     private array $licensed = ['careers' => false, 'projects' => true, 'extras' => true];
 
@@ -29,6 +30,9 @@ class AiPurposesTest extends TestCase
             $t->id(); $t->string('provider'); $t->string('label'); $t->text('api_key'); $t->boolean('is_active')->default(true); $t->unsignedBigInteger('created_by')->nullable(); $t->timestamp('last_used_at')->nullable();
             $t->string('model')->nullable(); $t->string('base_url')->nullable(); $t->string('used_for', 10)->default('all'); $t->integer('priority')->default(100); $t->string('last_error')->nullable(); $t->dateTime('last_error_at')->nullable(); $t->timestamps();
         });
+        if (! Schema::hasTable('users')) {
+            Schema::create('users', function ($t) { $t->id(); $t->string('name')->nullable(); $t->softDeletes(); });   // a key says who added it
+        }
         $licensed = &$this->licensed;
         $this->app->instance(LicenseManager::class, new class($licensed) extends LicenseManager {
             public function __construct(private array &$licensed) {}
@@ -36,6 +40,11 @@ class AiPurposesTest extends TestCase
             public function isLicensed(string $moduleKey): bool
             {
                 return $this->licensed[$moduleKey] ?? false;
+            }
+
+            public function isActive(string $moduleKey): bool
+            {
+                return $moduleKey === 'core' || ($this->licensed[$moduleKey] ?? false);
             }
         });
         AiGateway::forget();
@@ -225,5 +234,70 @@ class AiPurposesTest extends TestCase
                 $this->assertTrue($module === 'core' || in_array($module, \App\Services\Licensing\LicenseFormat::MODULES, true), "{$purpose}: {$module} is not a module");
             }
         }
+    }
+
+    private function admin(array $perms = ['admin.access', 'ai.keys']): void
+    {
+        $u = new \App\Models\User();
+        $u->id = 9;
+        $u->name = 'Owner';
+        $this->grant($u, $perms);
+        \Laravel\Sanctum\Sanctum::actingAs($u, ['*']);
+    }
+
+    public function test_the_screen_keeps_a_key_to_some_purposes_and_lines_up_a_purpose_with_a_model_per_place(): void
+    {
+        $this->script270();
+        $this->admin();
+        $main = $this->key('main', 'anthropic', 10);
+        $page = $this->getJson('/api/admin/ai-analytics/keys')->assertOk()->json();
+        $this->assertTrue($page['ready']);
+        $this->assertSame(['mimi', 'analytics', 'explain', 'drafts'], array_column($page['purposes'], 'key'), 'screening is hidden while Careers is not licensed');
+        $this->assertSame(10, $page['rest_minutes']);
+        $this->assertTrue($page['keys'][0]['open_to_all']);
+
+        // a new key kept to drafts and explain
+        $id = $this->postJson('/api/admin/ai-analytics/keys', ['provider' => 'gemini', 'label' => 'gem', 'api_key' => 'g-1', 'open_to_all' => false, 'kept_to' => ['drafts', 'explain', 'screening']])->assertCreated()->json('id');
+        $gem = AiProviderKey::find($id);
+        $this->assertFalse($gem->open_to_all);
+        $this->assertSame(['drafts', 'explain'], DB::table('ai_key_purposes')->where('key_id', $id)->orderBy('purpose')->pluck('purpose')->all(), 'a hidden purpose cannot be ticked');
+        $this->postJson('/api/admin/ai-analytics/keys', ['provider' => 'gemini', 'label' => 'none', 'api_key' => 'g-2', 'open_to_all' => false, 'kept_to' => []])->assertStatus(422)->assertJsonPath('errors.kept_to.0', 'Tick at least one purpose, or make the key open to all.');
+        $this->assertSame(0, AiProviderKey::where('label', 'none')->count());
+
+        // the drafts line: gem first with its own model, then main with a small model
+        $this->putJson('/api/admin/ai-analytics/purposes/drafts/line', ['line' => [['key_id' => $id, 'model' => ''], ['key_id' => $main->id, 'model' => 'claude-haiku-4-5']]])->assertOk();
+        $res = $this->getJson('/api/admin/ai-analytics/keys'); $res->assertOk(); $line = collect($res->json('purposes'))->firstWhere('key', 'drafts')['line'];
+        $this->assertSame([['gem', 'gemini-2.5-flash', 1, true], ['main', 'claude-haiku-4-5', 2, true]], array_map(fn ($l) => [$l['label'], $l['model'], $l['position'], $l['own']], $line));
+        $this->putJson('/api/admin/ai-analytics/purposes/mimi/line', ['line' => [['key_id' => $id]]])->assertStatus(422)->assertJsonPath('errors.line.0', '"gem" is kept to other purposes. Tick this purpose on the key first.');
+        $this->putJson('/api/admin/ai-analytics/purposes/screening/line', ['line' => [['key_id' => $main->id]]])->assertStatus(422)->assertJsonPath('errors.purpose.0', 'That purpose is not available.');
+
+        // a hidden purpose keeps what it had when the key is changed
+        DB::table('ai_key_purposes')->insert(['key_id' => $id, 'purpose' => 'screening']);
+        $this->putJson("/api/admin/ai-analytics/keys/{$id}", ['open_to_all' => false, 'kept_to' => ['drafts']])->assertOk();
+        $this->assertSame(['drafts', 'screening'], DB::table('ai_key_purposes')->where('key_id', $id)->orderBy('purpose')->pluck('purpose')->all());
+        $this->assertSame(0, DB::table('ai_purpose_lines')->where('key_id', $id)->where('purpose', 'explain')->count());
+
+        // the rest length, and testing a purpose down its line
+        $this->putJson('/api/admin/ai-analytics/purposes-rest', ['rest_minutes' => 30])->assertOk()->assertJsonPath('rest_minutes', 30);
+        $this->putJson('/api/admin/ai-analytics/purposes-rest', ['rest_minutes' => 5000])->assertStatus(422);
+        $this->fake([], [['error' => ['message' => 'API key not valid.']], 403]);
+        $t = $this->postJson('/api/admin/ai-analytics/purposes/drafts/test')->assertOk()->json();
+        $this->assertSame([true, 'main', 'claude-haiku-4-5', 2], [$t['ok'], $t['key'], $t['model'], $t['position']]);
+        $this->assertSame([['key' => 'gem', 'error' => 'Google Gemini said: API key not valid.']], $t['failed']);
+        $this->assertNotNull($gem->refresh()->resting_until, 'the refused key rests');
+        $this->assertSame('2026-11-20 10:30:00', $gem->resting_until->format('Y-m-d H:i:s'));
+
+        // testing the key itself ends its rest when it works
+        $this->fake();
+        $this->postJson("/api/admin/ai-analytics/keys/{$id}/test")->assertOk()->assertJsonPath('ok', true);
+        $this->assertNull($gem->refresh()->resting_until);
+
+        // deleting a key removes its places and ticks
+        $this->postJson("/api/admin/ai-analytics/keys/{$id}/activate")->assertOk();
+        $this->deleteJson("/api/admin/ai-analytics/keys/{$id}")->assertOk();
+        $this->assertSame(0, DB::table('ai_key_purposes')->where('key_id', $id)->count() + DB::table('ai_purpose_lines')->where('key_id', $id)->count());
+
+        $this->admin(['admin.access']);
+        $this->putJson('/api/admin/ai-analytics/purposes/drafts/line', ['line' => []])->assertForbidden();
     }
 }

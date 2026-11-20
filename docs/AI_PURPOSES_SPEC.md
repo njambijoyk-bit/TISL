@@ -184,3 +184,31 @@ Size: small to medium. One script, no new permission (the AI → Keys screen's e
   - Every caller now names its feature.
 - **Backup:** limits, the rest setting and the call log are backed up. Which purposes a key is kept to, and the purpose lines, stay with the keys, which are not backed up because they are encrypted with this server's key.
 - **Tests:** `tests/Feature/AiPurposesTest.php` (7). It covers licences, the line with models, kept keys, resting and not resting, a bad request, before script 270, and the script moving keys as the gateway reads them.
+
+### A.2 The screen (done)
+
+Screen: `docs/screens/ai-purposes.png`.
+
+- **AI → Keys** gets two tabs, **Keys** and **Purposes**.
+- **Keys tab:**
+  - The key form asks **who may use it**: "Open to all purposes" or "Kept to some", with a tick box for each purpose that shows. A key kept to nothing is refused.
+  - When you change a key, a purpose that is hidden now (its module not licensed) keeps what it had.
+  - Each key shows "OPEN TO ALL" or "KEPT TO" with the purpose names.
+  - A resting key shows "RESTING UNTIL 14:30 · TEST TO WAKE IT". Testing a key that works ends its rest.
+  - Deleting a key removes its places in lines and its ticks.
+  - Before script 270 the form still shows the old "used for" choice.
+- **Purposes tab:**
+  - At the top, how long a refused key rests (0 = never).
+  - One card per purpose that shows, with what it is for, who reads the answer and **who uses it** (for example "Used by: Projects weekly updates").
+  - Each card shows **its line**, each place with its key, model and rest status, then "then the other keys allowed for it". A purpose without a line says it uses the keys allowed for it.
+  - **Change the line** lets you add a key allowed for this purpose, set a model per place (the provider's models are suggested; empty means the key's own), move places up and down, or take one out. Saving an empty line removes it.
+  - A key kept to other purposes can't be added; the message says to tick the purpose on the key first.
+  - **Test this purpose** sends a one-word test down the line, as a real call goes. It shows which key answered, at which place, with which model and how fast, and any key that failed before it. A refused key starts resting.
+- **Bug fixed along the way:** inside the key list, the page's settings were hidden behind the provider's details. That is why the "FIRST CHOICE" chip never showed before.
+- **Routes:**
+  - `PUT /admin/ai-analytics/purposes/{purpose}/line`
+  - `POST /admin/ai-analytics/purposes/{purpose}/test`
+  - `PUT /admin/ai-analytics/purposes-rest`
+  - `GET`, `POST` and `PUT` on `keys` now carry `open_to_all`, `kept_to`, `resting_until` and the purposes overview.
+  - All need `ai.keys`, as the keys always have.
+- **Tests:** `tests/Feature/AiPurposesTest.php` (now 8). Browser check `e2e/ai-purposes-ui.mjs` (11).

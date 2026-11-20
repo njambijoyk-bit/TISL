@@ -22,13 +22,16 @@ class AiAnalyticsController extends Controller
         $this->authorize('manage', AiProviderKey::class);
         $gw = app(\App\Services\Ai\AiGateway::class);
         $cols = $gw::columns();
+        $cfg = app(\App\Services\Ai\AiPurposeConfig::class);
+        $ready = $gw::ready();
 
         return response()->json([
             'columns_ready' => $cols,
             'providers'     => collect($gw::PROVIDERS)->map(fn ($p, $k) => ['value' => $k] + $p)->values(),
-            'purposes'      => ['analytics' => 'AI analytics', 'mimi' => 'Mimi chat', 'screening' => 'Careers screening'],
+            // the purposes that show (a licensed module uses them), each with its line; and how long a refused key rests
+            ...$cfg->overview(),
             // who is first choice for each purpose, so the screen can say so
-            'first_choice'  => collect($gw::PURPOSES)->mapWithKeys(fn ($p) => [$p => $gw->keysFor($p)->first()?->id]),
+            'first_choice'  => collect($gw->purposes())->mapWithKeys(fn ($p, $k) => [$k => $gw->keysFor($k)->first()?->id]),
             'keys'          => AiProviderKey::with('creator:id,name')->orderByRaw($cols ? 'priority, id' : 'id')->get()->map(fn ($k) => [
                 'id'           => $k->id,
                 'provider'     => $k->provider,
@@ -38,6 +41,10 @@ class AiAnalyticsController extends Controller
                 'base_url'     => $k->base_url,
                 'used_for'        => $cols ? ($k->used_for ?? 'all') : 'all',
                 'priority'     => $cols ? (int) $k->priority : 0,
+                'open_to_all'  => $ready ? (bool) $k->open_to_all : (($k->used_for ?? 'all') === 'all'),
+                'kept_to'      => $cfg->keptTo($k),
+                'resting_until' => $ready ? $k->resting_until?->toIso8601String() : null,
+                'rest_reason'  => $ready ? $k->rest_reason : null,
                 'is_active'    => $k->is_active,
                 'last_used_at' => $k->last_used_at,
                 'last_error'   => $cols ? $k->last_error : null,
@@ -59,6 +66,9 @@ class AiAnalyticsController extends Controller
             'model'    => 'nullable|string|max:80',
             'base_url' => 'nullable|url|max:200',
             'used_for'    => 'sometimes|in:analytics,mimi,screening,all',
+            'open_to_all' => 'sometimes|boolean',
+            'kept_to'     => 'sometimes|array',
+            'kept_to.*'   => 'string|in:' . implode(',', array_keys(\App\Services\Ai\AiGateway::PURPOSES)),
         ];
     }
 
@@ -71,12 +81,23 @@ class AiAnalyticsController extends Controller
             $data = array_intersect_key($data, array_flip(['provider', 'label', 'api_key']));
         }
 
+        $purposes = array_intersect_key($data, array_flip(['open_to_all', 'kept_to']));
+        unset($data['open_to_all'], $data['kept_to']);
         $key = AiProviderKey::create([
             ...$data,
             ...($cols ? ['priority' => ((int) AiProviderKey::max('priority')) + 10, 'used_for' => $data['used_for'] ?? 'all'] : []),
             'created_by' => Auth::id(),
             'is_active'  => true,   // in use as soon as it is added; switch it off on the screen
         ]);
+
+        if (\App\Services\Ai\AiGateway::ready()) {
+            try {
+                app(\App\Services\Ai\AiPurposeConfig::class)->saveKeyPurposes($key, (bool) ($purposes['open_to_all'] ?? true), (array) ($purposes['kept_to'] ?? []));
+            } catch (\Illuminate\Validation\ValidationException $e) {
+                $key->delete();
+                throw $e;
+            }
+        }
 
         return response()->json(['success' => true, 'id' => $key->id], 201);
     }
@@ -89,6 +110,10 @@ class AiAnalyticsController extends Controller
         if (empty($data['api_key'])) {
             unset($data['api_key']);
         }
+        if (\App\Services\Ai\AiGateway::ready() && (array_key_exists('open_to_all', $data) || array_key_exists('kept_to', $data))) {
+            app(\App\Services\Ai\AiPurposeConfig::class)->saveKeyPurposes($key, (bool) ($data['open_to_all'] ?? $key->open_to_all), (array) ($data['kept_to'] ?? app(\App\Services\Ai\AiPurposeConfig::class)->keptTo($key)));
+        }
+        unset($data['open_to_all'], $data['kept_to']);
         if (! \App\Services\Ai\AiGateway::columns()) {
             $data = array_intersect_key($data, array_flip(['provider', 'label', 'api_key']));
         }
@@ -125,7 +150,7 @@ class AiAnalyticsController extends Controller
         $t = microtime(true);
         try {
             $r = app(\App\Services\Ai\AiGateway::class)->chat($key, null, [['role' => 'user', 'content' => 'Reply with the single word: OK']], ['max_tokens' => 20, 'timeout' => 20]);
-            $key->forceFill(\App\Services\Ai\AiGateway::columns() ? ['last_error' => null, 'last_error_at' => null] : [])->save();
+            $key->forceFill((\App\Services\Ai\AiGateway::columns() ? ['last_error' => null, 'last_error_at' => null] : []) + (\App\Services\Ai\AiGateway::ready() ? ['resting_until' => null, 'rest_reason' => null] : []))->save();   // a key that works stops resting
 
             return response()->json(['ok' => true, 'model' => $r['model'], 'reply' => $r['text'], 'ms' => (int) ((microtime(true) - $t) * 1000)]);
         } catch (\App\Services\Ai\AiGatewayException $e) {
@@ -145,9 +170,38 @@ class AiAnalyticsController extends Controller
             return response()->json(['message' => 'Switch the key off before deleting it.'], 422);
         }
 
+        app(\App\Services\Ai\AiPurposeConfig::class)->forgetKey((int) $key->id);
         $key->delete();
 
         return response()->json(['success' => true]);
+    }
+
+    // ── Purposes (docs/AI_PURPOSES_SPEC.md, build A.2) ────────────────
+
+    /** A purpose's own line, first choice first: line = [{key_id, model}]. */
+    public function saveLine(Request $request, string $purpose)
+    {
+        $this->authorize('manage', AiProviderKey::class);
+        $request->validate(['line' => 'present|array|max:20']);
+        app(\App\Services\Ai\AiPurposeConfig::class)->saveLine($purpose, (array) $request->input('line', []), $request->user());
+
+        return response()->json(app(\App\Services\Ai\AiPurposeConfig::class)->overview());
+    }
+
+    public function testPurpose(string $purpose)
+    {
+        $this->authorize('manage', AiProviderKey::class);
+
+        return response()->json(app(\App\Services\Ai\AiPurposeConfig::class)->test($purpose));
+    }
+
+    public function saveRest(Request $request)
+    {
+        $this->authorize('manage', AiProviderKey::class);
+        $request->validate(['rest_minutes' => 'required|integer']);
+        app(\App\Services\Ai\AiPurposeConfig::class)->setRest((int) $request->input('rest_minutes'), $request->user());
+
+        return response()->json(app(\App\Services\Ai\AiPurposeConfig::class)->overview());
     }
 
     // ── Modules ──────────────────────────────────────────────────────

@@ -7,6 +7,7 @@ import {
 } from 'lucide-react';
 import GeneralLayout from '../../../../_shared/components/layout/GeneralLayout';
 import aiAnalyticsAPI from '../../../../_shared/api/aiAnalytics';
+import AiPurposesPanel from './AiPurposesPanel';
 
 // ── Design tokens ─────────────────────────────────────────────────────────────
 const C = {
@@ -229,9 +230,10 @@ export default function AiKeysPage() {
   const [saving,     setSaving]     = useState(false);
   const [ambientOn,  setAmbientOn]  = useState(false);
 
-  const BLANK = { provider: 'anthropic', label: '', api_key: '', model: '', base_url: '', used_for: 'all' };
+  const BLANK = { provider: 'anthropic', label: '', api_key: '', model: '', base_url: '', used_for: 'all', open_to_all: true, kept_to: [] };
+  const [tab, setTab] = useState('keys');
   const [form, setForm] = useState(BLANK);
-  const [meta, setMeta] = useState({ providers: [], first_choice: {}, columns_ready: true });
+  const [meta, setMeta] = useState({ providers: [], first_choice: {}, columns_ready: true, ready: false, purposes: [], rest_minutes: 10 });
   const [editing, setEditing] = useState(null);     // id of the key being edited
   const [testing, setTesting] = useState(null);
   const [tests, setTests] = useState({});           // id → test result
@@ -239,12 +241,12 @@ export default function AiKeysPage() {
   const PROVIDERS = (meta.providers ?? []).map(p => ({ ...p, color: COLORS[p.value] ?? 'var(--text-secondary)' }));
 
   // ── Load keys ─────────────────────────────────────────────────────
-  const load = async () => {
-    setLoading(true);
+  const load = async (quiet = false) => {
+    if (!quiet) setLoading(true);
     try {
       const data = await aiAnalyticsAPI.getKeys();
       setKeys(data.keys ?? []);
-      setMeta({ providers: data.providers ?? [], first_choice: data.first_choice ?? {}, columns_ready: data.columns_ready, purposes: data.purposes });
+      setMeta({ providers: data.providers ?? [], first_choice: data.first_choice ?? {}, columns_ready: data.columns_ready, ready: !!data.ready, purposes: data.purposes ?? [], rest_minutes: data.rest_minutes ?? 10 });
     } catch {
       setError('Failed to load keys.');
       audio.playError();
@@ -273,6 +275,7 @@ export default function AiKeysPage() {
     setSaving(true); setFormError(null);
     try {
       const payload = { ...form, model: form.model || null, base_url: form.base_url || null };
+      if (!meta.ready) { delete payload.open_to_all; delete payload.kept_to; } else { delete payload.used_for; }
       if (editing) await aiAnalyticsAPI.updateKey(editing, payload); else await aiAnalyticsAPI.addKey(payload);
       audio.playSuccess();
       setForm(BLANK); setEditing(null);
@@ -288,7 +291,7 @@ export default function AiKeysPage() {
 
   const startEdit = (k) => {
     setEditing(k.id); setShowForm(true); setFormError(null);
-    setForm({ provider: k.provider, label: k.label, api_key: '', model: k.model ?? '', base_url: k.base_url ?? '', used_for: k.used_for ?? 'all' });
+    setForm({ provider: k.provider, label: k.label, api_key: '', model: k.model ?? '', base_url: k.base_url ?? '', used_for: k.used_for ?? 'all', open_to_all: k.open_to_all ?? true, kept_to: k.kept_to ?? [] });
   };
 
   const handleTest = async (id) => {
@@ -339,6 +342,7 @@ export default function AiKeysPage() {
     }
   };
 
+  const info = meta;   // the page's settings, under a name the key list does not hide
   const providerMeta = (p) => PROVIDERS.find(pr => pr.value === p) ?? { value: p, label: p, color: 'var(--text-secondary)', desc: '', models: [] };
 
   return (
@@ -408,6 +412,19 @@ export default function AiKeysPage() {
             }
           `}</style>
 
+          {/* ── Keys | Purposes ── */}
+          <div role="tablist" aria-label="AI keys" style={{ display: 'flex', gap: 6, marginBottom: 20 }}>
+            {[['keys', 'KEYS'], ['purposes', 'PURPOSES']].map(([k, l]) => (
+              <button key={k} role="tab" aria-selected={tab === k} onClick={() => setTab(k)}
+                style={{ padding: '8px 16px', borderRadius: 8, border: `1px solid ${tab === k ? C.blue : C.border}`, background: tab === k ? 'color-mix(in srgb, var(--color-primary-500) 12%, transparent)' : 'transparent', color: tab === k ? C.blue : C.textMid, cursor: 'pointer', fontFamily: 'inherit', fontSize: '0.75rem', fontWeight: 700, letterSpacing: '0.08em' }}>{l}</button>
+            ))}
+          </div>
+
+          {tab === 'purposes' && !loading && (
+            <AiPurposesPanel data={meta} keys={keys} providers={PROVIDERS} onChanged={() => load(true)} />
+          )}
+
+          {tab === 'keys' && (<>
           {/* ── Add key button ── */}
           <div style={{ display: 'flex', justifyContent: 'flex-end', marginBottom: 20 }}>
             <button
@@ -449,6 +466,27 @@ export default function AiKeysPage() {
                     style={{ width: '100%', padding: '10px 14px', borderRadius: 8, border: `1px solid ${C.border}`, background: C.bgInput, color: C.text, fontFamily: 'inherit', fontSize: '0.82rem', outline: 'none', boxSizing: 'border-box' }} />
                   <datalist id="ai-models">{(providerMeta(form.provider).models ?? []).map(m => <option key={m} value={m} />)}</datalist>
                 </div>
+                {meta.ready ? (
+                <div data-ai-who>
+                  <label style={{ display: 'block', fontSize: '0.65rem', fontFamily: 'inherit', color: C.textMid, letterSpacing: '0.12em', marginBottom: 6, textTransform: 'uppercase' }}>WHO MAY USE IT</label>
+                  <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap', marginBottom: 6 }}>
+                    {[[true, 'Open to all purposes'], [false, 'Kept to some']].map(([v, l]) => (
+                      <button key={l} type="button" aria-pressed={form.open_to_all === v} onClick={() => setForm(f => ({ ...f, open_to_all: v }))}
+                        style={{ padding: '8px 10px', borderRadius: 8, border: `1px solid ${form.open_to_all === v ? C.cyan : C.border}`, background: form.open_to_all === v ? 'color-mix(in srgb, var(--color-primary-500) 12%, transparent)' : 'transparent', color: form.open_to_all === v ? C.cyan : C.textMid, cursor: 'pointer', fontFamily: 'inherit', fontSize: '0.7rem', fontWeight: 700 }}>{l}</button>
+                    ))}
+                  </div>
+                  {!form.open_to_all && (
+                    <div style={{ display: 'flex', gap: 10, flexWrap: 'wrap' }}>
+                      {meta.purposes.map(p => (
+                        <label key={p.key} style={{ display: 'flex', gap: 5, alignItems: 'center', fontSize: '0.72rem', color: C.text }}>
+                          <input type="checkbox" checked={form.kept_to.includes(p.key)} onChange={e => setForm(f => ({ ...f, kept_to: e.target.checked ? [...f.kept_to, p.key] : f.kept_to.filter(x => x !== p.key) }))} /> {p.name}
+                        </label>
+                      ))}
+                    </div>
+                  )}
+                  <p style={{ margin: '6px 0 0', fontSize: '0.64rem', color: C.textDim }}>{form.open_to_all ? 'Any purpose may use it.' : 'Only the ticked purposes use it, even when every other key has failed.'}</p>
+                </div>
+                ) : (
                 <div>
                   <label style={{ display: 'block', fontSize: '0.65rem', fontFamily: 'inherit', color: C.textMid, letterSpacing: '0.12em', marginBottom: 6, textTransform: 'uppercase' }}>USED FOR</label>
                   <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap' }}>
@@ -458,6 +496,7 @@ export default function AiKeysPage() {
                     ))}
                   </div>
                 </div>
+                )}
               </div>
               {['openai', 'qwen'].includes(form.provider) && (
                 <div style={{ marginBottom: 12 }}>
@@ -533,7 +572,7 @@ export default function AiKeysPage() {
           ) : (
             <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
               {keys.map(key => {
-                const meta = providerMeta(key.provider);
+                const meta = providerMeta(key.provider);   // the provider's look; the page's own settings are `info`
                 return (
                   <div
                     key={key.id}
@@ -559,9 +598,15 @@ export default function AiKeysPage() {
                           {key.effective_model} · {key.key_hint} · added by {key.created_by} · {key.last_used_at ? `last used ${new Date(key.last_used_at).toLocaleDateString()}` : 'never used'}
                         </p>
                         <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap', marginTop: 6 }}>
-                          <span style={{ fontSize: '0.62rem', fontFamily: 'inherit', padding: '2px 8px', borderRadius: 10, border: `1px solid ${C.border}`, color: C.textMid }}>{usedLabel(key.used_for).toUpperCase()}</span>
-                          {Object.entries(meta.first_choice ?? {}).filter(([, id]) => id === key.id).map(([purpose]) => (
-                            <span key={purpose} style={{ fontSize: '0.62rem', fontFamily: 'inherit', padding: '2px 8px', borderRadius: 10, border: `1px solid ${C.green}60`, color: C.green }}>FIRST CHOICE · {usedLabel(purpose).toUpperCase()}</span>
+                          {info.ready ? (key.open_to_all
+                            ? <span style={{ fontSize: '0.62rem', fontFamily: 'inherit', padding: '2px 8px', borderRadius: 10, border: `1px solid ${C.border}`, color: C.textMid }}>OPEN TO ALL</span>
+                            : <span data-ai-kept style={{ fontSize: '0.62rem', fontFamily: 'inherit', padding: '2px 8px', borderRadius: 10, border: `1px solid ${C.border}`, color: C.textMid }}>KEPT TO · {(key.kept_to ?? []).map(p => info.purposes.find(x => x.key === p)?.name ?? p).join(', ').toUpperCase() || 'PURPOSES NOT SHOWN HERE'}</span>)
+                            : <span style={{ fontSize: '0.62rem', fontFamily: 'inherit', padding: '2px 8px', borderRadius: 10, border: `1px solid ${C.border}`, color: C.textMid }}>{usedLabel(key.used_for).toUpperCase()}</span>}
+                          {key.resting_until && new Date(key.resting_until) > new Date() && (
+                            <span data-ai-resting style={{ fontSize: '0.62rem', fontFamily: 'inherit', padding: '2px 8px', borderRadius: 10, border: '1px solid color-mix(in srgb, var(--color-warning-600, #b45309) 50%, transparent)', color: 'var(--color-warning-600, #b45309)' }}>RESTING UNTIL {new Date(key.resting_until).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })} · TEST TO WAKE IT</span>
+                          )}
+                          {Object.entries(info.first_choice ?? {}).filter(([, id]) => id === key.id).map(([purpose]) => (
+                            <span key={purpose} style={{ fontSize: '0.62rem', fontFamily: 'inherit', padding: '2px 8px', borderRadius: 10, border: `1px solid ${C.green}60`, color: C.green }}>FIRST CHOICE · {(info.purposes.find(x => x.key === purpose)?.name ?? usedLabel(purpose)).toUpperCase()}</span>
                           ))}
                         </div>
                         {key.last_error && <p style={{ margin: '6px 0 0', fontSize: '0.68rem', color: C.red, fontFamily: 'inherit', wordBreak: 'break-word' }}>⚠ {key.last_error}</p>}
@@ -591,7 +636,7 @@ export default function AiKeysPage() {
                         </button>
                         <button onClick={() => startEdit(key)}
                           style={{ padding: '6px 12px', borderRadius: 8, border: `1px solid ${C.border}`, background: 'transparent', color: C.textMid, cursor: 'pointer', fontFamily: 'inherit', fontSize: '0.72rem', fontWeight: 700 }}>EDIT</button>
-                        {meta.columns_ready && key.is_active && Object.values(meta.first_choice ?? {}).some(id => id !== key.id) && (
+                        {info.columns_ready && key.is_active && Object.values(info.first_choice ?? {}).some(id => id !== key.id) && (
                           <button onClick={() => handleFirst(key.id)}
                             style={{ padding: '6px 12px', borderRadius: 8, border: `1px solid ${C.green}50`, background: 'transparent', color: C.green, cursor: 'pointer', fontFamily: 'inherit', fontSize: '0.72rem', fontWeight: 700 }}>FIRST</button>
                         )}
@@ -632,6 +677,8 @@ export default function AiKeysPage() {
               })}
             </div>
           )}
+
+          </>)}
 
           {/* ── Footer status bar ── */}
           <div style={{ marginTop: 40, paddingTop: 16, borderTop: `1px solid ${C.border}`, display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: 8 }}>

@@ -3170,6 +3170,9 @@ Route::middleware('auth:sanctum')->group(function () {
             Route::post  ('keys/{key}/first',  [AiAnalyticsController::class, 'firstChoice']);
             Route::post  ('keys/{key}/test',   [AiAnalyticsController::class, 'testKey']);
             Route::delete('keys/{key}',        [AiAnalyticsController::class, 'destroyKey']);
+            Route::put   ('purposes/{purpose}/line', [AiAnalyticsController::class, 'saveLine'])->where('purpose', '[a-z_]+');
+            Route::post  ('purposes/{purpose}/test', [AiAnalyticsController::class, 'testPurpose'])->where('purpose', '[a-z_]+');
+            Route::put   ('purposes-rest',     [AiAnalyticsController::class, 'saveRest']);
 
             // Modules
             Route::get   ('modules',                    [AiAnalyticsController::class, 'indexModules']);
