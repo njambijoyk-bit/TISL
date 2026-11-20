@@ -109,3 +109,20 @@ Screen: `docs/screens/projects-opening-check.png`.
 - Dates made by a work template (11.1) start rules too.
 - **Routes:** `GET`, `POST /projects/configuration/date-rules`, `PUT …/date-rules/{rule}`.
 - **Tests:** `tests/Feature/ProjectsDateRulesTest.php` (3). Browser check `e2e/projects-industry-ui.mjs` (now 14 checks).
+
+### 11.4 The common five (done)
+
+Script 268 now carries the starter content for Legal, Construction, Software and IT, Consulting and accounting, and Architecture and engineering. All of it is ordinary company data (choice 1): change it, switch it off or remove it in Configuration; running the script again adds only what is missing.
+
+| | Legal | Construction | Software and IT | Consulting and accounting | Architecture and engineering |
+|---|---|---|---|---|---|
+| Work templates (the usual one for each kind of work) | Civil suit, Sale or purchase, Transaction, Legal opinion | Building, Road or civil works, Renovation | Build in sprints, Implementation, Monthly support | Statutory audit, Tax compliance, Advisory assignment | Full design service, Engineering design, Supervision of works |
+| Opening check | Conflict, KYC, engagement letter (must be yes); retainer (for the record). **Required** on every kind | Site handed over, drawings, insurance, permits | Scope agreed, product owner, access, data protection | Independence, KYC, engagement letter; previous accountant. **Required** on Audit | Brief, site survey, fee accepted; land ownership |
+| Date rules | Defence due 15 days after service; notice of appeal 14 days after judgment; submissions 21 days after directions | End of defects period 365 days after entering Practical completion; first valuation 30 days after commencement; final account 90 days after the defects period ends | End of warranty support 90 days after go-live; UAT sign-off 10 working days after UAT | Tax return 180 days after year end; report 21 days after fieldwork | Approval expected 30 working days after submission |
+| New key date kinds | Service of papers, directions hearing, completion | Commencement, valuation, final account | Kick-off, sprint review, UAT, go-live, end of support | Client year end, fieldwork, report due, tax filing due | Approval submission, approval expected, tender return, site visit |
+| Extra fields | Case number, court, judge, fee basis, title number | Site address, plot/LR number, form of contract, defects months, NCA number | Repository, environments, way of working, product owner | Year end, client's tax PIN (sensitive), engagement, partner | Site, floor area, approval reference, use |
+| Documents | Engagement letter, letter to the court | Letter of award, practical completion notice | Statement of work, go-live sign-off | Engagement letter, management representation letter | Fee proposal letter, site instruction |
+| Inspections and registers | | Before a concrete pour, handover inspection, weekly safety walk | Release register | | Supervision visit, approvals register |
+| A stage needs | Pleadings: the client and the case number | Mobilisation: the client and the site address | Build: the client | Fieldwork: the client and the year end | Concept: the client and the site |
+
+The "a stage needs" lines are filled only where the company has not set anything for that stage. No amounts anywhere (rule 3). **Tests:** `tests/Feature/ProjectsIndustryContentTest.php` (2): every template, rule, question and document refers to things that exist, and a Litigation matter starts with its template, its conflict check required and its defence date made from service.
