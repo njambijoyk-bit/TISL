@@ -60,4 +60,40 @@ class ProjectVoucherPoster
             throw new ProjectException(collect($e->errors())->flatten()->first() ?? 'The books refused it.');
         }
     }
+
+    /**
+     * A purchase invoice from a vendor (stage 10: a certified subcontract claim), on the work's cost centre, to the supplier's own ledger in Books
+     * (made for the vendor when it has none). @param array<int, array<string, mixed>> $lines @return array{id: int, number: string, party_ledger_id: int}
+     */
+    public function purchase(string $date, int $vendorId, array $lines, ?int $costCentreId, string $narration, ?string $reference, User $by): array
+    {
+        $type = DB::table('voucher_types')->where('base_type', 'purchase')->where('is_active', 1)->orderBy('id')->value('id');
+        if (! $type) {
+            throw new ProjectException('The Purchase invoice voucher type is switched off in Books, so nothing can be billed. Switch it on in Books first.', 409);
+        }
+        $party = $this->supplierLedger($vendorId);
+        try {
+            $v = app(VoucherService::class)->create([
+                'voucher_type_id' => (int) $type, 'date' => $date, 'party_ledger_id' => $party, 'narration' => $narration, 'reference_no' => $reference, 'cost_centre_id' => $costCentreId,
+                'location_id' => \App\Models\Location::default()?->id, 'lines' => $lines, 'channel' => 'projects',
+            ], $by);
+
+            return ['id' => (int) $v->id, 'number' => (string) $v->voucher_number, 'party_ledger_id' => $party];
+        } catch (BooksException $e) {
+            throw new ProjectException($e->getMessage());
+        } catch (\Illuminate\Validation\ValidationException $e) {
+            throw new ProjectException(collect($e->errors())->flatten()->first() ?? 'The books refused it.');
+        }
+    }
+
+    /** The vendor's own supplier ledger in Books (made when it has none). */
+    public function supplierLedger(int $vendorId): int
+    {
+        $vendor = \App\Models\Vendor::find($vendorId) ?? throw new ProjectException('That vendor is not there any more.');
+        try {
+            return (int) app(\App\Services\Books\LedgerService::class)->vendorLedger($vendor)->id;
+        } catch (\Illuminate\Database\Eloquent\ModelNotFoundException) {
+            throw new ProjectException('The books have no Sundry Creditors group to keep the vendor\'s account in.', 409);
+        }
+    }
 }

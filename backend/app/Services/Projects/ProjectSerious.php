@@ -41,6 +41,7 @@ class ProjectSerious
         'work.handover' => 'Hand over someone\'s work',
         'case.reveal' => 'Reveal a hidden name in the casebook',
         'guest.link' => 'Give a guest link',
+        'sub.certify' => 'Certify a subcontractor\'s claim or release their retention',
     ];
 
     /** A sensible set to start from, applied in one click. Out of the box every action needs nothing. */
@@ -60,6 +61,7 @@ class ProjectSerious
         'work.handover' => ['needs' => 'supervisor', 'on_project' => false, 'reason' => true],
         'case.reveal' => ['needs' => 'supervisor', 'on_project' => false, 'reason' => true],
         'guest.link' => ['needs' => 'identity', 'on_project' => false, 'reason' => false],
+        'sub.certify' => ['needs' => 'identity', 'on_project' => false, 'reason' => false],
     ];
 
     private const NONE = ['needs' => 'none', 'on_project' => false, 'reason' => false];

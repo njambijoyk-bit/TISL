@@ -131,3 +131,21 @@ Screen: `docs/screens/projects-plant.png`.
 - The daily record (10.5) will offer what is on the work and on hire that day for its plant hours.
 - **Routes:** `GET /projects/{project}/plant`; `POST …/plant/bookings`, `…/plant/bookings/{booking}/cancel`, `…/plant/issue`, `…/plant/held/{assignment}/return`, `…/plant/hires`, `…/plant/hires/{hire}/off`; `GET /projects/plant/find`, `GET /projects/vendors/find`.
 - **Tests:** `tests/Feature/ProjectsPlantTest.php` (3). Browser check `e2e/projects-site-ui.mjs` (now 11 checks).
+
+### 10.3 Subcontracts and claims (done)
+
+Screen: `docs/screens/projects-subcontracts.png`.
+
+- **A subcontract** (`projects.subcontracts` and a project role that works the site): the subcontractor (a vendor), what for, what they do, from and to, the **vendor order that holds the agreed value** (it must be that vendor's, not cancelled, and in the company's currency), and retention (0–50%). The value is the order's total before tax, read each time. Once a claim is certified, the order and retention stay as they are.
+- **A claim** says how far the whole work is (cumulative %, above what is certified so far, at most 100), up to a day, with a note. One claim waits at a time.
+- **Certifying** a claim at a percentage, no more than claimed (a reason is asked when it is less), posts in Books:
+  - a **purchase invoice** from the subcontractor for the difference since the last certificate (value × (now − before)), on the work's cost centre, to the "subcontract costs" ledger, the supplier's own ledger made for the vendor when it has none;
+  - a **retention journal** for the subcontract's % of that bill (debit the supplier, credit the "retention" ledger), **settled against the bill**, so the bill's open amount drops by it.
+  Both happen in one step or not at all. Certifying is the serious action **"Certify a subcontractor's claim or release their retention"** (nothing out of the box; confirming who you are is the suggestion).
+- **Not certified:** with a reason, which the subcontractor sees.
+- **Releasing retention** once the subcontract is marked complete or ended: one journal the other way, from the ledger it was held in back to the supplier's account; once only. Also the serious action.
+- **Amounts** (value, certified, held, bills) show only to those who see the work's money; others see percentages.
+- **Configuration → Site:** the ledger subcontract costs go to (expense) and the ledger retention is held in (liability). Certifying refuses until they are chosen.
+- **Outside Projects:** Books lets a journal settle an open **purchase** invoice when it debits that supplier for at least the amount, the mirror of the existing sales write-off. Nothing else in Books changed.
+- **Routes:** `GET`, `POST /projects/{project}/subcontracts`; `PUT …/subcontracts/{sub}`; `POST …/subcontracts/{sub}/claims`, `…/subcontracts/{sub}/release`, `…/claims/{claim}/certify`, `…/claims/{claim}/reject`; `GET`, `PUT /projects/configuration/site`.
+- **Tests:** `tests/Feature/ProjectsSubcontractsTest.php` (3; Books stood in); the serious-actions test now counts 19. Browser check `e2e/projects-site-ui.mjs` (now 15 checks). The purchase write-off in Books is on the hand-check list, since no test runs the full Books voucher service.

@@ -32,6 +32,8 @@ class ProjectSettings
         // Attendance says was worked: warn | refuse | off; who approves time: the work's leads | the person's manager; whether work is billable unless
         // a task says otherwise; key date warnings, days before; remind people of an unsubmitted week; split pay by timesheets; where billed-back costs go
         'work' => ['rounding' => 6, 'timer_cap_hours' => 10, 'attendance_check' => 'warn', 'approve_by' => 'lead', 'billable_default' => true, 'warn_days' => '14,7,1', 'week_reminder' => true, 'payroll_split' => false, 'disbursement_ledger_id' => 0],
+        // the site (stage 10): the ledgers a certified subcontract claim is billed to and its retention is held in
+        'site' => ['sub_cost_ledger_id' => 0, 'sub_retention_ledger_id' => 0],
         // the directory (stage 3): which visibility levels can be used beyond staff only
         'directory' => ['levels' => ['clients', 'public']],
         // client health (stage 3): days since the last contact, days a next action is late, nothing planned, days money is overdue in the books. 0 switches a rule off.
@@ -56,6 +58,7 @@ class ProjectSettings
             'work.handover' => ['needs' => 'none', 'on_project' => false, 'reason' => false],
             'case.reveal' => ['needs' => 'none', 'on_project' => false, 'reason' => false],   // stage 8: like every serious action, nothing out of the box (stage 2); a supervisor and a reason is the suggestion
             'guest.link' => ['needs' => 'none', 'on_project' => false, 'reason' => false],   // stage 9: confirming who you are is the suggestion
+            'sub.certify' => ['needs' => 'none', 'on_project' => false, 'reason' => false],   // stage 10: confirming who you are is the suggestion
         ],
     ];
 
@@ -247,6 +250,19 @@ class ProjectSettings
             }
 
             return ['bill_mode' => $v['bill_mode'], 'retention_mode' => $v['retention_mode'], 'retention_ledger_id' => $ledger, 'voucher_project' => $rules];
+        }
+
+        if ($part === 'site') {
+            $out = [];
+            foreach (['sub_cost_ledger_id' => 'the ledger subcontract costs go to', 'sub_retention_ledger_id' => 'the ledger subcontract retention is held in'] as $k => $what) {
+                $ledger = (int) $v[$k];
+                if ($ledger && \Illuminate\Support\Facades\Schema::hasTable('ledgers') && ! DB::table('ledgers')->where('id', $ledger)->exists()) {
+                    throw new ProjectException("Choose {$what} from the books.");
+                }
+                $out[$k] = $ledger;
+            }
+
+            return $out;
         }
 
         if ($part === 'directory') {

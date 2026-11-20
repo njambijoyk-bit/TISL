@@ -2049,13 +2049,17 @@ class VoucherService
         }
 
         // A journal may settle bills (a write-off): each one must be the party's own open sales bill, and the journal must
-        // credit that party for at least what it settles.
+        // credit that party for at least what it settles. The mirror for a supplier: an open purchase bill, with the journal
+        // debiting the supplier for at least what it settles (retention held back from a subcontractor's bill, Projects stage 10).
         $bills = [];
         if ($base === VoucherType::JOURNAL && ! empty($data['settles'])) {
             $credited = [];
+            $debited = [];
             foreach ($entries as $e) {
                 if ($e['side'] === 'C') {
                     $credited[$e['ledger_id']] = round(($credited[$e['ledger_id']] ?? 0) + $e['amount'], 2);
+                } else {
+                    $debited[$e['ledger_id']] = round(($debited[$e['ledger_id']] ?? 0) + $e['amount'], 2);
                 }
             }
             $asked = [];
@@ -2065,16 +2069,24 @@ class VoucherService
             }
             foreach ($asked as $billId => $amt) {
                 $bill = Voucher::with('type')->find($billId);
-                if (! $bill || $bill->status !== Voucher::POSTED || $bill->type->base_type !== VoucherType::SALES || $amt <= 0) {
-                    throw new BooksException('Only open sales invoices can be settled by a write-off.');
+                $kind = $bill?->type?->base_type;
+                if (! $bill || $bill->status !== Voucher::POSTED || ! in_array($kind, [VoucherType::SALES, VoucherType::PURCHASE], true) || $amt <= 0) {
+                    throw new BooksException('Only open sales or purchase invoices can be settled by a write-off.');
                 }
                 $left = $this->outstanding($bill, $plan['editing_id'] ?? null);
                 if ($amt - $left > 0.005) {
                     throw new BooksException("{$bill->voucher_number} has only " . number_format($left, 2) . ' outstanding.');
                 }
-                $credited[$bill->party_ledger_id] = round(($credited[$bill->party_ledger_id] ?? 0) - $amt, 2);
-                if ($credited[$bill->party_ledger_id] < -0.005) {
-                    throw new BooksException("The write-off must credit the customer of {$bill->voucher_number} for at least {$amt}.");
+                if ($kind === VoucherType::SALES) {
+                    $credited[$bill->party_ledger_id] = round(($credited[$bill->party_ledger_id] ?? 0) - $amt, 2);
+                    if ($credited[$bill->party_ledger_id] < -0.005) {
+                        throw new BooksException("The write-off must credit the customer of {$bill->voucher_number} for at least {$amt}.");
+                    }
+                } else {
+                    $debited[$bill->party_ledger_id] = round(($debited[$bill->party_ledger_id] ?? 0) - $amt, 2);
+                    if ($debited[$bill->party_ledger_id] < -0.005) {
+                        throw new BooksException("The journal must debit the supplier of {$bill->voucher_number} for at least {$amt}.");
+                    }
                 }
                 $bills[] = ['type' => 'against', 'ledger_id' => $bill->party_ledger_id, 'amount' => $amt, 'due' => null, 'against' => $bill->id];
             }

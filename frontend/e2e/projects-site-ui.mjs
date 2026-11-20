@@ -1,4 +1,4 @@
-// Browser check: the Site tab (stage 10). Plant (10.2): issuing from the asset register, returning, booking ahead with an overlap warning, hiring in on a vendor order.
+// Browser check: the Site tab (stage 10). Subcontracts (10.3): adding one on a vendor order, a claim, certifying less than claimed with a reason, and the totals. Plant (10.2): issuing from the asset register, returning, booking ahead with an overlap warning, hiring in on a vendor order.
 // Materials (10.1): planned, waiting and issued per material with the cost read from Stock, asking for
 // materials with the product finder, the store issuing against a request and returning to stock, and the Stock jobs named. The API is
 // answered by the check itself; Stock jobs, the cost centre and who may issue are proved by ProjectsMaterialsTest. It needs only the website
@@ -8,7 +8,7 @@ import { D, SITE, ok, finish, open } from './lib.mjs';
 const c = await open({ authenticator: false });
 const page = c.page;
 const json = (route, body, status = 200) => route.fulfill({ status, contentType: 'application/json', body: JSON.stringify(body) });
-const me = { user: { id: 1, name: 'Kamau', email: 'kamau@example.com' }, customer: null, security: null, access: { account: 'staff', clearance: 5, permissions: ['admin.access', 'projects.use', 'projects.materials', 'stock.manage', 'projects.money.view', 'projects.plant', 'inventory.manage'] } };
+const me = { user: { id: 1, name: 'Kamau', email: 'kamau@example.com' }, customer: null, security: null, access: { account: 'staff', clearance: 5, permissions: ['admin.access', 'projects.use', 'projects.materials', 'stock.manage', 'projects.money.view', 'projects.plant', 'inventory.manage', 'projects.subcontracts'] } };
 await page.addInitScript((who) => { localStorage.setItem('auth-storage', JSON.stringify({ state: { ...who, isAuthenticated: true }, version: 0 })); }, me);
 const sent = [];
 const last = (k) => [...sent].reverse().find((x) => x[0] === k);
@@ -18,7 +18,7 @@ await page.route('**/api/me', (route) => json(route, me));
 await page.route('**/api/admin/projects/names', (route) => json(route, { ready: true, industry: 'construction', company_industry: 'construction', names: {}, keys: {} }));
 await page.route(/\/api\/admin\/projects\/413$/, (route) => json(route, { project: { id: 413, number: 'C-0413', title: 'Kilimani flats', description: null, industry: { key: 'construction', name: 'Construction' }, type: { id: 1, name: 'Building' }, stage: { id: 1, name: 'Works', status: 'info' }, state: 'open', priority: 'medium',
   customer: null, lead: { id: 1, name: 'Kamau' }, branch: null, cost_centre_id: 9, reference: null, authority: null, place: null, start_date: null, due_date: null, closing_period_ends: null, closed_at: null, confidential: false, frozen: false,
-  stages: [{ id: 1, name: 'Works', state: 'open', status: 'info', required_fields: [] }], cost_centre_path: 'C-0413', words: { material: { name: 'Material', plural: 'Materials' } }, can: { open: true, money: true }, locks: {}, fields: [] } }));
+  stages: [{ id: 1, name: 'Works', state: 'open', status: 'info', required_fields: [] }], cost_centre_path: 'C-0413', words: { material: { name: 'Material', plural: 'Materials' }, subcontractor: { name: 'Subcontractor', plural: 'Subcontractors' } }, can: { open: true, money: true }, locks: {}, fields: [] } }));
 let requests = [{ id: 5, variant_id: 11, name: 'Cement 50kg', unit: 'bag', quantity: 40, issued: 0, branch: 'Yard', location_id: 2, needed_on: '2026-11-18', late: true, note: null, state: 'open', asked_by: 'Njeri', at: '2026-11-17' }];
 let issued = [];
 let materials = [{ variant_id: 11, name: 'Cement 50kg', unit: 'bag', planned: 400, plan_note: null, waiting: 40, issued: 0, cost: 0 }];
@@ -104,4 +104,38 @@ await page.getByRole('button', { name: 'Put it on hire' }).click();
 await page.locator('[data-plant-hire="Tower crane"]').waitFor({ timeout: 5000 });
 ok('hired plant names its vendor and vendor order', last('hire')?.[1]?.vendor_order_id === 30 && last('hire')?.[1]?.vendor_id === 3 && /Tower crane · Mombasa Plant Hire · PO-0030 · from .* On hire/.test(await text(page.locator('[data-plant-hire="Tower crane"]'))));
 await page.screenshot({ path: D + 'projects-plant.png', fullPage: true });
+
+// subcontracts
+let subs = [];
+const subAnswer = () => ({ ready: true, subcontracts: subs, ledgers_chosen: true, can: { manage: true, money: true } });
+await page.route('**/api/admin/projects/413/subcontracts', (route) => {
+  if (route.request().method() === 'POST') { const b = route.request().postDataJSON(); sent.push(['sub', b]); subs = [{ id: 81, vendor_id: 3, vendor: 'Juja Electrical', title: b.title, scope: b.scope, starts_on: null, ends_on: null, state: 'active', retention_pct: b.retention_pct, order: { id: 30, number: 'PO-0030', status: 'sent' }, certified_pct: 0, value: 2000000, certified: 0, held: 0, released: false, claims: [] }]; return json(route, subAnswer(), 201); }
+  return json(route, subAnswer());
+});
+await page.route('**/api/admin/projects/413/subcontracts/81/claims', (route) => { const b = route.request().postDataJSON(); sent.push(['claim', b]); subs[0].claims = [{ id: 91, number: 1, period_to: b.period_to, claimed_pct: b.claimed_pct, certified_pct: null, state: 'submitted', note: b.note, answer_note: null, by_vendor: false, at: '2026-11-20', file_id: null, bill: null }]; return json(route, subAnswer(), 201); });
+await page.route('**/api/admin/projects/413/claims/91/certify', (route) => { const b = route.request().postDataJSON(); sent.push(['certify', b]); subs[0] = { ...subs[0], certified_pct: b.certified_pct, certified: 500000, held: 50000, claims: [{ ...subs[0].claims[0], state: 'certified', certified_pct: b.certified_pct, answer_note: b.note, bill: { id: 5, number: 'PI-0012', total: 580000 } }] }; return json(route, subAnswer()); });
+await page.route('**/api/admin/projects/vendors/find?*', (route) => json(route, { vendors: [{ id: 3, name: 'Juja Electrical', number: 'V-003', orders: [{ id: 30, number: 'PO-0030', status: 'sent' }] }] }));
+await page.locator('[data-site]').getByRole('tab', { name: 'Subcontractors' }).click();
+await page.locator('[data-subcontracts]').waitFor({ timeout: 5000 });
+await page.getByRole('button', { name: 'Add a subcontract' }).click();
+await page.getByLabel('Subcontractor').fill('juja');
+await page.getByRole('option').getByRole('button', { name: 'Juja Electrical · V-003' }).click();
+await page.getByLabel('Vendor order (the agreed value)').selectOption({ label: 'PO-0030 (sent)' });
+await page.getByLabel('For', { exact: true }).fill('Electrical works');
+await page.getByLabel('Retention %').fill('10');
+await page.getByRole('button', { name: 'Add it' }).click();
+await page.locator('[data-subcontract="Electrical works"]').waitFor({ timeout: 5000 });
+ok('a subcontract is added on its vendor order with retention', JSON.stringify(last('sub')?.[1]) === JSON.stringify({ vendor_id: 3, vendor_order_id: 30, title: 'Electrical works', scope: null, retention_pct: 10, starts_on: null, ends_on: null }));
+await page.getByRole('button', { name: 'Make a claim' }).click();
+await page.getByLabel('How far the whole work is (%)').fill('30');
+await page.locator('[data-claim-form]').getByRole('button', { name: 'Claim', exact: true }).click();
+await page.locator('[data-claim="1"]').waitFor({ timeout: 5000 });
+ok('a claim is how far the whole work is', last('claim')?.[1]?.claimed_pct === 30 && /Claim 1: 30% .*Waiting/.test(await text(page.locator('[data-claim="1"]'))));
+page.removeAllListeners('dialog');
+page.on('dialog', (d) => d.accept(d.message().startsWith('Certify claim') ? '25' : 'Second floor not finished'));
+await page.locator('[data-claim="1"]').getByRole('button', { name: 'Certify' }).click();
+await page.waitForTimeout(400);
+ok('certifying less than claimed asks why, and the bill in the books is shown', JSON.stringify(last('certify')?.[1]) === JSON.stringify({ certified_pct: 25, note: 'Second floor not finished' }) && /certified 25% .*PI-0012 .*Certified/.test(await text(page.locator('[data-claim="1"]'))));
+ok('the totals show what is certified of the agreed value and what is held back', /Certified 25% · (KES )?500,000 of (KES )?2,000,000 before tax · held back (KES )?50,000/.test(await text(page.locator('[data-subcontract-totals]'))));
+await page.screenshot({ path: D + 'projects-subcontracts.png', fullPage: true });
 await finish(c);
