@@ -137,3 +137,15 @@ Screen: `docs/screens/projects-capacity.png` (the Team page, capacity at the bot
 - **Capacity** (Team page): for the next eight weeks, each person's hours of open tasks due that week (from the tasks' estimates, shared equally between the people on a task; what is already late counts in this week) against their working hours (company hours on working days, from Attendance, less leave, days off and holidays). Over is red, within 10% amber, a week with no working hours "off". Tasks with no estimate are counted so the gap is visible. Without `projects.capacity` a person sees only their own row; with it, their line and everyone on the work they can see.
 - **Routes:** `GET /projects/insights/people/{user}`, `GET /projects/insights/capacity`.
 - **Tests:** `tests/Feature/ProjectsCapacityTest.php` (2). Browser check `e2e/projects-team-ui.mjs` (now with capacity and a person's scorecard).
+
+### 12.4 Forecasts (done)
+
+Screen: `docs/screens/projects-forecasts.png`.
+
+- **Projects → Insights** (a new page in the Projects menu), each part shown only to those who may see it:
+  - **Pipeline** (`projects.pipeline`; opportunities as the pipeline board shows them): the next six months, each open opportunity in the month it is expected to close (one expected earlier and still open counts this month, and the page says how many). Its value is its Books quotation's total, or the estimate before there is one, read now. The expected figure counts each at its stage's **chance of winning**: set by hand per stage (`projects.kpis`), or else the company's win rate over the last year. A chart drawn to one scale (quoted and estimate stacked, the expected figure as a mark) and the table under it.
+  - **When the work will end**: every open work the person can see that has an expected end, its likely end at the pace of the last four weeks (tasks done against tasks left), how many days late or early, late ones first.
+  - **What will be billed** (`projects.money.view`, works whose money the person may see): staged bills due by their dates in the next six months (each a share of the agreed value from Books) and the approved billable hours not yet on a bill.
+- Nothing is kept: all worked out when the page opens.
+- **Routes:** `GET /projects/insights/forecasts`, `PUT /projects/insights/odds/{stage}`.
+- **Tests:** `tests/Feature/ProjectsForecastsTest.php` (2). Browser check `e2e/projects-insights-ui.mjs` (now 12).

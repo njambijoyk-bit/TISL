@@ -42,6 +42,22 @@ class InsightsController extends Controller
         return response()->json(app(\App\Services\Projects\ProjectPeopleInsights::class)->capacity($request->user()));
     }
 
+    public function forecasts(Request $request): JsonResponse
+    {
+        $f = app(\App\Services\Projects\ProjectForecasts::class);
+
+        return response()->json(['pipeline' => $f->pipeline($request->user()), 'finish' => $f->finish($request->user()), 'billing' => $f->billing($request->user())]);
+    }
+
+    public function odds(Request $request, int $stage): JsonResponse
+    {
+        return $this->guard(function () use ($request, $stage) {
+            app(\App\Services\Projects\ProjectForecasts::class)->setOdds($stage, $request->input('chance') === null || $request->input('chance') === '' ? null : (float) $request->input('chance'), $request->user());
+
+            return response()->json(['pipeline' => app(\App\Services\Projects\ProjectForecasts::class)->pipeline($request->user())]);
+        });
+    }
+
     protected function guard(callable $do): JsonResponse
     {
         try {

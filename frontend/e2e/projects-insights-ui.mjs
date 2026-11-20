@@ -1,6 +1,7 @@
 // Browser check: insights (stage 12). KPIs in Configuration (12.1): the list with targets in the measure's unit, adding one (amber on the right
 // side of green, from Books marked). The API is answered by the check itself; what each measure works out is proved by ProjectsKpisTest.
 // Scorecards (12.2): the scorecard on a work with eight weeks, a money figure from Books, and health in the list with its filter.
+// Forecasts (12.4): the pipeline chart and table, setting a stage's chance, when works will end, what will be billed.
 // It needs only the website (npx vite --port 5177).
 import { D, SITE, ok, finish, open } from './lib.mjs';
 
@@ -70,4 +71,22 @@ ok('the list shows each work\'s health, and none for one not measured', (await p
 await page.getByLabel('Health').selectOption({ label: 'Off track' });
 await page.waitForTimeout(400);
 ok('the list can be filtered by health', listed.at(-1)?.health === 'bad' && (await page.getByText('Ruaka road').count()) === 0);
+
+// ---------------------------------------------------------------- forecasts
+const mo = (month, label, count, quoted, estimated, weighted) => ({ month, label, count, quoted, estimated, weighted });
+let pipeline = { ready: true, currency: 'KES', win_rate: 30, late: 1, can: { odds: true }, months: [mo('2026-11', 'Nov 2026', 2, 3000000, 1200000, 1260000), mo('2026-12', 'Dec 2026', 3, 4000000, 2800000, 2040000), mo('2027-01', 'Jan 2027', 1, 0, 3100000, 930000),
+  mo('2027-02', 'Feb 2027', 0, 0, 0, 0), mo('2027-03', 'Mar 2027', 1, 5000000, 0, 1500000), mo('2027-04', 'Apr 2027', 0, 0, 0, 0)], stages: [{ id: 1, name: 'Qualified', chance: 30, set: false }, { id: 2, name: 'Proposal', chance: 60, set: true }] };
+await page.route('**/api/admin/projects/insights/forecasts', (route) => json(route, { pipeline, billing: { ready: true, currency: 'KES', unbilled_hours: 212, months: [{ month: '2026-12', label: 'Dec 2026', staged: 3400000, bills: 2 }] },
+  finish: [{ id: 31, number: 'SW-0031', title: 'Payroll app', due: '2027-01-15', likely: '2027-02-06', days: 22, left: 24, per_week: 7.5, state: 'bad' }, { id: 413, number: 'M-0413', title: 'Imara v Baraka', due: '2027-02-28', likely: '2027-02-20', days: -8, left: 6, per_week: 1.5, state: 'good' }] }));
+await page.route('**/api/admin/projects/insights/odds/1', (route) => { sent.push(['odds', route.request().postDataJSON()]); pipeline = { ...pipeline, stages: [{ id: 1, name: 'Qualified', chance: 40, set: true }, pipeline.stages[1]] }; return json(route, { pipeline }); });
+await go('/admin/projects/insights');
+await page.locator('[data-forecast-pipeline]').waitFor({ timeout: 10000 });
+ok('the pipeline is drawn by month and listed with what is quoted, estimated and expected', (await page.locator('[data-pipeline-chart] [data-pipeline-month]').count()) === 6 && /Dec 2026 3 KES 4,000,000 KES 2,800,000 KES 2,040,000/.test(await text(page.locator('[data-pipeline-row="2026-12"]'))) && /one expected earlier is still open/.test(await text(page.locator('[data-forecast-pipeline]'))));
+page.on('dialog', (dlg) => dlg.accept('40'));
+await page.locator('[data-pipeline-odds]').getByRole('button', { name: 'Qualified: 30% (win rate)' }).click();
+await page.waitForTimeout(300);
+ok('a stage\'s chance can be set by hand', last('odds')?.[1]?.chance === 40 && (await page.locator('[data-pipeline-odds]').getByRole('button', { name: 'Qualified: 40%' }).count()) === 1);
+ok('when the work will end: late ones first, with the pace', /SW-0031 Payroll app 15 Jan 2027 06 Feb 2027 · 22 days late 24 tasks left at 7.5 a week Late/.test(await text(page.locator('[data-finish="SW-0031"]'))) && /8 days early .*On time/.test(await text(page.locator('[data-finish="M-0413"]'))));
+ok('what will be billed, with the unbilled time', /Dec 2026 KES 3,400,000 2/.test(await text(page.locator('[data-billing-row="2026-12"]'))) && /212 hours/.test(await text(page.locator('[data-forecast-billing]'))));
+await page.screenshot({ path: D + 'projects-forecasts.png', fullPage: true });
 await finish(c);

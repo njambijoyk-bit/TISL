@@ -2129,6 +2129,8 @@ Route::middleware('auth:sanctum')->group(function () {
             Route::get('/{project}/scorecard', [$ins12, 'scorecard'])->whereNumber('project')->middleware('permission:projects.insights');
             Route::get('/insights/people/{user}', [$ins12, 'person'])->whereNumber('user');   // their own, or a manager above them with projects.insights.team (checked inside)
             Route::get('/insights/capacity', [$ins12, 'capacity']);   // their own; their line and the work they see with projects.capacity (checked inside)
+            Route::get('/insights/forecasts', [$ins12, 'forecasts']);   // each part shows only what the person may see (checked inside)
+            Route::put('/insights/odds/{stage}', [$ins12, 'odds'])->whereNumber('stage')->middleware('permission:projects.kpis');
             Route::get('/configuration/kpis', [$ins12, 'kpis'])->middleware('permission:projects.config.view');
             Route::post('/configuration/kpis', [$ins12, 'saveKpi'])->middleware('permission:projects.kpis');
             Route::put('/configuration/kpis/{kpi}', [$ins12, 'saveKpi'])->whereNumber('kpi')->middleware('permission:projects.kpis');

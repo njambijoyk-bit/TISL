@@ -322,6 +322,7 @@ export const ADMIN_NAV = [
           { title: 'My Work', path: '/admin/projects/my-work', perm: ['projects.use'] },
           { title: 'Inbox', path: '/admin/projects/inbox', perm: ['projects.messages.internal', 'projects.messages.client'] },
           { title: 'Team', path: '/admin/projects/team', perm: ['projects.team.view'] },
+          { title: 'Insights', path: '/admin/projects/insights', perm: ['projects.insights', 'projects.pipeline', 'projects.money.view'] },
           { title: 'Casebook', path: '/admin/projects/casebook', perm: ['projects.casebook.report', 'projects.casebook.handle'] },
           { title: 'Hand over work', path: '/admin/projects/handover', perm: ['projects.members.manage'] },
           { title: 'Timesheet', path: '/admin/projects/timesheet', perm: ['projects.time.log', 'projects.time.approve'] },
