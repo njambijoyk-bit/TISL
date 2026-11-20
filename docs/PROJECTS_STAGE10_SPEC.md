@@ -158,3 +158,14 @@ Screen: `docs/screens/projects-vendor-subcontracts.png`.
 - **Making a claim** there: how far the whole work is (%), up to a day, a note and a file (kept in the work's files). Whoever works the site with `projects.subcontracts` is told, with a link to certify it. When a claim is certified, not certified, or retention is released, the subcontractor is told.
 - **Routes:** `GET /vendor-portal/subcontracts`, `POST /vendor-portal/subcontracts/{sub}/claims`.
 - **Tests:** `tests/Feature/ProjectsSubcontractsTest.php` (now 4). Browser check `e2e/projects-vendor-ui.mjs` (3 checks).
+
+### 10.5 The daily record (done)
+
+Screen: `docs/screens/projects-daily.png` (at phone width).
+
+- **Site tab → the daily record** (named in the industry's words, "Site diary" for construction), made for a phone: big buttons, no sideways scrolling, a day picker with the day before and after, and the last days marked written or signed. Opens on today; `?tab=site&part=daily` opens it straight away.
+- **One record a day per work** (`projects.daily` and a project role that works the site): the weather (a tap, or typed), work done, delays; and lines: **a person** on the work with hours, **a crew** (trade and how many), **plant hours** (only plant on the work that day: held from the asset register or on hire), **materials received** (catalogue product, how much, delivery note), **visitors**, **what happened**, and **photos** taken with the phone's camera, kept in the work's Files under "Daily records". A day ahead cannot be written.
+- **Signing** with a typed name locks the day (the name and time are kept, and logged). After that nothing can be changed or taken off; only notes can be added, and they are marked "Added after signing".
+- **Reminder:** a work marked "keeps a daily record" has its lead told at 18:00 on a weekday with no record that day (`projects:daily-reminders`).
+- **Routes:** `GET`, `PUT /projects/{project}/daily/{day}`; `POST …/daily/{day}/lines`, `DELETE …/daily/{day}/lines/{line}`, `POST …/daily/{day}/photos`, `POST …/daily/{day}/sign`; `PUT …/daily-settings`.
+- **Tests:** `tests/Feature/ProjectsDailyTest.php` (3). Browser check `e2e/projects-daily-ui.mjs` (8 checks, at phone width).

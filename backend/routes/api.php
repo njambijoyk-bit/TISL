@@ -2079,6 +2079,14 @@ Route::middleware('auth:sanctum')->group(function () {
             Route::post('/{project}/claims/{claim}/reject', [$sc, 'reject'])->whereNumber(['project', 'claim'])->middleware('permission:projects.subcontracts');
             Route::get('/configuration/site', [$sc, 'settings'])->middleware('permission:projects.config.view');
             Route::put('/configuration/site', [$sc, 'saveSettings'])->middleware('permission:projects.config.manage');
+            $dy = \App\Http\Controllers\Api\Projects\DailyController::class;
+            Route::get('/{project}/daily/{day}', [$dy, 'show'])->whereNumber('project')->where('day', '\d{4}-\d{2}-\d{2}');
+            Route::put('/{project}/daily/{day}', [$dy, 'save'])->whereNumber('project')->where('day', '\d{4}-\d{2}-\d{2}')->middleware('permission:projects.daily');
+            Route::post('/{project}/daily/{day}/lines', [$dy, 'line'])->whereNumber('project')->where('day', '\d{4}-\d{2}-\d{2}')->middleware('permission:projects.daily');
+            Route::delete('/{project}/daily/{day}/lines/{line}', [$dy, 'removeLine'])->whereNumber(['project', 'line'])->where('day', '\d{4}-\d{2}-\d{2}')->middleware('permission:projects.daily');
+            Route::post('/{project}/daily/{day}/photos', [$dy, 'photo'])->whereNumber('project')->where('day', '\d{4}-\d{2}-\d{2}')->middleware('permission:projects.daily');
+            Route::post('/{project}/daily/{day}/sign', [$dy, 'sign'])->whereNumber('project')->where('day', '\d{4}-\d{2}-\d{2}')->middleware('permission:projects.daily');
+            Route::put('/{project}/daily-settings', [$dy, 'keeps'])->whereNumber('project')->middleware('permission:projects.daily');
             $gl = \App\Http\Controllers\Api\Projects\GuestsController::class;
             Route::get('/{project}/guests', [$gl, 'index'])->whereNumber('project')->middleware('permission:projects.files.view');
             Route::post('/{project}/guests', [$gl, 'store'])->whereNumber('project')->middleware('permission:projects.guests');
