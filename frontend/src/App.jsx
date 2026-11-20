@@ -1767,7 +1767,7 @@ function App() {
                 path="/admin/settings/analytics"
                 element={
                   <ProtectedRoute requireAdmin permission="analytics.view">
-                    <AnalyticDashboard />
+                    <ModuleRoute module="extras" redirectTo="/admin"><AnalyticDashboard /></ModuleRoute>
                   </ProtectedRoute>
                 }
               />
@@ -1775,7 +1775,7 @@ function App() {
                 path="/admin/settings/analytics/:id"
                 element={
                   <ProtectedRoute requireAdmin permission="analytics.view">
-                    <AnalyticsDetail />
+                    <ModuleRoute module="extras" redirectTo="/admin"><AnalyticsDetail /></ModuleRoute>
                   </ProtectedRoute>
                 }
               />
