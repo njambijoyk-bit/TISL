@@ -88,6 +88,12 @@ class ProjectService
         if (! empty($f['industry'])) {
             $q->where('p.industry_key', $f['industry']);
         }
+        if (! empty($f['department_id']) && ProjectOwners::ready()) {   // HR stage 1b: work a department owns, as lead or sharing
+            $q->whereExists(fn ($w) => $w->from('project_owners as o')->whereColumn('o.project_id', 'p.id')->where('o.department_id', (int) $f['department_id']));
+        }
+        if (! empty($f['location_id']) && ProjectOwners::ready()) {
+            $q->whereExists(fn ($w) => $w->from('project_owners as o')->whereColumn('o.project_id', 'p.id')->where('o.location_id', (int) $f['location_id']));
+        }
         if (in_array($f['health'] ?? null, ['good', 'warn', 'bad', 'none'], true)) {   // stage 12: health from the latest scorecard snapshot
             $f['health'] === 'none' ? $q->whereNotIn('p.id', array_merge(...array_map(fn ($h) => app(ProjectKpis::class)->worksWithHealth($h), ['good', 'warn', 'bad'])) ?: [0])
                 : $q->whereIn('p.id', app(ProjectKpis::class)->worksWithHealth($f['health']) ?: [0]);
@@ -111,7 +117,8 @@ class ProjectService
         $out['stages'] = DB::table('project_stages')->where('type_id', $project->type_id)->whereNull('deleted_at')->orderBy('sort_order')->orderBy('id')
             ->get(['id', 'name', 'state', 'status_token', 'required_fields'])
             ->map(fn ($s) => ['id' => (int) $s->id, 'name' => $s->name, 'state' => $s->state, 'status' => $s->status_token, 'required_fields' => json_decode((string) $s->required_fields, true) ?: []])->all();
-        $out['cost_centre_path'] = $this->costCentres->path($project->cost_centre_id ? (int) $project->cost_centre_id : null);
+        $out['owners'] = app(ProjectOwners::class)->of((int) $project->id);   // HR stage 1b: its branch and departments, the lead first
+        $out['cost_centre_path'] = $this->costCentres->path($project->cost_centre_id ? (int) ($this->find((int) $project->id)->cost_centre_id ?? $project->cost_centre_id) : null);
         // a project in an industry other than the person's own is shown in ITS words, so a law firm's one construction job still reads as a contract
         $industry = $project->industry_key === $this->settings()->defaultIndustry() ? $this->names()->industryFor($user) : $project->industry_key;
         $out['words'] = array_map(fn ($n) => ['name' => $n['name'], 'plural' => $n['plural']], $this->names()->names($industry));
@@ -155,6 +162,7 @@ class ProjectService
         }
 
         return ['default_industry' => $general['default_industry'], 'industries' => $industries, 'types' => $types, 'branches' => $branches,
+            'departments' => app(ProjectOwners::class)->departmentsByBranch(),   // HR stage 1b: each branch's departments, for the owners
             'leads' => $staff, 'fields' => $fields, 'templates' => $templates, 'start_confidential' => $startConfidential,
             'priorities' => self::PRIORITIES, 'words' => $words, 'cost_centres' => $this->costCentres->ready(),
             'can' => ['create' => $user->hasPermission('projects.create'), 'confidential' => $user->hasPermission('projects.confidential')]];
@@ -261,6 +269,12 @@ class ProjectService
         $chosen = array_key_exists('template_id', $d) ? (int) $d['template_id'] : (collect($templates->offered((int) $type->id))->firstWhere('is_default', true)['id'] ?? 0);
         if ($chosen > 0) {
             $templates->apply($project, $chosen, $by, true);
+        }
+        // HR stage 1b: who it belongs to; its branch, or the owners given (a department always with its branch); the lead files its costs
+        if (ProjectOwners::ready()) {
+            $owners = ! empty($d['owners']) && is_array($d['owners']) ? $d['owners'] : ($locationId ? [['location_id' => $locationId, 'is_lead' => true]] : []);
+            app(ProjectOwners::class)->save($this->find($id), $owners, $by, true);
+            $project = $this->find($id);
         }
         app(ProjectRules::class)->fire('work_started', $project, $by, ['title' => $project->title]);   // stage 12
 

@@ -9,6 +9,8 @@ const projectsAPI = {
   // the work itself
   list: async (params) => (await api.get('/admin/projects', { params })).data,
   options: async () => (await api.get('/admin/projects/options')).data,
+  // who the work belongs to (HR stage 1b): owners = [{ location_id, department_id?, is_lead }] → { owners, cost_centre_path }
+  saveOwners: async (id, owners) => (await api.put(`/admin/projects/${id}/owners`, { owners })).data,
   customers: async (q) => (await api.get('/admin/projects/options/customers', { params: { q } })).data.customers,
   create: async (data) => (await api.post('/admin/projects', data)).data.project,
   get: async (id) => (await api.get(`/admin/projects/${id}`)).data.project,

@@ -5,6 +5,7 @@ namespace App\Services\Projects;
 use App\Models\CostCentre;
 use App\Models\Location;
 use App\Services\CostCentres\CostCentreService;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Schema;
 use Illuminate\Support\Str;
 
@@ -79,6 +80,30 @@ class ProjectCostCentres
     }
 
     /** The "Projects" cost centre of a branch (or the free-standing one when the project has no branch), made the first time it is needed. */
+    /**
+     * Where a project's cost centre is filed (HR stage 1b): under its lead owner's department when it has one, else under the branch's "Projects".
+     * Books nests cost centres, so a department's figures include its projects.
+     */
+    public function parentFor(?int $locationId, ?int $departmentId): ?CostCentre
+    {
+        if (! $this->ready()) {
+            return null;
+        }
+        if ($departmentId && ($cc = DB::table('departments')->where('id', $departmentId)->value('cost_centre_id')) && ($found = CostCentre::find($cc))) {
+            return $found;
+        }
+
+        return $this->projectsParent($locationId);
+    }
+
+    /** File a project's cost centre under another parent (past entries stay on the same cost centre; only the roll-up changes). */
+    public function moveUnder(?int $costCentreId, ?CostCentre $parent, ?int $locationId): void
+    {
+        if ($costCentreId && $parent && (int) $parent->id !== $costCentreId) {
+            CostCentre::whereKey($costCentreId)->update(['parent_id' => $parent->id, 'location_id' => $locationId]);
+        }
+    }
+
     private function projectsParent(?int $locationId): CostCentre
     {
         // the branch's own cost centre is made with the branch (LocationCostCentreObserver); a branch without one yet gets a free-standing "Projects"

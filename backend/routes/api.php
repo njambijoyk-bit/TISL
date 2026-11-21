@@ -1929,6 +1929,7 @@ Route::middleware('auth:sanctum')->group(function () {
             Route::get('/{project}', [$prj, 'show'])->whereNumber('project');
             Route::put('/{project}', [$prj, 'update'])->whereNumber('project')->middleware('permission:projects.edit');
             Route::put('/{project}/stage', [$prj, 'stage'])->whereNumber('project')->middleware('permission:projects.stage');
+            Route::put('/{project}/owners', [$prj, 'saveOwners'])->whereNumber('project')->middleware('permission:projects.edit');   // who it belongs to (HR stage 1b)
             Route::put('/{project}/state', [$prj, 'state'])->whereNumber('project')->middleware('permission:projects.stage,projects.close');
             Route::put('/{project}/freeze', [$prj, 'freeze'])->whereNumber('project')->middleware('permission:projects.freeze');
             // the people on it. An invitation is answered by the person invited, who is not on the project yet.

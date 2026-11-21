@@ -1,6 +1,6 @@
-# HR Stage 1b: Departments (spec)
+# HR Stage 1b: Departments (built)
 
-Status: being built. The owner answered the first version on 2026-11-21 and said "go" on this second version, so its four choices are taken as recommended. What is built is under "As built". It sits between stage 1 (built) and stage 2 (documents) of `docs/HR_HUB_PLAN.md`.
+Status: built. The owner answered the first version on 2026-11-21 and said "go" on this second version, so its four choices are taken as recommended. All three builds are done; see "As built" and the checks by hand at the end. It sits between stage 1 (built) and stage 2 (documents) of `docs/HR_HUB_PLAN.md`.
 
 ## The owner's answers (first version)
 
@@ -196,3 +196,56 @@ Screens: `docs/screens/hr-department-leads.png` (the Leads window) and `docs/scr
   - The move is written to the person's history ("Moved on the department page"), and their home cost centre share follows.
 - **Routes:** `GET /departments/{id}/page` and `POST /departments/{id}/people`. Each checks who may use it.
 - **Tests:** `HrDepartmentLeadsTest` (now 6). Browser check `e2e/hr-departments-ui.mjs` (14), covering D.1 and D.2.
+
+### D.3 Who a project belongs to (done)
+
+Screen: `docs/screens/projects-owners-form.png`.
+
+- **Owners** (`App\Services\Projects\ProjectOwners`):
+  - A project has one or more owners. Each is a branch, or a branch and one of its departments: a branch alone, a branch and a department, a department in several branches, or several departments in several branches.
+  - Each owner's department is checked to be a department of that owner's branch and switched on. The person saving must work at each branch.
+  - Exactly one owner is the lead; if none is marked, the first is.
+- **The lead files the costs:**
+  - The project's branch is the lead's branch.
+  - Its cost centre is filed under the lead's department in Books ("Westlands › Construction › BW-0509"), or under the branch's "Projects" when the lead is a whole branch.
+  - Changing the lead moves the cost centre automatically. Past entries keep their cost centre; only the roll-up changes.
+  - The change is written to the project's log.
+- **When work starts:**
+  - With departments set up, the form asks "Who it belongs to": branch, then optionally one of its departments, add more owners, mark the lead.
+  - Without departments, the form keeps its single branch choice. The work starts with its branch as its lead owner.
+- **On the work's page,** "Belongs to" lists the owners with the lead first, and **Change** edits them (`projects.edit`). The cost centre path follows.
+- **The projects list** filters by a branch or a department (as lead or sharing): "Westlands", "Westlands › Construction".
+- **The department page** lists the work a department owns, shared work marked.
+- **Routes:**
+  - `PUT /projects/{project}/owners`
+  - `department_id` and `location_id` on `GET /projects`
+  - `departments` in `GET /projects/options`
+- **Tests:** `tests/Feature/ProjectsOwnersTest.php` (1, covering every case). Browser check `e2e/projects-owners-ui.mjs` (9).
+
+### To run
+
+1. `backend/database/sql/272_departments_link.sql` (after 101 and 271).
+2. Then run `php artisan access:seed`. It brings the permission catalogue up to version 27, which moves the HR permissions to core and adds `hr.sensitive` and `hr.configure`.
+3. On the Departments page, make sure every department has a head with Full sensitivity. Part C of the script lists any that don't, and the page flags them.
+
+### To check by hand once script 272 is run
+
+1. **A new department:** add one. It asks for a head per branch, and the head must hold `hr.sensitive`. The department gets its own cost centre under the branch's.
+2. **Leads:**
+   - Add an assistant at Work and one at Personal.
+   - Try to raise an assistant above the head (refused), and to remove the head (refused).
+   - Make an assistant the head: the old head becomes an assistant.
+3. **Never orphaned:**
+   - With one Full lead, try to suspend their record, delete them, or take `hr.sensitive` from their role on the Access screens. Each is refused, naming the department.
+   - Appoint a second Full lead; the same action now goes through.
+4. **What a lead sees:** sign in as an assistant at Work with no HR permission. Employees shows only their department's people (and themselves), with job details only.
+   - As the head with Full, the same people show pay and identity, masked with Show, and the head can change job titles but not salaries.
+5. **A branch:** try to switch off a branch that has departments. It is refused until they are switched off.
+6. **The department page:**
+   - The staff count opens the list for that department.
+   - The department's name opens its page, with leads, people, and spend for those with `books.view`.
+   - Move someone in and out, and check their History tab.
+7. **Projects:**
+   - Start work owned by "Mombasa › Construction" (lead) and "Westlands › Construction". In Books its cost centre sits under Mombasa › Construction, and both department pages list it.
+   - Make Westlands the lead: the cost centre moves under Westlands › Construction.
+   - The projects list filters by each.

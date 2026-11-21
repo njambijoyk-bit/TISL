@@ -10,6 +10,7 @@ import { Btn, Chip, Field, Notice, Panel, PanelTitle, SelectInput, TextInput } f
 import { ExtraFieldInputs } from '../../components/ExtraFields';
 import { check } from '../../components/uiTokens';
 import ProjectKeys from '../../components/ProjectKeys';
+import OwnersEditor from '../../components/OwnersEditor';
 
 /**
  * Start a piece of work, or change one (docs/PROJECTS_STAGE1_SPEC.md, build 1.3). One form for every industry: the labels come from the names
@@ -65,6 +66,7 @@ export default function ProjectForm() {
   const navigate = useNavigate();
   const { t } = useProjectNames();
   const [options, setOptions] = useState(null);
+  const [owners, setOwners] = useState([]);   // HR stage 1b: who it belongs to (branches, and departments of them)
   const [project, setProject] = useState(null);
   const [form, setForm] = useState(EMPTY);
   const [client, setClient] = useState(null);
@@ -120,7 +122,10 @@ export default function ProjectForm() {
       const saved = editing
         ? await projectsAPI.update(id, { ...common, ...(canConfidential && form.confidential !== project.confidential ? { confidential: form.confidential } : {}) })
         : await projectsAPI.create({ ...common, industry_key: form.industry_key, type_id: Number(form.type_id), lead_user_id: form.lead_user_id ? Number(form.lead_user_id) : undefined,
-          location_id: form.location_id ? Number(form.location_id) : null, confidential: canConfidential ? form.confidential : false, ...(form.template_id !== 'default' ? { template_id: Number(form.template_id) } : {}) });
+          ...(Object.keys(options.departments ?? {}).length && owners.some((o) => o.location_id)
+            ? { owners: owners.filter((o) => o.location_id).map((o) => ({ location_id: o.location_id, department_id: o.department_id || null, is_lead: !!o.is_lead })), location_id: owners.find((o) => o.is_lead)?.location_id ?? owners[0].location_id }
+            : { location_id: form.location_id ? Number(form.location_id) : null }),
+          confidential: canConfidential ? form.confidential : false, ...(form.template_id !== 'default' ? { template_id: Number(form.template_id) } : {}) });
       toast.success(editing ? 'Saved' : `${saved.number} started`);
       navigate(`/admin/projects/${saved.id}`);
     } catch (err) {
@@ -178,7 +183,14 @@ export default function ProjectForm() {
                   </SelectInput>
                 </Field>
               )}
-              {!editing && options.branches.length > 0 && (
+              {!editing && options.branches.length > 0 && Object.keys(options.departments ?? {}).length > 0 && (
+                <div style={{ gridColumn: '1 / -1' }}>
+                  <Field label="Who it belongs to">
+                    <OwnersEditor value={owners} onChange={setOwners} branches={options.branches} departments={options.departments} />
+                  </Field>
+                </div>
+              )}
+              {!editing && options.branches.length > 0 && Object.keys(options.departments ?? {}).length === 0 && (
                 <Field label="Branch" htmlFor="project-branch">
                   <SelectInput id="project-branch" value={form.location_id} onChange={(e) => set({ location_id: e.target.value })}>
                     <option value="">No branch</option>

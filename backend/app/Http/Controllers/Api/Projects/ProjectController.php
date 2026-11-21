@@ -22,7 +22,7 @@ class ProjectController extends Controller
 
     public function index(Request $request): JsonResponse
     {
-        return response()->json($this->projects->list($request->user(), $request->only(['scope', 'state', 'type_id', 'stage_id', 'lead_user_id', 'customer_id', 'industry', 'health', 'q', 'page', 'per_page'])));
+        return response()->json($this->projects->list($request->user(), $request->only(['scope', 'state', 'type_id', 'stage_id', 'lead_user_id', 'customer_id', 'industry', 'health', 'department_id', 'location_id', 'q', 'page', 'per_page'])));
     }
 
     public function options(Request $request): JsonResponse
@@ -383,5 +383,16 @@ class ProjectController extends Controller
         } catch (ProjectException $e) {
             return response()->json(['message' => $e->getMessage()] + $e->extra, $e->status);
         }
+    }
+
+    /** Who the work belongs to (HR stage 1b): owners = [{location_id, department_id?, is_lead?}]. Its branch and cost centre follow the lead. */
+    public function saveOwners(Request $request, int $project): JsonResponse
+    {
+        return $this->guard(function () use ($request, $project) {
+            $p = $this->projects->findFor($request->user(), $project, 'edit');
+
+            return response()->json(['owners' => app(\App\Services\Projects\ProjectOwners::class)->save($p, (array) $request->input('owners', []), $request->user()),
+                'cost_centre_path' => app(\App\Services\Projects\ProjectCostCentres::class)->path($p->cost_centre_id ? (int) $p->cost_centre_id : null)]);
+        });
     }
 }

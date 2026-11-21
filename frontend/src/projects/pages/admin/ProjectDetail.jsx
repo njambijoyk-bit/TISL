@@ -4,6 +4,7 @@ import toast from 'react-hot-toast';
 import AdminLayout from '../../../_shared/components/layout/AdminLayout';
 import PageHeader from '../../../_shared/components/layout/PageHeader';
 import projectsAPI from '../../../_shared/api/projects';
+import OwnersEditor from '../../components/OwnersEditor';
 import { day, extraValue, message, PRIORITY, STATE } from '../../lib/format';
 import { Btn, Chip, Notice, Panel, PanelTitle, Tabs } from '../../components/ui';
 import PhasesPanel from '../../components/PhasesPanel';
@@ -32,6 +33,36 @@ import ProjectKeys from '../../components/ProjectKeys';
  * phases, the people on it, what is linked to it from other modules, and its activity log. Every button is there only when the server says this person
  * may do it on this project (`can`); the words are the ones the server sends for this piece of work (`words`).
  */
+/** Who the work belongs to, the lead first, and changing it (HR stage 1b). */
+function OwnersRow({ project, onSaved }) {
+  const [edit, setEdit] = useState(null);
+  const [opts, setOpts] = useState(null);
+  const [busy, setBusy] = useState(false);
+  const start = async () => {
+    try { setOpts(opts ?? await projectsAPI.options()); setEdit(project.owners.map((o) => ({ location_id: o.location_id, department_id: o.department_id ?? '', is_lead: o.is_lead }))); } catch (e) { toast.error(message(e, 'The branches could not be loaded.')); }
+  };
+  const save = async () => {
+    setBusy(true);
+    try { await projectsAPI.saveOwners(project.id, edit.filter((o) => o.location_id).map((o) => ({ location_id: o.location_id, department_id: o.department_id || null, is_lead: !!o.is_lead }))); setEdit(null); toast.success('Saved'); onSaved(); } catch (e) { toast.error(message(e, 'That could not be saved.')); }
+    setBusy(false);
+  };
+  return (
+    <Row label="Belongs to">
+      {edit ? (
+        <span style={{ display: 'grid', gap: 6 }}>
+          <OwnersEditor value={edit} onChange={setEdit} branches={opts?.branches ?? []} departments={opts?.departments ?? {}} disabled={busy} />
+          <span style={{ display: 'flex', gap: 6 }}><Btn small variant="primary" busy={busy} onClick={save}>Save</Btn><Btn small onClick={() => setEdit(null)}>Cancel</Btn></span>
+        </span>
+      ) : (
+        <span data-project-owners style={{ display: 'inline-flex', flexWrap: 'wrap', gap: 6, alignItems: 'center' }}>
+          {project.owners.map((o) => <Chip key={o.label} status={o.is_lead ? 'info' : 'neutral'}>{o.label}{o.is_lead ? ' (lead)' : ''}</Chip>)}
+          {project.can?.edit && <Btn small variant="quiet" onClick={start}>Change</Btn>}
+        </span>
+      )}
+    </Row>
+  );
+}
+
 function Row({ label, children }) {
   if (children === null || children === undefined || children === '') return null;
   return (
@@ -227,7 +258,7 @@ export default function ProjectDetail() {
           <Row label={w('client')}>{p.customer?.name}</Row>
           <Row label={w('lead')}>{p.lead.name}</Row>
           <Row label="Kind of work">{p.type.name}</Row>
-          <Row label="Branch">{p.branch?.name}</Row>
+          {p.owners?.length > 0 ? <OwnersRow project={p} onSaved={load} /> : <Row label="Branch">{p.branch?.name}</Row>}
           <Row label={w('reference')}>{p.reference}</Row>
           <Row label={w('authority')}>{p.authority}</Row>
           <Row label={w('place')}>{p.place}</Row>

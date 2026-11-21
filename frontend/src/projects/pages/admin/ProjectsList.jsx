@@ -44,6 +44,8 @@ export default function ProjectsList() {
 
   useEffect(() => { load(); }, [load]);
   useEffect(() => { projectsAPI.invitations().then(setInvitations).catch(() => setInvitations([])); }, []);
+  const [owned, setOwned] = useState(null);   // HR stage 1b: branches and their departments, to filter by who the work belongs to
+  useEffect(() => { projectsAPI.options().then((o) => setOwned(Object.keys(o.departments ?? {}).length ? o : null)).catch(() => {}); }, []);
   useEffect(() => {
     const id = setTimeout(() => setFilters((f) => (f.q === typed ? f : { ...f, q: typed, page: 1 })), 300);
     return () => clearTimeout(id);
@@ -114,6 +116,14 @@ export default function ProjectsList() {
           <SelectInput id="projects-health" value={filters.health ?? ''} onChange={(e) => set({ health: e.target.value || undefined })} style={{ width: 'auto' }}>
             {Object.entries(HEALTH_FILTER).map(([k, l]) => <option key={k || 'any'} value={k}>{l}</option>)}
           </SelectInput>
+          {owned && (<>
+            <label htmlFor="projects-owner" style={{ position: 'absolute', left: -9999 }}>Belongs to</label>
+            <SelectInput id="projects-owner" value={filters.department_id ? `d${filters.department_id}` : filters.location_id ? `b${filters.location_id}` : ''} style={{ width: 'auto' }}
+              onChange={(e) => { const v = e.target.value; set({ department_id: v.startsWith('d') ? v.slice(1) : undefined, location_id: v.startsWith('b') ? v.slice(1) : undefined }); }}>
+              <option value="">Any branch or department</option>
+              {owned.branches.map((b) => [<option key={`b${b.id}`} value={`b${b.id}`}>{b.name}</option>, ...(owned.departments[b.id] ?? []).map((d) => <option key={`d${d.id}`} value={`d${d.id}`}>{`${b.name} › ${d.name}`}</option>)])}
+            </SelectInput>
+          </>)}
           <label htmlFor="projects-search" style={{ position: 'absolute', left: -9999 }}>Search</label>
           <TextInput id="projects-search" type="search" placeholder="Search by number, title or reference" value={typed} onChange={(e) => setTyped(e.target.value)} style={{ flex: '1 1 240px', maxWidth: 360 }} />
         </div>
