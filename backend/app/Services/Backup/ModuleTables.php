@@ -74,6 +74,7 @@ final class ModuleTables
             // Staff: employee records (payroll and attendance stand on them), attendance, payroll, petty cash, voucher verification.
             'employees', 'leave_logs',
             'hr_employment_types', 'hr_settings', 'hr_settings_versions', 'employee_changes',   // HR stage 1: types, configuration and its versions, every change to a record
+            'department_leads',   // HR stage 1b: a department's head and assistants with their sensitivity
             'attendance_settings', 'attendance_days', 'attendance_markers', 'attendance_disputes',
             'payroll_settings', 'payroll_components', 'payroll_employee_items', 'payroll_runs', 'payroll_lines',
             'petty_cash_floats', 'petty_cash_spends',
@@ -157,7 +158,7 @@ final class ModuleTables
             'project_site', 'project_material_plans', 'project_material_requests', 'project_stock_jobs', 'project_plant_bookings', 'project_plant_hires', 'project_subcontracts', 'project_sub_claims',
             'project_daily_records', 'project_daily_lines', 'project_inspection_kinds', 'project_inspections', 'project_inspection_answers', 'project_snags',
             'project_type_settings', 'project_work_templates', 'project_template_items', 'project_opening_questions', 'project_opening_checks', 'project_date_rules', 'project_rule_dates',
-            'project_kpis', 'project_kpi_snapshots', 'project_pipeline_odds', 'project_rules', 'project_rule_runs', 'project_updates',
+            'project_kpis', 'project_kpi_snapshots', 'project_pipeline_odds', 'project_rules', 'project_rule_runs', 'project_updates', 'project_owners',
             'project_meetings', 'project_meeting_people', 'project_meeting_actions',   // stage 6 (script 263)
         ],
         'listings'       => [/* built later */],
