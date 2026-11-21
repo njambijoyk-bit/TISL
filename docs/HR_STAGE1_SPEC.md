@@ -1,0 +1,145 @@
+# HR Stage 1: Foundation (spec)
+
+Status: spec, waiting for the owner. Stage 1 of `docs/HR_HUB_PLAN.md`. The four choices at the end are my recommendations; say if any should change, or say "go".
+
+Stage 1 makes the employee record a core part of TISL, with no Extras licence needed. It sorts the record's fields by who may see them, protects the sensitive ones, keeps a history of every change, and gives the record a proper page and HR its own configuration. Everything later (documents, hiring, leave, overtime, the profile) stands on this.
+
+## Found while reading the code
+
+| What | Where | Why it matters |
+|---|---|---|
+| Every employee route needs the Extras licence (`module:extras`) | `routes/api.php`: the employee list and record, the import, "my record" | Without Extras, HR can't manage anyone, though payroll and attendance (core) depend on the records |
+| The HR permissions are filed under Extras | `Access\Catalog`: `hr.view`, `hr.manage`, `hr.team`, `hr.purge` | They belong to core with the record |
+| `hr.view` does nothing on the server | The list and record need `hr.manage`; only the menu asks for `hr.view` | Someone meant to only *see* records can't, so people are given `hr.manage` instead |
+| Payroll and My payslips are in the menu's Operations group, marked Extras | `adminNav.js` | The menu hides them without Extras, though the server serves them |
+| Bank, ID, tax and social security numbers and salary are plain columns, shown in full to anyone who can open the record (the screen masks only the bank account) | `employees` table, `EmployeeController::show` | Anyone with record access sees everyone's pay and identity numbers |
+| Payroll and the Menus rota look for "has a salary" in the database (`base_salary > 0`) and compute from it | `PayrollService`, `RotaPay` | Salary can't be encrypted without changing those; protecting it by permission is enough |
+| Changing an employee's bank details already asks the person to confirm who they are | `StepUp\Facts::bank` | It stays, and is extended to identity numbers |
+| The employee screens live in the Extras folder | `frontend/src/extras/pages/admin/employees` | They move to core with the record |
+| The `employees` table is not created by a repo script | — | Stage 1 changes it only through a guarded script |
+
+## What changes
+
+### 1. The record becomes core
+
+- **Server:** the employee routes (list, record, create, change, status, skills, certifications, leave days, import, "my record", restore, delete) lose `module:extras`.
+  - Seeing a record needs `hr.view`, or `hr.team` for the people who report to you, or it being your own.
+  - Changing one needs `hr.manage`, or `hr.team` for your line (work fields only, choice 3).
+  - Deleting for good keeps needing `hr.purge`.
+- **Catalogue:** `hr.view`, `hr.manage`, `hr.team` and `hr.purge` move from Extras to core, plus two new permissions:
+  - `hr.sensitive`: "See and change pay, bank and identity details"
+  - `hr.configure`: "Set up HR (employment types, numbering, required fields)"
+- **Menu:** a new **People** group, always present.
+
+  | Item | Who sees it |
+  |---|---|
+  | Employees | `hr.view`, `hr.team` or `hr.manage` |
+  | Attendance | as today |
+  | Payroll | `payroll.run` |
+  | My payslips | everyone with an employee record |
+  | HR configuration | `hr.configure` |
+
+  Team (from Workplace), Attendance, Payroll and My payslips move here. Delivery stays in Operations, which stays with Extras.
+- **Screens:** the employee list, record and form move from `src/extras` to `src/core`. Their addresses (`/admin/employees/...`) don't change.
+
+### 2. Fields sorted by who may see them
+
+| Tier | Fields | Who sees them | Who changes them |
+|---|---|---|---|
+| **Work** | number, job title, department, branch, manager, employment type, hire and leaving dates, work email and phone, work location, status, skills, certifications | `hr.view`, the person's managers (`hr.team`), the person | `hr.manage`; managers with `hr.team` for their line |
+| **Personal** | date of birth, gender, marital status, education, emergency contact | `hr.view`, the person | `hr.manage`; the person (from My record, later in stage 8) |
+| **Pay and identity** | salary grade, base salary, currency, bank name, account name and number, ID number, KRA PIN, NSSF and NHIF numbers | `hr.sensitive` and the person themselves | `hr.manage` **and** `hr.sensitive` |
+
+- **Hidden fields are left out of what the server sends**, not just hidden on the screen. Instead the answer says which tiers the viewer may see, so the page shows "Pay and identity: needs permission".
+- The same rule covers the employee list, export, bulk edit and import:
+  - Without `hr.sensitive`, the import ignores pay and identity columns and says so.
+  - Exports leave those columns out.
+- Payroll is unchanged. It reads the record itself, and running payroll already needs `payroll.run`.
+
+### 3. Pay and identity details protected
+
+- **Encrypted at rest:** bank account name and number, ID number, KRA PIN, NSSF and NHIF numbers.
+  - A guarded script widens those columns so they can hold encrypted text.
+  - The model encrypts them as they are saved and reads both encrypted and not-yet-encrypted values, so nothing breaks in between.
+  - `php artisan hr:encrypt-fields` encrypts the values already there, once, and says how many it did. It is safe to run again.
+- **Salary is protected by permission, not encrypted** (choice 1). Payroll and the rota calculate and search on it in the database.
+- **Masked when shown:**
+  - A bank account number shows only its last four characters until **Show** is pressed.
+  - **Show** needs `hr.sensitive` and writes a line to the employee's history ("Wanjiru's bank account number was shown to Otieno").
+  - ID and tax numbers mask the same way.
+- **Confirming who you are:** changing bank details already asks for it. Changing an ID, KRA PIN, NSSF or NHIF number now asks too, with the same rule and screen.
+
+### 4. A history of every change
+
+- **Every change to a record is kept:** who, when, which field, from what to what, and the reason if one was given.
+  - This covers create, change, status, skills, certifications, leave days added or used, manager and department moves, restore and delete.
+  - Bulk edits and imports are recorded the same way, with "by bulk edit" or "by import".
+- **Pay and identity changes** keep their old and new values encrypted. Only `hr.sensitive` sees them; everyone else sees "changed".
+- **Who reads the history:** the **History** tab on the record, for `hr.view` (with the tier rule above), the person's managers for work fields, and the person for their own record.
+- The history can't be edited or deleted. Deleting an employee for good (`hr.purge`) keeps its history, with the name kept for reference.
+
+### 5. The record as a page with tabs
+
+`/admin/employees/{id}` becomes a page with tabs. Later stages add Documents (2), Time and leave (4), Pay (5), the linked Work, Casebook and Hired-from parts (6), and Growth (7).
+
+| Tab | What it holds |
+|---|---|
+| **Overview** | The person at a glance: job, manager, branch, tenure, status, who reports to them, and their next leave if any |
+| **Work** | The work tier, editable by those allowed |
+| **Personal** | The personal tier |
+| **Pay and identity** | The sensitive tier: masked, with Show, or "needs permission" |
+| **Skills** | Skills and certifications, with certificate expiry dates |
+| **Leave** | The current leave days and log (stage 4 replaces this) |
+| **History** | Every change, newest first, filterable by tier |
+
+The list gets filters for status, department, branch, manager, employment type and "joined in the last 90 days". Its columns follow the viewer's tiers.
+
+### 6. HR configuration
+
+A new page, `/admin/hr/configuration`, needing `hr.configure`. Its settings are versioned like Projects settings, so any earlier state can be brought back.
+
+- **Employment types:** permanent, contract, casual, intern, probation, plus the company's own. Each has a name and whether it is paid through payroll by default. They replace the free text.
+- **Employee numbers:** a prefix and width, for example `EMP-0001`. Existing numbers are kept; new records take the next number.
+- **Required fields when creating a record:** for example work email, department, manager, start date. The form asks for them, and the server refuses a record without them.
+- **Who can see their own pay and identity details:** on (the default) or off (choice 2).
+- **Departments:** a link to the existing Departments page. Nothing about departments changes.
+
+## What does not change
+
+- Payroll's calculation, runs and posting to Books.
+- Attendance.
+- Departments and cost-centre shares.
+- Careers.
+- Projects' use of `employees.manager_id`.
+- Addresses of existing pages.
+
+## Data
+
+### Script `271_hr_foundation.sql` (adds only)
+
+| Table or change | What it holds |
+|---|---|
+| `hr_employment_types` | key, name, paid through payroll by default, active, order. Seeded with the five types above, and with any types already typed on employees |
+| `hr_settings` and `hr_settings_versions` | The HR configuration, versioned, with who changed it and when |
+| `employee_changes` | employee_id, field, tier (work, personal or sensitive), old value, new value (encrypted for the sensitive tier), action (`created`, `changed`, `status`, `shown`, `imported`, `bulk`, `deleted`, `restored`), reason, by, at |
+| `employees`, guarded | Widens the six identity and bank columns to `TEXT` for encrypted values, and adds `employment_type_id` (the old free-text `employment_type` is kept and filled into the new list) |
+
+Plus the `hr.sensitive` and `hr.configure` permissions in the catalogue (granted to no one out of the box, except the owner role, which holds everything).
+
+## Builds
+
+| Build | What |
+|---|---|
+| 1.1 | Core move: routes, permissions out of Extras, `hr.view` and `hr.team` working on the server, the People menu, screens moved to core. Tests that every employee route works with Extras not licensed. |
+| 1.2 | Field tiers and protection: `hr.sensitive`, tiers in every answer, export and import; encryption with the safe reader and `hr:encrypt-fields`; masked values with Show (logged); step-up on identity numbers. |
+| 1.3 | The history: `employee_changes`, recorded on every path, including bulk edit and import; the History tab. |
+| 1.4 | The record page with tabs, the list filters, HR configuration (employment types, numbering, required fields, own-details setting). Browser checks. |
+
+Size: medium. One script, one artisan command, two new permissions.
+
+## Four choices (my recommendation first; say if any should change)
+
+1. **Salary is protected by permission, not encrypted.** Bank, ID and tax numbers are encrypted, but salary stays readable in the database, because payroll and the rota calculate and search on it. Only `hr.sensitive` and the person see it on screen. (The other way: encrypt salary too, and change payroll and the rota to decrypt in code, which is slower and a bigger change.)
+2. **People see their own pay and identity details.** An employee sees their own salary, bank and ID details on their record (masked until Show), so they can check them. It can be switched off in HR configuration. (The other way: only HR sees them.)
+3. **Managers see their line's work and personal tiers and change work fields only.** With `hr.team`, a manager sees and edits job, department and similar for the people who report to them, sees their personal tier, but not pay and identity. Today `hr.team` can change everything. (The other way: managers see work fields only.)
+4. **The history shows sensitive old and new values to `hr.sensitive`.** Kept encrypted and shown only to those who may see pay and identity details, so a wrong bank change can be traced and put right. (The other way: record only "changed", with no values, for sensitive fields.)
