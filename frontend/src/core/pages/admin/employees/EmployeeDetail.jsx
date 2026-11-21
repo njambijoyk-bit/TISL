@@ -66,6 +66,33 @@ function RoleBadge({ name }) {
   );
 }
 
+/** The leave days and their log (HR stage 1; stage 4 brings leave types, requests and approval). */
+function LeaveTab({ employee }) {
+  const [logs, setLogs] = useState(null);
+  useEffect(() => { employeesApi.getLeaveLogs?.(employee.id).then(d => setLogs(d.data ?? d.logs ?? d ?? [])).catch(() => setLogs([])); }, [employee.id]);
+  return (
+    <div data-hr-leave style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))', gap: 16 }}>
+      <SectionCard title="Leave days" icon={Calendar}>
+        <InfoRow label="Annual leave days" value={employee.annual_leave_days} />
+        <InfoRow label="Balance" value={employee.leave_balance != null ? `${employee.leave_balance} days` : null} />
+        <p style={{ margin: '8px 0 0', fontSize: '0.74rem', color: 'var(--text-tertiary)' }}>Add or use days from the Overview tab.</p>
+      </SectionCard>
+      <SectionCard title="Leave log" icon={Clock}>
+        {logs == null ? <p style={{ margin: 0, fontSize: '0.78rem', color: 'var(--text-tertiary)' }}>Loading…</p> : logs.length === 0 ? <p style={{ margin: 0, fontSize: '0.78rem', color: 'var(--text-tertiary)' }}>Nothing recorded yet.</p> : (
+          <ul style={{ listStyle: 'none', margin: 0, padding: 0 }}>
+            {logs.slice(0, 30).map(l => (
+              <li key={l.id} style={{ display: 'flex', justifyContent: 'space-between', gap: 10, padding: '7px 0', borderBottom: '1px solid color-mix(in srgb, var(--color-primary-500) 5%, transparent)', fontSize: '0.78rem' }}>
+                <span>{l.action === 'add' ? 'Added' : 'Used'} {Number(l.days)} day(s){l.reason ? ` · ${l.reason}` : ''}</span>
+                <span style={{ color: 'var(--text-tertiary)', whiteSpace: 'nowrap' }}>{new Date(l.created_at).toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' })}</span>
+              </li>
+            ))}
+          </ul>
+        )}
+      </SectionCard>
+    </div>
+  );
+}
+
 const FIELD_NAMES = { job_title: 'Job title', employee_number: 'Employee number', employee_id: 'Employee ID', department: 'Department', department_id: 'Department', location_id: 'Branch',
   manager_id: 'Manager', employment_type: 'Employment type', employment_type_id: 'Employment type', hire_date: 'Hire date', termination_date: 'Leaving date', work_location: 'Work location',
   work_phone: 'Work phone', work_email: 'Work email', status: 'Status', skills: 'Skills', certifications: 'Certifications', notes: 'Notes', annual_leave_days: 'Annual leave days',
@@ -323,11 +350,13 @@ export default function EmployeeDetail() {
 
   const s = STATUS_META[employee.status] || STATUS_META.active;
   const tabs = [
-    { id: 'overview',   label: 'Overview',     icon: User      },
-    { id: 'employment', label: 'Employment',   icon: Briefcase },
-    { id: 'personal',   label: 'Personal',     icon: Shield    },
-    { id: 'skills',     label: 'Skills',       icon: Award     },
-    { id: 'history',    label: 'History',      icon: Clock     },
+    { id: 'overview',   label: 'Overview',          icon: User       },
+    { id: 'employment', label: 'Work',              icon: Briefcase  },
+    { id: 'personal',   label: 'Personal',          icon: Shield     },
+    { id: 'pay',        label: 'Pay and identity',  icon: CreditCard },
+    { id: 'skills',     label: 'Skills',            icon: Award      },
+    { id: 'leave',      label: 'Leave',             icon: Calendar   },
+    { id: 'history',    label: 'History',           icon: Clock      },
   ];
 
   return (
@@ -349,6 +378,7 @@ export default function EmployeeDetail() {
           </div>
         </div>
         <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+          {employee.can?.change?.includes('work') && (<>
           <button
             onClick={() => setShowStatusModal(true)}
             style={{ display: 'flex', alignItems: 'center', gap: 7, padding: '8px 14px', borderRadius: 9, fontSize: '0.8rem', fontWeight: 600, fontFamily: 'inherit', cursor: 'pointer', background: 'var(--surface-card, #fff)', border: '1.5px solid color-mix(in srgb, var(--color-primary-500) 20%, transparent)', color: 'var(--color-primary-600)', transition: 'all 150ms' }}
@@ -365,12 +395,15 @@ export default function EmployeeDetail() {
           >
             <Edit3 size={14} /> Edit
           </button>
+          </>)}
+          {employee.can?.delete && (
           <button onClick={handleDelete} style={{ width: 36, height: 36, display: 'flex', alignItems: 'center', justifyContent: 'center', borderRadius: 9, border: '1.5px solid rgba(239,68,68,0.25)', background: 'rgba(239,68,68,0.05)', cursor: 'pointer', color: '#b91c1c', transition: 'all 150ms' }}
             onMouseEnter={e => e.currentTarget.style.background = 'rgba(239,68,68,0.1)'}
             onMouseLeave={e => e.currentTarget.style.background = 'rgba(239,68,68,0.05)'}
           >
             <Trash2 size={15} />
           </button>
+          )}
         </div>
       </div>
 
@@ -599,19 +632,6 @@ export default function EmployeeDetail() {
                   )}
                 </div>
               </SectionCard>
-              <SectionCard title="Compensation" icon={DollarSign}>
-                {employee.tiers?.includes('sensitive') ? (<>
-                  <InfoRow label="Salary Grade" value={employee.salary_grade} />
-                  <InfoRow label="Base Salary" value={employee.base_salary ? `${employee.currency || getBaseCode()} ${parseFloat(employee.base_salary).toLocaleString()}` : null} />
-                </>) : <InfoRow label="Salary" value="Needs the permission for pay details" />}
-                <InfoRow label="Annual Leave Days" value={employee.annual_leave_days} />
-                <InfoRow label="Leave Balance" value={`${employee.leave_balance} days`} />
-              </SectionCard>
-              <SectionCard title="Emergency Contact" icon={AlertCircle}>
-                <InfoRow label="Name" value={employee.emergency_contact_name} />
-                <InfoRow label="Phone" value={employee.emergency_contact_phone} />
-                <InfoRow label="Relationship" value={employee.emergency_contact_relationship} />
-              </SectionCard>
             </div>
           )}
 
@@ -626,6 +646,26 @@ export default function EmployeeDetail() {
                 <InfoRow label="Marital Status" value={employee.marital_status ? employee.marital_status.charAt(0).toUpperCase() + employee.marital_status.slice(1) : null} />
                 <InfoRow label="Education" value={employee.education_level} />
               </SectionCard>
+              <SectionCard title="Emergency Contact" icon={AlertCircle}>
+                <InfoRow label="Name" value={employee.emergency_contact_name} />
+                <InfoRow label="Phone" value={employee.emergency_contact_phone} />
+                <InfoRow label="Relationship" value={employee.emergency_contact_relationship} />
+              </SectionCard>
+            </div>
+          )}
+
+
+          {/* Pay and identity tab (HR stage 1): only with the permission, or the person's own */}
+          {activeTab === 'pay' && (
+            <div data-hr-pay style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))', gap: 16 }}>
+              {employee.tiers?.includes('sensitive') && (
+                <SectionCard title="Compensation" icon={DollarSign}>
+                {employee.tiers?.includes('sensitive') ? (<>
+                  <InfoRow label="Salary Grade" value={employee.salary_grade} />
+                  <InfoRow label="Base Salary" value={employee.base_salary ? `${employee.currency || getBaseCode()} ${parseFloat(employee.base_salary).toLocaleString()}` : null} />
+                </>) : null}
+                </SectionCard>
+              )}
               {employee.tiers?.includes('sensitive') ? (<>
                 <SectionCard title="Identification" icon={Hash}>
                   <MaskedRow label="ID Number" field="id_number" employeeId={employee.id} value={employee.id_number} />
@@ -645,6 +685,9 @@ export default function EmployeeDetail() {
               )}
             </div>
           )}
+
+          {/* Leave tab: the days and their log (HR stage 4 brings requests and approval) */}
+          {activeTab === 'leave' && <LeaveTab employee={employee} />}
 
           {/* Skills tab */}
           {activeTab === 'skills' && (

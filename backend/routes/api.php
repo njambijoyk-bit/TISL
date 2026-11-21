@@ -3762,6 +3762,18 @@ Route::middleware('auth:sanctum')->group(function () {
             Route::post('/{id}/activate',        [ReferralController::class, 'activate']);
         });
 
+        // ── HR configuration (HR stage 1): employment types, numbering, required fields ──
+        Route::prefix('hr')->group(function () {
+            Route::get('/employment-types', [\App\Http\Controllers\Api\Hr\HrConfigController::class, 'types'])->middleware('permission:hr.view,hr.team,hr.manage,hr.configure');
+            Route::middleware('permission:hr.configure')->group(function () {
+                Route::get('/configuration', [\App\Http\Controllers\Api\Hr\HrConfigController::class, 'show']);
+                Route::put('/configuration', [\App\Http\Controllers\Api\Hr\HrConfigController::class, 'save']);
+                Route::post('/configuration/rollback/{version}', [\App\Http\Controllers\Api\Hr\HrConfigController::class, 'rollback'])->whereNumber('version');
+                Route::post('/employment-types', [\App\Http\Controllers\Api\Hr\HrConfigController::class, 'saveType']);
+                Route::put('/employment-types/{type}', [\App\Http\Controllers\Api\Hr\HrConfigController::class, 'saveType'])->whereNumber('type');
+            });
+        });
+
         Route::prefix('employees')->middleware('permission:hr.view,hr.team,hr.manage')->group(function () {
             Route::get('/',                         [EmployeeController::class, 'index']);
             Route::get('/statistics',               [EmployeeController::class, 'statistics']);

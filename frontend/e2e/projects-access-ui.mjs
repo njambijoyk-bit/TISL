@@ -20,11 +20,12 @@ const CAN = { open: true, edit: true, stage: true, close: true, freeze: false, c
 let project = { id: 413, number: 'M-0413', title: 'Imara Sacco v. Baraka Traders', description: null, industry: { key: 'legal', name: 'Legal' }, type: { id: 1, name: 'Litigation' }, stage: { id: 1, name: 'Opening', status: 'info' }, state: 'open', priority: 'medium',
   customer: null, lead: { id: 1, name: 'Kamau' }, branch: null, cost_centre_id: 9, reference: null, authority: null, place: null, start_date: null, due_date: null, closing_period_ends: null, closed_at: null, confidential: true, frozen: false,
   stages: [{ id: 1, name: 'Opening', state: 'open', status: 'info', required_fields: [] }, { id: 4, name: 'Closed', state: 'closed', status: 'good', required_fields: [] }], cost_centre_path: 'Projects › M-0413', words, can: CAN, fields: [] };
+const inFour = new Date(Date.now() + 4 * 86400000).toISOString().slice(0, 10);   // "ends in 4 days", whatever day the check runs
 const person = (member_id, name, o = {}) => ({ member_id, user_id: member_id, name, is_lead: false, reason: 'On it as Member', role: 'Member', can: ['Open it', 'Add and change its phases'], hours: null, hour_days: [], starts_at: null, ends_at: null, ends_in_days: null, ending_soon: false, state: 'in', state_words: 'Can get in', status: 'good', ...o });
 let people = [
   person(1, 'Kamau', { is_lead: true, reason: 'On it as Lead', role: 'Lead', can: ['Open it', 'Change its details, freeze it, make it confidential', 'Set its hours, end dates and locked areas'] }),
   person(2, 'Njeri', { ends_at: '2027-01-31 23:59:59' }),
-  person(3, 'Mwangi', { reason: 'On it as Finance', role: 'Finance', can: ['Open it'], ends_at: '2026-11-20 23:59:59', ends_in_days: 4, ending_soon: true }),
+  person(3, 'Mwangi', { reason: 'On it as Finance', role: 'Finance', can: ['Open it'], ends_at: `${inFour} 23:59:59`, ends_in_days: 4, ending_soon: true }),
   person(4, 'Wambui', { reason: 'Was on it as Member', ends_at: '2026-10-31 23:59:59', state: 'ended', state_words: 'Ended 31 Oct 2026', status: 'problem' }),
   person(5, 'Amina', { reason: 'Invited as Reviewer', role: 'Reviewer', can: ['Open it', 'Read its activity log'], state: 'invited', state_words: 'Invited, has not answered', status: 'info' })];
 let others = { kind: 'kept_out', people: [{ user_id: 8, name: 'Baraka' }, { user_id: 9, name: 'Zawadi' }] };
@@ -62,7 +63,7 @@ await row('Kamau').waitFor({ timeout: 15000 });
 ok('a link can open the Access tab directly', (await page.getByRole('tab', { name: 'Access' }).getAttribute('aria-selected')) === 'true');
 ok('each person is shown with why they get in and what they can do', /On it as Lead/.test(await text(row('Kamau'))) && /Set its hours, end dates and locked areas/.test(await text(row('Kamau'))) && /On it as Finance/.test(await text(row('Mwangi'))));
 ok('and whether they can get in right now', /Can get in/.test(await text(row('Njeri'))) && /Ended 31 Oct 2026/.test(await text(row('Wambui'))) && /Invited, has not answered/.test(await text(row('Amina'))));
-ok('an end date close by is flagged on the row and counted above', /20 Nov 2026\s*4 days/.test(await text(row('Mwangi'))) && /1 person ends within 7 days/.test(await text(page.locator('#root'))));
+ok('an end date close by is flagged on the row and counted above', new RegExp(`${new Date(inFour).toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' })}\\s*4 days`).test(await text(row('Mwangi'))) && /1 person ends within 7 days/.test(await text(page.locator('#root'))));
 ok('with no hours set it says the work is open at any time', /Open at any time/.test(await text(page.locator('#root'))) && /Any time/.test(await text(row('Njeri'))));
 ok('a confidential one says who it is hidden from, by count first', /Hidden from 2 people who would otherwise see it, because it is confidential/.test(await text(page.locator('[data-others="kept_out"]'))) && !/Baraka/.test(await text(page.locator('[data-others]'))));
 await page.getByRole('button', { name: 'Show them' }).click();
@@ -71,7 +72,7 @@ ok('someone only invited has no end date to move yet', (await row('Amina').getBy
 await page.screenshot({ path: D + 'projects-access.png', fullPage: true });
 
 await page.getByRole('button', { name: 'Extend Mwangi' }).click();
-ok('extending starts from the date they have', (await page.getByLabel('Mwangi is on it until').inputValue()) === '2026-11-20');
+ok('extending starts from the date they have', (await page.getByLabel('Mwangi is on it until').inputValue()) === inFour);
 await page.getByLabel('Mwangi is on it until').fill('2027-03-31');
 await page.getByRole('button', { name: 'Save the date' }).click();
 await page.waitForTimeout(400);

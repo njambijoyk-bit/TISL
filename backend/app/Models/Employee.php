@@ -85,6 +85,12 @@ class Employee extends Model
     /** Every save of a record is kept in its history (HR stage 1, docs/HR_STAGE1_SPEC.md), whichever code makes it. */
     protected static function booted(): void
     {
+        // the employment type's link follows the type chosen (HR stage 1, script 271)
+        static::saving(function (Employee $e) {
+            if ($e->isDirty('employment_type') && \App\Services\Hr\EmploymentTypes::ready() && \Illuminate\Support\Facades\Schema::hasColumn('employees', 'employment_type_id')) {
+                $e->employment_type_id = app(\App\Services\Hr\EmploymentTypes::class)->idOf($e->employment_type);
+            }
+        });
         foreach (['created', 'updated', 'deleted', 'restored', 'forceDeleted'] as $event) {
             static::registerModelEvent($event, function (Employee $e) use ($event) {
                 if ($event === 'deleted' && $e->isForceDeleting()) {
@@ -487,29 +493,9 @@ class Employee extends Model
         parent::boot();
 
         static::creating(function ($employee) {
-            // Only auto-generate if it hasn't been manually provided
+            // Only auto-generate if it hasn't been manually provided; the format is HR configuration's (HR stage 1), EMP-{YYYY}-0001 out of the box
             if (empty($employee->employee_number)) {
-                $year = date('Y');
-                $prefix = "EMP-{$year}-";
-
-                // 1. Find the highest employee number for the current year
-                // We use withTrashed() so we don't reuse numbers from deleted employees
-                $lastEmployee = static::withTrashed()
-                    ->where('employee_number', 'LIKE', "{$prefix}%")
-                    ->orderBy('employee_number', 'desc') // String sorting works perfectly for EMP-2026-0001
-                    ->first();
-
-                $nextNumber = 1;
-                
-                // 2. If we found one, extract the numeric part and increment it
-                if ($lastEmployee) {
-                    // Grabs the last 4 characters (e.g., "0001" -> 1)
-                    $lastNumber = (int) substr($lastEmployee->employee_number, -4);
-                    $nextNumber = $lastNumber + 1;
-                }
-
-                // 3. Format it back to 4 digits (e.g., 1 -> 0001)
-                $employee->employee_number = $prefix . str_pad($nextNumber, 4, '0', STR_PAD_LEFT);
+                $employee->employee_number = app(\App\Services\Hr\HrSettings::class)->nextNumber();
             }
         });
     }

@@ -12,7 +12,7 @@ class HrSettings
 {
     public const DEFAULTS = [
         'general' => [
-            'number_prefix' => 'EMP-', 'number_width' => 4,
+            'number_prefix' => 'EMP-{YYYY}-', 'number_width' => 4,   // {YYYY} is the year the record is made
             'required' => ['work_email' => false, 'department' => true, 'manager' => false, 'hire_date' => false, 'phone' => false],
             'own_details' => true,   // people see their own pay and identity details (masked until Show)
         ],
@@ -51,6 +51,18 @@ class HrSettings
         return ['version' => $version, 'value' => $value];
     }
 
+    /** The next employee number in the configured format, never reusing one (deleted records count). */
+    public function nextNumber(?\DateTimeInterface $at = null): string
+    {
+        $g = $this->get();
+        $prefix = str_replace('{YYYY}', ($at ?? now())->format('Y'), $g['number_prefix']);
+        $width = (int) $g['number_width'];
+        $last = \App\Models\Employee::withTrashed()->where('employee_number', 'like', addcslashes($prefix, '%_\\') . '%')->pluck('employee_number')
+            ->map(fn ($n) => substr((string) $n, strlen($prefix)))->filter(fn ($rest) => ctype_digit($rest))->map(fn ($rest) => (int) $rest)->max() ?? 0;
+
+        return $prefix . str_pad((string) ($last + 1), $width, '0', STR_PAD_LEFT);
+    }
+
     /** Bring an earlier version back, as a new version. */
     public function rollback(string $part, int $version, ?User $by): array
     {
@@ -70,7 +82,7 @@ class HrSettings
     private function clean(string $part, array $v): array
     {
         $prefix = trim((string) $v['number_prefix']);
-        (mb_strlen($prefix) <= 12 && preg_match('/^[A-Za-z0-9\/\-_.]*$/', $prefix)) || throw ValidationException::withMessages(['number_prefix' => 'A prefix is up to 12 letters, digits or - / _ .']);
+        (mb_strlen($prefix) <= 20 && preg_match('/^([A-Za-z0-9\/\-_.]|\{YYYY\})*$/', $prefix)) || throw ValidationException::withMessages(['number_prefix' => 'A prefix is up to 20 letters, digits, - / _ . and {YYYY} for the year.']);
         $width = (int) $v['number_width'];
         ($width >= 1 && $width <= 10) || throw ValidationException::withMessages(['number_width' => 'Numbers are 1 to 10 digits wide.']);
 

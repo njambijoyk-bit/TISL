@@ -53,6 +53,16 @@ class EmployeeController extends Controller
         if ($request->filled('manager_id')) {
             $query->byManager($request->manager_id);
         }
+        // HR stage 1: branch, department, and who joined lately
+        if ($request->filled('location_id')) {
+            $query->where('location_id', (int) $request->location_id);
+        }
+        if ($request->filled('department_id')) {
+            $query->where('department_id', (int) $request->department_id);
+        }
+        if ($request->filled('joined_days')) {
+            $query->where('hire_date', '>=', now()->subDays(max(1, min(3650, (int) $request->joined_days)))->toDateString());
+        }
 
         // Search
         if ($request->filled('search')) {
@@ -131,7 +141,7 @@ class EmployeeController extends Controller
             'department' => 'required_without:department_id|nullable|string|max:255',
             'location_id' => 'nullable|integer|exists:locations,id',
             'department_id' => 'nullable|integer|exists:departments,id',
-            'employment_type' => 'required|in:full_time,part_time,contract,intern',
+            'employment_type' => ['required', Rule::in(app(\App\Services\Hr\EmploymentTypes::class)->keys())],   // the company's types (HR configuration)
             'hire_date' => 'nullable|date',
             'manager_id' => 'nullable|exists:employees,id',
             'work_location' => 'nullable|string|max:255',
@@ -174,6 +184,17 @@ class EmployeeController extends Controller
             }
         }
 
+        // the fields HR configuration asks for when someone is added
+        $required = app(\App\Services\Hr\HrSettings::class)->get()['required'];
+        $validator->after(function ($v) use ($required, $request) {
+            $ask = ['work_email' => [['work_email'], 'Work email is required.'], 'department' => [['department', 'department_id'], 'Department is required.'],
+                'manager' => [['manager_id'], 'Choose who they report to.'], 'hire_date' => [['hire_date'], 'Start date is required.'], 'phone' => [['phone', 'work_phone'], 'A phone number is required.']];
+            foreach ($ask as $key => [$fields, $message]) {
+                if (($required[$key] ?? false) && ! collect($fields)->contains(fn ($f) => filled($request->input($f)))) {
+                    $v->errors()->add($fields[0], $message);
+                }
+            }
+        });
         if ($validator->fails()) {
             return response()->json(['errors' => $validator->errors()], 422);
         }
@@ -309,7 +330,7 @@ class EmployeeController extends Controller
             'department' => 'string|max:255',
             'location_id' => 'nullable|integer|exists:locations,id',
             'department_id' => 'nullable|integer|exists:departments,id',
-            'employment_type' => 'in:full_time,part_time,contract,intern',
+            'employment_type' => [Rule::in(app(\App\Services\Hr\EmploymentTypes::class)->keys())],
             'hire_date' => 'nullable|date',
             'termination_date' => 'nullable|date',
             'manager_id' => 'nullable|exists:employees,id',

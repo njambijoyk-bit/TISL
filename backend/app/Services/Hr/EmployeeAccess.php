@@ -14,7 +14,7 @@ class EmployeeAccess
 {
     /** The three tiers of the record: who may see and change them is decided per tier (docs/HR_STAGE1_SPEC.md, "Fields sorted by who may see them"). */
     public const TIERS = [
-        'work' => ['employee_number', 'employee_id', 'job_title', 'department', 'department_id', 'location_id', 'manager_id', 'employment_type', 'employment_type_id', 'hire_date', 'termination_date',
+        'work' => ['employee_number', 'employee_id', 'job_title', 'department', 'department_id', 'location_id', 'manager_id', 'employment_type', 'hire_date', 'termination_date',
             'work_location', 'work_phone', 'work_email', 'status', 'skills', 'certifications', 'notes', 'annual_leave_days', 'leave_balance'],
         'personal' => ['date_of_birth', 'gender', 'marital_status', 'education_level', 'emergency_contact_name', 'emergency_contact_phone', 'emergency_contact_relationship'],
         'sensitive' => ['salary_grade', 'base_salary', 'currency', 'bank_name', 'bank_account_name', 'bank_account_number', 'id_number', 'kra_pin', 'nssf_number', 'nhif_number'],

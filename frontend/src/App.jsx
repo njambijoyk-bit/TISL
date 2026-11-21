@@ -257,6 +257,7 @@ const MyPayslips         = lazy(() => import('./core/pages/admin/payroll/MyPaysl
 const Payroll            = lazy(() => import('./core/pages/admin/payroll/Payroll'));
 const Gratuity           = lazy(() => import('./core/pages/admin/payroll/Gratuity'));
 const PayrollSettings    = lazy(() => import('./core/pages/admin/payroll/PayrollSettings'));
+const HrConfiguration    = lazy(() => import('./core/pages/admin/hr/HrConfiguration'));   // HR stage 1
 const Attendance         = lazy(() => import('./core/pages/admin/attendance/Attendance'));
 const PettyCash          = lazy(() => import('./core/pages/admin/books/PettyCash'));
 const CashPage           = lazy(() => import('./core/pages/admin/books/CashPage'));
@@ -1788,6 +1789,7 @@ function App() {
               <Route path="/admin/payroll" element={<ProtectedRoute requireAdmin permission="payroll.run"><Payroll /></ProtectedRoute>} />
               <Route path="/admin/payroll/gratuity" element={<ProtectedRoute requireAdmin permission="payroll.run"><Gratuity /></ProtectedRoute>} />
               <Route path="/admin/payroll/settings" element={<ProtectedRoute requireAdmin permission="payroll.run"><PayrollSettings /></ProtectedRoute>} />
+              <Route path="/admin/hr/configuration" element={<ProtectedRoute requireAdmin permission="hr.configure"><HrConfiguration /></ProtectedRoute>} />
               <Route path="/admin/attendance" element={<ProtectedRoute requireAdmin><Attendance /></ProtectedRoute>} />
               <Route path="/admin/petty-cash" element={<ProtectedRoute requireAdmin><PettyCash /></ProtectedRoute>} />
               <Route path="/admin/books/cash" element={<ProtectedRoute requireAdmin permission="books.view"><CashPage /></ProtectedRoute>} />

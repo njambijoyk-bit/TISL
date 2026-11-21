@@ -1,6 +1,6 @@
-# HR Stage 1: Foundation (spec)
+# HR Stage 1: Foundation (built)
 
-Status: being built. Stage 1 of `docs/HR_HUB_PLAN.md`. The owner said "go" on 2026-11-21, so the four choices at the end are taken as recommended. What is built is under "As built".
+Status: built. Stage 1 of `docs/HR_HUB_PLAN.md`. The owner said "go" on 2026-11-21, so the four choices at the end are taken as recommended. All four builds are done; see "As built" and the checks by hand at the end.
 
 Stage 1 makes the employee record a core part of TISL, with no Extras licence needed. It sorts the record's fields by who may see them, protects the sensitive ones, keeps a history of every change, and gives the record a proper page and HR its own configuration. Everything later (documents, hiring, leave, overtime, the profile) stands on this.
 
@@ -214,3 +214,51 @@ Size: medium. One script, one artisan command, two new permissions.
   - Anyone else is refused.
 - **History tab** on the record: newest first, in words ("Grace N. · Bank: KCB → Equity", "Account number was shown", "Record created"). Filters for Everything, Work, Personal, and Pay and identity. Reasons show beneath the change.
 - **Tests:** `tests/Feature/HrHistoryTest.php` (2).
+
+### 1.4 The record page, list filters and HR configuration (done)
+
+Screens: `docs/screens/hr-record-pay.png`, `docs/screens/hr-record-history.png`, `docs/screens/hr-configuration.png`.
+
+- **The record page:**
+  - **Seven tabs:** Overview, Work, Personal (now with the emergency contact), Pay and identity (salary, identification and bank, masked, with Show), Skills, Leave (the days and their log) and History.
+  - Change Status and Edit show only to those who may change the work tier, and delete only with `hr.manage`.
+- **The list** adds filters for manager and for who joined lately (30 days, 90 days, a year). The server also filters by branch and department.
+  - Employment types in the list and the form come from HR configuration.
+- **HR configuration** (`/admin/hr/configuration`, `hr.configure`, in the People menu):
+  - **Employment types:** add a type, mark it paid through payroll or not, switch it off. Each type shows how many people have it.
+  - **Employee numbers:** prefix and digits, with `{YYYY}` for the year. Out of the box it is `EMP-{YYYY}-` with 4 digits, the format used so far. A preview shows as you type, plus the next number.
+  - **Fields asked for when someone is added:** work email, department, who they report to, start date, phone. The server refuses a record without them too.
+  - **People's own details:** whether people see their own pay and identity details.
+  - **Versions:** every save is a version, and an earlier one can be brought back.
+- **New records:**
+  - Take the next number in the configured format, never reusing one (deleted records count).
+  - Must use one of the company's active types, and keep a link to it.
+- **Routes:**
+  - `GET`/`PUT /hr/configuration` and `POST /hr/configuration/rollback/{version}`
+  - `POST /hr/employment-types` and `PUT /hr/employment-types/{type}`
+  - `GET /hr/employment-types`, for the forms
+- **Backup:** the four new tables are backed up with the rest of core HR.
+- **Tests:** `tests/Feature/HrConfigurationTest.php` (3). Browser check `e2e/hr-foundation-ui.mjs` (16).
+- **Also fixed:** the Projects access browser check used a fixed date ("ends in 4 days" was 20 Nov), so it failed once that day had passed. It now works the date out from the day it runs.
+
+### To run
+
+1. `backend/database/sql/271_hr_foundation.sql`.
+2. Then once, on the server: `php artisan hr:encrypt-fields`.
+3. Give `hr.sensitive` to whoever should see pay, bank and identity details. Out of the box only the owner has it. `hr.configure` comes with the admin role.
+
+### To check by hand once script 271 is run
+
+1. **Without Extras:** switch Extras off (or use a copy without its licence). The People menu still shows Employees, Attendance, Payroll and My payslips, and records open and save.
+2. **Looking only:** give someone `hr.view` and nothing else. They can open every record but not change one, and they see no salary, bank or ID numbers.
+3. **A manager:** give a manager `hr.team`. They see the people below them, however deep, and themselves. They can change those people's job details but not their personal or pay details. Someone outside their line returns "not allowed".
+4. **Pay details:**
+   - With `hr.sensitive`, numbers show as `••••4471`. **Show** reveals the full number, and the History tab then says it was shown.
+   - Run `php artisan hr:encrypt-fields`. In the database the six columns are now unreadable text, and the screen still shows the right numbers.
+5. **Confirming who you are:** change someone's bank details or KRA PIN. You are asked to confirm, and the old and new values are listed.
+6. **Your own record:** sign in as an employee. "My profile" shows your record, and your pay details masked. Switch "People see their own pay and identity details" off in HR configuration, and they disappear.
+7. **History:** change a job title with a reason, add a skill, use a leave day. Each appears on the History tab with who and when. A manager sees only the job changes of their line.
+8. **HR configuration:**
+   - Add a type, set the number format to something like `TISL/{YYYY}/` with 3 digits, and tick "Work email". A new employee then gets the next number in that format and can't be saved without a work email.
+   - Bring back an earlier version.
+9. **Import:** as someone without `hr.sensitive`, import a file with a salary column. The message says the pay columns were left out, and existing salaries are unchanged.

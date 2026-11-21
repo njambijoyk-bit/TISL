@@ -75,6 +75,14 @@ const employeesAPI = {
     return response.data;
   },
 
+  // the company's employment types and the fields asked for when adding someone (HR configuration)
+  getEmploymentTypes: () =>
+    api.get('/admin/hr/employment-types').then(r => r.data),
+
+  // one person's leave log
+  getLeaveLogs: (id) =>
+    api.get(`/admin/employees/${id}/leave-logs`).then(r => r.data),
+
   getAllLeaveLogs: (params = {}) =>
     api.get('/admin/employees/leave-logs', { params }).then(r => r.data),
 

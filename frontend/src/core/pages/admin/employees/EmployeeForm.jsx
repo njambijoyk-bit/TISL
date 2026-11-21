@@ -178,7 +178,9 @@ export default function EmployeeForm() {
   const { user }                          = useAuthStore();
   // what this person may change: the record says so when editing; a new record follows their permissions
   const [may, setMay]                     = useState(() => ['work', ...(hasPermission(user, 'hr.manage') ? ['personal'] : []), ...(hasPermission(user, 'hr.manage') && hasPermission(user, 'hr.sensitive') ? ['sensitive'] : [])]);
-  const [masks, setMasks]                 = useState({});   // the masked numbers ("••••4471"): left empty, they stay as they are
+  const [masks, setMasks]                 = useState({});
+  const [types, setTypes]                 = useState([]);   // the company's employment types (HR configuration)
+  useEffect(() => { employeesApi.getEmploymentTypes().then(d => setTypes(d.types ?? [])).catch(() => {}); }, []);   // the masked numbers ("••••4471"): left empty, they stay as they are
   const [org, setOrg]                     = useState({ ready: false, branches: [], departments: [] });   // branches and departments (script 101); the old text boxes show until it has run
   const sharesRef                         = useRef({ touched: false, rows: [] });
   const [roleDefs, setRoleDefs]           = useState([]);   // the roles this person may give: [{ key, name, min_clearance }]
@@ -425,7 +427,7 @@ export default function EmployeeForm() {
             </Field>
           )}
           <Field label="Employment Type">
-            <Select value={form.employment_type} onChange={v => set('employment_type', v)} options={EMPLOYMENT_TYPES} />
+            <Select value={form.employment_type} onChange={v => set('employment_type', v)} options={types.length ? types.map(t => ({ value: t.key, label: t.name })) : EMPLOYMENT_TYPES} />
           </Field>
           <Field label="Status">
             <Select value={form.status} onChange={v => set('status', v)} options={STATUS_OPTIONS} />

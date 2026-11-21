@@ -176,7 +176,7 @@ export default function EmployeeList() {
   const [employees, setEmployees]   = useState([]);
   const [loading, setLoading]       = useState(true);
   const [pagination, setPagination] = useState({ current_page: 1, last_page: 1, total: 0 });
-  const [filters, setFilters]       = useState({ search: '', status: '', department: '', employment_type: '' });
+  const [filters, setFilters]       = useState({ search: '', status: '', department: '', employment_type: '', manager_id: '', joined_days: '' });
   const [departments, setDepartments] = useState([]);
   const [statistics, setStatistics] = useState(null);
   const [showFilters, setShowFilters] = useState(false);
@@ -201,6 +201,12 @@ export default function EmployeeList() {
   const [trashedEmployees, setTrashedEmployees] = useState([]);
   const [trashLoading, setTrashLoading]         = useState(false);
   const [trashActionId, setTrashActionId]       = useState(null);
+  const [types, setTypes]                       = useState([]);   // the company's employment types (HR configuration)
+  const [managers, setManagers]                 = useState([]);
+  useEffect(() => {
+    employeesApi.getEmploymentTypes().then(d => setTypes(d.types ?? [])).catch(() => {});
+    employeesApi.getPotentialManagers().then(d => setManagers(d.data ?? [])).catch(() => {});
+  }, []);
   const [confirmModal, setConfirmModal]         = useState(null);
 
   // ── Fetchers ────────────────────────────────────────────────────────────────
@@ -291,7 +297,7 @@ export default function EmployeeList() {
     finally { setTrashActionId(null); setConfirmModal(null); }
   };
 
-  const hasFilters = filters.search || filters.status || filters.department || filters.employment_type;
+  const hasFilters = filters.search || filters.status || filters.department || filters.employment_type || filters.manager_id || filters.joined_days;
   const SortArrow = ({ col }) => (
     <span style={{ marginLeft: 3, color: sortBy === col ? 'var(--color-primary-500)' : 'var(--text-tertiary)' }}>
       {sortBy === col && sortOrder === 'asc' ? <ChevronUp size={12} style={{ display: 'inline' }} /> : <ChevronDown size={12} style={{ display: 'inline' }} />}
@@ -437,7 +443,17 @@ export default function EmployeeList() {
             </select>
             <select value={filters.employment_type} onChange={e => setFilters(f => ({ ...f, employment_type: e.target.value }))} style={selectStyle} onFocus={sFocus} onBlur={sBlur}>
               <option value="">All types</option>
-              {Object.entries(EMPLOYMENT_TYPE_LABELS).map(([v, l]) => <option key={v} value={v}>{l}</option>)}
+              {(types.length ? types.map(t => [t.key, t.name]) : Object.entries(EMPLOYMENT_TYPE_LABELS)).map(([v, l]) => <option key={v} value={v}>{l}</option>)}
+            </select>
+            <select aria-label="Manager" value={filters.manager_id} onChange={e => setFilters(f => ({ ...f, manager_id: e.target.value }))} style={selectStyle} onFocus={sFocus} onBlur={sBlur}>
+              <option value="">Any manager</option>
+              {managers.map(m => <option key={m.id} value={m.id}>{m.name}</option>)}
+            </select>
+            <select aria-label="Joined" value={filters.joined_days} onChange={e => setFilters(f => ({ ...f, joined_days: e.target.value }))} style={selectStyle} onFocus={sFocus} onBlur={sBlur}>
+              <option value="">Joined any time</option>
+              <option value="30">Joined in the last 30 days</option>
+              <option value="90">Joined in the last 90 days</option>
+              <option value="365">Joined in the last year</option>
             </select>
             <button
               onClick={() => fetchEmployees(1)}
@@ -447,7 +463,7 @@ export default function EmployeeList() {
             </button>
             {hasFilters && (
               <button
-                onClick={() => { setFilters({ search: '', status: '', department: '', employment_type: '' }); setTimeout(() => fetchEmployees(1), 0); }}
+                onClick={() => { setFilters({ search: '', status: '', department: '', employment_type: '', manager_id: '', joined_days: '' }); setTimeout(() => fetchEmployees(1), 0); }}
                 style={{ fontSize: '0.78rem', fontWeight: 600, color: 'var(--text-tertiary)', background: 'none', border: 'none', cursor: 'pointer', fontFamily: 'inherit', padding: '0 4px', transition: 'color 150ms' }}
                 onMouseEnter={e => e.currentTarget.style.color = '#ef4444'}
                 onMouseLeave={e => e.currentTarget.style.color = '#c4b5fd'}
@@ -507,7 +523,7 @@ export default function EmployeeList() {
                         </p>
                         {hasFilters && (
                           <button
-                            onClick={() => { setFilters({ search: '', status: '', department: '', employment_type: '' }); setTimeout(() => fetchEmployees(1), 0); }}
+                            onClick={() => { setFilters({ search: '', status: '', department: '', employment_type: '', manager_id: '', joined_days: '' }); setTimeout(() => fetchEmployees(1), 0); }}
                             style={{ fontSize: '0.75rem', fontWeight: 600, color: 'var(--color-primary-500)', background: 'none', border: 'none', cursor: 'pointer', fontFamily: 'inherit' }}
                           >
                             Clear filters

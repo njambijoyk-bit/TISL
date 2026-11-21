@@ -252,6 +252,7 @@ export const ADMIN_NAV = [
           { title: 'Configuration', path: '/admin/payroll/settings' },
         ],
       },
+      { id: 'hr-configuration', title: 'HR configuration', icon: Settings, color: '#64748b', path: '/admin/hr/configuration', perm: 'hr.configure', keywords: 'employment types employee numbers required fields hr settings' },
     ],
   },
 

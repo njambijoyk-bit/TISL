@@ -73,6 +73,7 @@ final class ModuleTables
             'bookings', 'bookable_resources', 'resource_hours', 'resource_time_off', 'resource_services', 'calendar_entries', 'calendar_tokens',
             // Staff: employee records (payroll and attendance stand on them), attendance, payroll, petty cash, voucher verification.
             'employees', 'leave_logs',
+            'hr_employment_types', 'hr_settings', 'hr_settings_versions', 'employee_changes',   // HR stage 1: types, configuration and its versions, every change to a record
             'attendance_settings', 'attendance_days', 'attendance_markers', 'attendance_disputes',
             'payroll_settings', 'payroll_components', 'payroll_employee_items', 'payroll_runs', 'payroll_lines',
             'petty_cash_floats', 'petty_cash_spends',

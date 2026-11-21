@@ -47,10 +47,11 @@
         PartOfWork: () => import('/e2e/PartOfProbe.jsx'),
         MyChannels: () => import('/src/core/components/account/MyChannels.jsx'),
         NotificationSettings: () => import('/src/core/pages/admin/settings/NotificationSettings.jsx'),
-        AiKeys: () => import('/src/extras/pages/admin/ai-analytics/AiKeysPage.jsx'),   // the "reset sign-in methods" window on its own (the real users page needs a far bigger database)
+        AiKeys: () => import('/src/extras/pages/admin/ai-analytics/AiKeysPage.jsx'),
+        HrApp: () => import('/e2e/HrProbe.jsx'),   // the "reset sign-in methods" window on its own (the real users page needs a far bigger database)
       };
       const { default: Component } = await parts[which]();
-      if (['ProjectConfiguration', 'ProjectsList', 'ProjectsApp', 'PasskeyRule', 'SensitiveActions', 'PaymentSettings', 'Approvals', 'MenusIngredients', 'MenusDishes', 'MenusRecipes', 'MenusSettings', 'MenuCards', 'MenusOrders', 'MenusKitchen', 'MenusTill', 'MenusFloor', 'MenusChefs', 'MenusOperations', 'MenusCooking', 'NotificationSettings', 'AiKeys'].includes(which)) document.getElementById('root').style.maxWidth = 'none';   // (a whole page, not a card)
+      if (['ProjectConfiguration', 'ProjectsList', 'ProjectsApp', 'PasskeyRule', 'SensitiveActions', 'PaymentSettings', 'Approvals', 'MenusIngredients', 'MenusDishes', 'MenusRecipes', 'MenusSettings', 'MenuCards', 'MenusOrders', 'MenusKitchen', 'MenusTill', 'MenusFloor', 'MenusChefs', 'MenusOperations', 'MenusCooking', 'NotificationSettings', 'AiKeys', 'HrApp'].includes(which)) document.getElementById('root').style.maxWidth = 'none';   // (a whole page, not a card)
       const { BrowserRouter } = await import('react-router-dom');
       const { default: StepUpModal } = await import('/src/core/components/account/StepUpModal.jsx');   // (the app mounts it once; here it is part of the frame)
       createRoot(document.getElementById('root')).render(React.createElement(BrowserRouter, null, React.createElement(Toaster, { position: 'top-right' }), React.createElement(Component), React.createElement(StepUpModal)));
