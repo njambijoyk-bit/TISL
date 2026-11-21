@@ -37,7 +37,31 @@ class AccessController extends Controller
             return response()->json(['message' => 'Access is not set up yet. Run database/sql/98_access_engine.sql, then php artisan access:seed.', 'ready' => false], 409);
         }
 
-        return parent::callAction($method, $parameters);
+        if (in_array($method, ['overview', 'people', 'user', 'log'], true) || ! \App\Services\Hr\DepartmentLeads::ready()) {
+            return parent::callAction($method, $parameters);
+        }
+        // a role, grant or permission change must not leave a department without a lead who can see pay and identity details (HR stage 1b)
+        $leads = app(\App\Services\Hr\DepartmentLeads::class);
+        $before = $leads->orphans();
+        DB::beginTransaction();
+        try {
+            $response = parent::callAction($method, $parameters);
+            $this->access->forget();
+            $leads->forget();
+            if ($new = array_diff($leads->orphans(), $before)) {
+                DB::rollBack();
+                $this->access->forget();
+                $names = DB::table('departments as d')->leftJoin('locations as l', 'l.id', '=', 'd.location_id')->whereIn('d.id', $new)->get(['l.name as branch', 'd.name'])->map(fn ($r) => trim("{$r->branch} › {$r->name}", ' ›'))->implode(', ');
+
+                return $this->refuse("That would leave {$names} without a lead who can see pay and identity details. Appoint another lead with full sensitivity first.");
+            }
+            DB::commit();
+
+            return $response;
+        } catch (\Throwable $e) {
+            DB::rollBack();
+            throw $e;
+        }
     }
 
     private function refuse(string $message, int $status = 422): JsonResponse

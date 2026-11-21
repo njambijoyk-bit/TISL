@@ -14,9 +14,7 @@ class Department extends Model
 
     public static function ready(): bool
     {
-        static $ready;
-
-        return $ready ??= Schema::hasTable('departments') && Schema::hasColumn('employees', 'department_id');
+        return Schema::hasTable('departments') && Schema::hasColumn('employees', 'department_id');   // not kept per process: a script run (or a test) can change it
     }
 
     public function location()

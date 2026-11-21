@@ -481,7 +481,8 @@ function ProtectedRoute({ children, requireAdmin = false, permission = null }) {
   }
 
   // The permission the route needs (a comma list: any one of them). Roles are built in the role builder, so a route never names one.
-  if (permission && !permission.split(',').some((p) => hasPermission(user, p))) {
+  // "lead" in the list lets department leads in too (HR stage 1b: a lead reaches their department's people without an HR permission)
+  if (permission && !permission.split(',').some((p) => (p === 'lead' ? (access?.leads ?? []).length > 0 : hasPermission(user, p)))) {
     return <Navigate to="/admin" replace />;
   }
 
@@ -1529,7 +1530,7 @@ function App() {
               <Route
                 path="/admin/employees"
                 element={
-                  <ProtectedRoute requireAdmin permission="hr.view,hr.team,hr.manage">
+                  <ProtectedRoute requireAdmin permission="hr.view,hr.team,hr.manage,lead">
                     <EmployeeList />
                   </ProtectedRoute>
                 }
@@ -1546,7 +1547,7 @@ function App() {
               <Route
                 path="/admin/employees/:id"
                 element={
-                  <ProtectedRoute requireAdmin permission="hr.view,hr.team,hr.manage">
+                  <ProtectedRoute requireAdmin permission="hr.view,hr.team,hr.manage,lead">
                     <RecordSidebar kind="employees"><EmployeeDetail /></RecordSidebar>
                   </ProtectedRoute>
                 }

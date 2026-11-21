@@ -473,6 +473,9 @@ class UserController extends Controller
 
     public function destroy(Request $request, $id)
     {
+        if ($u = \App\Models\User::withTrashed()->find($id)) {   // a department never loses its last lead who can see pay and identity details (HR stage 1b)
+            try { app(\App\Services\Hr\DepartmentLeads::class)->mayLoseUser($u); } catch (\Illuminate\Validation\ValidationException $e) { return response()->json(['message' => collect($e->errors())->flatten()->first()], 422); }
+        }
         $user = User::findOrFail($id);
         $this->authorize('delete', $user);
         if ($held = \App\Http\Middleware\Assurance::check($request, 'staff_account', fn () => $user->isStaff())) {
@@ -517,6 +520,9 @@ class UserController extends Controller
 
     public function forceDelete(Request $request, $id)
     {
+        if ($u = \App\Models\User::withTrashed()->find($id)) {   // a department never loses its last lead who can see pay and identity details (HR stage 1b)
+            try { app(\App\Services\Hr\DepartmentLeads::class)->mayLoseUser($u); } catch (\Illuminate\Validation\ValidationException $e) { return response()->json(['message' => collect($e->errors())->flatten()->first()], 422); }
+        }
         $user = User::withTrashed()->findOrFail($id);
         $this->authorize('forceDelete', $user);
 

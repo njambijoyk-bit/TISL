@@ -31,18 +31,45 @@ class EmployeeAccess
 
     public function canList(User $u): bool
     {
-        return $u->hasPermission('hr.view') || $u->hasPermission('hr.manage') || $u->hasPermission('hr.team');
+        return $u->hasPermission('hr.view') || $u->hasPermission('hr.manage') || $u->hasPermission('hr.team') || $this->leads()->ledBy($u) !== [];
     }
 
     public function canSee(User $u, Employee $e): bool
     {
         return $u->hasPermission('hr.view') || $u->hasPermission('hr.manage') || (int) $e->user_id === (int) $u->id
-            || ($u->hasPermission('hr.team') && $this->isAbove($u, $e));
+            || ($u->hasPermission('hr.team') && $this->isAbove($u, $e)) || $this->leadOf($u, $e) !== null;
     }
 
     public function canChange(User $u, Employee $e): bool
     {
-        return $u->hasPermission('hr.manage') || ($u->hasPermission('hr.team') && $this->isAbove($u, $e));
+        return $u->hasPermission('hr.manage') || ($u->hasPermission('hr.team') && $this->isAbove($u, $e)) || $this->leadChanges($u, $e);
+    }
+
+    /** The user's lead role and sensitivity over this person's department, if they lead it (HR stage 1b). @return array{role: string, sensitivity: string}|null */
+    public function leadOf(User $u, Employee $e): ?array
+    {
+        return $e->department_id ? ($this->leads()->ledBy($u)[(int) $e->department_id] ?? null) : null;
+    }
+
+    /** A head, or an assistant seeing personal or full, changes the work details of their department's people. */
+    public function leadChanges(User $u, Employee $e): bool
+    {
+        $l = $this->leadOf($u, $e);
+
+        return $l !== null && ($l['role'] === 'head' || $l['sensitivity'] !== 'work');
+    }
+
+    /** The tiers a lead sees of this person, by their sensitivity. @return string[] */
+    public function leadTiers(User $u, Employee $e): array
+    {
+        $l = $this->leadOf($u, $e);
+
+        return $l ? DepartmentLeads::TIERS[$l['sensitivity']] : [];
+    }
+
+    private function leads(): DepartmentLeads
+    {
+        return app(DepartmentLeads::class);
     }
 
     /** Only the records the person may see. */
@@ -52,7 +79,9 @@ class EmployeeAccess
             return $q;
         }
 
-        return $q->where(fn ($w) => $w->where('user_id', $u->id)->orWhereIn('id', $u->hasPermission('hr.team') ? ($this->lineOf($u) ?: [0]) : [0]));
+        $depts = array_keys($this->leads()->ledBy($u));
+
+        return $q->where(fn ($w) => $w->where('user_id', $u->id)->orWhereIn('id', $u->hasPermission('hr.team') ? ($this->lineOf($u) ?: [0]) : [0])->orWhereIn('department_id', $depts ?: [0]));
     }
 
     /** Is this person somewhere below the user in the HR line? */
@@ -105,8 +134,11 @@ class EmployeeAccess
         if ($u->hasPermission('hr.sensitive') || ($own && app(HrSettings::class)->get()['own_details'])) {
             $tiers[] = 'sensitive';
         }
+        if (! $u->hasPermission('hr.view') && ! $u->hasPermission('hr.manage') && ! $own && ! ($u->hasPermission('hr.team') && $this->isAbove($u, $e))) {
+            return $this->leadTiers($u, $e) ?: ['work'];   // only a lead: exactly their sensitivity, whatever else they hold
+        }
 
-        return $tiers;
+        return array_values(array_unique(array_merge($tiers, array_intersect($this->leadTiers($u, $e), ['personal']))));
     }
 
     /** The tiers this user may change of this record (null: a new record). @return string[] */
@@ -116,7 +148,7 @@ class EmployeeAccess
             return $u->hasPermission('hr.sensitive') ? ['work', 'personal', 'sensitive'] : ['work', 'personal'];
         }
 
-        return $e && $u->hasPermission('hr.team') && $this->isAbove($u, $e) ? ['work'] : [];   // managers change work fields only (choice 3)
+        return $e && (($u->hasPermission('hr.team') && $this->isAbove($u, $e)) || $this->leadChanges($u, $e)) ? ['work'] : [];   // managers and department leads change work fields only
     }
 
     /** The fields of $input the user may not change, by tier. @return array<string, string[]> tier => fields */

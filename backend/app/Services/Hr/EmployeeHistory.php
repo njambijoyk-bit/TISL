@@ -122,7 +122,7 @@ class EmployeeHistory
         $seen = $access->seen($viewer, $e);
         $own = (int) $e->user_id === (int) $viewer->id;
         if (! $own && ! $viewer->hasPermission('hr.view') && ! $viewer->hasPermission('hr.manage')) {
-            $seen = array_intersect($seen, ['work']);   // a manager reads the work history of their line
+            $seen = array_values(array_intersect($seen, array_merge(['work'], $access->leadTiers($viewer, $e))));   // a manager reads the work history of their line; a lead up to their sensitivity
         }
         $q = DB::table('employee_changes as c')->leftJoin('users as u', 'u.id', '=', 'c.by_user')->where('c.employee_id', $e->id)
             ->where(fn ($w) => $w->whereIn('c.tier', $seen ?: ['none'])->orWhereNull('c.field'))->orderByDesc('c.id')->limit($limit);

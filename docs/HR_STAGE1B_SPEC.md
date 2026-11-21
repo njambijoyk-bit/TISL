@@ -1,6 +1,6 @@
 # HR Stage 1b: Departments (spec)
 
-Status: spec, second version. The owner answered the first version's four questions on 2026-11-21; this version follows those answers. The four choices at the end are what is still open; say if any should change, or say "go". It sits between stage 1 (built) and stage 2 (documents) of `docs/HR_HUB_PLAN.md`.
+Status: being built. The owner answered the first version on 2026-11-21 and said "go" on this second version, so its four choices are taken as recommended. What is built is under "As built". It sits between stage 1 (built) and stage 2 (documents) of `docs/HR_HUB_PLAN.md`.
 
 ## The owner's answers (first version)
 
@@ -118,7 +118,7 @@ Status: spec, second version. The owner answered the first version's four questi
 
 Size: medium. One script, no new permission. Departments need `costcentres.manage`, people moves need `hr.manage` or being the head, spend needs `books.view`, and project owners need `projects.edit`.
 
-## Four choices (my recommendation first; say if any should change)
+## Four choices (taken as recommended; say if any should change)
 
 1. **Full sensitivity needs `hr.sensitive` in the catalogue.**
    - A lead can be given Full only if they hold `hr.sensitive`. Full then shows pay and identity for their department's people only.
@@ -133,3 +133,42 @@ Size: medium. One script, no new permission. Departments need `costcentres.manag
 4. **Assistants can be any number, never above the head.**
    - One head per department, any number of assistants, each assistant's sensitivity at most the head's.
    - The other way: several heads of equal rank.
+
+## As built
+
+### D.1 Leads, sensitivity, never orphaned (done)
+
+- **Script `272_departments_link.sql`:**
+  - Creates `department_leads` and `project_owners`.
+  - Each department's current head becomes a `head` at Work sensitivity. Part C lists departments still needing a Full lead.
+  - Each existing project gets its branch as its lead owner, only if Projects is installed.
+- **Leads** (`App\Services\Hr\DepartmentLeads`):
+  - One head per department, any number of assistants. An assistant is never above the head.
+  - When a new head is appointed, the old head becomes an assistant, and assistants above the new head come down to its level.
+  - Full needs `hr.sensitive` (choice 1). A Full lead who loses `hr.sensitive` sees Personal until it is given back.
+- **Never orphaned** (refused with a message naming the department):
+  - removing the last Full lead, or lowering their sensitivity;
+  - ending, suspending, deleting or purging their employee record;
+  - deleting their account;
+  - any role, grant or permission change that takes `hr.sensitive` from the last Full lead. Every change on the Access screens is checked: if it would leave a department without a Full lead, nothing is saved.
+  - The Departments page flags any department that still needs a Full lead.
+- **Departments are made with their head:**
+  - Adding a department, or the same one at several branches, asks for a head for each branch. The head gets Full, so needs `hr.sensitive` (choice 2).
+  - A department switched back on needs a Full lead.
+  - The old head column follows the head.
+- **Branches keep their departments:** a branch with active departments can't be switched off or deleted.
+- **What a lead sees** (the employee access rules):
+  - Their department's people, alongside anyone else they may see, at exactly their sensitivity. A lead who holds `hr.sensitive` but leads at Work still sees Work only in that department.
+  - The head, and assistants at Personal or Full, change their people's work details.
+  - Pay changes still need `hr.manage` with `hr.sensitive`.
+  - A lead reads the history up to their sensitivity.
+- **Leads in the app:**
+  - The browser is told which departments a person leads, with their role and sensitivity.
+  - The Employees menu and pages open for leads without an HR permission.
+  - The employee routes rely on the employee rules instead of a route permission.
+- **The Departments page:**
+  - Shows each department's head and number of assistants. The staff count is a link to the employee list for that department.
+  - A **Leads** window manages the head and assistants: change sensitivity, make someone head, remove, or add someone.
+  - Adding a department asks for its head at each branch.
+- **Also fixed:** "departments are set up" was remembered for the whole process, so it could answer from a moment when the tables were not there. It is now asked each time.
+- **Tests:** `tests/Feature/HrDepartmentLeadsTest.php` (4).

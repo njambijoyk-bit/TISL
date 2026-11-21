@@ -80,6 +80,9 @@ class LocationController extends Controller
         if ($refuse = $this->mustKeepASellingLocation($location, $data)) {
             return response()->json(['ok' => false, 'message' => $refuse], 422);
         }
+        if (array_key_exists('is_active', $data) && ! $data['is_active'] && ($refuse = $this->keepsDepartments($location))) {
+            return response()->json(['ok' => false, 'message' => $refuse], 422);
+        }
 
         $sellingBefore = $location->is_active && ($location->sells_to_customers ?? true);
         DB::transaction(function () use ($location, $data, $staff) {
@@ -104,6 +107,9 @@ class LocationController extends Controller
 
         if (Location::count() <= 1) {
             return response()->json(['ok' => false, 'message' => 'You must keep at least one branch.'], 422);
+        }
+        if ($refuse = $this->keepsDepartments($location)) {
+            return response()->json(['ok' => false, 'message' => $refuse], 422);
         }
         if ($location->is_default) {
             return response()->json(['ok' => false, 'message' => 'Set another branch as default before deleting this one.'], 422);
@@ -286,5 +292,16 @@ class LocationController extends Controller
         }
 
         return $base;
+    }
+
+    /** A department always has its branch (HR stage 1b): a branch with active departments is not switched off or deleted. */
+    private function keepsDepartments(Location $location): ?string
+    {
+        if (! \App\Models\Department::ready()) {
+            return null;
+        }
+        $names = \App\Models\Department::where('location_id', $location->id)->where('is_active', true)->orderBy('name')->pluck('name');
+
+        return $names->isEmpty() ? null : "{$location->name} still has departments: " . $names->implode(', ') . '. Move their people and switch the departments off first.';
     }
 }

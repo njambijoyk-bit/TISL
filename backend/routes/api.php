@@ -2548,6 +2548,8 @@ Route::middleware('auth:sanctum')->group(function () {
             Route::delete('/standard', [$c, 'removeStandard'])->middleware('permission:hr.manage');
             Route::put('/{id}',        [$c, 'update'])->whereNumber('id')->middleware('permission:hr.manage');
             Route::delete('/{id}',     [$c, 'destroy'])->whereNumber('id')->middleware('permission:hr.manage');
+            Route::post('/{id}/leads', [$c, 'appointLead'])->whereNumber('id')->middleware('permission:hr.manage');   // head and assistants with their sensitivity (HR stage 1b)
+            Route::delete('/{id}/leads/{employee}', [$c, 'removeLead'])->whereNumber(['id', 'employee'])->middleware('permission:hr.manage');
         });
         Route::get('/employee-cost-centres/{id}', [\App\Http\Controllers\Api\DepartmentController::class, 'shares'])->whereNumber('id')->middleware('permission:hr.view,hr.manage');
         Route::put('/employee-cost-centres/{id}', [\App\Http\Controllers\Api\DepartmentController::class, 'saveShares'])->whereNumber('id')->middleware('permission:hr.manage');
@@ -3774,7 +3776,7 @@ Route::middleware('auth:sanctum')->group(function () {
             });
         });
 
-        Route::prefix('employees')->middleware('permission:hr.view,hr.team,hr.manage')->group(function () {
+        Route::prefix('employees')->group(function () {   // EmployeePolicy decides: hr.view, hr.team for their line, a department lead for their department (HR stage 1b)
             Route::get('/',                         [EmployeeController::class, 'index']);
             Route::get('/statistics',               [EmployeeController::class, 'statistics']);
             Route::get('/departments',              [EmployeeController::class, 'departments']);

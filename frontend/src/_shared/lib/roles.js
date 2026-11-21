@@ -11,6 +11,8 @@ const accessOf = () => useAuthStore.getState().access;
 
 /** Does the engine give them this permission (for example 'books.post')? Nothing is allowed until the access summary has loaded. */
 export const hasPermission = (_user, permission) => !!accessOf()?.permissions?.includes(permission);
+/** The departments this person leads, with their sensitivity (HR stage 1b): [{ department_id, role, sensitivity }]. */
+export const leadsOf = () => accessOf()?.leads ?? [];
 
 /** Any one of these permissions. */
 export const hasAnyPermission = (user, permissions) => permissions.some((p) => hasPermission(user, p));

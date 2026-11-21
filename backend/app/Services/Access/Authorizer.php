@@ -685,6 +685,8 @@ class Authorizer
             'roles' => array_map(fn ($d) => ['key' => $d['key'], 'name' => $d['name'], 'kind' => $d['kind'], 'primary' => $d['primary'], 'expires_at' => $d['expires_at']], $roles),
             'role_keys' => $this->roleKeys($u),
             'permissions' => array_keys($perms),
+            // the departments they lead, with their sensitivity (HR stage 1b): a lead reaches their department's people without an HR permission
+            'leads' => collect(app(\App\Services\Hr\DepartmentLeads::class)->ledBy($u))->map(fn ($l, $id) => ['department_id' => $id] + $l)->values()->all(),
             'data_scope' => $this->dataScope($u),
             'scope' => ['global' => $scope['global'], 'open' => $scope['open'], 'default_location_id' => $scope['default'], 'locations' => $scope['locations']],
             // per area: is the branch limit off, in test, or on? The screens narrow their branch lists only when it is on.

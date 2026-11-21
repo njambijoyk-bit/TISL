@@ -413,6 +413,9 @@ class EmployeeController extends Controller
         if ($why = $this->refusedTiers($request, $employee)) {
             return $why;
         }
+        if (in_array($request->input('status'), ['terminated', 'suspended'], true) && ($why = $this->orphanCheck($employee))) {
+            return $why;
+        }
 
         // where a person's pay goes and who they are officially is sensitive; the rest of their record is not. Only asked when one of those is actually being changed.
         $bankChanged = fn () => collect(\App\Services\Hr\EmployeeAccess::ASSURED)->contains(fn ($k) => $request->has($k) && trim((string) $request->input($k)) !== trim((string) $employee->{$k}));
@@ -500,6 +503,9 @@ class EmployeeController extends Controller
         $this->authorize('delete', Employee::class);
 
         $employee = Employee::findOrFail($id);
+        if ($why = $this->orphanCheck($employee)) {
+            return $why;
+        }
 
         DB::beginTransaction();
         try {
@@ -528,6 +534,9 @@ class EmployeeController extends Controller
         $this->authorize('forceDelete', Employee::class);
  
         $employee = Employee::withTrashed()->findOrFail($id);
+        if ($why = $this->orphanCheck($employee)) {
+            return $why;
+        }
  
         if (!$employee->trashed()) {
             return response()->json([
@@ -1009,6 +1018,9 @@ class EmployeeController extends Controller
         $employee = Employee::findOrFail($id);
         $oldStatus = $employee->status;
         $newStatus = $request->status;
+        if (in_array($newStatus, ['terminated', 'suspended'], true) && ($why = $this->orphanCheck($employee))) {
+            return $why;
+        }
 
         DB::beginTransaction();
         try {
@@ -1159,6 +1171,18 @@ class EmployeeController extends Controller
         $this->authorize('view', $employee);
 
         return response()->json(['history' => app(\App\Services\Hr\EmployeeHistory::class)->read($employee, $request->user(), in_array($request->input('tier'), ['work', 'personal', 'sensitive'], true) ? $request->input('tier') : null)]);
+    }
+
+    /** Refuse to end, suspend or delete the last lead of a department who can see pay and identity details (HR stage 1b). */
+    private function orphanCheck(Employee $employee): ?\Illuminate\Http\JsonResponse
+    {
+        try {
+            app(\App\Services\Hr\DepartmentLeads::class)->mayLose((int) $employee->id);
+
+            return null;
+        } catch (\Illuminate\Validation\ValidationException $e) {
+            return response()->json(['message' => collect($e->errors())->flatten()->first()], 422);
+        }
     }
 
     /** A refusal naming the tiers this person may not change, or null. */

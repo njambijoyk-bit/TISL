@@ -9,7 +9,7 @@ import {
   ShieldAlert,
 } from 'lucide-react';
 import { MODULES, isModuleActive } from './modules';
-import { accountType, hasPermission, isStaff } from '../lib/roles';
+import { accountType, hasPermission, isStaff, leadsOf } from '../lib/roles';
 
 /**
  * The admin navigation — the single source for the sidebar, the section tabs
@@ -236,9 +236,9 @@ export const ADMIN_NAV = [
     label: 'People',   // core: the HR hub (docs/HR_HUB_PLAN.md), whatever is licensed
     items: [
       {
-        id: 'team', title: 'Employees', icon: IdCardLanyard, color: '#eab308', path: '/admin/employees', perm: ['hr.view', 'hr.team', 'hr.manage'], keywords: 'employees staff team people hr records',
+        id: 'team', title: 'Employees', icon: IdCardLanyard, color: '#eab308', path: '/admin/employees', perm: ['hr.view', 'hr.team', 'hr.manage'], orLead: true, keywords: 'employees staff team people hr records',
         tabs: [
-          { title: 'Employees', path: '/admin/employees', perm: ['hr.view', 'hr.team', 'hr.manage'] },
+          { title: 'Employees', path: '/admin/employees', perm: ['hr.view', 'hr.team', 'hr.manage'], orLead: true },
           { title: 'Bulk edit', path: '/admin/settings/general/bulk/employees', perm: 'hr.manage' },
         ],
       },
@@ -496,7 +496,7 @@ export const ADMIN_NAV = [
 function allowed(entry, user, fallback = isStaff(user)) {
   if (entry.module && !isModuleActive(entry.module)) return false;
   if (entry.account) return accountType(user) === entry.account;
-  if (entry.perm) return [].concat(entry.perm).some((p) => hasPermission(user, p));   // a list means any one of them
+  if (entry.perm) return [].concat(entry.perm).some((p) => hasPermission(user, p)) || (entry.orLead && leadsOf().length > 0);   // a list means any one of them; orLead: department leads too
   return fallback;
 }
 

@@ -1,5 +1,7 @@
 import { useCallback, useEffect, useMemo, useState } from 'react';
-import { Plus, Pencil, Trash2, Building2, X } from 'lucide-react';
+import { Plus, Pencil, Trash2, Building2, X, Users, ShieldCheck, AlertTriangle } from 'lucide-react';
+import { Link } from 'react-router-dom';
+import employeesAPI from '../../../../_shared/api/employees';
 import toast from 'react-hot-toast';
 import SettingsLayout from '../../../../_shared/components/layout/SettingsLayout';
 import HubHeader from '../../../components/admin/ui/HubHeader';
@@ -16,16 +18,19 @@ import { btnGhost, btnPrimary, card, colors } from '../../../../_shared/theme/to
  * centre under the branch's. "Add to several branches" makes the same department in many at once.
  */
 
-function AddModal({ branches, standard, onClose, onSaved }) {
+const SENSITIVITY = { work: 'Work', personal: 'Personal', full: 'Full (pay and identity)' };
+
+function AddModal({ branches, standard, people, needsHead, onClose, onSaved }) {
   const [name, setName] = useState('');
   const [ids, setIds] = useState([]);
+  const [heads, setHeads] = useState({});   // branch id → the head's employee id (HR stage 1b: a department is made with its head)
   const [busy, setBusy] = useState(false);
   const [err, setErr] = useState(null);
   const toggle = (id) => setIds((l) => (l.includes(id) ? l.filter((x) => x !== id) : [...l, id]));
 
   const save = async () => {
     setBusy(true); setErr(null);
-    try { const r = await departmentsAPI.bulk({ name: name.trim(), location_ids: ids }); toast.success(r.message ?? 'Saved.'); onSaved(); } catch (e) { setErr(errMsg(e, 'Could not save')); } finally { setBusy(false); }
+    try { const r = await departmentsAPI.bulk({ name: name.trim(), location_ids: ids, ...(needsHead ? { heads } : {}) }); toast.success(r.message ?? 'Saved.'); onSaved(); } catch (e) { setErr(errMsg(e, 'Could not save')); } finally { setBusy(false); }
   };
 
   return (
@@ -41,8 +46,68 @@ function AddModal({ branches, standard, onClose, onSaved }) {
             {branches.map((b) => <CheckboxRow key={b.id} checked={ids.includes(b.id)} onChange={() => toggle(b.id)} label={b.name} />)}
           </div>
         </Field>
+        {needsHead && ids.length > 0 && (
+          <Field label="Head at each branch" hint="The head sees everything about their people, so they must hold the permission for pay, bank and identity details. A department is never without one.">
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }} data-dept-heads>
+              {branches.filter((b) => ids.includes(b.id)).map((b) => (
+                <div key={b.id} style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                  <span style={{ width: 120, fontSize: '0.8rem' }}>{b.name}</span>
+                  <SelectInput aria-label={`Head at ${b.name}`} value={heads[b.id] ?? ''} onChange={(e) => setHeads((h) => ({ ...h, [b.id]: Number(e.target.value) || undefined }))}>
+                    <option value="">Choose the head…</option>
+                    {people.map((p) => <option key={p.id} value={p.id}>{p.name}{p.job_title ? ` · ${p.job_title}` : ''}</option>)}
+                  </SelectInput>
+                </div>
+              ))}
+            </div>
+          </Field>
+        )}
         <FormError message={err} />
-        <ModalActions onCancel={onClose} submitLabel="Add" busyLabel="Adding…" busy={busy} onSubmit={save} disabled={!name.trim() || !ids.length} />
+        <ModalActions onCancel={onClose} submitLabel="Add" busyLabel="Adding…" busy={busy} onSubmit={save} disabled={!name.trim() || !ids.length || (needsHead && ids.some((id) => !heads[id]))} />
+      </FormStack>
+    </Modal>
+  );
+}
+
+/** A department's head and assistants with their sensitivity (HR stage 1b). It always keeps a lead with full sensitivity. */
+function LeadsModal({ item, people, onClose, onSaved }) {
+  const [leads, setLeads] = useState(item.leads ?? []);
+  const [f, setF] = useState({ employee_id: '', role: 'assistant', sensitivity: 'work' });
+  const [busy, setBusy] = useState(false);
+  const [err, setErr] = useState(null);
+  const head = leads.find((l) => l.role === 'head');
+  const run = async (fn) => {
+    setBusy(true); setErr(null);
+    try { const r = await fn(); setLeads(r.leads ?? []); onSaved(); } catch (e) { setErr(errMsg(e, 'Could not save')); } finally { setBusy(false); }
+  };
+  const levels = (role) => Object.keys(SENSITIVITY).filter((k) => role === 'head' || !head || ['work', 'personal', 'full'].indexOf(k) <= ['work', 'personal', 'full'].indexOf(head.sensitivity));
+  return (
+    <Modal title={`Leads of ${item.name}`} subtitle={`${item.location?.name ?? ''} · one head, any number of assistants; an assistant never sees more than the head`} onClose={onClose}>
+      <FormStack>
+        <ul style={{ listStyle: 'none', margin: 0, padding: 0, display: 'flex', flexDirection: 'column', gap: 6 }} data-dept-leads>
+          {leads.map((l) => (
+            <li key={l.employee_id} data-dept-lead={l.name} style={{ display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap', padding: '6px 0', borderBottom: `1px solid ${colors.border ?? 'var(--line)'}` }}>
+              <strong style={{ flex: '1 1 140px', fontSize: '0.84rem' }}>{l.name}</strong>
+              <span style={{ fontSize: '0.72rem', color: colors.textMuted, width: 70 }}>{l.role === 'head' ? 'Head' : 'Assistant'}</span>
+              <SelectInput aria-label={`Sensitivity of ${l.name}`} value={l.sensitivity} disabled={busy} style={{ width: 'auto' }} onChange={(e) => run(() => departmentsAPI.appointLead(item.id, { employee_id: l.employee_id, role: l.role, sensitivity: e.target.value }))}>
+                {levels(l.role).map((k) => <option key={k} value={k}>{SENSITIVITY[k]}</option>)}
+              </SelectInput>
+              {l.role !== 'head' && <button type="button" style={{ ...btnGhost, padding: '3px 8px', fontSize: '0.72rem' }} disabled={busy} onClick={() => run(() => departmentsAPI.appointLead(item.id, { employee_id: l.employee_id, role: 'head', sensitivity: l.sensitivity }))}>Make head</button>}
+              {l.role !== 'head' && <button type="button" style={{ ...btnGhost, padding: '3px 8px', fontSize: '0.72rem', color: colors.danger }} disabled={busy} onClick={() => run(() => departmentsAPI.removeLead(item.id, l.employee_id))}>Remove</button>}
+            </li>
+          ))}
+        </ul>
+        <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap', alignItems: 'flex-end' }}>
+          <div style={{ flex: '1 1 180px' }}><Field label="Add a lead"><SelectInput aria-label="Person" value={f.employee_id} onChange={(e) => setF((x) => ({ ...x, employee_id: e.target.value }))}>
+            <option value="">Choose someone…</option>
+            {people.filter((p) => !leads.some((l) => l.employee_id === p.id)).map((p) => <option key={p.id} value={p.id}>{p.name}{p.job_title ? ` · ${p.job_title}` : ''}</option>)}
+          </SelectInput></Field></div>
+          <SelectInput aria-label="Role" value={f.role} style={{ width: 'auto' }} onChange={(e) => setF((x) => ({ ...x, role: e.target.value }))}><option value="assistant">Assistant</option><option value="head">Head</option></SelectInput>
+          <SelectInput aria-label="Sensitivity" value={f.sensitivity} style={{ width: 'auto' }} onChange={(e) => setF((x) => ({ ...x, sensitivity: e.target.value }))}>{levels(f.role).map((k) => <option key={k} value={k}>{SENSITIVITY[k]}</option>)}</SelectInput>
+          <button type="button" style={btnPrimary} disabled={busy || !f.employee_id} onClick={() => run(() => departmentsAPI.appointLead(item.id, { ...f, employee_id: Number(f.employee_id) })).then(() => setF({ employee_id: '', role: 'assistant', sensitivity: 'work' }))}>Add</button>
+        </div>
+        <p style={{ margin: 0, fontSize: '0.74rem', color: colors.textMuted }}>Work: job and status. Personal: also date of birth and emergency contact. Full: also pay, bank and identity, and needs that permission. The department always keeps a lead with full sensitivity.</p>
+        <FormError message={err} />
+        <ModalActions onCancel={onClose} submitLabel="Done" onSubmit={onClose} />
       </FormStack>
     </Modal>
   );
@@ -72,7 +137,9 @@ function EditModal({ item, onClose, onSaved }) {
 export default function Departments() {
   const [data, setData] = useState(null);
   const [branches, setBranches] = useState([]);
-  const [modal, setModal] = useState(null); // 'add' | { item }
+  const [modal, setModal] = useState(null); // 'add' | { item } | { leads: item }
+  const [people, setPeople] = useState([]);   // who can be a head or an assistant
+  useEffect(() => { employeesAPI.getPotentialManagers().then((r) => setPeople(r.data ?? [])).catch(() => {}); }, []);
   const [newStd, setNewStd] = useState('');
   const canManage = hasPermission(null, 'hr.manage');
 
@@ -115,11 +182,15 @@ export default function Departments() {
                 <div style={{ flex: 1, minWidth: 0, fontSize: '0.84rem' }}>
                   {d.name}
                   {d.cost_centre && <span style={{ marginLeft: 8, fontSize: '0.7rem', color: colors.textMuted, fontFamily: 'monospace' }}>{d.cost_centre.code}</span>}
-                  <span style={{ marginLeft: 8, fontSize: '0.72rem', color: colors.textMuted }}>{d.employees_count} staff</span>
+                  <Link to={`/admin/employees?department_id=${d.id}`} data-dept-staff={d.id} style={{ marginLeft: 8, fontSize: '0.72rem', color: 'var(--color-primary-600)' }}>{d.employees_count} staff</Link>
+                  {(d.leads ?? []).filter((l) => l.role === 'head').map((l) => <span key={l.employee_id} style={{ marginLeft: 8, fontSize: '0.72rem', color: colors.textMuted }}>Head: {l.name}</span>)}
+                  {(d.leads ?? []).filter((l) => l.role === 'assistant').length > 0 && <span style={{ marginLeft: 6, fontSize: '0.72rem', color: colors.textMuted }}>· {(d.leads ?? []).filter((l) => l.role === 'assistant').length} assistant(s)</span>}
+                  {d.needs_full_lead && d.is_active && <span data-dept-orphan style={{ marginLeft: 8, display: 'inline-flex', alignItems: 'center', gap: 3, fontSize: '0.7rem', fontWeight: 700, color: colors.danger }}><AlertTriangle size={11} /> Needs a lead with full sensitivity</span>}
                   {!d.is_active && <span style={{ marginLeft: 8, fontSize: '0.68rem', color: colors.textMuted }}>switched off</span>}
                 </div>
                 {canManage && (
                   <div style={{ display: 'flex', gap: 4 }}>
+                    {data.leads_ready && <button type="button" style={{ ...btnGhost, padding: '4px 8px' }} onClick={() => setModal({ leads: d })} title="Leads" aria-label={`Leads of ${d.name}`}><ShieldCheck size={12} /></button>}
                     <button type="button" style={{ ...btnGhost, padding: '4px 8px' }} onClick={() => setModal({ item: d })} title="Edit"><Pencil size={12} /></button>
                     <button type="button" style={{ ...btnGhost, padding: '4px 8px', color: colors.danger }} onClick={() => remove(d)} title="Delete"><Trash2 size={12} /></button>
                   </div>
@@ -147,7 +218,8 @@ export default function Departments() {
           )}
         </div>
       </div>
-      {modal === 'add' && <AddModal branches={branches} standard={data.standard} onClose={() => setModal(null)} onSaved={() => { setModal(null); load(); }} />}
+      {modal === 'add' && <AddModal branches={branches} standard={data.standard} people={people} needsHead={!!data.leads_ready} onClose={() => setModal(null)} onSaved={() => { setModal(null); load(); }} />}
+      {modal?.leads && <LeadsModal item={modal.leads} people={people} onClose={() => setModal(null)} onSaved={load} />}
       {modal?.item && <EditModal item={modal.item} onClose={() => setModal(null)} onSaved={() => { setModal(null); load(); }} />}
     </SettingsLayout>
   );
