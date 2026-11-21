@@ -3038,6 +3038,7 @@ Route::middleware('auth:sanctum')->group(function () {
 
         Route::prefix('employees')->group(function () {
             Route::get('/my-record', [EmployeeController::class, 'myRecord']);
+            Route::get('/{id}/history', [EmployeeController::class, 'history'])->whereNumber('id');   // the record's history: HR, the person's managers (work), the person (HR stage 1)
             Route::post('/{id}/reveal', [EmployeeController::class, 'reveal'])->whereNumber('id');   // a masked number in full, for HR with hr.sensitive or the person themselves; written to the history (HR stage 1)
             Route::get('/template', [EmployeeController::class, 'downloadTemplate'])->middleware('permission:hr.manage');
             Route::post('/import', [EmployeeController::class, 'bulkImport'])->middleware('permission:hr.manage');

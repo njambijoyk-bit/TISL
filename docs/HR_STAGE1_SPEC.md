@@ -197,3 +197,20 @@ Size: medium. One script, one artisan command, two new permissions.
   - The record shows masked numbers with **Show** and **Hide**, or "needs the permission" in place of pay and identity.
   - The form offers only the tiers you may change, leaves masked numbers empty ("unchanged (••••6789)"), and sends a number only when a new one is typed.
 - **Tests:** `tests/Feature/HrTiersTest.php` (4). The step-up test now reads the encrypted bank number through the model.
+
+### 1.3 The history (done)
+
+- **Every save of a record is kept, whichever code makes it.** The record's own events feed the history: create, every changed field, delete, restore, and delete for good (kept as "purged", with the name).
+  - That covers the form, skills, certifications, leave days, status, import, and any other code that saves the record (for example a department move).
+  - An import marks its changes "imported", and a bulk edit can mark its own (`EmployeeHistory::as`).
+  - A change's reason comes from the request ("reason"), as the leave-day buttons already send.
+- **What a row holds:** the field, its tier, old and new value, the action (`changed`, `status`, `shown`, `imported`, `bulk`, `created`, `deleted`, `restored`, `purged`), the reason, who and when.
+  - Pay and identity values are stored encrypted.
+  - A change is recorded only when the value really changes; a salary sent back as "85000.00" is not a change.
+- **Who reads it** (`GET /employees/{id}/history`, filter by tier):
+  - `hr.view` and `hr.manage` read every tier they may see. Pay and identity rows, with their old and new values, appear only with `hr.sensitive` (choice 4).
+  - A manager with `hr.team` reads the work history of their line.
+  - The person reads their own, pay details included unless HR switches that off.
+  - Anyone else is refused.
+- **History tab** on the record: newest first, in words ("Grace N. · Bank: KCB → Equity", "Account number was shown", "Record created"). Filters for Everything, Work, Personal, and Pay and identity. Reasons show beneath the change.
+- **Tests:** `tests/Feature/HrHistoryTest.php` (2).

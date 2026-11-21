@@ -50,7 +50,7 @@ class HrTiersTest extends TestCase
         $this->assertSame('••••6789', $e['bank_account_number']);
         $this->assertSame('••••2219', $e['id_number']);
         $this->assertSame('0123456789', $this->postJson("/api/admin/employees/{$this->amina}/reveal", ['field' => 'bank_account_number'])->assertOk()->json('value'));
-        $this->assertSame(['bank_account_number', 'shown'], [DB::table('employee_changes')->value('field'), DB::table('employee_changes')->value('action')]);
+        $this->assertSame('bank_account_number', DB::table('employee_changes')->where('action', 'shown')->value('field'));
         $this->postJson("/api/admin/employees/{$this->amina}/reveal", ['field' => 'base_salary'])->assertStatus(422);
 
         Sanctum::actingAs($this->person('Grace', ['hr.view']), ['*']);

@@ -163,13 +163,8 @@ class EmployeesImport implements ToModel, WithHeadingRow, WithChunkReading, With
                 }
                 $values = array_diff_key($values, $sensitive);
             }
-            $before = Employee::where('user_id', $user->id)->first();
-            $snapshot = $before ? \App\Services\Hr\EmployeeHistory::snapshot($before) : null;
-            $employee = Employee::updateOrCreate(['user_id' => $user->id], $values);
-            $history = app(\App\Services\Hr\EmployeeHistory::class);
-            $snapshot === null ? $history->record($employee, null, 'imported', null, null, $this->actor) : $history->changes($employee, $snapshot, \App\Services\Hr\EmployeeHistory::snapshot($employee->fresh()), 'imported', $this->actor);
-
-            return $employee;
+            // the history marks what the file changed "imported" (HR stage 1)
+            return \App\Services\Hr\EmployeeHistory::as('imported', $this->actor, null, fn () => Employee::updateOrCreate(['user_id' => $user->id], $values));
         });
     }
 

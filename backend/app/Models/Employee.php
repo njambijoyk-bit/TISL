@@ -82,6 +82,19 @@ class Employee extends Model
     /**
      * Append custom attributes.
      */
+    /** Every save of a record is kept in its history (HR stage 1, docs/HR_STAGE1_SPEC.md), whichever code makes it. */
+    protected static function booted(): void
+    {
+        foreach (['created', 'updated', 'deleted', 'restored', 'forceDeleted'] as $event) {
+            static::registerModelEvent($event, function (Employee $e) use ($event) {
+                if ($event === 'deleted' && $e->isForceDeleting()) {
+                    return;   // recorded as purged
+                }
+                app(\App\Services\Hr\EmployeeHistory::class)->saved($e, $event);
+            });
+        }
+    }
+
     /**
      * Pay and identity details are never sent by default (HR stage 1): EmployeeAccess::shape adds them back, masked, for those who may see them.
      * Code that reads them as attributes (payroll, the rota) is unaffected.

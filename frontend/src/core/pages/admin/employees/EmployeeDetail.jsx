@@ -66,6 +66,56 @@ function RoleBadge({ name }) {
   );
 }
 
+const FIELD_NAMES = { job_title: 'Job title', employee_number: 'Employee number', employee_id: 'Employee ID', department: 'Department', department_id: 'Department', location_id: 'Branch',
+  manager_id: 'Manager', employment_type: 'Employment type', employment_type_id: 'Employment type', hire_date: 'Hire date', termination_date: 'Leaving date', work_location: 'Work location',
+  work_phone: 'Work phone', work_email: 'Work email', status: 'Status', skills: 'Skills', certifications: 'Certifications', notes: 'Notes', annual_leave_days: 'Annual leave days',
+  leave_balance: 'Leave balance', date_of_birth: 'Date of birth', gender: 'Gender', marital_status: 'Marital status', education_level: 'Education', emergency_contact_name: 'Emergency contact',
+  emergency_contact_phone: 'Emergency phone', emergency_contact_relationship: 'Emergency relationship', salary_grade: 'Salary grade', base_salary: 'Base salary', currency: 'Currency',
+  bank_name: 'Bank', bank_account_name: 'Account name', bank_account_number: 'Account number', id_number: 'ID number', kra_pin: 'KRA PIN', nssf_number: 'NSSF number', nhif_number: 'NHIF number' };
+const WHOLE = { created: 'Record created', deleted: 'Record deleted', restored: 'Record restored', purged: 'Record deleted for good', imported: 'Record imported' };
+const TIER_NAMES = { work: 'Work', personal: 'Personal', sensitive: 'Pay and identity' };
+
+/** Every change to the record, newest first (HR stage 1). Each viewer sees the tiers they may see. */
+function HistoryTab({ employeeId }) {
+  const [rows, setRows] = useState(null);
+  const [tier, setTier] = useState('');
+  useEffect(() => { setRows(null); employeesApi.getHistory(employeeId, tier).then(d => setRows(d.history ?? [])).catch(() => setRows([])); }, [employeeId, tier]);
+  const val = (v) => (v == null || v === '' ? 'empty' : String(v).length > 60 ? `${String(v).slice(0, 60)}…` : String(v));
+  const when = (d) => new Date(d).toLocaleString('en-GB', { day: 'numeric', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit' });
+  const say = (r) => {
+    if (!r.field) return WHOLE[r.action] ?? r.action;
+    const name = FIELD_NAMES[r.field] ?? r.field;
+    if (r.action === 'shown') return `${name} was shown`;
+    if (r.old == null && r.new == null && r.tier === 'sensitive') return `${name} changed`;
+    return `${name}: ${val(r.old)} → ${val(r.new)}`;
+  };
+  return (
+    <div data-hr-history style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
+      <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap' }}>
+        {[['', 'Everything'], ['work', 'Work'], ['personal', 'Personal'], ['sensitive', 'Pay and identity']].map(([k, l]) => (
+          <button key={k || 'all'} type="button" aria-pressed={tier === k} onClick={() => setTier(k)} style={{ padding: '5px 12px', borderRadius: 999, fontSize: '0.74rem', fontWeight: 700, fontFamily: 'inherit', cursor: 'pointer',
+            border: `1px solid ${tier === k ? 'var(--color-primary-500)' : 'color-mix(in srgb, var(--color-primary-500) 20%, transparent)'}`, background: tier === k ? 'color-mix(in srgb, var(--color-primary-500) 10%, transparent)' : 'transparent', color: tier === k ? 'var(--color-primary-600)' : 'var(--text-secondary)' }}>{l}</button>
+        ))}
+      </div>
+      {rows == null ? <p style={{ margin: 0, fontSize: '0.8rem', color: 'var(--text-tertiary)' }}>Loading…</p> : rows.length === 0 ? <p style={{ margin: 0, fontSize: '0.8rem', color: 'var(--text-tertiary)' }}>No changes recorded yet.</p> : (
+        <ol style={{ listStyle: 'none', margin: 0, padding: 0, display: 'flex', flexDirection: 'column', gap: 2 }}>
+          {rows.map(r => (
+            <li key={r.id} data-hr-change={r.field ?? r.action} style={{ display: 'grid', gridTemplateColumns: 'minmax(130px, 170px) 1fr', gap: 12, padding: '9px 0', borderBottom: '1px solid color-mix(in srgb, var(--color-primary-500) 6%, transparent)', fontSize: '0.8rem' }}>
+              <time style={{ color: 'var(--text-tertiary)', fontVariantNumeric: 'tabular-nums' }}>{when(r.at)}</time>
+              <span style={{ color: 'var(--text-primary)', minWidth: 0, overflowWrap: 'anywhere' }}>
+                <strong style={{ fontWeight: 600 }}>{r.by ?? 'The system'}</strong> · {say(r)}
+                {r.tier !== 'work' && r.field && <span style={{ marginLeft: 6, fontSize: '0.66rem', padding: '1px 6px', borderRadius: 999, border: '1px solid color-mix(in srgb, var(--color-primary-500) 25%, transparent)', color: 'var(--text-secondary)' }}>{TIER_NAMES[r.tier]}</span>}
+                {r.action === 'imported' && r.field && <span style={{ marginLeft: 6, fontSize: '0.66rem', color: 'var(--text-tertiary)' }}>by import</span>}
+                {r.reason && <span style={{ display: 'block', fontSize: '0.74rem', color: 'var(--text-secondary)', marginTop: 2 }}>Why: {r.reason}</span>}
+              </span>
+            </li>
+          ))}
+        </ol>
+      )}
+    </div>
+  );
+}
+
 /** A masked number (HR stage 1): its last four, and Show for the whole of it, which is written to the person's history. */
 function MaskedRow({ label, field, employeeId, value }) {
   const [full, setFull] = useState(null);
@@ -277,6 +327,7 @@ export default function EmployeeDetail() {
     { id: 'employment', label: 'Employment',   icon: Briefcase },
     { id: 'personal',   label: 'Personal',     icon: Shield    },
     { id: 'skills',     label: 'Skills',       icon: Award     },
+    { id: 'history',    label: 'History',      icon: Clock     },
   ];
 
   return (
@@ -651,6 +702,8 @@ export default function EmployeeDetail() {
               </SectionCard>
             </div>
           )}
+
+          {activeTab === 'history' && <HistoryTab employeeId={employee.id} />}
 
         </div>
       </div>

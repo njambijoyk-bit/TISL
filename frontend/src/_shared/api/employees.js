@@ -115,6 +115,12 @@ const employeesAPI = {
   // ADMIN — Status
   // ============================================
 
+  // the record's history, newest first (HR stage 1): { history: [{ field, tier, action, old, new, reason, by, at }] }
+  getHistory: async (id, tier = '') => {
+    const response = await api.get(`/admin/employees/${id}/history`, { params: tier ? { tier } : {} });
+    return response.data;
+  },
+
   // a masked number in full (HR stage 1): written to the person's history. { field, value }
   reveal: async (id, field) => {
     const response = await api.post(`/admin/employees/${id}/reveal`, { field });

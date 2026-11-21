@@ -1131,6 +1131,15 @@ class EmployeeController extends Controller
         return response()->json(['field' => $field, 'value' => $employee->getAttribute($field)]);
     }
 
+    /** The record's history as this person may read it (HR stage 1): newest first; tier = work | personal | sensitive to filter. */
+    public function history(Request $request, $id)
+    {
+        $employee = Employee::withTrashed()->findOrFail($id);
+        $this->authorize('view', $employee);
+
+        return response()->json(['history' => app(\App\Services\Hr\EmployeeHistory::class)->read($employee, $request->user(), in_array($request->input('tier'), ['work', 'personal', 'sensitive'], true) ? $request->input('tier') : null)]);
+    }
+
     /** A refusal naming the tiers this person may not change, or null. */
     private function refusedTiers(Request $request, ?Employee $employee): ?\Illuminate\Http\JsonResponse
     {
