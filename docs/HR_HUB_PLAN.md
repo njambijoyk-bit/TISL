@@ -1,6 +1,6 @@
 # HR hub: people, from hire to leaving (plan)
 
-Status: plan, waiting for the owner. The four choices at the end are my recommendations; say if any should change, or say "go". Each stage then gets its own spec, the way Projects did.
+Status: the owner said "go", so the four choices are taken as recommended. **Stage 1 is built** (2026-11-21, `docs/HR_STAGE1_SPEC.md`). Each stage gets its own spec before it is built, the way Projects did.
 
 ## What exists today
 
