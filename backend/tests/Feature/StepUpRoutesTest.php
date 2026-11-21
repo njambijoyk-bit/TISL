@@ -276,7 +276,7 @@ class StepUpRoutesTest extends TestCase
         // somewhere else for the pay to go
         $r = $this->as($owner)->putJson("/api/_employees/{$id}", ['bank_name' => 'Equity', 'bank_account_number' => '9999', 'bank_account_name' => 'Fiona Finance']);
         $r->assertStatus(403)->assertJsonPath('step_up.rule', 'bank_details')->assertJsonPath('step_up.class', 'elevated');
-        $this->assertSame('0123', \DB::table('employees')->where('id', $id)->value('bank_account_number'));
+        $this->assertSame('0123', \App\Models\Employee::find($id)->bank_account_number   /* stored encrypted since HR stage 1 */);
         $facts = collect($r->json('step_up.facts'))->pluck('value', 'label');
         $this->assertSame('0123  →  9999', $facts['Bank Account Number']);   // where the pay would go, and where it went before: exactly what the person must read before agreeing
         $this->assertArrayNotHasKey('Bank Name', $facts->all());                                          // what is not changing is not shown

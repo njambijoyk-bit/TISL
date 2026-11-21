@@ -12,6 +12,13 @@ import departmentsAPI from '../../../../_shared/api/departments';
 import locationsAPI from '../../../../_shared/api/locations';
 import CostCentreShares from './CostCentreShares';
 import { getBaseCode } from '../../../../_shared/lib/baseCurrency';
+import useAuthStore from '../../../../_shared/store/authStore';
+import { hasPermission } from '../../../../_shared/lib/roles';
+
+// HR stage 1: the record's tiers (docs/HR_STAGE1_SPEC.md). Only the tiers the person may change are offered and sent.
+const PERSONAL = ['date_of_birth', 'gender', 'marital_status', 'education_level', 'emergency_contact_name', 'emergency_contact_phone', 'emergency_contact_relationship'];
+const SENSITIVE = ['salary_grade', 'base_salary', 'currency', 'bank_name', 'bank_account_name', 'bank_account_number', 'id_number', 'kra_pin', 'nssf_number', 'nhif_number'];
+const MASKED = ['bank_account_number', 'id_number', 'kra_pin', 'nssf_number', 'nhif_number'];
 
 // ── Constants ──────────────────────────────────────────────────────────────────
 const EMPLOYMENT_TYPES = [
@@ -168,6 +175,10 @@ export default function EmployeeForm() {
   const [currencies, setCurrencies]       = useState([]);
   const [errors, setErrors]               = useState({});
   const [form, setForm]                   = useState(EMPTY_FORM);
+  const { user }                          = useAuthStore();
+  // what this person may change: the record says so when editing; a new record follows their permissions
+  const [may, setMay]                     = useState(() => ['work', ...(hasPermission(user, 'hr.manage') ? ['personal'] : []), ...(hasPermission(user, 'hr.manage') && hasPermission(user, 'hr.sensitive') ? ['sensitive'] : [])]);
+  const [masks, setMasks]                 = useState({});   // the masked numbers ("••••4471"): left empty, they stay as they are
   const [org, setOrg]                     = useState({ ready: false, branches: [], departments: [] });   // branches and departments (script 101); the old text boxes show until it has run
   const sharesRef                         = useRef({ touched: false, rows: [] });
   const [roleDefs, setRoleDefs]           = useState([]);   // the roles this person may give: [{ key, name, min_clearance }]
@@ -237,6 +248,8 @@ export default function EmployeeForm() {
     try {
       const data = await employeesApi.getEmployee(id);
       const emp = data.employee;
+      if (emp.can?.change) setMay(emp.can.change);
+      setMasks(Object.fromEntries(MASKED.filter(k => emp[k]).map(k => [k, emp[k]])));
       
       const toDateInput = (val) => val ? val.toString().slice(0, 10) : '';
 
@@ -249,15 +262,14 @@ export default function EmployeeForm() {
         manager_id: emp.manager_id || '', status: emp.status || 'active',
         date_of_birth: toDateInput(emp.date_of_birth), gender: emp.gender || '',
         marital_status: emp.marital_status || '', education_level: emp.education_level || '',
-        id_number: emp.id_number || '', kra_pin: emp.kra_pin || '',
-        nssf_number: emp.nssf_number || '', nhif_number: emp.nhif_number || '',
+        id_number: '', kra_pin: '', nssf_number: '', nhif_number: '',   // masked: typed only to change
         emergency_contact_name: emp.emergency_contact_name || '',
         emergency_contact_phone: emp.emergency_contact_phone || '',
         emergency_contact_relationship: emp.emergency_contact_relationship || '',
         salary_grade: emp.salary_grade || '', base_salary: emp.base_salary || '',
         currency: emp.currency || getBaseCode(), annual_leave_days: emp.annual_leave_days || 21,
         bank_name: emp.bank_name || '', bank_account_name: emp.bank_account_name || '',
-        bank_account_number: emp.bank_account_number || '',
+        bank_account_number: '',
         skills: emp.skills || [], certifications: emp.certifications || [],
         notes: emp.notes || '',
       });
@@ -290,12 +302,15 @@ export default function EmployeeForm() {
     if (!validate()) return;
     setSaving(true);
     try {
-      let savedId = id;
+ let savedId = id;
+      // send only what this person may change, and a masked number only when a new one was typed
+      const payload = Object.fromEntries(Object.entries(form).filter(([k, v]) =>
+        !(PERSONAL.includes(k) && !may.includes('personal')) && !(SENSITIVE.includes(k) && !may.includes('sensitive')) && !(MASKED.includes(k) && v === '' && (isEditing ? masks[k] : true))));
       if (isEditing) { 
-        await employeesApi.updateEmployee(id, form); 
+        await employeesApi.updateEmployee(id, payload); 
         toast.success('Employee updated'); 
       } else { 
-        const res = await employeesApi.createEmployee(form); 
+        const res = await employeesApi.createEmployee(payload); 
         savedId = res.employee?.id;
         toast.success('Employee created'); 
       }
@@ -515,6 +530,8 @@ export default function EmployeeForm() {
         {org.ready && form.department_id && <CostCentreShares employeeId={isEditing ? id : null} homeCostCentreId={org.departments.find(d => d.id === Number(form.department_id))?.cost_centre_id} sharesRef={sharesRef} />}
       </SectionCard>
 
+      {!may.includes('personal') && <p data-hr-tier-note style={{ margin: 0, fontSize: 13, color: 'var(--color-text-secondary)' }}>Personal details can be changed by people who manage employee records.</p>}
+      {may.includes('personal') && (<>
       {/* ── Personal ── */}
       <SectionCard title="Personal Information" icon={Shield}>
         <Grid cols={3}>
@@ -533,24 +550,6 @@ export default function EmployeeForm() {
         </Grid>
       </SectionCard>
 
-      {/* ── Identification ── */}
-      <SectionCard title="Identification" icon={Hash}>
-        <Grid cols={4}>
-          <Field label="ID Number">
-            <Input value={form.id_number} onChange={v => set('id_number', v)} placeholder="12345678" />
-          </Field>
-          <Field label="KRA PIN">
-            <Input value={form.kra_pin} onChange={v => set('kra_pin', v)} placeholder="A000000000X" />
-          </Field>
-          <Field label="NSSF Number">
-            <Input value={form.nssf_number} onChange={v => set('nssf_number', v)} />
-          </Field>
-          <Field label="NHIF Number">
-            <Input value={form.nhif_number} onChange={v => set('nhif_number', v)} />
-          </Field>
-        </Grid>
-      </SectionCard>
-
       {/* ── Emergency Contact ── */}
       <SectionCard title="Emergency Contact" icon={Users}>
         <Grid cols={3}>
@@ -562,6 +561,28 @@ export default function EmployeeForm() {
           </Field>
           <Field label="Relationship">
             <Input value={form.emergency_contact_relationship} onChange={v => set('emergency_contact_relationship', v)} placeholder="e.g. Spouse, Parent" />
+          </Field>
+        </Grid>
+      </SectionCard>
+
+      </>)}
+
+      {!may.includes('sensitive') && <p data-hr-tier-note style={{ margin: 0, fontSize: 13, color: 'var(--color-text-secondary)' }}>Pay, bank and identity details can be changed only with the permission for them.</p>}
+      {may.includes('sensitive') && (<>
+      {/* ── Identification ── */}
+      <SectionCard title="Identification" icon={Hash}>
+        <Grid cols={4}>
+          <Field label="ID Number">
+            <Input value={form.id_number} onChange={v => set('id_number', v)} placeholder={masks.id_number ? `unchanged (${masks.id_number})` : "12345678"} />
+          </Field>
+          <Field label="KRA PIN">
+            <Input value={form.kra_pin} onChange={v => set('kra_pin', v)} placeholder={masks.kra_pin ? `unchanged (${masks.kra_pin})` : "A000000000X"} />
+          </Field>
+          <Field label="NSSF Number">
+            <Input value={form.nssf_number} onChange={v => set('nssf_number', v)} placeholder={masks.nssf_number ? `unchanged (${masks.nssf_number})` : ''} />
+          </Field>
+          <Field label="NHIF Number">
+            <Input value={form.nhif_number} onChange={v => set('nhif_number', v)} placeholder={masks.nhif_number ? `unchanged (${masks.nhif_number})` : ''} />
           </Field>
         </Grid>
       </SectionCard>
@@ -609,10 +630,12 @@ export default function EmployeeForm() {
             <Input value={form.bank_account_name} onChange={v => set('bank_account_name', v)} />
           </Field>
           <Field label="Account Number">
-            <Input value={form.bank_account_number} onChange={v => set('bank_account_number', v)} />
+            <Input value={form.bank_account_number} onChange={v => set('bank_account_number', v)} placeholder={masks.bank_account_number ? `unchanged (${masks.bank_account_number})` : ''} />
           </Field>
         </Grid>
       </SectionCard>
+
+      </>)}
 
       {/* ── Notes ── */}
       <SectionCard title="Notes" icon={AlertCircle}>

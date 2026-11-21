@@ -181,7 +181,7 @@ final class Facts
     {
         $facts = [];
         $employee = str_contains((string) $r->route()?->uri(), 'employees') && $r->route('id') ? Employee::find((int) $r->route('id')) : null;
-        $keys = $employee ? ['bank_name', 'bank_account_number', 'bank_account_name'] : ['bank_name', 'account_number', 'account_name', 'swift_code', 'branch_code', 'mobile_kind', 'mobile_number'];
+        $keys = $employee ? \App\Services\Hr\EmployeeAccess::ASSURED : ['bank_name', 'account_number', 'account_name', 'swift_code', 'branch_code', 'mobile_kind', 'mobile_number'];
         if ($employee) {
             $facts[] = ['label' => 'Whose pay', 'value' => trim((string) ($employee->user?->name ?? 'Employee '.$employee->employee_id))];
         }

@@ -17,6 +17,9 @@ class EmployeesImport implements ToModel, WithHeadingRow, WithChunkReading, With
 {
     public function __construct(private ?User $actor = null) {}
 
+    /** Rows whose pay and identity columns were left out, because the person importing may not change them (HR stage 1). */
+    public int $sensitiveIgnored = 0;
+
     public function chunkSize(): int { return 50; }
 
     /** Safely cast to string, returning null for empty/missing values */
@@ -114,9 +117,7 @@ class EmployeesImport implements ToModel, WithHeadingRow, WithChunkReading, With
             ], is_string($row['password'] ?? null) ? $row['password'] : null);
 
             // 2. Create/Update Employee record
-            return Employee::updateOrCreate(
-                ['user_id' => $user->id],
-                [
+            $values = [
                     'email'                        => $email,
                     'employee_number'              => $this->safeString($row['employee_number'] ?? null) ?? ('EMP-' . date('Y') . '-' . str_pad($user->id, 4, '0', STR_PAD_LEFT)),
                     'employee_id'                  => $this->safeString($row['employee_id'] ?? null),
@@ -153,8 +154,22 @@ class EmployeesImport implements ToModel, WithHeadingRow, WithChunkReading, With
                     'status'                       => $row['status'] ?? 'probation',
                     'notes'                        => $row['notes'] ?? null,
                     'created_by'                   => auth()->id(),
-                ]
-            );
+            ];
+            // pay and identity columns only from someone who may change them (HR stage 1); without, they are left as they are
+            if (! ($this->actor && $this->actor->hasPermission('hr.sensitive'))) {
+                $sensitive = array_intersect_key($values, array_flip(\App\Services\Hr\EmployeeAccess::TIERS['sensitive']));
+                if (array_filter($sensitive, fn ($v) => $v !== null && $v !== '' && $v !== 'KES')) {
+                    $this->sensitiveIgnored++;
+                }
+                $values = array_diff_key($values, $sensitive);
+            }
+            $before = Employee::where('user_id', $user->id)->first();
+            $snapshot = $before ? \App\Services\Hr\EmployeeHistory::snapshot($before) : null;
+            $employee = Employee::updateOrCreate(['user_id' => $user->id], $values);
+            $history = app(\App\Services\Hr\EmployeeHistory::class);
+            $snapshot === null ? $history->record($employee, null, 'imported', null, null, $this->actor) : $history->changes($employee, $snapshot, \App\Services\Hr\EmployeeHistory::snapshot($employee->fresh()), 'imported', $this->actor);
+
+            return $employee;
         });
     }
 

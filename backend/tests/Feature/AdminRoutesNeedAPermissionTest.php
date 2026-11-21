@@ -21,6 +21,7 @@ class AdminRoutesNeedAPermissionTest extends TestCase
         'api/admin/moodboards' => 'CampaignAccess',
         'api/admin/pins' => 'CampaignAccess',
         'api/admin/users' => 'UserPolicy: clearance and users.manage',
+        'api/admin/employees/{id}/reveal' => 'EmployeeController::reveal: hr.sensitive, or the person themselves when HR allows it',
         'api/admin/employees/my-record' => 'EmployeeController::myRecord: only the signed-in person\'s own record',
         'api/admin/ai-analytics' => 'AiProviderKeyPolicy and the module switches',
         'api/admin/verification' => 'VerificationService: assignments, verification.manage and override',

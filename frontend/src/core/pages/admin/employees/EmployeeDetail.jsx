@@ -66,6 +66,29 @@ function RoleBadge({ name }) {
   );
 }
 
+/** A masked number (HR stage 1): its last four, and Show for the whole of it, which is written to the person's history. */
+function MaskedRow({ label, field, employeeId, value }) {
+  const [full, setFull] = useState(null);
+  const [busy, setBusy] = useState(false);
+  if (!value) return <InfoRow label={label} value={null} mono />;
+  const show = async () => {
+    setBusy(true);
+    try { setFull((await employeesApi.reveal(employeeId, field)).value); } catch (e) { toast.error(e.response?.data?.message || 'That could not be shown.'); }
+    setBusy(false);
+  };
+  return (
+    <div data-hr-masked={field} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 10, padding: '9px 0', borderBottom: '1px solid color-mix(in srgb, var(--color-primary-500) 5%, transparent)' }}>
+      <span style={{ fontSize: '0.75rem', color: 'var(--text-tertiary)', flexShrink: 0 }}>{label}</span>
+      <span style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+        <span style={{ fontSize: '0.78rem', fontWeight: 600, fontFamily: 'monospace', color: 'var(--text-primary)' }}>{full ?? value}</span>
+        {full == null
+          ? <button type="button" onClick={show} disabled={busy} style={{ fontSize: '0.68rem', fontWeight: 700, padding: '3px 8px', borderRadius: 6, border: '1px solid color-mix(in srgb, var(--color-primary-500) 25%, transparent)', background: 'transparent', color: 'var(--color-primary-600)', cursor: 'pointer', fontFamily: 'inherit' }}>Show</button>
+          : <button type="button" onClick={() => setFull(null)} style={{ fontSize: '0.68rem', fontWeight: 700, padding: '3px 8px', borderRadius: 6, border: '1px solid color-mix(in srgb, var(--color-primary-500) 25%, transparent)', background: 'transparent', color: 'var(--text-secondary)', cursor: 'pointer', fontFamily: 'inherit' }}>Hide</button>}
+      </span>
+    </div>
+  );
+}
+
 function InfoRow({ label, value, mono }) {
   return (
     <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', padding: '9px 0', borderBottom: '1px solid color-mix(in srgb, var(--color-primary-500) 5%, transparent)' }}>
@@ -526,8 +549,10 @@ export default function EmployeeDetail() {
                 </div>
               </SectionCard>
               <SectionCard title="Compensation" icon={DollarSign}>
-                <InfoRow label="Salary Grade" value={employee.salary_grade} />
-                <InfoRow label="Base Salary" value={employee.base_salary ? `${employee.currency || getBaseCode()} ${parseFloat(employee.base_salary).toLocaleString()}` : null} />
+                {employee.tiers?.includes('sensitive') ? (<>
+                  <InfoRow label="Salary Grade" value={employee.salary_grade} />
+                  <InfoRow label="Base Salary" value={employee.base_salary ? `${employee.currency || getBaseCode()} ${parseFloat(employee.base_salary).toLocaleString()}` : null} />
+                </>) : <InfoRow label="Salary" value="Needs the permission for pay details" />}
                 <InfoRow label="Annual Leave Days" value={employee.annual_leave_days} />
                 <InfoRow label="Leave Balance" value={`${employee.leave_balance} days`} />
               </SectionCard>
@@ -550,17 +575,23 @@ export default function EmployeeDetail() {
                 <InfoRow label="Marital Status" value={employee.marital_status ? employee.marital_status.charAt(0).toUpperCase() + employee.marital_status.slice(1) : null} />
                 <InfoRow label="Education" value={employee.education_level} />
               </SectionCard>
-              <SectionCard title="Identification" icon={Hash}>
-                <InfoRow label="ID Number" value={employee.id_number} mono />
-                <InfoRow label="KRA PIN" value={employee.kra_pin} mono />
-                <InfoRow label="NSSF Number" value={employee.nssf_number} mono />
-                <InfoRow label="NHIF Number" value={employee.nhif_number} mono />
-              </SectionCard>
-              <SectionCard title="Bank Details" icon={CreditCard}>
-                <InfoRow label="Bank Name" value={employee.bank_name} />
-                <InfoRow label="Account Name" value={employee.bank_account_name} />
-                <InfoRow label="Account Number" value={employee.bank_account_number ? `****${employee.bank_account_number.slice(-4)}` : null} mono />
-              </SectionCard>
+              {employee.tiers?.includes('sensitive') ? (<>
+                <SectionCard title="Identification" icon={Hash}>
+                  <MaskedRow label="ID Number" field="id_number" employeeId={employee.id} value={employee.id_number} />
+                  <MaskedRow label="KRA PIN" field="kra_pin" employeeId={employee.id} value={employee.kra_pin} />
+                  <MaskedRow label="NSSF Number" field="nssf_number" employeeId={employee.id} value={employee.nssf_number} />
+                  <MaskedRow label="NHIF Number" field="nhif_number" employeeId={employee.id} value={employee.nhif_number} />
+                </SectionCard>
+                <SectionCard title="Bank Details" icon={CreditCard}>
+                  <InfoRow label="Bank Name" value={employee.bank_name} />
+                  <InfoRow label="Account Name" value={employee.bank_account_name} />
+                  <MaskedRow label="Account Number" field="bank_account_number" employeeId={employee.id} value={employee.bank_account_number} />
+                </SectionCard>
+              </>) : (
+                <SectionCard title="Pay and identity" icon={Hash}>
+                  <p data-hr-needs-permission style={{ margin: 0, fontSize: '0.78rem', color: 'var(--text-secondary)' }}>Bank, ID and tax details need the permission for pay, bank and identity details.</p>
+                </SectionCard>
+              )}
             </div>
           )}
 

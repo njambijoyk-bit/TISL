@@ -12,6 +12,20 @@ use Illuminate\Database\Eloquent\Builder;
  */
 class EmployeeAccess
 {
+    /** The three tiers of the record: who may see and change them is decided per tier (docs/HR_STAGE1_SPEC.md, "Fields sorted by who may see them"). */
+    public const TIERS = [
+        'work' => ['employee_number', 'employee_id', 'job_title', 'department', 'department_id', 'location_id', 'manager_id', 'employment_type', 'employment_type_id', 'hire_date', 'termination_date',
+            'work_location', 'work_phone', 'work_email', 'status', 'skills', 'certifications', 'notes', 'annual_leave_days', 'leave_balance'],
+        'personal' => ['date_of_birth', 'gender', 'marital_status', 'education_level', 'emergency_contact_name', 'emergency_contact_phone', 'emergency_contact_relationship'],
+        'sensitive' => ['salary_grade', 'base_salary', 'currency', 'bank_name', 'bank_account_name', 'bank_account_number', 'id_number', 'kra_pin', 'nssf_number', 'nhif_number'],
+    ];
+
+    /** Shown masked to their last four until Show is pressed. */
+    public const MASKED = ['bank_account_number', 'id_number', 'kra_pin', 'nssf_number', 'nhif_number'];
+
+    /** What identity numbers a change of asks the person to confirm who they are (with the bank details). */
+    public const ASSURED = ['bank_name', 'bank_account_number', 'bank_account_name', 'id_number', 'kra_pin', 'nssf_number', 'nhif_number'];
+
     /** @var array<int, int[]> */
     private array $lines = [];
 
@@ -64,5 +78,117 @@ class EmployeeAccess
         }
 
         return $this->lines[$u->id] = $out;
+    }
+
+    public static function tierOf(string $field): ?string
+    {
+        foreach (self::TIERS as $tier => $fields) {
+            if (in_array($field, $fields, true)) {
+                return $tier;
+            }
+        }
+
+        return null;
+    }
+
+    /** The tiers this user may see of this record. @return string[] */
+    public function seen(User $u, Employee $e): array
+    {
+        if (! $this->canSee($u, $e)) {
+            return [];
+        }
+        $own = (int) $e->user_id === (int) $u->id;
+        $tiers = ['work'];
+        if ($own || $u->hasPermission('hr.view') || $u->hasPermission('hr.manage') || ($u->hasPermission('hr.team') && $this->isAbove($u, $e))) {
+            $tiers[] = 'personal';   // managers see their line's personal tier (choice 3)
+        }
+        if ($u->hasPermission('hr.sensitive') || ($own && app(HrSettings::class)->get()['own_details'])) {
+            $tiers[] = 'sensitive';
+        }
+
+        return $tiers;
+    }
+
+    /** The tiers this user may change of this record (null: a new record). @return string[] */
+    public function changeable(User $u, ?Employee $e): array
+    {
+        if ($u->hasPermission('hr.manage')) {
+            return $u->hasPermission('hr.sensitive') ? ['work', 'personal', 'sensitive'] : ['work', 'personal'];
+        }
+
+        return $e && $u->hasPermission('hr.team') && $this->isAbove($u, $e) ? ['work'] : [];   // managers change work fields only (choice 3)
+    }
+
+    /** The fields of $input the user may not change, by tier. @return array<string, string[]> tier => fields */
+    public function refused(User $u, ?Employee $e, array $input): array
+    {
+        $may = $this->changeable($u, $e);
+        $out = [];
+        foreach ($input as $field => $value) {
+            $tier = self::tierOf((string) $field);
+            if (! $tier || in_array($tier, $may, true)) {
+                continue;
+            }
+            $now = $e ? EmployeeHistory::text($e->getAttribute($field)) : '';
+            $new = EmployeeHistory::text($value);
+            if ($new !== $now && ! (is_numeric($new) && is_numeric($now) && (float) $new === (float) $now)) {   // a form sends every field: only a real change counts
+                $out[$tier][] = (string) $field;
+            }
+        }
+
+        return $out;
+    }
+
+    /** What this user is sent of a record: the tiers they may see, numbers masked, plus which tiers and what they may do. @return array<string, mixed> */
+    public function shape(Employee $e, User $u): array
+    {
+        $seen = $this->seen($u, $e);
+        $a = $e->toArray();   // pay and identity details are hidden on the model
+        foreach (['manager', 'subordinates'] as $rel) {   // the people around them: who they are, never their details
+            if ($e->relationLoaded($rel)) {
+                $a[$rel] = $rel === 'manager' ? ($e->manager ? $this->brief($e->manager) : null) : $e->subordinates->map(fn ($x) => $this->brief($x))->values()->all();
+            }
+        }
+        if (! in_array('personal', $seen, true)) {
+            $a = array_diff_key($a, array_flip(self::TIERS['personal']));
+            unset($a['age']);
+        }
+        if (in_array('sensitive', $seen, true)) {
+            foreach (self::TIERS['sensitive'] as $f) {
+                $v = $e->getAttribute($f);
+                $a[$f] = in_array($f, self::MASKED, true) ? self::mask($v) : $v;
+            }
+        }
+        $may = $this->changeable($u, $e);
+
+        return $a + ['tiers' => $seen, 'can' => ['change' => $may, 'show' => in_array('sensitive', $seen, true), 'delete' => $u->hasPermission('hr.manage'), 'purge' => $u->hasPermission('hr.purge')]];
+    }
+
+    /** @return array<string, mixed> */
+    private function brief(Employee $x): array
+    {
+        return ['id' => $x->id, 'user_id' => $x->user_id, 'employee_number' => $x->employee_number, 'job_title' => $x->job_title, 'department' => $x->department, 'status' => $x->status,
+            'user' => $x->relationLoaded('user') && $x->user ? ['id' => $x->user->id, 'name' => $x->user->name, 'email' => $x->user->email] : null];
+    }
+
+    /** A masked value sent back by a form ("••••4471") means "unchanged": it is taken out before anything is saved. */
+    public static function stripMasked(\Illuminate\Http\Request $request): void
+    {
+        foreach (self::MASKED as $f) {
+            if (is_string($request->input($f)) && str_starts_with($request->input($f), '••••')) {
+                $request->offsetUnset($f);
+            }
+        }
+    }
+
+    /** "••••4471": the last four characters, or nothing to show. */
+    public static function mask($v): ?string
+    {
+        $v = trim((string) $v);
+        if ($v === '') {
+            return null;
+        }
+
+        return str_repeat('•', 4) . mb_substr($v, -min(4, max(1, mb_strlen($v) - 2)));
     }
 }

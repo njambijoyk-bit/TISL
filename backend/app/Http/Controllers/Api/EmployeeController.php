@@ -79,6 +79,7 @@ class EmployeeController extends Controller
 
         app(\App\Services\Hr\EmployeeAccess::class)->scope($query, $request->user());   // hr.team: their line and themselves
         $employees = $query->paginate($request->get('per_page', 20));
+        $employees->setCollection($employees->getCollection()->map(fn ($e) => app(\App\Services\Hr\EmployeeAccess::class)->shape($e, $request->user())));   // each row: only the tiers this person may see
 
         return response()->json($employees, 200);
     }
@@ -86,7 +87,7 @@ class EmployeeController extends Controller
     /**
      * Get single employee (ADMIN)
      */
-    public function show($id)
+    public function show(Request $request, $id)
     {
         $this->authorize('view', Employee::findOrFail($id));
 
@@ -97,7 +98,7 @@ class EmployeeController extends Controller
         }
 
         return response()->json([
-            'employee' => $employee,
+            'employee' => app(\App\Services\Hr\EmployeeAccess::class)->shape($employee, $request->user()),
             'stats' => [
                 'assigned_customers_count' => $employee->assignedCustomers()->count(),
                 'subordinates_count' => $employee->subordinates()->count(),
@@ -175,6 +176,10 @@ class EmployeeController extends Controller
 
         if ($validator->fails()) {
             return response()->json(['errors' => $validator->errors()], 422);
+        }
+        \App\Services\Hr\EmployeeAccess::stripMasked($request);
+        if ($why = $this->refusedTiers($request, null)) {
+            return $why;
         }
 
         if ($request->filled('role') && !app(Authorizer::class)->canAssignRoleKey($request->user(), $request->role)) {
@@ -260,7 +265,7 @@ class EmployeeController extends Controller
 
             return response()->json([
                 'message' => 'Employee record created successfully',
-                'employee' => $employee->load('user', 'manager.user')
+                'employee' => app(\App\Services\Hr\EmployeeAccess::class)->shape($employee->load('user', 'manager.user'), $request->user())
             ], 201);
         } catch (\Exception $e) {
             DB::rollBack();
@@ -383,8 +388,13 @@ class EmployeeController extends Controller
             }
         }
 
-        // where a person's pay goes is sensitive; the rest of their record is not. Only asked when a bank detail is actually being changed.
-        $bankChanged = fn () => collect(['bank_name', 'bank_account_number', 'bank_account_name'])->contains(fn ($k) => $request->has($k) && trim((string) $request->input($k)) !== trim((string) $employee->{$k}));
+        \App\Services\Hr\EmployeeAccess::stripMasked($request);
+        if ($why = $this->refusedTiers($request, $employee)) {
+            return $why;
+        }
+
+        // where a person's pay goes and who they are officially is sensitive; the rest of their record is not. Only asked when one of those is actually being changed.
+        $bankChanged = fn () => collect(\App\Services\Hr\EmployeeAccess::ASSURED)->contains(fn ($k) => $request->has($k) && trim((string) $request->input($k)) !== trim((string) $employee->{$k}));
         if ($held = \App\Http\Middleware\Assurance::check($request, 'bank_details', $bankChanged)) {
             return $held;
         }
@@ -449,7 +459,7 @@ class EmployeeController extends Controller
 
             return response()->json([
                 'message' => 'Employee updated successfully',
-                'employee' => $employee->fresh(['user', 'manager.user'])
+                'employee' => app(\App\Services\Hr\EmployeeAccess::class)->shape($employee->fresh(['user', 'manager.user']), $request->user())
             ], 200);
         } catch (\Exception $e) {
             DB::rollBack();
@@ -540,7 +550,7 @@ class EmployeeController extends Controller
             $employee->restore();
             return response()->json([
                 'message' => 'Employee restored',
-                'employee' => $employee->load('user')
+                'employee' => app(\App\Services\Hr\EmployeeAccess::class)->shape($employee->load('user'), request()->user())
             ], 200);
         } catch (\Exception $e) {
             return response()->json([
@@ -626,7 +636,7 @@ class EmployeeController extends Controller
         // No authorize() needed — the query already scopes to their own record
 
         return response()->json([
-            'employee' => $employee,
+            'employee' => app(\App\Services\Hr\EmployeeAccess::class)->shape($employee, $request->user()),
         ], 200);
     }
 
@@ -697,8 +707,11 @@ class EmployeeController extends Controller
         ]);
 
         try {
-            Excel::import(new EmployeesImport($request->user()), $request->file('file'));
-            return response()->json(['message' => 'Employees imported successfully.']);
+            $import = new EmployeesImport($request->user());
+            Excel::import($import, $request->file('file'));
+
+            return response()->json(['message' => 'Employees imported successfully.' . ($import->sensitiveIgnored ? " Pay and identity columns were left out on {$import->sensitiveIgnored} row(s): changing them needs the permission for pay, bank and identity details." : ''),
+                'sensitive_ignored' => $import->sensitiveIgnored]);
 
         } catch (ValidationException $e) {
             $failures = collect($e->failures())->take(5)->map(fn($f) => [
@@ -745,7 +758,7 @@ class EmployeeController extends Controller
 
         return response()->json([
             'message' => 'Skill added successfully',
-            'employee' => $employee->fresh()
+            'employee' => app(\App\Services\Hr\EmployeeAccess::class)->shape($employee->fresh(), request()->user())
         ], 200);
     }
 
@@ -769,7 +782,7 @@ class EmployeeController extends Controller
 
         return response()->json([
             'message' => 'Skill removed successfully',
-            'employee' => $employee->fresh()
+            'employee' => app(\App\Services\Hr\EmployeeAccess::class)->shape($employee->fresh(), request()->user())
         ], 200);
     }
 
@@ -805,7 +818,7 @@ class EmployeeController extends Controller
 
         return response()->json([
             'message'  => 'Certification added successfully',
-            'employee' => $employee->fresh(),
+            'employee' => app(\App\Services\Hr\EmployeeAccess::class)->shape($employee->fresh(), request()->user()),
         ], 200);
     }
 
@@ -829,7 +842,7 @@ class EmployeeController extends Controller
 
         return response()->json([
             'message'  => 'Certification removed successfully',
-            'employee' => $employee->fresh(),
+            'employee' => app(\App\Services\Hr\EmployeeAccess::class)->shape($employee->fresh(), request()->user()),
         ], 200);
     }
 
@@ -1002,7 +1015,7 @@ class EmployeeController extends Controller
 
             return response()->json([
                 'message' => "Employee status changed from {$oldStatus} to {$newStatus}",
-                'employee' => $employee->fresh(['user'])
+                'employee' => app(\App\Services\Hr\EmployeeAccess::class)->shape($employee->fresh(['user']), request()->user())
             ], 200);
         } catch (\Exception $e) {
             DB::rollBack();
@@ -1097,5 +1110,36 @@ class EmployeeController extends Controller
         }
 
         return (int) $today->diffInDays($nextBirthday);
+    }
+
+    /**
+     * Pay, bank and identity details shown in full, once (HR stage 1): for those who may see them, written to the history. field = one of the masked numbers.
+     */
+    public function reveal(Request $request, $id)
+    {
+        $employee = Employee::findOrFail($id);
+        $field = (string) $request->input('field');
+        $access = app(\App\Services\Hr\EmployeeAccess::class);
+        if (! in_array($field, \App\Services\Hr\EmployeeAccess::MASKED, true)) {
+            return response()->json(['message' => 'Choose a number to show.'], 422);
+        }
+        if (! in_array('sensitive', $access->seen($request->user(), $employee), true)) {
+            return response()->json(['message' => 'Pay and identity details need the permission to see them.'], 403);
+        }
+        app(\App\Services\Hr\EmployeeHistory::class)->record($employee, $field, 'shown', null, null, $request->user());
+
+        return response()->json(['field' => $field, 'value' => $employee->getAttribute($field)]);
+    }
+
+    /** A refusal naming the tiers this person may not change, or null. */
+    private function refusedTiers(Request $request, ?Employee $employee): ?\Illuminate\Http\JsonResponse
+    {
+        $refused = app(\App\Services\Hr\EmployeeAccess::class)->refused($request->user(), $employee, $request->all());
+        if (! $refused) {
+            return null;
+        }
+        $names = ['work' => 'work details', 'personal' => 'personal details', 'sensitive' => 'pay, bank and identity details'];
+
+        return response()->json(['message' => 'You may not change ' . implode(' or ', array_map(fn ($t) => $names[$t], array_keys($refused))) . ' here.', 'refused' => $refused], 403);
     }
 }

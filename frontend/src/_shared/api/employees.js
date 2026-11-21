@@ -115,6 +115,12 @@ const employeesAPI = {
   // ADMIN — Status
   // ============================================
 
+  // a masked number in full (HR stage 1): written to the person's history. { field, value }
+  reveal: async (id, field) => {
+    const response = await api.post(`/admin/employees/${id}/reveal`, { field });
+    return response.data;
+  },
+
   updateStatus: async (id, status) => {
     const response = await api.post(`/admin/employees/${id}/update-status`, { status });
     return response.data;

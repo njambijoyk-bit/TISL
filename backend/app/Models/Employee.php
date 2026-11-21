@@ -67,6 +67,13 @@ class Employee extends Model
         'annual_leave_days' => 'integer',
         'skills' => 'array',
         'certifications' => 'array',
+        // HR stage 1: bank and identity numbers are stored encrypted (old plain values still read)
+        'bank_account_number' => \App\Casts\EncryptedOrPlain::class,
+        'bank_account_name' => \App\Casts\EncryptedOrPlain::class,
+        'id_number' => \App\Casts\EncryptedOrPlain::class,
+        'kra_pin' => \App\Casts\EncryptedOrPlain::class,
+        'nssf_number' => \App\Casts\EncryptedOrPlain::class,
+        'nhif_number' => \App\Casts\EncryptedOrPlain::class,
         'created_at' => 'datetime',
         'updated_at' => 'datetime',
         'deleted_at' => 'datetime',
@@ -75,6 +82,12 @@ class Employee extends Model
     /**
      * Append custom attributes.
      */
+    /**
+     * Pay and identity details are never sent by default (HR stage 1): EmployeeAccess::shape adds them back, masked, for those who may see them.
+     * Code that reads them as attributes (payroll, the rota) is unaffected.
+     */
+    protected $hidden = ['salary_grade', 'base_salary', 'bank_name', 'bank_account_number', 'bank_account_name', 'id_number', 'kra_pin', 'nssf_number', 'nhif_number'];
+
     protected $appends = [
         'full_name',
         'tenure_years',

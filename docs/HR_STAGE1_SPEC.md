@@ -168,3 +168,32 @@ Size: medium. One script, one artisan command, two new permissions.
 - **Menu:** a new **People** group, always present, with Employees, Attendance, My payslips and Payroll, moved from Workplace and Operations.
 - **Screens:** the employee screens moved from `src/extras` to `src/core`. Their addresses are unchanged, and their routes accept `hr.view`, `hr.team` or `hr.manage`.
 - **Tests:** `tests/Feature/HrFoundationTest.php` (4), with a new `CreatesHrWorld` fixture. The permission snapshot and the staff-routes check list the changes.
+
+### 1.2 Tiers and protection (done)
+
+- **Script `271_hr_foundation.sql`**, the whole stage's script:
+  - Creates employment types (seeded with five, plus the types already typed on records), HR settings with versions, and the change history.
+  - Widens the six bank and identity columns to text, and links each employee to their employment type. Both are guarded.
+- **What is sent** (`EmployeeAccess::shape`):
+  - Pay and identity fields are hidden on the model itself, so no answer leaks them by accident. Payroll and the rota still read them as before.
+  - The record, the list, "my record" and every change endpoint send only the tiers the viewer may see, plus `tiers` and `can`.
+  - Managers and direct reports appear only as name, job and number, never with their details.
+  - With the pay and identity tier, the five numbers come masked as `••••6789`.
+- **Who may see which tier:**
+  - **Work:** anyone who may see the record.
+  - **Personal:** `hr.view`, `hr.manage`, managers for their line (choice 3), and the person.
+  - **Pay and identity:** `hr.sensitive`, and the person themselves unless HR configuration switches that off (choice 2).
+- **Who may change which tier:** `hr.manage` changes work and personal; with `hr.sensitive` also pay and identity. Managers with `hr.team` change their line's work fields only.
+  - A form that sends every field is fine. Only a real change to a tier the person may not change is refused, and the message names the tier.
+  - A masked number sent back counts as unchanged, so it can never overwrite the real one.
+- **Show:** `POST /employees/{id}/reveal` returns one masked number in full, for `hr.sensitive` or the person, and writes "shown" to the history.
+- **Encryption:**
+  - Bank account name and number, ID, KRA, NSSF and NHIF numbers are stored encrypted. A value saved before encryption still reads.
+  - `php artisan hr:encrypt-fields` encrypts the old values and says how many. It is safe to run again.
+  - Salary stays readable in the database for payroll (choice 1).
+- **Confirming who you are:** changing an ID, KRA, NSSF or NHIF number now asks for it, with the bank details. What changes is shown before agreeing.
+- **Import:** without `hr.sensitive`, pay and identity columns are left out, so they are no longer emptied on existing people, and the result says on how many rows. Imports are written to the history.
+- **Screens:**
+  - The record shows masked numbers with **Show** and **Hide**, or "needs the permission" in place of pay and identity.
+  - The form offers only the tiers you may change, leaves masked numbers empty ("unchanged (••••6789)"), and sends a number only when a new one is typed.
+- **Tests:** `tests/Feature/HrTiersTest.php` (4). The step-up test now reads the encrypted bank number through the model.
