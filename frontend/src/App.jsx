@@ -293,9 +293,9 @@ const ProjectsCase = lazy(() => import('./projects/pages/admin/ProjectsCase'));
 const ProjectConfiguration = lazy(() => import('./projects/pages/admin/ProjectConfiguration'));
 const UsersPage          = lazy(() => import('./core/pages/admin/users/Users'));
 const UserDetail         = lazy(() => import('./core/pages/admin/users/UserDetail'));
-const EmployeeList       = lazy(() => import('./extras/pages/admin/employees/EmployeeList'));
-const EmployeeDetail     = lazy(() => import('./extras/pages/admin/employees/EmployeeDetail'));
-const EmployeeForm       = lazy(() => import('./extras/pages/admin/employees/EmployeeForm'));
+const EmployeeList       = lazy(() => import('./core/pages/admin/employees/EmployeeList'));
+const EmployeeDetail     = lazy(() => import('./core/pages/admin/employees/EmployeeDetail'));
+const EmployeeForm       = lazy(() => import('./core/pages/admin/employees/EmployeeForm'));
 const Referrals          = lazy(() => import('./core/pages/admin/referrals/Referrals'));
 const ReferralDetail     = lazy(() => import('./core/pages/admin/referrals/ReferralDetail'));
 const PromoCodes         = lazy(() => import('./core/pages/admin/referrals/PromoCodes'));
@@ -1528,7 +1528,7 @@ function App() {
               <Route
                 path="/admin/employees"
                 element={
-                  <ProtectedRoute requireAdmin permission="hr.view">
+                  <ProtectedRoute requireAdmin permission="hr.view,hr.team,hr.manage">
                     <EmployeeList />
                   </ProtectedRoute>
                 }
@@ -1545,7 +1545,7 @@ function App() {
               <Route
                 path="/admin/employees/:id"
                 element={
-                  <ProtectedRoute requireAdmin permission="hr.view">
+                  <ProtectedRoute requireAdmin permission="hr.view,hr.team,hr.manage">
                     <RecordSidebar kind="employees"><EmployeeDetail /></RecordSidebar>
                   </ProtectedRoute>
                 }

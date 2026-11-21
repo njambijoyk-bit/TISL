@@ -206,13 +206,6 @@ export const ADMIN_NAV = [
     items: [
       { id: 'tickets', title: 'Help desk', icon: LifeBuoy, color: '#ef4444', path: '/admin/tickets', perm: 'tickets.manage', keywords: 'tickets support' },
       {
-        id: 'team', title: 'Team', icon: IdCardLanyard, color: '#eab308', path: '/admin/employees', keywords: 'employees staff',
-        tabs: [
-          { title: 'Employees', path: '/admin/employees', perm: 'hr.view' },
-          { title: 'Bulk edit', path: '/admin/settings/general/bulk/employees', perm: 'hr.manage' },
-        ],
-      },
-      {
         id: 'calendar', title: 'Calendar', icon: CalendarCheck, color: '#10b981', path: '/admin/calendar', also: ['/admin/bookings'], keywords: 'schedule bookings staff availability google ics appointments',
         tabs: [
           { title: 'My calendar', path: '/admin/calendar', exact: true },
@@ -224,7 +217,6 @@ export const ADMIN_NAV = [
       { id: 'bulk-import', title: 'Bulk import', icon: PackagePlus, color: '#0d9488', path: '/admin/bulk-import', module: MODULES.EXTRAS, perm: ['bulkimport.core', 'bulkimport.ecommerce', 'bulkimport.menus', 'bulkimport.memberships', 'bulkimport.events', 'bulkimport.courses', 'bulkimport.campaigns', 'bulkimport.careers', 'bulkimport.projects', 'bulkimport.listings', 'bulkimport.accommodations', 'bulkimport.extras'], keywords: 'import csv json xml excel xlsx markdown upload ingredients recipes products services hampers bulk' },
       { id: 'assets', title: 'Assets', icon: Boxes, color: '#c2410c', path: '/admin/assets', also: ['/admin/inventory'], perm: 'inventory.view', keywords: 'furniture equipment laptops issued loaned repairs depreciation register' },
       { id: 'analytics', title: 'Site analytics', icon: TrendingUp, color: '#0ea5e9', path: '/admin/settings/analytics', module: MODULES.EXTRAS, perm: 'analytics.view', keywords: 'visitors traffic' },   // its data needs Extras
-      { id: 'attendance', title: 'Attendance', icon: IdCardLanyard, color: '#eab308', path: '/admin/attendance', keywords: 'sign in clock staff present absent late verify dispute' },
       {
         id: 'mimi', title: 'Mimi AI', icon: Bot, color: '#3b82f6', path: '/admin/ai-analytics', module: MODULES.MIMI, keywords: 'ai assistant chatbot',
         tabs: [
@@ -234,6 +226,30 @@ export const ADMIN_NAV = [
           { title: 'Sessions', path: '/admin/ai-analytics/sessions', module: MODULES.EXTRAS },
           { title: 'Mimi', path: '/admin/ai-analytics/mimi', also: ['/admin/ai-analytics/mimi-sessions', '/admin/ai-analytics/mimi-eligibility', '/admin/ai-analytics/mimi-harmful'] },
           { title: 'Mimi knowledge', path: '/admin/ai-analytics/mimi-knowledge', perm: ['mimi.knowledge', 'mimi.routing'] },
+        ],
+      },
+    ],
+  },
+
+  {
+    id: 'people',
+    label: 'People',   // core: the HR hub (docs/HR_HUB_PLAN.md), whatever is licensed
+    items: [
+      {
+        id: 'team', title: 'Employees', icon: IdCardLanyard, color: '#eab308', path: '/admin/employees', perm: ['hr.view', 'hr.team', 'hr.manage'], keywords: 'employees staff team people hr records',
+        tabs: [
+          { title: 'Employees', path: '/admin/employees', perm: ['hr.view', 'hr.team', 'hr.manage'] },
+          { title: 'Bulk edit', path: '/admin/settings/general/bulk/employees', perm: 'hr.manage' },
+        ],
+      },
+      { id: 'attendance', title: 'Attendance', icon: IdCardLanyard, color: '#eab308', path: '/admin/attendance', keywords: 'sign in clock staff present absent late verify dispute' },
+      { id: 'my-payslips', title: 'My payslips', icon: Banknote, color: '#16a34a', path: '/admin/my-payslips', keywords: 'salary pay slip wages my pay' },
+      {
+        id: 'payroll', title: 'Payroll', icon: Banknote, color: '#16a34a', path: '/admin/payroll', perm: 'payroll.run', keywords: 'salary payslip paye nssf deductions wages',
+        tabs: [
+          { title: 'Runs', path: '/admin/payroll', exact: true },
+          { title: 'Gratuity', path: '/admin/payroll/gratuity' },
+          { title: 'Configuration', path: '/admin/payroll/settings' },
         ],
       },
     ],
@@ -384,15 +400,6 @@ export const ADMIN_NAV = [
           { title: 'Ratings', path: '/admin/delivery/ratings' },
           { title: 'Insights', path: '/admin/delivery/insights' },
           { title: 'Reports', path: '/admin/delivery/reports' },
-        ],
-      },
-      { id: 'my-payslips', title: 'My payslips', icon: Banknote, color: '#16a34a', path: '/admin/my-payslips', keywords: 'salary pay slip wages my pay' },
-      {
-        id: 'payroll', title: 'Payroll', icon: Banknote, color: '#16a34a', path: '/admin/payroll', perm: 'payroll.run', keywords: 'salary payslip paye nssf deductions wages',
-        tabs: [
-          { title: 'Runs', path: '/admin/payroll', exact: true },
-          { title: 'Gratuity', path: '/admin/payroll/gratuity' },
-          { title: 'Configuration', path: '/admin/payroll/settings' },
         ],
       },
     ],

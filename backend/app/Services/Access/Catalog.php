@@ -11,13 +11,14 @@ namespace App\Services\Access;
  */
 class Catalog
 {
-    public const VERSION = 26;
+    public const VERSION = 27;
 
     /** The key of the owner role: the one role that holds every permission, including ones added later. It cannot be changed or deleted. */
     public const OWNER = 'super_admin';
 
     /** Permissions added after version 1, by the version that added them. The seeder gives a new permission to the built-in roles that hold it by default once, and never again (an admin may take it back). */
     public const ADDED = [
+        27 => ['hr.sensitive', 'hr.configure'],   // HR stage 1: pay and identity details; HR configuration
         26 => ['projects.view_all', 'projects.create', 'projects.edit', 'projects.stage', 'projects.close', 'projects.freeze', 'projects.transfer', 'projects.confidential', 'projects.phases', 'projects.fields.sensitive', 'projects.export', 'projects.links', 'projects.members.view', 'projects.members.manage', 'projects.log.view', 'projects.log.export', 'projects.guests', 'projects.access.rules', 'projects.locks.reset', 'projects.approve', 'projects.security.view', 'projects.config.view', 'projects.config.manage', 'projects.config.industry', 'projects.config.names', 'projects.naming.personal', 'projects.config.fields', 'projects.config.stages', 'projects.config.roles', 'projects.shortcuts', 'projects.config.actions', 'projects.leads.view', 'projects.leads.manage', 'projects.pipeline', 'projects.clients.view', 'projects.clients.manage', 'projects.parties', 'projects.interactions', 'projects.health.view', 'projects.flags', 'projects.clients.export', 'projects.directory.yellow', 'projects.directory.white', 'projects.directory.contacts', 'projects.directory.staff', 'projects.directory.manage', 'projects.directory.visibility', 'projects.directory.publish', 'projects.directory.export', 'projects.money.view', 'projects.money.budget', 'projects.money.bill', 'projects.money.disbursements', 'projects.money.rates', 'projects.money.writeoff', 'projects.money.retention', 'projects.money.held.view', 'projects.money.held.pay', 'projects.ledgers.create', 'projects.ledgers.bank', 'projects.tasks', 'projects.scope', 'projects.dates', 'projects.changes', 'projects.changes.approve', 'projects.time.log', 'projects.time.approve', 'projects.time.others', 'projects.capacity', 'projects.daily', 'projects.materials', 'projects.plant', 'projects.subcontracts', 'projects.inspections', 'projects.messages.client', 'projects.messages.internal', 'projects.messages.moderate', 'projects.meetings', 'projects.inbox.all', 'projects.files.view', 'projects.files.manage', 'projects.files.share', 'projects.files.sign', 'projects.templates', 'projects.team.view', 'projects.team.manage', 'projects.team.checklists', 'projects.casebook.report', 'projects.casebook.handle', 'projects.casebook.configure', 'projects.casebook.identity', 'projects.insights', 'projects.insights.team', 'projects.kpis', 'projects.rules'],
         25 => ['events.admin'],
         24 => ['books.budget.exceed'],
@@ -202,7 +203,9 @@ class Catalog
         'projects.use'      => ['projects', 'Projects', 'Open Projects and work on the projects you are on', false],
         'projects.delete'   => ['projects', 'Projects', 'Put projects and their parts in the trash and take them back out', true],
         'projects.purge'    => ['projects', 'Projects', 'Delete from the Projects trash for good', true],
-        'hr.manage'         => ['extras', 'People', 'Manage employee records', true],
+        'hr.manage'         => [null, 'People', 'Manage employee records', true],
+        'hr.sensitive'      => [null, 'People', 'See and change pay, bank and identity details', true],
+        'hr.configure'      => [null, 'People', 'Set up HR (employment types, numbering, required fields)', true],
         'careers.manage'    => ['careers', 'People', 'Post jobs and manage applications', true],
         'analytics.view'    => ['extras', 'Insight', 'See search and customer analytics', false],
         'insight.mimi'      => [null, 'Insight', 'See the Mimi chat analytics and block abusers', true],
@@ -259,9 +262,9 @@ class Catalog
         'calendar.team'     => [null, 'People', 'See the team calendar and other people\'s calendars', false],
         'attendance.manage' => [null, 'People', 'Mark and verify attendance and set the attendance rules', true],
         'attendance.arbitrate' => [null, 'People', 'Settle attendance disputes, see who reported, mark your own day', true],
-        'hr.view'           => ['extras', 'People', 'See employee records', false],
-        'hr.purge'          => ['extras', 'People', 'Delete employee records for good', true],
-        'hr.team'           => ['extras', 'People', 'Edit the records of the people who report to you', true],
+        'hr.view'           => [null, 'People', 'See employee records', false],
+        'hr.purge'          => [null, 'People', 'Delete employee records for good', true],
+        'hr.team'           => [null, 'People', 'See and edit the work details of the people who report to you', true],
         'campaigns.admin'   => ['campaigns', 'Campaigns', 'Change the customer pin settings and see who looked', true],
         'campaigns.purge'   => ['campaigns', 'Campaigns', 'Delete boards, campaigns, pins and moodboards for good', true],
         'catalogue.publish' => ['ecommerce', 'Catalogue', 'Make price lists and catalogues live', true],
@@ -396,7 +399,7 @@ class Catalog
     public const OWNER_ONLY = ['system.modules', 'system.devtools', 'system.restore', 'access.roles', 'books.period', 'books.statements', 'books.reports.format', 'books.reports.reconcile_setup', 'books.reports.approval', 'books.close.prepare', 'books.tax.control', 'books.tax.admin', 'payroll.run', 'currency.base',
         'vault.settings', 'algorithm.run', 'projects.purge', 'tickets.purge', 'users.purge',
         'books.writeoff', 'books.bounce', 'verification.override', 'attendance.arbitrate', 'hr.purge', 'campaigns.purge', 'driver.app',
-        'vault.bypass', 'ai.keys', 'settings.delete', 'mimi.routing', 'notifications.keys.purge', 'payments.keys', 'security.manage', 'projects.ledgers.bank', 'projects.casebook.identity'];
+        'vault.bypass', 'ai.keys', 'hr.sensitive', 'settings.delete', 'mimi.routing', 'notifications.keys.purge', 'payments.keys', 'security.manage', 'projects.ledgers.bank', 'projects.casebook.identity'];
 
     /** Things a role can approve, optionally up to an amount. approval key => label. */
     public const APPROVALS = [

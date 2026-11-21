@@ -21,6 +21,7 @@ class AdminRoutesNeedAPermissionTest extends TestCase
         'api/admin/moodboards' => 'CampaignAccess',
         'api/admin/pins' => 'CampaignAccess',
         'api/admin/users' => 'UserPolicy: clearance and users.manage',
+        'api/admin/employees/my-record' => 'EmployeeController::myRecord: only the signed-in person\'s own record',
         'api/admin/ai-analytics' => 'AiProviderKeyPolicy and the module switches',
         'api/admin/verification' => 'VerificationService: assignments, verification.manage and override',
         'api/admin/attendance' => 'AttendanceService: everyone marks their own day; verifying and settling need attendance permissions',

@@ -3036,7 +3036,7 @@ Route::middleware('auth:sanctum')->group(function () {
         });
 
 
-        Route::prefix('employees')->middleware('module:extras')->group(function () {
+        Route::prefix('employees')->group(function () {
             Route::get('/my-record', [EmployeeController::class, 'myRecord']);
             Route::get('/template', [EmployeeController::class, 'downloadTemplate'])->middleware('permission:hr.manage');
             Route::post('/import', [EmployeeController::class, 'bulkImport'])->middleware('permission:hr.manage');
@@ -3406,10 +3406,6 @@ Route::middleware('auth:sanctum')->group(function () {
         });
 
 
-        // Own employee record
-        Route::prefix('employees')->middleware('module:extras')->group(function () {
-            Route::get('/my-record', [EmployeeController::class, 'myRecord']);
-        });
 
 
         Route::prefix('analytics')->middleware(['module:extras', 'permission:analytics.view'])->group(function () {
@@ -3520,10 +3516,6 @@ Route::middleware('auth:sanctum')->group(function () {
         });
 
 
-        // Own employee record
-        Route::prefix('employees')->group(function () {
-            Route::get('/my-record', [EmployeeController::class, 'myRecord']);
-        });
     });
 
     // ── Mimi analytics (admin/super_admin/manager) ─────────────────────────────────────
@@ -3768,7 +3760,7 @@ Route::middleware('auth:sanctum')->group(function () {
             Route::post('/{id}/activate',        [ReferralController::class, 'activate']);
         });
 
-        Route::prefix('employees')->middleware(['module:extras', 'permission:hr.manage'])->group(function () {
+        Route::prefix('employees')->middleware('permission:hr.view,hr.team,hr.manage')->group(function () {
             Route::get('/',                         [EmployeeController::class, 'index']);
             Route::get('/statistics',               [EmployeeController::class, 'statistics']);
             Route::get('/departments',              [EmployeeController::class, 'departments']);

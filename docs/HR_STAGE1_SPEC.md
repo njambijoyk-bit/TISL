@@ -1,6 +1,6 @@
 # HR Stage 1: Foundation (spec)
 
-Status: spec, waiting for the owner. Stage 1 of `docs/HR_HUB_PLAN.md`. The four choices at the end are my recommendations; say if any should change, or say "go".
+Status: being built. Stage 1 of `docs/HR_HUB_PLAN.md`. The owner said "go" on 2026-11-21, so the four choices at the end are taken as recommended. What is built is under "As built".
 
 Stage 1 makes the employee record a core part of TISL, with no Extras licence needed. It sorts the record's fields by who may see them, protects the sensitive ones, keeps a history of every change, and gives the record a proper page and HR its own configuration. Everything later (documents, hiring, leave, overtime, the profile) stands on this.
 
@@ -137,9 +137,34 @@ Plus the `hr.sensitive` and `hr.configure` permissions in the catalogue (granted
 
 Size: medium. One script, one artisan command, two new permissions.
 
-## Four choices (my recommendation first; say if any should change)
+## Four choices (taken as recommended; say if any should change)
 
 1. **Salary is protected by permission, not encrypted.** Bank, ID and tax numbers are encrypted, but salary stays readable in the database, because payroll and the rota calculate and search on it. Only `hr.sensitive` and the person see it on screen. (The other way: encrypt salary too, and change payroll and the rota to decrypt in code, which is slower and a bigger change.)
 2. **People see their own pay and identity details.** An employee sees their own salary, bank and ID details on their record (masked until Show), so they can check them. It can be switched off in HR configuration. (The other way: only HR sees them.)
 3. **Managers see their line's work and personal tiers and change work fields only.** With `hr.team`, a manager sees and edits job, department and similar for the people who report to them, sees their personal tier, but not pay and identity. Today `hr.team` can change everything. (The other way: managers see work fields only.)
 4. **The history shows sensitive old and new values to `hr.sensitive`.** Kept encrypted and shown only to those who may see pay and identity details, so a wrong bank change can be traced and put right. (The other way: record only "changed", with no values, for sensitive fields.)
+
+## As built
+
+### 1.1 Core move (done)
+
+- **Routes:** the employee routes no longer need Extras.
+  - The list and record answer to `hr.view`, `hr.team` or `hr.manage`.
+  - "My record" answers to anyone signed in, and shows only their own.
+- **Permissions:**
+  - `hr.view`, `hr.manage`, `hr.team` and `hr.purge` are core.
+  - `hr.sensitive` and `hr.configure` are added (catalogue version 27). `hr.sensitive` is owner-only by default, like payroll; `hr.configure` goes to admins.
+  - `hr.team` now reads "See and edit the work details of the people who report to you".
+- **Who sees and changes whom** (`App\Services\Hr\EmployeeAccess`):
+  - `hr.view` and `hr.manage` see everyone.
+  - `hr.team` sees their whole line (reports, and their reports' reports, however deep) and themselves. That applies to the list, statistics, leave logs and birthdays.
+  - Anyone sees their own record.
+  - Changing needs `hr.manage`, or `hr.team` for someone in their line. Every change endpoint (record, skills, certifications, leave days, status) checks the person being changed.
+  - A person no longer changes their own record here. My HR comes in stage 8.
+- **Bugs fixed:**
+  - `hr.view` did nothing on the server; it now lets people look.
+  - `hr.team` could change **anyone's** record, because the check never named the person; it now covers only their line.
+  - "My record" was registered three times, and the copy that won sat in the delivery group. So only people with the delivery permission and Extras could see their own record; now everyone can.
+- **Menu:** a new **People** group, always present, with Employees, Attendance, My payslips and Payroll, moved from Workplace and Operations.
+- **Screens:** the employee screens moved from `src/extras` to `src/core`. Their addresses are unchanged, and their routes accept `hr.view`, `hr.team` or `hr.manage`.
+- **Tests:** `tests/Feature/HrFoundationTest.php` (4), with a new `CreatesHrWorld` fixture. The permission snapshot and the staff-routes check list the changes.

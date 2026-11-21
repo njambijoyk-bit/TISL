@@ -191,6 +191,8 @@ class NoRoleNamesInCodeTest extends TestCase
         'projects.delete' => ['super_admin', 'admin'],
         'projects.purge' => ['super_admin'],
         'hr.manage' => ['super_admin', 'admin'],
+        'hr.sensitive' => ['super_admin'],   // pay and identity details: the owner's to give, like payroll
+        'hr.configure' => ['super_admin', 'admin'],
         'careers.manage' => ['super_admin', 'admin'],
         'analytics.view' => ['super_admin', 'admin', 'manager', 'finance'],
         'insight.mimi' => ['super_admin', 'admin', 'manager'],

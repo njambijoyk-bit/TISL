@@ -77,6 +77,7 @@ class EmployeeController extends Controller
             $query->orderBy($sortBy, $sortOrder);
         }
 
+        app(\App\Services\Hr\EmployeeAccess::class)->scope($query, $request->user());   // hr.team: their line and themselves
         $employees = $query->paginate($request->get('per_page', 20));
 
         return response()->json($employees, 200);
@@ -87,7 +88,7 @@ class EmployeeController extends Controller
      */
     public function show($id)
     {
-        $this->authorize('view', Employee::class);
+        $this->authorize('view', Employee::findOrFail($id));
 
         $employee = Employee::with(['user', 'manager.user', 'subordinates.user', 'assignedCustomers'])
             ->findOrFail($id);
@@ -293,7 +294,7 @@ class EmployeeController extends Controller
      */
     public function update(Request $request, $id)
     {
-        $this->authorize('update', Employee::class);
+        $this->authorize('update', Employee::findOrFail($id));   // your line with hr.team, anyone with hr.manage
 
         $employee = Employee::findOrFail($id);
 
@@ -552,24 +553,25 @@ class EmployeeController extends Controller
     /**
      * Get employee statistics
      */
-    public function statistics()
+    public function statistics(Request $request)
     {
         $this->authorize('viewAny', Employee::class);
+        $seen = fn () => app(\App\Services\Hr\EmployeeAccess::class)->scope(Employee::query(), $request->user());   // hr.team counts their line
 
         $stats = [
-            'total_employees' => Employee::count(),
-            'active' => Employee::active()->count(),
-            'on_leave' => Employee::onLeave()->count(),
-            'probation' => Employee::probation()->count(),
-            'terminated' => Employee::terminated()->count(),
-            'by_department' => Employee::selectRaw('department, COUNT(*) as count')
+            'total_employees' => $seen()->count(),
+            'active' => $seen()->active()->count(),
+            'on_leave' => $seen()->onLeave()->count(),
+            'probation' => $seen()->probation()->count(),
+            'terminated' => $seen()->terminated()->count(),
+            'by_department' => $seen()->selectRaw('department, COUNT(*) as count')
                 ->whereNotNull('department')
                 ->groupBy('department')
                 ->pluck('count', 'department'),
-            'by_employment_type' => Employee::selectRaw('employment_type, COUNT(*) as count')
+            'by_employment_type' => $seen()->selectRaw('employment_type, COUNT(*) as count')
                 ->groupBy('employment_type')
                 ->pluck('count', 'employment_type'),
-            'by_status' => Employee::selectRaw('status, COUNT(*) as count')
+            'by_status' => $seen()->selectRaw('status, COUNT(*) as count')
                 ->groupBy('status')
                 ->pluck('count', 'status'),
         ];
@@ -728,7 +730,7 @@ class EmployeeController extends Controller
      */
     public function addSkill(Request $request, $id)
     {
-        $this->authorize('update', Employee::class);
+        $this->authorize('update', Employee::findOrFail($id));   // your line with hr.team, anyone with hr.manage
 
         $validator = Validator::make($request->all(), [
             'skill' => 'required|string|max:100'
@@ -752,7 +754,7 @@ class EmployeeController extends Controller
      */
     public function removeSkill(Request $request, $id)
     {
-        $this->authorize('update', Employee::class);
+        $this->authorize('update', Employee::findOrFail($id));   // your line with hr.team, anyone with hr.manage
 
         $validator = Validator::make($request->all(), [
             'skill' => 'required|string'
@@ -776,7 +778,7 @@ class EmployeeController extends Controller
      */
     public function addCertification(Request $request, $id)
     {
-        $this->authorize('update', Employee::class);
+        $this->authorize('update', Employee::findOrFail($id));   // your line with hr.team, anyone with hr.manage
 
         $validator = Validator::make($request->all(), [
             'name'   => 'required|string|max:255',
@@ -812,7 +814,7 @@ class EmployeeController extends Controller
      */
     public function removeCertification(Request $request, $id, $index)
     {
-        $this->authorize('update', Employee::class);
+        $this->authorize('update', Employee::findOrFail($id));   // your line with hr.team, anyone with hr.manage
 
         $employee = Employee::findOrFail($id);
 
@@ -836,7 +838,7 @@ class EmployeeController extends Controller
      */
     public function addLeaveDays(Request $request, $id)
     {
-        $this->authorize('update', Employee::class);
+        $this->authorize('update', Employee::findOrFail($id));   // your line with hr.team, anyone with hr.manage
 
         $validator = Validator::make($request->all(), [
             'days'   => 'required|numeric|min:0',
@@ -874,7 +876,7 @@ class EmployeeController extends Controller
      */
     public function useLeaveDays(Request $request, $id)
     {
-        $this->authorize('update', Employee::class);
+        $this->authorize('update', Employee::findOrFail($id));   // your line with hr.team, anyone with hr.manage
 
         $validator = Validator::make($request->all(), [
             'days'   => 'required|numeric|min:0',
@@ -917,7 +919,7 @@ class EmployeeController extends Controller
      */
     public function leaveLogs($id)
     {
-        $this->authorize('viewAny', Employee::class);
+        $this->authorize('view', Employee::withTrashed()->findOrFail($id));
 
         $logs = LeaveLog::where('employee_id', $id)
             ->with('actionedBy:id,name')
@@ -948,6 +950,7 @@ class EmployeeController extends Controller
         if ($request->filled('employee_id')) {
             $query->where('employee_id', $request->employee_id);
         }
+        $query->whereIn('employee_id', app(\App\Services\Hr\EmployeeAccess::class)->scope(Employee::withTrashed(), $request->user())->select('id'));   // only people you may see
 
         $logs = $query->paginate($request->get('per_page', 50));
 
@@ -959,7 +962,7 @@ class EmployeeController extends Controller
      */
     public function updateStatus(Request $request, $id)
     {
-        $this->authorize('update', Employee::class);
+        $this->authorize('update', Employee::findOrFail($id));   // your line with hr.team, anyone with hr.manage
 
         $validator = Validator::make($request->all(), [
             'status' => 'required|in:active,on_leave,suspended,terminated,probation'
@@ -1021,7 +1024,7 @@ class EmployeeController extends Controller
         $today = now();
         $endDate = $today->copy()->addDays($days);
 
-        $employees = Employee::with('user')
+        $employees = app(\App\Services\Hr\EmployeeAccess::class)->scope(Employee::with('user'), $request->user())
             ->whereNotNull('date_of_birth')
             ->where(function ($query) use ($today, $endDate) {
                 // Handle year wrap-around
