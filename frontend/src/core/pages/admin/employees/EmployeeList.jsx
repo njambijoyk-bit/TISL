@@ -1,4 +1,6 @@
 import { useState, useEffect, useCallback } from 'react';
+import { useSearchParams } from 'react-router-dom';
+import departmentsAPI from '../../../../_shared/api/departments';
 import { useNavigate, Link } from 'react-router-dom';
 import {
   Search, Filter, ChevronDown, ChevronUp, ChevronLeft, ChevronRight,
@@ -176,10 +178,13 @@ export default function EmployeeList() {
   const [employees, setEmployees]   = useState([]);
   const [loading, setLoading]       = useState(true);
   const [pagination, setPagination] = useState({ current_page: 1, last_page: 1, total: 0 });
-  const [filters, setFilters]       = useState({ search: '', status: '', department: '', employment_type: '', manager_id: '', joined_days: '' });
+  const [searchParams] = useSearchParams();
+  const [filters, setFilters]       = useState({ ...{ search: '', status: '', department: '', employment_type: '', manager_id: '', joined_days: '' }, department_id: searchParams.get('department_id') ?? '' });   // a department's staff count links here (HR stage 1b)
+  const [deptList, setDeptList]     = useState([]);   // departments as "Branch › Department"
+  useEffect(() => { departmentsAPI.list().then(d => setDeptList((d.data ?? []).map(x => ({ id: x.id, label: `${x.location?.name ?? ''} › ${x.name}` })))).catch(() => {}); }, []);
   const [departments, setDepartments] = useState([]);
   const [statistics, setStatistics] = useState(null);
-  const [showFilters, setShowFilters] = useState(false);
+  const [showFilters, setShowFilters] = useState(() => !!new URLSearchParams(window.location.search).get('department_id'));   // open when a department link brought them here
   const [sortBy, setSortBy]         = useState('created_at');
   const [sortOrder, setSortOrder]   = useState('desc');
 
@@ -297,7 +302,7 @@ export default function EmployeeList() {
     finally { setTrashActionId(null); setConfirmModal(null); }
   };
 
-  const hasFilters = filters.search || filters.status || filters.department || filters.employment_type || filters.manager_id || filters.joined_days;
+  const hasFilters = filters.search || filters.status || filters.department || filters.employment_type || filters.manager_id || filters.joined_days || filters.department_id;
   const SortArrow = ({ col }) => (
     <span style={{ marginLeft: 3, color: sortBy === col ? 'var(--color-primary-500)' : 'var(--text-tertiary)' }}>
       {sortBy === col && sortOrder === 'asc' ? <ChevronUp size={12} style={{ display: 'inline' }} /> : <ChevronDown size={12} style={{ display: 'inline' }} />}
@@ -437,10 +442,17 @@ export default function EmployeeList() {
               <option value="">All statuses</option>
               {Object.entries(STATUS_META).map(([v, { label }]) => <option key={v} value={v}>{label}</option>)}
             </select>
-            <select value={filters.department} onChange={e => setFilters(f => ({ ...f, department: e.target.value }))} style={selectStyle} onFocus={sFocus} onBlur={sBlur}>
-              <option value="">All departments</option>
-              {departments.map(d => <option key={d} value={d}>{d}</option>)}
-            </select>
+            {deptList.length > 0 ? (
+              <select aria-label="Department" value={filters.department_id} onChange={e => setFilters(f => ({ ...f, department_id: e.target.value }))} style={selectStyle} onFocus={sFocus} onBlur={sBlur}>
+                <option value="">All departments</option>
+                {deptList.map(d => <option key={d.id} value={d.id}>{d.label}</option>)}
+              </select>
+            ) : (
+              <select value={filters.department} onChange={e => setFilters(f => ({ ...f, department: e.target.value }))} style={selectStyle} onFocus={sFocus} onBlur={sBlur}>
+                <option value="">All departments</option>
+                {departments.map(d => <option key={d} value={d}>{d}</option>)}
+              </select>
+            )}
             <select value={filters.employment_type} onChange={e => setFilters(f => ({ ...f, employment_type: e.target.value }))} style={selectStyle} onFocus={sFocus} onBlur={sBlur}>
               <option value="">All types</option>
               {(types.length ? types.map(t => [t.key, t.name]) : Object.entries(EMPLOYMENT_TYPE_LABELS)).map(([v, l]) => <option key={v} value={v}>{l}</option>)}
@@ -463,7 +475,7 @@ export default function EmployeeList() {
             </button>
             {hasFilters && (
               <button
-                onClick={() => { setFilters({ search: '', status: '', department: '', employment_type: '', manager_id: '', joined_days: '' }); setTimeout(() => fetchEmployees(1), 0); }}
+                onClick={() => { setFilters({ ...{ search: '', status: '', department: '', employment_type: '', manager_id: '', joined_days: '' }, department_id: '' }); setTimeout(() => fetchEmployees(1), 0); }}
                 style={{ fontSize: '0.78rem', fontWeight: 600, color: 'var(--text-tertiary)', background: 'none', border: 'none', cursor: 'pointer', fontFamily: 'inherit', padding: '0 4px', transition: 'color 150ms' }}
                 onMouseEnter={e => e.currentTarget.style.color = '#ef4444'}
                 onMouseLeave={e => e.currentTarget.style.color = '#c4b5fd'}
@@ -523,7 +535,7 @@ export default function EmployeeList() {
                         </p>
                         {hasFilters && (
                           <button
-                            onClick={() => { setFilters({ search: '', status: '', department: '', employment_type: '', manager_id: '', joined_days: '' }); setTimeout(() => fetchEmployees(1), 0); }}
+                            onClick={() => { setFilters({ ...{ search: '', status: '', department: '', employment_type: '', manager_id: '', joined_days: '' }, department_id: '' }); setTimeout(() => fetchEmployees(1), 0); }}
                             style={{ fontSize: '0.75rem', fontWeight: 600, color: 'var(--color-primary-500)', background: 'none', border: 'none', cursor: 'pointer', fontFamily: 'inherit' }}
                           >
                             Clear filters

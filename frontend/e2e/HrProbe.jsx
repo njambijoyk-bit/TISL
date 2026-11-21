@@ -3,6 +3,8 @@ import EmployeeList from '/src/core/pages/admin/employees/EmployeeList.jsx';
 import EmployeeDetail from '/src/core/pages/admin/employees/EmployeeDetail.jsx';
 import EmployeeForm from '/src/core/pages/admin/employees/EmployeeForm.jsx';
 import HrConfiguration from '/src/core/pages/admin/hr/HrConfiguration.jsx';
+import DepartmentPage from '/src/core/pages/admin/hr/DepartmentPage.jsx';
+import Departments from '/src/core/pages/admin/settings/Departments.jsx';
 
 /** The HR screens with their own addresses (HR stage 1). Starts at ?at=/admin/employees/... */
 export default function HrProbe() {
@@ -15,6 +17,8 @@ export default function HrProbe() {
       <Route path="/admin/employees/:id" element={<EmployeeDetail />} />
       <Route path="/admin/employees/:id/edit" element={<EmployeeForm />} />
       <Route path="/admin/hr/configuration" element={<HrConfiguration />} />
+      <Route path="/admin/settings/departments" element={<Departments />} />
+      <Route path="/admin/departments/:id" element={<DepartmentPage />} />
     </Routes>
   );
 }

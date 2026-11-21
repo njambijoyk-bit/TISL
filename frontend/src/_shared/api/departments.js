@@ -13,6 +13,10 @@ const departmentsAPI = {
   /** a lead (HR stage 1b): { employee_id, role: head | assistant, sensitivity: work | personal | full } → { leads } */
   appointLead: (id, d) => api.post(`/admin/departments/${id}/leads`, d).then((r) => r.data),
   removeLead: (id, employeeId) => api.delete(`/admin/departments/${id}/leads/${employeeId}`).then((r) => r.data),
+  /** a department's page (HR stage 1b): { department, leads, needs_full_lead, people, spend, projects, others, departments, can } */
+  page: (id) => api.get(`/admin/departments/${id}/page`).then((r) => r.data),
+  /** move someone into this department, or out into another */
+  movePerson: (id, employeeId, toDepartmentId) => api.post(`/admin/departments/${id}/people`, { employee_id: employeeId, to_department_id: toDepartmentId }).then((r) => r.data),
   shares: (employeeId) => api.get(`/admin/employee-cost-centres/${employeeId}`).then((r) => r.data),
   saveShares: (employeeId, shares) => api.put(`/admin/employee-cost-centres/${employeeId}`, { shares }).then((r) => r.data),
 };

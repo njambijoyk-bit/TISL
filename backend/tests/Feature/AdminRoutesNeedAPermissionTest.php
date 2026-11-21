@@ -21,6 +21,8 @@ class AdminRoutesNeedAPermissionTest extends TestCase
         'api/admin/moodboards' => 'CampaignAccess',
         'api/admin/pins' => 'CampaignAccess',
         'api/admin/users' => 'UserPolicy: clearance and users.manage',
+        'api/admin/departments/{id}/page' => 'DepartmentPage: HR and the department\'s leads',
+        'api/admin/departments/{id}/people' => 'DepartmentPage::move: HR, or the head of each department involved',
         'api/admin/employees' => 'EmployeePolicy and EmployeeAccess: hr.view, hr.team for their line, department leads for their department, the person for themselves',
         'api/admin/employees/{id}/history' => 'EmployeeController::history: the record\'s viewers, each reading the tiers they may see',
         'api/admin/employees/{id}/reveal' => 'EmployeeController::reveal: hr.sensitive, or the person themselves when HR allows it',

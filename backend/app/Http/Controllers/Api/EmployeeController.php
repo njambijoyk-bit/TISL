@@ -109,6 +109,9 @@ class EmployeeController extends Controller
 
         return response()->json([
             'employee' => app(\App\Services\Hr\EmployeeAccess::class)->shape($employee, $request->user()),
+            // their department, its branch and its head (HR stage 1b)
+            'department' => $employee->department_id && \App\Models\Department::ready() && ($dep = \App\Models\Department::with('location:id,name')->find($employee->department_id)) ? ['id' => $dep->id, 'name' => $dep->name, 'branch' => $dep->location?->name,
+                'head' => collect(app(\App\Services\Hr\DepartmentLeads::class)->of($dep->id))->firstWhere('role', 'head')['name'] ?? null] : null,
             'stats' => [
                 'assigned_customers_count' => $employee->assignedCustomers()->count(),
                 'subordinates_count' => $employee->subordinates()->count(),

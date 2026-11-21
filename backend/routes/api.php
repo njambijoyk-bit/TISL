@@ -2548,6 +2548,8 @@ Route::middleware('auth:sanctum')->group(function () {
             Route::delete('/standard', [$c, 'removeStandard'])->middleware('permission:hr.manage');
             Route::put('/{id}',        [$c, 'update'])->whereNumber('id')->middleware('permission:hr.manage');
             Route::delete('/{id}',     [$c, 'destroy'])->whereNumber('id')->middleware('permission:hr.manage');
+            Route::get('/{id}/page', [$c, 'page'])->whereNumber('id');   // DepartmentPage decides: HR and the department's leads (HR stage 1b)
+            Route::post('/{id}/people', [$c, 'movePerson'])->whereNumber('id');   // HR, or the head of each department involved
             Route::post('/{id}/leads', [$c, 'appointLead'])->whereNumber('id')->middleware('permission:hr.manage');   // head and assistants with their sensitivity (HR stage 1b)
             Route::delete('/{id}/leads/{employee}', [$c, 'removeLead'])->whereNumber(['id', 'employee'])->middleware('permission:hr.manage');
         });

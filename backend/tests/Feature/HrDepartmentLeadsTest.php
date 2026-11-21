@@ -121,4 +121,65 @@ class HrDepartmentLeadsTest extends TestCase
         Department::query()->update(['is_active' => false]);
         $this->assertNull($m->invoke($ctrl, \App\Models\Location::find($this->westlands)));
     }
+
+    public function test_the_department_page_shows_its_leads_people_and_spend_to_those_who_may_see_them(): void
+    {
+        $head = $this->person('Wanjiru', ['hr.sensitive']);
+        $id = $this->dept('Construction', $head);
+        $other = $this->dept('Design', $this->person('Peter', ['hr.sensitive']));
+        $amina = $this->person('Amina', [], ['department_id' => $id, 'job_title' => 'Foreman']);
+        $kamau = $this->person('Kamau', [], ['department_id' => $other]);
+        DB::table('employees')->where('id', $this->employeeOf($head))->update(['department_id' => $id]);
+
+        // the books: one expense this month on a project cost centre under the department, one last year
+        $cc = (int) DB::table('departments')->where('id', $id)->value('cost_centre_id');
+        $project = DB::table('cost_centres')->insertGetId(['name' => 'BW-0509', 'code' => 'BW-0509', 'parent_id' => $cc]);
+        Schema::create('ledger_groups', fn ($t) => [$t->id(), $t->string('nature')]);
+        Schema::create('ledgers', fn ($t) => [$t->id(), $t->unsignedBigInteger('group_id')]);
+        Schema::create('vouchers', fn ($t) => [$t->id(), $t->string('status'), $t->date('date'), $t->unsignedBigInteger('cost_centre_id')->nullable()]);
+        Schema::create('voucher_entries', fn ($t) => [$t->id(), $t->unsignedBigInteger('voucher_id'), $t->unsignedBigInteger('ledger_id'), $t->string('side'), $t->decimal('amount', 14, 2), $t->unsignedBigInteger('cost_centre_id')->nullable()]);
+        DB::table('ledger_groups')->insert(['id' => 1, 'nature' => 'expense']);
+        DB::table('ledgers')->insert(['id' => 1, 'group_id' => 1]);
+        DB::table('vouchers')->insert([['id' => 1, 'status' => 'posted', 'date' => now()->toDateString(), 'cost_centre_id' => $project], ['id' => 2, 'status' => 'posted', 'date' => now()->subYear()->toDateString(), 'cost_centre_id' => $cc]]);
+        DB::table('voucher_entries')->insert([['voucher_id' => 1, 'ledger_id' => 1, 'side' => 'D', 'amount' => 12500, 'cost_centre_id' => null], ['voucher_id' => 2, 'ledger_id' => 1, 'side' => 'D', 'amount' => 999, 'cost_centre_id' => null]]);
+
+        Sanctum::actingAs($head, ['*']);
+        $page = $this->getJson("/api/admin/departments/{$id}/page")->assertOk()->json();
+        $this->assertSame(['Construction', 'Westlands'], [$page['department']['name'], $page['department']['branch']]);
+        $this->assertStringEndsWith('Construction', $page['department']['cost_centre']['path']);
+        $this->assertSame(['Amina', 'Wanjiru'], array_column($page['people'], 'name'));
+        $this->assertSame('head', collect($page['people'])->firstWhere('name', 'Wanjiru')['lead']);
+        $this->assertNull($page['spend'], 'no figures without books.view (choice 4)');
+        $this->assertTrue($page['can']['move']);
+
+        $this->grant($head, ['admin.access', 'hr.sensitive', 'books.view']);
+        $spend = $this->getJson("/api/admin/departments/{$id}/page")->json('spend');
+        $this->assertEquals([12500, 12500], [$spend['month']['spent'], $spend['year']['spent']], 'its projects\' costs roll up into the department');
+
+        Sanctum::actingAs($this->person('Njeri'), ['*']);
+        $this->getJson("/api/admin/departments/{$id}/page")->assertForbidden();
+        Sanctum::actingAs($this->person('Grace', ['hr.view']), ['*']);
+        $this->getJson("/api/admin/departments/{$id}/page")->assertOk()->assertJsonPath('can.move', false);
+    }
+
+    public function test_hr_or_the_heads_involved_move_people_and_it_is_written_to_their_history(): void
+    {
+        $wanjiru = $this->person('Wanjiru', ['hr.sensitive']);
+        $id = $this->dept('Construction', $wanjiru);
+        $peter = $this->person('Peter', ['hr.sensitive']);
+        $design = $this->dept('Design', $peter);
+        $amina = $this->person('Amina', [], ['department_id' => $design]);
+        $loose = $this->person('Kamau');
+
+        Sanctum::actingAs($wanjiru, ['*']);
+        $this->postJson("/api/admin/departments/{$id}/people", ['employee_id' => $this->employeeOf($amina), 'to_department_id' => $id])->assertForbidden();   // she is in Design: its head must agree, or HR
+        $this->postJson("/api/admin/departments/{$id}/people", ['employee_id' => $this->employeeOf($loose), 'to_department_id' => $id])->assertOk();   // nobody's yet: the head may take them in
+        $e = DB::table('employees')->where('id', $this->employeeOf($loose))->first();
+        $this->assertSame([$id, $this->westlands, 'Construction'], [(int) $e->department_id, (int) $e->location_id, $e->department]);
+        $this->assertSame('Moved on the department page', DB::table('employee_changes')->where('employee_id', $this->employeeOf($loose))->where('field', 'department_id')->value('reason'));
+
+        Sanctum::actingAs($this->person('Grace', ['hr.manage']), ['*']);
+        $this->postJson("/api/admin/departments/{$id}/people", ['employee_id' => $this->employeeOf($amina), 'to_department_id' => $id])->assertOk();
+        $this->assertSame($id, (int) DB::table('employees')->where('id', $this->employeeOf($amina))->value('department_id'));
+    }
 }

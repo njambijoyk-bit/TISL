@@ -150,4 +150,21 @@ class DepartmentController extends Controller
 
         return response()->json(['message' => 'Removed.', 'leads' => app(\App\Services\Hr\DepartmentLeads::class)->of($dept->id)]);
     }
+
+    /** The department's page (HR stage 1b, D.2): leads, people, spend (books.view), projects. HR and its leads. */
+    public function page(Request $request, int $id): JsonResponse
+    {
+        return response()->json(app(\App\Services\Hr\DepartmentPage::class)->show(Department::findOrFail($id), $request->user()));
+    }
+
+    /** Move someone into this department, or out of it into another: employee_id, to_department_id. HR, or the heads involved. */
+    public function movePerson(Request $request, int $id): JsonResponse
+    {
+        $d = $request->validate(['employee_id' => 'required|integer', 'to_department_id' => 'required|integer']);
+        $dept = Department::findOrFail($id);
+        $page = app(\App\Services\Hr\DepartmentPage::class);
+        $page->move($dept, (int) $d['employee_id'], (int) $d['to_department_id'], $request->user());
+
+        return response()->json($page->show($dept, $request->user()));
+    }
 }

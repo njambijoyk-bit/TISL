@@ -172,3 +172,27 @@ Size: medium. One script, no new permission. Departments need `costcentres.manag
   - Adding a department asks for its head at each branch.
 - **Also fixed:** "departments are set up" was remembered for the whole process, so it could answer from a moment when the tables were not there. It is now asked each time.
 - **Tests:** `tests/Feature/HrDepartmentLeadsTest.php` (4).
+
+### D.2 People in a department, and the department page (done)
+
+Screens: `docs/screens/hr-department-leads.png` (the Leads window) and `docs/screens/hr-department-page.png`.
+
+- **People in a department:**
+  - The staff count on the Departments page links to the employee list for that department, with the filters open.
+  - The list's department filter shows departments as "Westlands › Construction". Before script 101, the old text filter stays.
+  - Each person's record shows their department as a link to its page, with its branch and head.
+- **The department page** (`/admin/departments/{id}`; reached from the department's name on the Departments page and from each person's record):
+  - **Who may open it:** HR (`hr.view` or `hr.manage`) and the department's leads.
+  - **What it shows:**
+    - its branch, and its cost centre with its path in Books;
+    - its leads with their sensitivity, and a warning if it needs a Full lead;
+    - its people (job, status, who they report to, lead role), each linking to their record;
+    - with Projects licensed, the open work it owns, shared work marked "shared".
+  - **Spend:** this month and this year from Books, on its cost centre and everything under it, so its projects' costs are included. Only with `books.view` (choice 4).
+- **Moving people:**
+  - "Move someone in", or "Move to…" on a row.
+  - Allowed for HR (`hr.manage`), or the head of each department involved. A head can take in someone who has no department yet, but needs the other head (or HR) to take someone from another department.
+  - The branch follows the department, so a person's department and branch never disagree.
+  - The move is written to the person's history ("Moved on the department page"), and their home cost centre share follows.
+- **Routes:** `GET /departments/{id}/page` and `POST /departments/{id}/people`. Each checks who may use it.
+- **Tests:** `HrDepartmentLeadsTest` (now 6). Browser check `e2e/hr-departments-ui.mjs` (14), covering D.1 and D.2.

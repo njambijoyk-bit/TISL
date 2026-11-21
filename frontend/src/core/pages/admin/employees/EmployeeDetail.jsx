@@ -235,6 +235,7 @@ export default function EmployeeDetail() {
   const [employee, setEmployee]       = useState(null);
   const [loading, setLoading]         = useState(true);
   const [activeTab, setActiveTab]     = useState('overview');
+  const [dept, setDept]               = useState(null);   // their department, its branch and head (HR stage 1b)
   const [actionLoading, setActionLoading] = useState(false);
 
   // Modal states
@@ -257,7 +258,7 @@ export default function EmployeeDetail() {
 
   const fetchEmployee = async () => {
     setLoading(true);
-    try { const data = await employeesApi.getEmployee(id); setEmployee(data.employee); }
+    try { const data = await employeesApi.getEmployee(id); setEmployee(data.employee); setDept(data.department ?? null); }
     catch { toast.error('Failed to load employee'); navigate('/admin/employees'); }
     finally { setLoading(false); }
   };
@@ -419,7 +420,7 @@ export default function EmployeeDetail() {
             {[
               { label: 'Status',          content: <Badge status={employee.status} /> },
               { label: 'Role',            content: <RoleBadge name={employee.user?.role_name} /> },
-              { label: 'Department',      content: <span style={{ fontSize: '0.82rem', fontWeight: 600, color: 'var(--text-primary)', display: 'flex', alignItems: 'center', gap: 5 }}><Building2 size={13} style={{ color: 'var(--text-tertiary)' }} />{employee.department || '—'}</span> },
+              { label: 'Department',      content: <span style={{ fontSize: '0.82rem', fontWeight: 600, color: 'var(--text-primary)', display: 'flex', alignItems: 'center', gap: 5 }}><Building2 size={13} style={{ color: 'var(--text-tertiary)' }} />{dept ? <Link to={`/admin/departments/${dept.id}`} data-employee-dept>{dept.branch ? `${dept.branch} › ` : ''}{dept.name}</Link> : (employee.department || '—')}{dept?.head && <span style={{ fontWeight: 400, color: 'var(--text-tertiary)' }}> · head {dept.head}</span>}</span> },
               { label: 'Employment Type', content: <span style={{ fontSize: '0.82rem', fontWeight: 600, color: 'var(--text-primary)' }}>{EMPLOYMENT_TYPE_LABELS[employee.employment_type] || '—'}</span> },
               { label: 'Hire Date',       content: <span style={{ fontSize: '0.82rem', fontWeight: 600, color: 'var(--text-primary)', display: 'flex', alignItems: 'center', gap: 5 }}><Calendar size={13} style={{ color: 'var(--text-tertiary)' }} />{fmtDate(employee.hire_date)}</span> },
               { label: 'Email',           content: <span style={{ fontSize: '0.78rem', color: 'var(--text-secondary)', display: 'flex', alignItems: 'center', gap: 5 }}><Mail size={12} style={{ color: 'var(--text-tertiary)' }} />{employee.user?.email || '—'}</span> },

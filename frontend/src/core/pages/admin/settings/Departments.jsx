@@ -180,7 +180,7 @@ export default function Departments() {
             {(byBranch.get(b.id) ?? []).map((d) => (
               <div key={d.id} style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '8px 14px 8px 36px', borderTop: `1px solid ${colors.border ?? 'var(--line)'}`, opacity: d.is_active ? 1 : 0.5 }}>
                 <div style={{ flex: 1, minWidth: 0, fontSize: '0.84rem' }}>
-                  {d.name}
+                  <Link to={`/admin/departments/${d.id}`} data-dept-page={d.id}>{d.name}</Link>
                   {d.cost_centre && <span style={{ marginLeft: 8, fontSize: '0.7rem', color: colors.textMuted, fontFamily: 'monospace' }}>{d.cost_centre.code}</span>}
                   <Link to={`/admin/employees?department_id=${d.id}`} data-dept-staff={d.id} style={{ marginLeft: 8, fontSize: '0.72rem', color: 'var(--color-primary-600)' }}>{d.employees_count} staff</Link>
                   {(d.leads ?? []).filter((l) => l.role === 'head').map((l) => <span key={l.employee_id} style={{ marginLeft: 8, fontSize: '0.72rem', color: colors.textMuted }}>Head: {l.name}</span>)}
